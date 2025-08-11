@@ -1,0 +1,9 @@
+# *
+User-agent: *
+Allow: /
+
+# Host
+Host: https://mstefan.dev
+
+# Sitemaps
+Sitemap: https://mstefan.dev/sitemap.xml

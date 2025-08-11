@@ -1,0 +1,52 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Accent in HSL. Change this to tweak the vibe. */
+  --accent: 270 89% 56%;
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  @apply bg-white text-black antialiased;
+}
+
+a {
+  @apply underline decoration-accent/50 underline-offset-4 hover:decoration-accent;
+}
+
+.container {
+  @apply mx-auto max-w-3xl px-6;
+}
+
+/* Prose defaults */
+.prose {}
+.prose a {
+  @apply no-underline border-b border-accent/50 hover:border-accent;
+}
+
+/* Subtle card style */
+.card {
+  @apply rounded-2xl border border-black/10 bg-black/[0.03] backdrop-blur-sm shadow-soft;
+}
+
+/* Dark mode overrides */
+.dark body {
+  @apply bg-black text-white;
+}
+.dark .prose {
+  @apply prose-invert;
+}
+.dark .card {
+  @apply border-white/10 bg-white/5 shadow-softDark;
+}
+
+/* Focus ring */
+:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px hsl(var(--accent));
+}
