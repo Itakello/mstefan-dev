@@ -10,7 +10,7 @@ export function IconLink({
   label: string;
   icon: React.ReactNode;
 }) {
-  const isExternal = /^https?:\/\//.test(href);
+  const isExternal = /^(https?:|mailto:|tel:)/.test(href);
   if (isExternal) {
     return (
       <a

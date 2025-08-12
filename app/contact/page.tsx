@@ -1,6 +1,5 @@
 import { IconLink } from "@/components/IconLink";
-import { Github, Linkedin } from "lucide-react";
-import { SiX } from "react-icons/si";
+import { Icon } from "@iconify/react";
 
 export const metadata = { title: "Contact" };
 
@@ -13,19 +12,24 @@ export default function ContactPage() {
       </p>
       <div className="flex flex-wrap gap-3">
         <IconLink
-          href="https://www.linkedin.com/in/itakello/"
-          label="LinkedIn"
-          icon={<Linkedin className="size-4" />}
-        />
-        <IconLink
-          href="https://x.com/itakello"
-          label="X"
-          icon={<SiX className="size-4" />}
+          href="mailto:massimo@mstefan.dev"
+          label="Email"
+          icon={<Icon icon="logos:mailgun-icon" className="size-4" />}
         />
         <IconLink
           href="https://github.com/your-handle"
           label="GitHub"
-          icon={<Github className="size-4" />}
+          icon={<Icon icon="logos:github-icon" className="size-4" />}
+        />
+        <IconLink
+          href="https://www.linkedin.com/in/itakello/"
+          label="LinkedIn"
+          icon={<Icon icon="logos:linkedin-icon" className="size-4" />}
+        />
+        <IconLink
+          href="https://x.com/itakello"
+          label="Twitter / X"
+          icon={<Icon icon="logos:x" className="size-4" />}
         />
       </div>
     </section>
