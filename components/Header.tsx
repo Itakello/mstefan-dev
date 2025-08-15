@@ -44,10 +44,10 @@ export function Header() {
             className="rounded-xl object-cover"
             priority
           />
-          <div className="font-semibold tracking-tight">Massimo Stefan</div>
+          <div className="hidden sm:block font-semibold tracking-tight">Massimo Stefan</div>
         </div>
       </Link>
-      <nav className="flex items-center gap-6 text-sm">
+      <nav className="flex items-center gap-4 sm:gap-6 text-sm">
         {links.map(l => (
           <Link
             key={l.href}
