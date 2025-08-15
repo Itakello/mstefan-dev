@@ -1,4 +1,6 @@
 import { ArrowUpRight, Code } from "lucide-react";
+import { Icon } from "@iconify/react";
+import { getIconKeyForLanguage } from "@/lib/languageIcon";
 
 type Props = {
   title: string;
@@ -31,6 +33,7 @@ export function ProjectCard({ title, summary, year, url, tags, language }: Props
     language || (tags || []).find((t) => KNOWN_LANGUAGES.has(t));
   const nonLanguageTags = (tags || []).filter((t) => !KNOWN_LANGUAGES.has(t));
 
+  const iconKey = getIconKeyForLanguage(detectedLanguage);
   return (
     <a
       href={url || "#"}
@@ -57,7 +60,11 @@ export function ProjectCard({ title, summary, year, url, tags, language }: Props
       )}
       {detectedLanguage && (
         <div className="mt-3 inline-flex items-center gap-2 text-xs text-black/60 dark:text-white/70">
-          <Code className="size-4 opacity-70" />
+          {iconKey ? (
+            <Icon icon={iconKey} className="text-base opacity-80" />
+          ) : (
+            <Code className="size-4 opacity-70" />
+          )}
           <span className="font-medium">{detectedLanguage}</span>
         </div>
       )}

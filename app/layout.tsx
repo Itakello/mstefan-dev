@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { useMDXComponents } from "./mdx-components";
 import "./globals.css";
 import { Header } from "@/components/Header";
@@ -35,6 +36,22 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning>
       <body>
+        <Script id="theme-init" strategy="beforeInteractive">
+          {`
+            (function () {
+              try {
+                var stored = localStorage.getItem('theme');
+                var systemDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+                var isDark = stored ? stored === 'dark' : systemDark;
+                if (isDark) {
+                  document.documentElement.classList.add('dark');
+                } else {
+                  document.documentElement.classList.remove('dark');
+                }
+              } catch (e) {}
+            })();
+          `}
+        </Script>
         <div className="container">
           <Header />
           <main className="py-10">{children}</main>

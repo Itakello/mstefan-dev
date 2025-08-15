@@ -17,9 +17,9 @@ export default function ContactPage() {
           icon={<Icon icon="logos:mailgun-icon" className="size-4" />}
         />
         <IconLink
-          href="https://github.com/your-handle"
+          href="https://github.com/Itakello"
           label="GitHub"
-          icon={<Icon icon="logos:github-icon" className="size-4" />}
+          icon={<Icon icon="simple-icons:github" className="size-4 text-black dark:text-white" />}
         />
         <IconLink
           href="https://www.linkedin.com/in/itakello/"
@@ -28,8 +28,8 @@ export default function ContactPage() {
         />
         <IconLink
           href="https://x.com/itakello"
-          label="Twitter / X"
-          icon={<Icon icon="logos:x" className="size-4" />}
+          label="X"
+          icon={<Icon icon="simple-icons:x" className="size-4 text-black dark:text-white" />}
         />
       </div>
     </section>

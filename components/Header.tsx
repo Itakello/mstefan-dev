@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Moon, Sun } from "lucide-react";
@@ -35,7 +36,14 @@ export function Header() {
     <header className="flex items-center justify-between pt-8">
       <Link href="/" className="group">
         <div className="flex items-center gap-3">
-          <div className="size-8 rounded-xl bg-[hsl(var(--accent))]" />
+          <Image
+            src="/profile-pic.jpg"
+            alt="Portrait of Massimo Stefan"
+            width={32}
+            height={32}
+            className="rounded-xl object-cover"
+            priority
+          />
           <div className="font-semibold tracking-tight">Massimo Stefan</div>
         </div>
       </Link>
