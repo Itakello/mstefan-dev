@@ -52,6 +52,7 @@ These are optional unless you use the Notion and enrichment scripts.
 
 - `NOTION_TOKEN`: Notion integration token
 - `NOTION_DATABASE_ID`: Target database ID
+- `NOTION_STACK_DATABASE_ID`: Stack database ID used by the About page and project technology icons
 - `GITHUB_TOKEN` (optional): increases GitHub API rate limit for server-side fetching
 - `OPENAI_API_KEY` (only for enrichment script)
 - `GITHUB_USER` (optional for scripts): defaults to `Itakello`
@@ -66,6 +67,8 @@ Notion database expected properties (create these columns):
 - `Status` (status: "To Add", "Added", "Removed")
 
 The website will render from Notion when `NOTION_TOKEN` and `NOTION_DATABASE_ID` are present; otherwise it falls back to `content/projects.ts` plus GitHub repos.
+
+Stack records require `Name` (title), `Category` (select), `Icon key` (rich text), and `Website visible` (checkbox). When `NOTION_TOKEN` and `NOTION_STACK_DATABASE_ID` are absent—or the Stack database has no complete records—the website uses the checked-in fallback catalog.
 
 ## Useful scripts
 ```bash
@@ -107,4 +110,3 @@ scripts/            # Notion/GitHub automation scripts
 ## Notes
 - MDX is enabled; you can add `.mdx` pages/components if desired.
 - The Projects page merges curated items with GitHub repos; Notion (when configured) can replace the curated list entirely.
-
