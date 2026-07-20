@@ -1,13 +1,11 @@
 import { Prose } from "@/components/Prose";
 import { StackCatalog } from "@/components/StackCatalog";
-import { fetchStackFromNotion } from "@/lib/notion";
-import { fallbackStack } from "@/lib/stack";
+import { loadWebsiteStack } from "@/lib/websiteStack";
 
 export const metadata = { title: "About" };
 
 export default async function AboutPage() {
-  const notionStack = await fetchStackFromNotion().catch(() => null);
-  const stack = (notionStack && notionStack.length > 0 ? notionStack : fallbackStack).filter(
+  const stack = (await loadWebsiteStack()).filter(
     (entry) => entry.websiteVisible
   );
 
@@ -34,4 +32,3 @@ export default async function AboutPage() {
     </Prose>
   );
 }
-
