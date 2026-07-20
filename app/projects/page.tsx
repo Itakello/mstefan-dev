@@ -1,6 +1,7 @@
 import { ProjectCard } from "@/components/ProjectCard";
 import { projects as curatedProjects, type Project } from "@/content/projects";
-import { fetchProjectsFromNotion, type NotionProject } from "@/lib/notion";
+import { fetchProjectsFromNotion, fetchStackFromNotion, type NotionProject } from "@/lib/notion";
+import { fallbackStack } from "@/lib/stack";
 
 export const metadata = { title: "Projects" };
 
@@ -86,7 +87,7 @@ function mergeAndEnrichProjects(
       year: p.year || match?.year,
       // keep non-language tags only
       tags: filteredTags.length > 0 ? filteredTags : undefined,
-      language: curatedLanguageTag || (match?.language || undefined) || undefined,
+      language: p.language || curatedLanguageTag || (match?.language || undefined) || undefined,
       sortTimestamp: match?.timestamp,
     };
     if (urlKey) seenUrls.add(urlKey);
@@ -136,10 +137,12 @@ function mergeAndEnrichProjects(
 }
 
 export default async function ProjectsPage() {
-  const [repos, notion] = await Promise.all([
+  const [repos, notion, notionStack] = await Promise.all([
     fetchGitHubRepos(),
     fetchProjectsFromNotion().catch(() => null),
+    fetchStackFromNotion().catch(() => null),
   ]);
+  const stackCatalog = notionStack && notionStack.length > 0 ? notionStack : fallbackStack;
 
   const base: Project[] = (notion && notion.length > 0)
     ? notion.map((n: NotionProject) => ({
@@ -147,6 +150,7 @@ export default async function ProjectsPage() {
         summary: n.summary,
         url: n.url,
         tags: n.tags,
+        language: n.language,
         year: n.year,
       }))
     : curatedProjects;
@@ -165,7 +169,7 @@ export default async function ProjectsPage() {
           <h2 className="text-xl font-semibold">{year}</h2>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             {groups[year].map((p) => (
-              <ProjectCard key={`${year}-${p.title}`} {...p} />
+              <ProjectCard key={`${year}-${p.title}`} {...p} stackCatalog={stackCatalog} />
             ))}
           </div>
         </div>

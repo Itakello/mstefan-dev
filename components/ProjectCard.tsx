@@ -1,6 +1,11 @@
 import { ArrowUpRight, Code } from "lucide-react";
-import { Icon } from "@iconify/react";
-import { getIconKeyForLanguage } from "@/lib/languageIcon";
+import { StackBadge } from "@/components/StackBadge";
+import {
+  fallbackStack,
+  findStackEntry,
+  resolveProjectStack,
+  type StackEntry
+} from "@/lib/stack";
 
 type Props = {
   title: string;
@@ -9,9 +14,10 @@ type Props = {
   url?: string;
   tags?: string[];
   language?: string;
+  stackCatalog?: readonly StackEntry[];
 };
 
-export function ProjectCard({ title, summary, year, url, tags, language }: Props) {
+export function ProjectCard({ title, summary, year, url, tags, language, stackCatalog }: Props) {
   const KNOWN_LANGUAGES = new Set([
     "JavaScript",
     "TypeScript",
@@ -33,7 +39,13 @@ export function ProjectCard({ title, summary, year, url, tags, language }: Props
     language || (tags || []).find((t) => KNOWN_LANGUAGES.has(t));
   const nonLanguageTags = (tags || []).filter((t) => !KNOWN_LANGUAGES.has(t));
 
-  const iconKey = getIconKeyForLanguage(detectedLanguage);
+  const technologyLabels = [detectedLanguage, ...nonLanguageTags].filter(
+    (label): label is string => Boolean(label)
+  );
+  const catalog = stackCatalog ?? fallbackStack;
+  const technologies = resolveProjectStack(technologyLabels, catalog);
+  const unresolvedTags = nonLanguageTags.filter((tag) => !findStackEntry(tag, catalog));
+  const languageEntry = detectedLanguage ? findStackEntry(detectedLanguage, catalog) : undefined;
   return (
     <a
       href={url || "#"}
@@ -46,9 +58,12 @@ export function ProjectCard({ title, summary, year, url, tags, language }: Props
         <ArrowUpRight className="size-4 opacity-70" />
       </div>
       <p className="mt-2 text-sm text-black/70 dark:text-white/80">{summary}</p>
-      {nonLanguageTags && nonLanguageTags.length > 0 && (
+      {(technologies.length > 0 || unresolvedTags.length > 0) && (
         <div className="mt-4 flex flex-wrap gap-2">
-          {nonLanguageTags.map((t) => (
+          {technologies.map((item) => (
+            <StackBadge key={item.name} item={item} />
+          ))}
+          {unresolvedTags.map((t) => (
             <span
               key={t}
               className="rounded-full border px-2.5 py-1 text-xs border-black/10 bg-black/[0.03] text-black/70 dark:border-white/10 dark:bg-white/5 dark:text-white/70"
@@ -59,14 +74,12 @@ export function ProjectCard({ title, summary, year, url, tags, language }: Props
         </div>
       )}
       {detectedLanguage && (
-        <div className="mt-3 inline-flex items-center gap-2 text-xs text-black/60 dark:text-white/70">
-          {iconKey ? (
-            <Icon icon={iconKey} className="text-base opacity-80" />
-          ) : (
+        !languageEntry && (
+          <div className="mt-3 inline-flex items-center gap-2 text-xs text-black/60 dark:text-white/70">
             <Code className="size-4 opacity-70" />
-          )}
-          <span className="font-medium">{detectedLanguage}</span>
-        </div>
+            <span className="font-medium">{detectedLanguage}</span>
+          </div>
+        )
       )}
       {/* Year intentionally not shown on the card; grouping is by year above */}
     </a>

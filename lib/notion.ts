@@ -1,5 +1,7 @@
 import { Client } from "@notionhq/client";
 
+import type { StackEntry } from "@/lib/stack";
+
 export type NotionProject = {
   title: string;
   summary: string;
@@ -70,6 +72,44 @@ export async function fetchProjectsFromNotion(databaseId?: string): Promise<Noti
   return pages;
 }
 
+export async function fetchStackFromNotion(databaseId?: string): Promise<StackEntry[] | null> {
+  const client = getNotionClient();
+  const db = databaseId || process.env.NOTION_STACK_DATABASE_ID;
+  if (!client || !db) return null;
+
+  const entries: StackEntry[] = [];
+  let cursor: string | undefined;
+
+  do {
+    const response = await client.databases.query({
+      database_id: db,
+      start_cursor: cursor,
+      sorts: [{ property: "Name", direction: "ascending" }]
+    });
+
+    for (const page of response.results as any[]) {
+      const properties = page.properties ?? {};
+      const name = richText(properties.Name?.title);
+      const iconKey = richText(properties["Icon key"]?.rich_text);
+      const category = properties.Category?.select?.name as string | undefined;
+
+      if (!name || !iconKey || !category) continue;
+
+      entries.push({
+        name,
+        iconKey,
+        category,
+        proficiency: properties.Proficiency?.select?.name ?? undefined,
+        websiteVisible: Boolean(properties["Website visible"]?.checkbox)
+      });
+    }
+
+    cursor = response.has_more ? response.next_cursor ?? undefined : undefined;
+  } while (cursor);
+
+  return entries;
+}
+
 export async function upsertNotionProject(params: {
   databaseId?: string;
   title: string;
@@ -119,4 +159,7 @@ export async function upsertNotionProject(params: {
   }
 }
 
+function richText(items: any[] | undefined) {
+  return (items ?? []).map((item) => item.plain_text).join("").trim();
+}
 

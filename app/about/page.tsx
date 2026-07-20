@@ -1,8 +1,16 @@
 import { Prose } from "@/components/Prose";
+import { StackCatalog } from "@/components/StackCatalog";
+import { fetchStackFromNotion } from "@/lib/notion";
+import { fallbackStack } from "@/lib/stack";
 
 export const metadata = { title: "About" };
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  const notionStack = await fetchStackFromNotion().catch(() => null);
+  const stack = (notionStack && notionStack.length > 0 ? notionStack : fallbackStack).filter(
+    (entry) => entry.websiteVisible
+  );
+
   return (
     <Prose>
       <h1>About</h1>
@@ -20,8 +28,10 @@ export default function AboutPage() {
         <li>Improving my resume tailoring pipeline</li>
         <li>Looking for roles in NL, UK, Nordics</li>
       </ul>
+      <h2>Stack</h2>
+      <p>Tools and technologies I use to build and ship projects.</p>
+      <StackCatalog entries={stack} />
     </Prose>
   );
 }
-
 

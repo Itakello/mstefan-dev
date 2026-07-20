@@ -4,6 +4,7 @@ export type Project = {
   year?: string;
   url?: string;
   tags?: string[];
+  language?: string;
   featured?: boolean;
 };
 
