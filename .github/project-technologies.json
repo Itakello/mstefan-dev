@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "technologies": [
+    "Next.js",
+    "React",
+    "TypeScript",
+    "Tailwind CSS",
+    "Iconify",
+    "Notion",
+    "Vercel",
+    "GitHub Actions",
+    "pnpm",
+    "Node.js"
+  ]
+}

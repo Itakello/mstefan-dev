@@ -9,6 +9,9 @@ permissions:
   contents: read
 
 jobs:
+  project-technologies:
+    uses: Itakello/infra/.github/workflows/project-technologies.yml@main
+
   policy-gate:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
