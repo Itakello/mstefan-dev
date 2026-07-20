@@ -26,12 +26,24 @@ test("parses a complete hidden Stack row", () => {
   });
 });
 
+test("accepts a trusted Notion-hosted icon asset", () => {
+  const icon = "https://s3-us-west-2.amazonaws.com/public.notion-static.com/workspace/loguru.png";
+  assert.equal(
+    parseStackPage(stackPage({ "Icon key": { rich_text: [{ plain_text: icon }] } })).iconKey,
+    icon
+  );
+});
+
 test("rejects missing required fields and invalid Iconify keys", () => {
   assert.throws(() => parseStackPage(stackPage({ Name: { title: [] } })), /Name is required/);
   assert.throws(() => parseStackPage(stackPage({ Category: { select: null } })), /Category is required/);
   assert.throws(
     () => parseStackPage(stackPage({ "Icon key": { rich_text: [{ plain_text: "typescript" }] } })),
     /collection:icon/
+  );
+  assert.throws(
+    () => parseStackPage(stackPage({ "Icon key": { rich_text: [{ plain_text: "https://example.com/icon.png" }] } })),
+    /approved Notion asset URL/
   );
   assert.throws(
     () => parseStackPage(stackPage({ "Website visible": {} })),

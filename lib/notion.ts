@@ -1,6 +1,6 @@
 import { Client } from "@notionhq/client";
 
-import type { StackEntry } from "@/lib/stack";
+import { isStackIconSource, type StackEntry } from "@/lib/stack";
 
 export type NotionProject = {
   title: string;
@@ -108,8 +108,8 @@ export function parseStackPage(page: any): StackEntry {
 
   if (!name) throw new Error(`Invalid Stack row ${pageId}: Name is required`);
   if (!category) throw new Error(`Invalid Stack row ${pageId}: Category is required`);
-  if (!isIconifyKey(iconKey)) {
-    throw new Error(`Invalid Stack row ${pageId}: Icon key must use collection:icon format`);
+  if (!isStackIconSource(iconKey)) {
+    throw new Error(`Invalid Stack row ${pageId}: Icon key must use collection:icon format or an approved Notion asset URL`);
   }
   if (typeof websiteVisible !== "boolean") {
     throw new Error(`Invalid Stack row ${pageId}: Website visible must be a checkbox`);
@@ -175,10 +175,6 @@ export async function upsertNotionProject(params: {
 
 function richText(items: any[] | undefined) {
   return (items ?? []).map((item) => item.plain_text).join("").trim();
-}
-
-function isIconifyKey(value: string) {
-  return /^[a-z0-9][a-z0-9-]*:[a-z0-9][a-z0-9._-]*$/i.test(value);
 }
 
 export function assertUniqueStackEntries(entries: StackEntry[]) {

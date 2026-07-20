@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import type { StackEntry } from "../lib/stack";
-import { loadWebsiteStack, validateIconifyIcons } from "../lib/websiteStack";
+import { loadWebsiteStack, validateStackIcons } from "../lib/websiteStack";
 
 const liveStack: StackEntry[] = [
   { name: "TypeScript", category: "Language", iconKey: "logos:typescript-icon", websiteVisible: true }
@@ -47,7 +47,22 @@ test("keeps the fallback for non-production builds", async () => {
 
 test("rejects a well-formed Iconify key that does not exist", async () => {
   await assert.rejects(
-    validateIconifyIcons(liveStack, async () => new Response(null, { status: 404 })),
-    /Iconify icon not found for TypeScript/
+    validateStackIcons(liveStack, async () => new Response(null, { status: 404 })),
+    /icon not found for TypeScript/
   );
+});
+
+test("validates a trusted external icon at its source URL", async () => {
+  const iconKey = "https://s3-us-west-2.amazonaws.com/public.notion-static.com/workspace/loguru.png";
+  let requestedUrl = "";
+
+  await validateStackIcons(
+    [{ name: "Loguru", category: "Library", iconKey, websiteVisible: false }],
+    async (input) => {
+      requestedUrl = String(input);
+      return new Response(null, { status: 200 });
+    }
+  );
+
+  assert.equal(requestedUrl, iconKey);
 });

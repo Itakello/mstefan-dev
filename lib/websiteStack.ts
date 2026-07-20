@@ -1,5 +1,5 @@
 import { fetchStackFromNotion } from "@/lib/notion";
-import { fallbackStack, type StackEntry } from "@/lib/stack";
+import { fallbackStack, stackIconUrl, type StackEntry } from "@/lib/stack";
 
 type WebsiteStackOptions = {
   fetchStack?: () => Promise<StackEntry[] | null>;
@@ -12,7 +12,7 @@ export async function loadWebsiteStack({
   fetchStack = fetchStackFromNotion,
   vercelEnv = process.env.VERCEL_ENV,
   fallback = fallbackStack,
-  validateStack = validateIconifyIcons
+  validateStack = validateStackIcons
 }: WebsiteStackOptions = {}): Promise<readonly StackEntry[]> {
   try {
     const stack = await fetchStack();
@@ -27,17 +27,16 @@ export async function loadWebsiteStack({
   }
 }
 
-export async function validateIconifyIcons(
+export async function validateStackIcons(
   entries: readonly StackEntry[],
   fetchIcon: typeof fetch = fetch
 ) {
   await Promise.all(entries.map(async (entry) => {
-    const [collection, icon] = entry.iconKey.split(":");
-    const response = await fetchIcon(`https://api.iconify.design/${collection}/${icon}.svg`, {
+    const response = await fetchIcon(stackIconUrl(entry.iconKey), {
       method: "HEAD"
     });
     if (!response.ok) {
-      throw new Error(`Invalid Stack data: Iconify icon not found for ${entry.name}`);
+      throw new Error(`Invalid Stack data: icon not found for ${entry.name}`);
     }
   }));
 }
