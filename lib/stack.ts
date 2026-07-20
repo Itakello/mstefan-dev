@@ -6,6 +6,33 @@ export type StackEntry = {
   websiteVisible: boolean;
 };
 
+const ICONIFY_KEY = /^[a-z0-9][a-z0-9-]*:[a-z0-9][a-z0-9._-]*$/i;
+const NOTION_ICON_ORIGIN = "https://s3-us-west-2.amazonaws.com";
+const NOTION_ICON_PATH = "/public.notion-static.com/";
+
+export function isIconifyKey(value: string) {
+  return ICONIFY_KEY.test(value);
+}
+
+export function isTrustedExternalIcon(value: string) {
+  try {
+    const url = new URL(value);
+    return url.origin === NOTION_ICON_ORIGIN && url.pathname.startsWith(NOTION_ICON_PATH);
+  } catch {
+    return false;
+  }
+}
+
+export function isStackIconSource(value: string) {
+  return isIconifyKey(value) || isTrustedExternalIcon(value);
+}
+
+export function stackIconUrl(value: string) {
+  if (isTrustedExternalIcon(value)) return value;
+  const [collection, icon] = value.split(":");
+  return `https://api.iconify.design/${collection}/${icon}.svg`;
+}
+
 export const fallbackStack: StackEntry[] = [
   entry("Python", "Language", "logos:python"),
   entry("JavaScript", "Language", "logos:javascript"),
