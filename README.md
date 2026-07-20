@@ -68,7 +68,7 @@ Notion database expected properties (create these columns):
 
 The website will render from Notion when `NOTION_TOKEN` and `NOTION_DATABASE_ID` are present; otherwise it falls back to `content/projects.ts` plus GitHub repos.
 
-Stack records require `Name` (title), `Category` (select), `Icon key` (rich text), and `Website visible` (checkbox). When `NOTION_TOKEN` and `NOTION_STACK_DATABASE_ID` are absent—or the Stack database has no complete records—the website uses the checked-in fallback catalog.
+Stack records require `Name` (title), `Category` (select), `Icon key` (rich text in `collection:icon` format), and `Website visible` (checkbox). Vercel production builds require `NOTION_TOKEN`, `NOTION_STACK_DATABASE_ID`, and a non-empty valid Stack database. A failed production read blocks publication so the previous deployment stays live. Local and preview builds may use the checked-in fallback catalog.
 
 ## Useful scripts
 ```bash

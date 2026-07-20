@@ -50,4 +50,5 @@ jobs:
         with:
           node-version: 20
       - run: pnpm install --no-frozen-lockfile
+      - run: pnpm test
       - run: pnpm build

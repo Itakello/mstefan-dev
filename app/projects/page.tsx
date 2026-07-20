@@ -1,7 +1,7 @@
 import { ProjectCard } from "@/components/ProjectCard";
 import { projects as curatedProjects, type Project } from "@/content/projects";
-import { fetchProjectsFromNotion, fetchStackFromNotion, type NotionProject } from "@/lib/notion";
-import { fallbackStack } from "@/lib/stack";
+import { fetchProjectsFromNotion, type NotionProject } from "@/lib/notion";
+import { loadWebsiteStack } from "@/lib/websiteStack";
 
 export const metadata = { title: "Projects" };
 
@@ -137,12 +137,11 @@ function mergeAndEnrichProjects(
 }
 
 export default async function ProjectsPage() {
-  const [repos, notion, notionStack] = await Promise.all([
+  const [repos, notion, stackCatalog] = await Promise.all([
     fetchGitHubRepos(),
     fetchProjectsFromNotion().catch(() => null),
-    fetchStackFromNotion().catch(() => null),
+    loadWebsiteStack(),
   ]);
-  const stackCatalog = notionStack && notionStack.length > 0 ? notionStack : fallbackStack;
 
   const base: Project[] = (notion && notion.length > 0)
     ? notion.map((n: NotionProject) => ({

@@ -88,26 +88,40 @@ export async function fetchStackFromNotion(databaseId?: string): Promise<StackEn
     });
 
     for (const page of response.results as any[]) {
-      const properties = page.properties ?? {};
-      const name = richText(properties.Name?.title);
-      const iconKey = richText(properties["Icon key"]?.rich_text);
-      const category = properties.Category?.select?.name as string | undefined;
-
-      if (!name || !iconKey || !category) continue;
-
-      entries.push({
-        name,
-        iconKey,
-        category,
-        proficiency: properties.Proficiency?.select?.name ?? undefined,
-        websiteVisible: Boolean(properties["Website visible"]?.checkbox)
-      });
+      entries.push(parseStackPage(page));
     }
 
     cursor = response.has_more ? response.next_cursor ?? undefined : undefined;
   } while (cursor);
 
+  assertUniqueStackEntries(entries);
   return entries;
+}
+
+export function parseStackPage(page: any): StackEntry {
+  const properties = page.properties ?? {};
+  const name = richText(properties.Name?.title);
+  const iconKey = richText(properties["Icon key"]?.rich_text);
+  const category = properties.Category?.select?.name as string | undefined;
+  const websiteVisible = properties["Website visible"]?.checkbox;
+  const pageId = page.id ?? "unknown";
+
+  if (!name) throw new Error(`Invalid Stack row ${pageId}: Name is required`);
+  if (!category) throw new Error(`Invalid Stack row ${pageId}: Category is required`);
+  if (!isIconifyKey(iconKey)) {
+    throw new Error(`Invalid Stack row ${pageId}: Icon key must use collection:icon format`);
+  }
+  if (typeof websiteVisible !== "boolean") {
+    throw new Error(`Invalid Stack row ${pageId}: Website visible must be a checkbox`);
+  }
+
+  return {
+    name,
+    iconKey,
+    category,
+    proficiency: properties.Proficiency?.select?.name ?? undefined,
+    websiteVisible
+  };
 }
 
 export async function upsertNotionProject(params: {
@@ -163,3 +177,20 @@ function richText(items: any[] | undefined) {
   return (items ?? []).map((item) => item.plain_text).join("").trim();
 }
 
+function isIconifyKey(value: string) {
+  return /^[a-z0-9][a-z0-9-]*:[a-z0-9][a-z0-9._-]*$/i.test(value);
+}
+
+export function assertUniqueStackEntries(entries: StackEntry[]) {
+  const names = new Set<string>();
+  const iconKeys = new Set<string>();
+
+  for (const entry of entries) {
+    const name = entry.name.toLowerCase();
+    const iconKey = entry.iconKey.toLowerCase();
+    if (names.has(name)) throw new Error(`Invalid Stack data: duplicate name ${entry.name}`);
+    if (iconKeys.has(iconKey)) throw new Error(`Invalid Stack data: duplicate Icon key ${entry.iconKey}`);
+    names.add(name);
+    iconKeys.add(iconKey);
+  }
+}
