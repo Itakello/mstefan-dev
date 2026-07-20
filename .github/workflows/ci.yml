@@ -10,7 +10,8 @@ permissions:
 
 jobs:
   project-technologies:
-    uses: Itakello/infra/.github/workflows/project-technologies.yml@main
+    # Switch to @main after the infra workflow lands in Itakello/infra#21.
+    uses: Itakello/infra/.github/workflows/project-technologies.yml@infra/project-technology-manifest
 
   policy-gate:
     if: github.event_name == 'pull_request'
