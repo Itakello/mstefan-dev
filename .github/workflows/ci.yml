@@ -11,9 +11,35 @@ permissions:
 jobs:
   policy-gate:
     if: github.event_name == 'pull_request'
-    uses: Itakello/infra/.github/workflows/policy-gate.yml@main
-    with:
-      pull_request_body: ${{ github.event.pull_request.body }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        with:
+          script: |
+            const body = process.env.PR_BODY ?? "";
+            const requiredFragments = [
+              "<!-- itakello-policy: pr-template@1 -->",
+              "## Summary",
+              "High-level description:",
+              "Details:",
+              "## Testing",
+              "| Check | Outcome |",
+              "Added tests:",
+              "## Task",
+              "Primary Notion task:",
+              "Related tasks:",
+            ];
+            const missing = requiredFragments.filter(
+              (fragment) => !body.includes(fragment),
+            );
+
+            if (missing.length > 0) {
+              core.setFailed(
+                `Pull request body does not follow the managed template. Missing: ${missing.join(", ")}`,
+              );
+            }
 
   verify:
     runs-on: ubuntu-latest
