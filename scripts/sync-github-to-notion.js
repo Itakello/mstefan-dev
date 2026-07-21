@@ -10,6 +10,21 @@
 
 const { Client } = require("@notionhq/client");
 
+function buildNotionProperties(repo) {
+  const year = new Date(repo.pushed_at).getFullYear();
+
+  return {
+    Name: { title: [{ type: "text", text: { content: repo.name } }] },
+    URL: { url: repo.html_url },
+    Summary: repo.description
+      ? { rich_text: [{ type: "text", text: { content: repo.description } }] }
+      : undefined,
+    Language: repo.language ? { multi_select: [{ name: repo.language }] } : undefined,
+    Year: { number: year },
+    Status: { status: { name: "To Add" } },
+  };
+}
+
 async function main() {
   const GITHUB_USER = process.env.GITHUB_USER || "Itakello";
   const notionToken = process.env.NOTION_TOKEN;
@@ -48,19 +63,9 @@ async function main() {
     .filter((r) => !existingUrls.has(r.html_url.toLowerCase()));
 
   for (const r of toCreate) {
-    const year = new Date(r.pushed_at).getFullYear();
     await notion.pages.create({
       parent: { database_id: notionDatabaseId },
-      properties: {
-        Name: { title: [{ type: "text", text: { content: r.name } }] },
-        URL: { url: r.html_url },
-        Summary: r.description
-          ? { rich_text: [{ type: "text", text: { content: r.description } }] }
-          : undefined,
-        Language: r.language ? { select: { name: r.language } } : undefined,
-        Year: { number: year },
-        Status: { status: { name: "To Add" } },
-      },
+      properties: buildNotionProperties(r),
     });
     console.log(`Added to Notion: ${r.name}`);
   }
@@ -68,9 +73,12 @@ async function main() {
   console.log(`Done. Created ${toCreate.length} new rows.`);
 }
 
-main().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+if (require.main === module) {
+  main().catch((e) => {
+    console.error(e);
+    process.exit(1);
+  });
+}
 
+module.exports = { buildNotionProperties };
 
