@@ -12,6 +12,7 @@ out/
 build/
 dist/
 coverage/
+.artifacts/
 
 # Env / Secrets
 .env
