@@ -77,10 +77,32 @@ pnpm sync:notion
 
 # Enrich Notion rows (summary + tags) using README + LLM
 pnpm enrich:notion
+
+# Produce a reviewable repository-technology candidate with Codex
+pnpm extract:repository-technologies -- --repository Itakello/mstefan-dev
 ```
 Required env for scripts:
 - sync: `NOTION_TOKEN`, `NOTION_DATABASE_ID`, optional `GITHUB_TOKEN`, optional `GITHUB_USER`
 - enrich: `NOTION_TOKEN`, `NOTION_DATABASE_ID`, `OPENAI_API_KEY`, optional `GITHUB_TOKEN`
+
+The repository-technology extractor compares `HEAD` with the last successfully
+processed SHA before invoking Codex. It analyzes an isolated snapshot containing
+only bounded text evidence exported from files tracked at that commit. Codex
+runs without shell or web tools, receives the current complete manifest, and can
+cite only files whose content was supplied. Deterministic code validates the
+structured response, computes the actual technology diff, and writes state under the ignored
+`.artifacts/repository-technologies/` directory. A failed attempt preserves the
+last successful SHA and manifest so the same commit remains retryable.
+The bounded v1 fails visibly instead of producing a partial manifest when an
+analyzed text file exceeds 64 KiB, total text evidence exceeds 512 KiB, the
+serialized evidence exceeds 768 KiB, or more than 500 files require analysis.
+
+This v1 is intentionally manual and local: it does not commit, publish, deploy,
+write to Notion, schedule itself, or receive webhooks. It uses `gpt-5.6-terra` by
+default; set `REPOSITORY_TECHNOLOGIES_MODEL` only when a different supported
+extraction model is warranted. A future hosted trigger should use the official
+Codex GitHub Action or a dedicated backend so repository-controlled wrapper code
+never receives the API key.
 
 ## API
 - `GET /api/projects/diff` — lists GitHub repos not yet present on the site (based on curated/Notion URLs).

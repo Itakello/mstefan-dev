@@ -9,7 +9,8 @@
     "start": "next start",
     "postbuild": "next-sitemap --config next-sitemap.config.mjs",
     "sync:notion": "node scripts/sync-github-to-notion.js",
-    "enrich:notion": "node scripts/enrich-notion-from-readme.js"
+    "enrich:notion": "node scripts/enrich-notion-from-readme.js",
+    "extract:repository-technologies": "node scripts/repository-technologies/run.mjs"
   },
   "dependencies": {
     "@iconify/react": "^6.0.0",
