@@ -22,23 +22,51 @@ jobs:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
+      - name: Check out trusted policy
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: .trusted-pr-policy
+          persist-credentials: false
+
+      - name: Locate trusted validator
+        id: trusted-policy
+        shell: bash
+        run: |
+          validator=".trusted-pr-policy/scripts/check-pr-body.mjs"
+          policy=".trusted-pr-policy/.github/PR_POLICY.md"
+
+          if [[ -f "$policy" && ! -f "$validator" ]]; then
+            echo "Trusted base policy exists without its validator." >&2
+            exit 1
+          fi
+
+          if [[ -f "$validator" ]]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Validate with trusted base policy
+        if: steps.trusted-policy.outputs.available == 'true'
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: node .trusted-pr-policy/scripts/check-pr-body.mjs
+
+      - name: Validate policy migration
+        if: steps.trusted-policy.outputs.available != 'true'
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
         env:
           PR_BODY: ${{ github.event.pull_request.body }}
         with:
           script: |
             const body = process.env.PR_BODY ?? "";
             const requiredFragments = [
-              "<!-- itakello-policy: pr-template@1 -->",
-              "## Summary",
-              "High-level description:",
-              "Details:",
-              "## Testing",
-              "| Check | Outcome |",
-              "Added tests:",
-              "## Task",
-              "Primary Notion task:",
-              "Related tasks:",
+              "<!-- itakello-policy: pr-template@2 -->",
+              "## Why",
+              "## Outcome",
+              "## Boundaries",
+              "## Verification",
             ];
             const missing = requiredFragments.filter(
               (fragment) => !body.includes(fragment),
@@ -46,7 +74,7 @@ jobs:
 
             if (missing.length > 0) {
               core.setFailed(
-                `Pull request body does not follow the managed template. Missing: ${missing.join(", ")}`,
+                `Pull request body does not follow PR policy v2. Missing: ${missing.join(", ")}`,
               );
             }
 
