@@ -1,7 +1,7 @@
 const POLICY_MARKER = "<!-- itakello-policy: pr-template@2 -->";
 
 const REQUIRED_SEMANTICS = new Map([
-  ["why", ["why", "intent", "problem", "purpose", "context"]],
+  ["why", ["why", "intent", "motivation", "problem", "purpose", "rationale", "context"]],
   ["outcome", ["outcome", "what changed", "result"]],
   ["boundaries", ["boundaries", "boundaries and risk", "scope", "risks and boundaries", "risk"]],
   ["proof", ["verification", "proof", "testing"]],
@@ -12,12 +12,14 @@ function normalizeHeading(value) {
     .toLowerCase()
     .replace(/[`*_]/g, "")
     .replace(/[\p{Extended_Pictographic}\uFE0F]/gu, "")
+    .replace(/[:?!.,]+$/g, "")
     .replace(/\s+/g, " ")
     .trim();
 }
 
 function visibleText(value) {
   return value
+    .replace(/<details>[\s\S]*?<\/details>/gi, "")
     .replace(/<!--[\s\S]*?-->/g, "")
     .replace(/<\/?(?:details|summary)>/gi, "")
     .replace(/^\s*[-*+]\s*$/gm, "")
@@ -25,12 +27,16 @@ function visibleText(value) {
 }
 
 function isPlaceholder(value) {
-  const withoutListMarker = value.replace(/^\s*[-*+]\s+/gm, "").trim();
-  return /^(?:n\/a|not applicable|tbd|todo)$/i.test(withoutListMarker);
+  return value.split("\n").some((line) => {
+    const withoutListMarker = line.replace(/^\s*[-*+]\s+/, "").trim();
+    return /^(?:n\/a|not applicable|tbd|todo)(?:\b|[\s:—-])/i.test(
+      withoutListMarker,
+    );
+  });
 }
 
 function sections(body) {
-  const matches = [...body.matchAll(/^##\s+(.+?)\s*$/gm)];
+  const matches = [...body.matchAll(/^#{2,6}\s+(.+?)\s*$/gm)];
 
   return matches.map((match, index) => ({
     heading: normalizeHeading(match[1]),

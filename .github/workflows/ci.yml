@@ -61,21 +61,54 @@ jobs:
         with:
           script: |
             const body = process.env.PR_BODY ?? "";
-            const requiredFragments = [
-              "<!-- itakello-policy: pr-template@2 -->",
-              "## 🎯 Intent",
-              "## ✨ Outcome",
-              "## 🛡️ Boundaries and risk",
-              "## ✅ Verification",
-            ];
-            const missing = requiredFragments.filter(
-              (fragment) => !body.includes(fragment),
+            const aliases = new Map([
+              ["why", ["why", "intent", "motivation", "problem", "purpose", "rationale", "context"]],
+              ["outcome", ["outcome", "what changed", "result"]],
+              ["boundaries", ["boundaries", "boundaries and risk", "scope", "risks and boundaries", "risk"]],
+              ["proof", ["verification", "proof", "testing"]],
+            ]);
+            const normalize = (heading) => heading
+              .toLowerCase()
+              .replace(/[\p{Extended_Pictographic}\uFE0F`*_]/gu, "")
+              .replace(/[:?!.,]+$/g, "")
+              .replace(/\s+/g, " ")
+              .trim();
+            const visible = (content) => content
+              .replace(/<details>[\s\S]*?<\/details>/gi, "")
+              .replace(/<!--[\s\S]*?-->/g, "")
+              .replace(/^\s*[-*+]\s*$/gm, "")
+              .trim();
+            const headings = [...body.matchAll(/^#{2,6}\s+(.+?)\s*$/gm)];
+            const sections = headings.map((match, index) => ({
+              heading: normalize(match[1]),
+              content: visible(body.slice(
+                match.index + match[0].length,
+                headings[index + 1]?.index ?? body.length,
+              )),
+            }));
+            const placeholder = (content) => content.split("\n").some((line) =>
+              /^(?:n\/a|not applicable|tbd|todo)(?:\b|[\s:—-])/i.test(
+                line.replace(/^\s*[-*+]\s+/, "").trim(),
+              ),
             );
+            const errors = [];
 
-            if (missing.length > 0) {
-              core.setFailed(
-                `Pull request body does not follow PR policy v2. Missing: ${missing.join(", ")}`,
-              );
+            if (!body.includes("<!-- itakello-policy: pr-template@2 -->")) {
+              errors.push("missing policy marker");
+            }
+
+            for (const section of sections) {
+              if (!section.content) errors.push(`section "${section.heading}" is empty`);
+              if (placeholder(section.content)) errors.push(`section "${section.heading}" contains a placeholder`);
+            }
+
+            for (const [meaning, names] of aliases) {
+              const section = sections.find(({ heading }) => names.includes(heading));
+              if (!section?.content) errors.push(`missing ${meaning} narrative`);
+            }
+
+            if (errors.length > 0) {
+              core.setFailed(`Pull request body does not follow PR policy v2: ${errors.join("; ")}`);
             }
 
   verify:
