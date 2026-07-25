@@ -1,18 +1,18 @@
 <!-- itakello-policy: pr-template@2 -->
 
-## Why
+## 🎯 Intent
 
 <!-- What problem, constraint, or opportunity caused this change? -->
 
-## Outcome
+## ✨ Outcome
 
 <!-- What is now different for a user, operator, or maintainer? -->
 
-## Boundaries
+## 🛡️ Boundaries and risk
 
 <!-- What deliberately did not change? Name material risk when present. -->
 
-## Verification
+## ✅ Verification
 
 <!-- List the checks or observations that support the outcome. -->
 

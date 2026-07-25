@@ -1,9 +1,9 @@
 const POLICY_MARKER = "<!-- itakello-policy: pr-template@2 -->";
 
 const REQUIRED_SEMANTICS = new Map([
-  ["why", ["why", "problem", "purpose", "context"]],
+  ["why", ["why", "intent", "problem", "purpose", "context"]],
   ["outcome", ["outcome", "what changed", "result"]],
-  ["boundaries", ["boundaries", "scope", "risks and boundaries", "risk"]],
+  ["boundaries", ["boundaries", "boundaries and risk", "scope", "risks and boundaries", "risk"]],
   ["proof", ["verification", "proof", "testing"]],
 ]);
 
@@ -11,6 +11,7 @@ function normalizeHeading(value) {
   return value
     .toLowerCase()
     .replace(/[`*_]/g, "")
+    .replace(/[\p{Extended_Pictographic}\uFE0F]/gu, "")
     .replace(/\s+/g, " ")
     .trim();
 }

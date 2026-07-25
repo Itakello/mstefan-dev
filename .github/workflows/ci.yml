@@ -63,10 +63,10 @@ jobs:
             const body = process.env.PR_BODY ?? "";
             const requiredFragments = [
               "<!-- itakello-policy: pr-template@2 -->",
-              "## Why",
-              "## Outcome",
-              "## Boundaries",
-              "## Verification",
+              "## 🎯 Intent",
+              "## ✨ Outcome",
+              "## 🛡️ Boundaries and risk",
+              "## ✅ Verification",
             ];
             const missing = requiredFragments.filter(
               (fragment) => !body.includes(fragment),
