@@ -16,9 +16,6 @@ function buildNotionProperties(repo) {
   return {
     Name: { title: [{ type: "text", text: { content: repo.name } }] },
     URL: { url: repo.html_url },
-    Summary: repo.description
-      ? { rich_text: [{ type: "text", text: { content: repo.description } }] }
-      : undefined,
     Language: repo.language ? { multi_select: [{ name: repo.language }] } : undefined,
     Year: { number: year },
     Status: { status: { name: "To Add" } },
@@ -26,6 +23,7 @@ function buildNotionProperties(repo) {
 }
 
 async function main() {
+  const apply = process.argv.includes("--apply");
   const GITHUB_USER = process.env.GITHUB_USER || "Itakello";
   const notionToken = process.env.NOTION_TOKEN;
   const notionDatabaseId = process.env.NOTION_DATABASE_ID;
@@ -58,9 +56,23 @@ async function main() {
   } while (cursor);
 
   const toCreate = repos
-    .filter((r) => !r.archived && !r.fork)
+    .filter((r) => !r.private && !r.archived && !r.fork)
     .filter((r) => r.name.toLowerCase() !== GITHUB_USER.toLowerCase())
     .filter((r) => !existingUrls.has(r.html_url.toLowerCase()));
+
+  const preview = toCreate.map((repo) => ({
+    id: String(repo.id),
+    name: repo.name,
+    url: repo.html_url,
+    visibility: repo.visibility || "public",
+    defaultBranch: repo.default_branch,
+    properties: buildNotionProperties(repo),
+  }));
+
+  if (!apply) {
+    console.log(JSON.stringify({ status: "preview", createCount: preview.length, repositories: preview }, null, 2));
+    return;
+  }
 
   for (const r of toCreate) {
     await notion.pages.create({
@@ -70,7 +82,7 @@ async function main() {
     console.log(`Added to Notion: ${r.name}`);
   }
 
-  console.log(`Done. Created ${toCreate.length} new rows.`);
+  console.log(`Applied. Created ${toCreate.length} new rows.`);
 }
 
 if (require.main === module) {
@@ -81,4 +93,3 @@ if (require.main === module) {
 }
 
 module.exports = { buildNotionProperties };
-

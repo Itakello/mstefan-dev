@@ -31,3 +31,15 @@ test("omits Language when GitHub has not detected one", () => {
 
   assert.equal(properties.Language, undefined);
 });
+
+test("does not treat the GitHub description as an approved public summary", () => {
+  const properties = buildNotionProperties({
+    name: "example",
+    html_url: "https://github.com/Itakello/example",
+    description: "Unreviewed repository description",
+    language: "TypeScript",
+    pushed_at: "2026-07-21T00:00:00Z",
+  });
+
+  assert.equal(properties.Summary, undefined);
+});
