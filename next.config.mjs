@@ -5,8 +5,8 @@ const withMDX = createMDX({
 });
 
 const nextConfig = {
+  typedRoutes: true,
   experimental: {
-    typedRoutes: true,
     mdxRs: true
   },
   pageExtensions: ["tsx", "mdx", "ts", "jsx", "js"]
