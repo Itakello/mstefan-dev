@@ -78,7 +78,7 @@ test("does not treat inferred evidence categories as curated Stack authority", (
 });
 
 test("rejects private, archived, and forked repositories", () => {
-  for (const override of [{ private: true }, { archived: true }, { fork: true }]) {
+  for (const override of [{ private: true }, { visibility: "internal" }, { archived: true }, { fork: true }]) {
     assert.throws(
       () => buildRepositorySyncProposal({
         repository: { ...repository, ...override },
@@ -86,6 +86,19 @@ test("rejects private, archived, and forked repositories", () => {
         publicTechnologyManifest,
       }),
       /excluded from repository sync v1/,
+    );
+  }
+});
+
+test("requires an immutable numeric GitHub repository ID", () => {
+  for (const id of [undefined, "", "not-an-id"]) {
+    assert.throws(
+      () => buildRepositorySyncProposal({
+        repository: { ...repository, id },
+        evidenceManifest,
+        publicTechnologyManifest,
+      }),
+      /numeric GitHub repository ID/,
     );
   }
 });

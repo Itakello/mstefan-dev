@@ -24,16 +24,19 @@ function validateRepository(repository) {
   if (!repository || Array.isArray(repository) || typeof repository !== "object") {
     throw new Error("GitHub repository metadata is required.");
   }
-  if (repository.private || repository.visibility === "private") {
-    throw new Error("Private repositories are excluded from repository sync v1.");
+  const id = String(repository.id ?? "").trim();
+  if (!/^\d+$/.test(id)) throw new Error("repository.id must be a numeric GitHub repository ID.");
+  const visibility = repository.visibility ?? (repository.private ? "private" : "public");
+  if (repository.private || visibility !== "public") {
+    throw new Error("Non-public repositories are excluded from repository sync v1.");
   }
   if (repository.archived) throw new Error("Archived repositories are excluded from repository sync v1.");
   if (repository.fork) throw new Error("Forked repositories are excluded from repository sync v1.");
   return {
-    id: String(repository.id),
+    id,
     fullName: requireString(repository.full_name, "repository.full_name"),
     url: requireString(repository.html_url, "repository.html_url"),
-    visibility: repository.visibility || "public",
+    visibility,
     defaultBranch: requireString(repository.default_branch, "repository.default_branch"),
   };
 }
