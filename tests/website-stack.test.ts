@@ -7,42 +7,50 @@ import { loadWebsiteStack, validateStackIcons } from "../lib/websiteStack";
 const liveStack: StackEntry[] = [
   { name: "TypeScript", category: "Language", iconKey: "logos:typescript-icon", websiteVisible: true }
 ];
-const fallback: StackEntry[] = [
-  { name: "Fallback", category: "Tool", iconKey: "mdi:tools", websiteVisible: true }
-];
-
 test("returns valid live data in production", async () => {
   let validated = false;
-  assert.equal(
+  assert.deepEqual(
     await loadWebsiteStack({
       fetchStack: async () => liveStack,
       vercelEnv: "production",
-      fallback,
       validateStack: async () => { validated = true; }
     }),
-    liveStack
+    { status: "ready", entries: liveStack, message: null }
   );
   assert.equal(validated, true);
 });
 
 test("blocks production publication when Stack data is unavailable", async () => {
   await assert.rejects(
-    loadWebsiteStack({ fetchStack: async () => null, vercelEnv: "production", fallback }),
+    loadWebsiteStack({ fetchStack: async () => null, vercelEnv: "production" }),
     /Cannot publish without valid Notion Stack data/
   );
   await assert.rejects(
-    loadWebsiteStack({ fetchStack: async () => [], vercelEnv: "production", fallback }),
+    loadWebsiteStack({ fetchStack: async () => [], vercelEnv: "production" }),
     /Cannot publish without valid Notion Stack data/
   );
   await assert.rejects(
-    loadWebsiteStack({ fetchStack: async () => { throw new Error("Notion unavailable"); }, vercelEnv: "production", fallback }),
+    loadWebsiteStack({ fetchStack: async () => { throw new Error("Notion unavailable"); }, vercelEnv: "production" }),
     /Cannot publish without valid Notion Stack data/
   );
 });
 
-test("keeps the fallback for non-production builds", async () => {
-  assert.equal(await loadWebsiteStack({ fetchStack: async () => null, vercelEnv: "preview", fallback }), fallback);
-  assert.equal(await loadWebsiteStack({ fetchStack: async () => [], fallback }), fallback);
+test("fails closed without fallback data outside production", async () => {
+  assert.deepEqual(await loadWebsiteStack({ fetchStack: async () => null, vercelEnv: "preview" }), {
+    status: "unconfigured",
+    entries: [],
+    message: "Stack is unavailable because the publication source is not configured.",
+  });
+  assert.deepEqual(await loadWebsiteStack({ fetchStack: async () => [] }), {
+    status: "empty",
+    entries: [],
+    message: "No Stack items are currently available for publication.",
+  });
+  assert.deepEqual(await loadWebsiteStack({ fetchStack: async () => { throw new Error("Notion unavailable"); } }), {
+    status: "error",
+    entries: [],
+    message: "Stack is temporarily unavailable because the publication source could not be loaded.",
+  });
 });
 
 test("rejects a well-formed Iconify key that does not exist", async () => {

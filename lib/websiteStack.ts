@@ -1,29 +1,52 @@
 import { fetchStackFromNotion } from "@/lib/notion";
-import { fallbackStack, stackIconUrl, type StackEntry } from "@/lib/stack";
+import { stackIconUrl, type StackEntry } from "@/lib/stack";
 
 type WebsiteStackOptions = {
   fetchStack?: () => Promise<StackEntry[] | null>;
   vercelEnv?: string;
-  fallback?: readonly StackEntry[];
   validateStack?: (entries: readonly StackEntry[]) => Promise<void>;
+};
+
+export type WebsiteStackState = {
+  status: "ready" | "empty" | "unconfigured" | "error";
+  entries: readonly StackEntry[];
+  message: string | null;
 };
 
 export async function loadWebsiteStack({
   fetchStack = fetchStackFromNotion,
   vercelEnv = process.env.VERCEL_ENV,
-  fallback = fallbackStack,
   validateStack = validateStackIcons
-}: WebsiteStackOptions = {}): Promise<readonly StackEntry[]> {
+}: WebsiteStackOptions = {}): Promise<WebsiteStackState> {
   try {
     const stack = await fetchStack();
-    if (!stack || stack.length === 0) throw new Error("Stack database returned no records");
+    if (!stack) {
+      if (vercelEnv === "production") throw new Error("Stack source is not configured");
+      return {
+        status: "unconfigured",
+        entries: [],
+        message: "Stack is unavailable because the publication source is not configured.",
+      };
+    }
+    if (stack.length === 0) {
+      if (vercelEnv === "production") throw new Error("Stack database returned no records");
+      return {
+        status: "empty",
+        entries: [],
+        message: "No Stack items are currently available for publication.",
+      };
+    }
     if (vercelEnv === "production") await validateStack(stack);
-    return stack;
+    return { status: "ready", entries: stack, message: null };
   } catch (error) {
     if (vercelEnv === "production") {
       throw new Error("Cannot publish without valid Notion Stack data", { cause: error });
     }
-    return fallback;
+    return {
+      status: "error",
+      entries: [],
+      message: "Stack is temporarily unavailable because the publication source could not be loaded.",
+    };
   }
 }
 

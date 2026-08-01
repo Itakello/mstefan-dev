@@ -66,7 +66,7 @@ Notion database expected properties (create these columns):
 
 The website renders only approved Notion entries when `NOTION_TOKEN` and `NOTION_DATABASE_ID` are present. GitHub can enrich matching approved entries with timestamps and detected language, but cannot publish additional repositories or replace approved summaries. If Notion is unconfigured or unavailable, the Projects page renders zero cards with an explicit unavailable state; an empty approved result renders zero cards with an explicit no-approved-projects state.
 
-Stack records require `Name` (title), `Category` (select), `Icon key` (an Iconify `collection:icon` key or a trusted Notion-hosted asset URL), and `Website visible` (checkbox). Vercel production builds require `NOTION_TOKEN`, `NOTION_STACK_DATABASE_ID`, and a non-empty valid Stack database. A failed production read or missing icon blocks publication so the previous deployment stays live. Local and preview builds may use the checked-in fallback catalog.
+Stack records require `Name` (title), `Category` (select), `Icon key` (an Iconify `collection:icon` key or a trusted Notion-hosted asset URL), and `Website visible` (checkbox). Vercel production builds require `NOTION_TOKEN`, `NOTION_STACK_DATABASE_ID`, and a non-empty valid Stack database. A failed production read or missing icon blocks publication so the previous deployment stays live. Local and preview builds render zero Stack items with an explicit state when the canonical source is unconfigured, empty, or unavailable; there is no checked-in Stack fallback.
 
 ## Useful scripts
 ```bash

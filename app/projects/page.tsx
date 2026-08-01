@@ -70,12 +70,22 @@ export default async function ProjectsPage() {
         </p>
       )}
 
+      {stackCatalog.message && (
+        <p
+          className="mt-4 rounded-xl border border-black/10 bg-black/[0.03] p-4 text-sm text-black/70 dark:border-white/10 dark:bg-white/5 dark:text-white/70"
+          data-stack-publication-status={stackCatalog.status}
+          role={stackCatalog.status === "error" || stackCatalog.status === "unconfigured" ? "alert" : "status"}
+        >
+          {stackCatalog.message}
+        </p>
+      )}
+
       {orderedYears.map((year) => (
         <div key={year} className="mt-8 first:mt-6">
           <h2 className="text-xl font-semibold">{year}</h2>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             {groups[year].map((p) => (
-              <ProjectCard key={`${year}-${p.title}`} {...p} stackCatalog={stackCatalog} />
+              <ProjectCard key={`${year}-${p.title}`} {...p} stackCatalog={stackCatalog.entries} />
             ))}
           </div>
         </div>
