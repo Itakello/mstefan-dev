@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { mergeAndEnrichProjects } from "../lib/projectPublication";
+import { mergeAndEnrichProjects, resolveProjectPublicationState } from "../lib/projectPublication";
 
 const githubRepo = {
   name: "unapproved-repository",
@@ -13,12 +13,25 @@ const githubRepo = {
   pushed_at: "2026-08-01T00:00:00Z",
 };
 
-test("does not append unapproved GitHub repositories when Notion is authoritative", () => {
-  const result = mergeAndEnrichProjects([], [githubRepo], false);
+test("never appends GitHub repositories that are absent from the approved source", () => {
+  const result = mergeAndEnrichProjects([], [githubRepo]);
   assert.deepEqual(result, { groups: {}, orderedYears: [] });
 });
 
-test("keeps GitHub fallback behavior when no Notion source is configured", () => {
-  const result = mergeAndEnrichProjects([], [githubRepo], true);
-  assert.equal(result.groups["2026"][0].title, "Unapproved Repository");
+test("fails closed for missing, empty, and failed publication sources", () => {
+  assert.deepEqual(resolveProjectPublicationState(null), {
+    status: "unconfigured",
+    projects: [],
+    message: "Projects are unavailable because the publication source is not configured.",
+  });
+  assert.deepEqual(resolveProjectPublicationState([]), {
+    status: "empty",
+    projects: [],
+    message: "No projects are currently approved for publication.",
+  });
+  assert.deepEqual(resolveProjectPublicationState(null, true), {
+    status: "error",
+    projects: [],
+    message: "Projects are temporarily unavailable because the publication source could not be loaded.",
+  });
 });

@@ -1,7 +1,10 @@
 import { ProjectCard } from "@/components/ProjectCard";
-import { projects as curatedProjects, type Project } from "@/content/projects";
 import { fetchProjectsFromNotion, type NotionProject } from "@/lib/notion";
-import { mergeAndEnrichProjects, type GitHubRepo } from "@/lib/projectPublication";
+import {
+  mergeAndEnrichProjects,
+  resolveProjectPublicationState,
+  type GitHubRepo,
+} from "@/lib/projectPublication";
 import { loadWebsiteStack } from "@/lib/websiteStack";
 
 export const metadata = { title: "Projects" };
@@ -25,25 +28,30 @@ async function fetchGitHubRepos(): Promise<GitHubRepo[]> {
 }
 
 export default async function ProjectsPage() {
-  const [repos, notion, stackCatalog] = await Promise.all([
+  const [repos, notionResult, stackCatalog] = await Promise.all([
     fetchGitHubRepos(),
-    fetchProjectsFromNotion().catch(() => null),
+    fetchProjectsFromNotion()
+      .then((projects) => ({ projects, failed: false }))
+      .catch((error) => {
+        console.error("Failed to load the Notion project publication source.", error);
+        return { projects: null, failed: true };
+      }),
     loadWebsiteStack(),
   ]);
 
-  const hasNotionSource = notion !== null;
-  const base: Project[] = hasNotionSource
-    ? notion.map((n: NotionProject) => ({
-        title: n.title,
-        summary: n.summary,
-        url: n.url,
-        tags: n.tags,
-        language: n.language,
-        year: n.year,
+  const notionProjects = notionResult.projects
+    ? notionResult.projects.map((project: NotionProject) => ({
+        title: project.title,
+        summary: project.summary,
+        url: project.url,
+        tags: project.tags,
+        language: project.language,
+        year: project.year,
       }))
-    : curatedProjects;
+    : null;
+  const publication = resolveProjectPublicationState(notionProjects, notionResult.failed);
 
-  const { groups, orderedYears } = mergeAndEnrichProjects(base, repos, !hasNotionSource);
+  const { groups, orderedYears } = mergeAndEnrichProjects(publication.projects, repos);
 
   return (
     <section>
@@ -51,6 +59,16 @@ export default async function ProjectsPage() {
       <p className="mt-2 text-black/70 dark:text-white/70 text-sm">
         Selected work. Grouped by year.
       </p>
+
+      {publication.message && (
+        <p
+          className="mt-6 rounded-xl border border-black/10 bg-black/[0.03] p-4 text-sm text-black/70 dark:border-white/10 dark:bg-white/5 dark:text-white/70"
+          data-project-publication-status={publication.status}
+          role={publication.status === "error" || publication.status === "unconfigured" ? "alert" : "status"}
+        >
+          {publication.message}
+        </p>
+      )}
 
       {orderedYears.map((year) => (
         <div key={year} className="mt-8 first:mt-6">

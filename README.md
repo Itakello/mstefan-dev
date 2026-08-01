@@ -6,7 +6,7 @@ Next.js 14 App Router portfolio with TypeScript, Tailwind CSS, MDX support, and 
 
 ### Features
 - **Fast, minimal UI** with dark mode toggle and a single accent color.
-- **Projects** page uses approved Notion entries when configured, with a curated + GitHub fallback for local development.
+- **Projects** page publishes approved Notion entries only and fails closed when that source is unavailable.
 - **MDX** support for content when you need it.
 - **SEO ready**: Open Graph/Twitter metadata and automatic sitemap/robots generation.
 - **Utility scripts** to preview missing Notion rows and generate evidence-grounded repository proposals for review.
@@ -41,7 +41,6 @@ pnpm dev
 - **Home content**: `app/page.tsx`.
 - **About**: `app/about/page.tsx`.
 - **Contact links**: `app/contact/page.tsx`.
-- **Featured/curated projects**: `content/projects.ts`.
 
 If you fork this repo, also update the hardcoded GitHub username used for repo fetching:
 - `app/projects/page.tsx`: `const GITHUB_USER = "Itakello"`
@@ -65,7 +64,7 @@ Notion database expected properties (create these columns):
 - `Year` (number)
 - `Status` (status: "To Add", "Added", "Removed")
 
-The website renders only approved Notion entries when `NOTION_TOKEN` and `NOTION_DATABASE_ID` are present. GitHub can enrich matching approved entries with timestamps and detected language, but cannot publish additional repositories or replace approved summaries. Without a Notion source, the site falls back to `content/projects.ts` plus public, non-archived, non-fork GitHub repositories.
+The website renders only approved Notion entries when `NOTION_TOKEN` and `NOTION_DATABASE_ID` are present. GitHub can enrich matching approved entries with timestamps and detected language, but cannot publish additional repositories or replace approved summaries. If Notion is unconfigured or unavailable, the Projects page renders zero cards with an explicit unavailable state; an empty approved result renders zero cards with an explicit no-approved-projects state.
 
 Stack records require `Name` (title), `Category` (select), `Icon key` (an Iconify `collection:icon` key or a trusted Notion-hosted asset URL), and `Website visible` (checkbox). Vercel production builds require `NOTION_TOKEN`, `NOTION_STACK_DATABASE_ID`, and a non-empty valid Stack database. A failed production read or missing icon blocks publication so the previous deployment stays live. Local and preview builds may use the checked-in fallback catalog.
 

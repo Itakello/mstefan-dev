@@ -15,27 +15,39 @@ type EnrichedProject = Project & {
   language?: string;
 };
 
-const GITHUB_USER = "Itakello";
+export type ProjectPublicationStatus = "ready" | "empty" | "unconfigured" | "error";
 
-function prettifyRepoName(name: string): string {
-  const words = name
-    .replace(/[-_]+/g, " ")
-    .split(" ")
-    .filter(Boolean)
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase());
-
-  for (let index = 0; index < words.length; index += 1) {
-    if (words[index] === "Ai") words[index] = "AI";
-    if (words[index] === "Llm") words[index] = "LLM";
-    if (words[index] === "Tom") words[index] = "TOM";
+export function resolveProjectPublicationState(
+  projects: Project[] | null,
+  failed = false,
+): { status: ProjectPublicationStatus; projects: Project[]; message: string | null } {
+  if (failed) {
+    return {
+      status: "error",
+      projects: [],
+      message: "Projects are temporarily unavailable because the publication source could not be loaded.",
+    };
   }
-  return words.join(" ");
+  if (projects === null) {
+    return {
+      status: "unconfigured",
+      projects: [],
+      message: "Projects are unavailable because the publication source is not configured.",
+    };
+  }
+  if (projects.length === 0) {
+    return {
+      status: "empty",
+      projects: [],
+      message: "No projects are currently approved for publication.",
+    };
+  }
+  return { status: "ready", projects, message: null };
 }
 
 export function mergeAndEnrichProjects(
-  curated: Project[],
+  approved: Project[],
   repos: GitHubRepo[],
-  includeUnapprovedGitHubRepos = true,
 ): { groups: Record<string, EnrichedProject[]>; orderedYears: string[] } {
   const repoByUrl = new Map<string, { year: string; timestamp: number; language?: string | null }>();
 
@@ -45,10 +57,9 @@ export function mergeAndEnrichProjects(
     repoByUrl.set(repo.html_url.toLowerCase(), { year, timestamp, language: repo.language });
   }
 
-  const seenUrls = new Set<string>();
   const merged: EnrichedProject[] = [];
 
-  for (const project of curated) {
+  for (const project of approved) {
     const urlKey = (project.url || "").toLowerCase();
     const match = urlKey ? repoByUrl.get(urlKey) : undefined;
     const curatedLanguageTag = (project.tags || []).find((tag) =>
@@ -62,24 +73,6 @@ export function mergeAndEnrichProjects(
       tags: filteredTags.length > 0 ? filteredTags : undefined,
       language: project.language || curatedLanguageTag || match?.language || undefined,
       sortTimestamp: match?.timestamp,
-    });
-    if (urlKey) seenUrls.add(urlKey);
-  }
-
-  for (const repo of includeUnapprovedGitHubRepos
-    ? repos.filter((candidate) => !candidate.archived && !candidate.fork)
-    : []) {
-    const urlKey = repo.html_url.toLowerCase();
-    if (seenUrls.has(urlKey) || repo.name.toLowerCase() === GITHUB_USER.toLowerCase()) continue;
-
-    merged.push({
-      title: prettifyRepoName(repo.name),
-      summary: repo.description || "",
-      url: repo.html_url,
-      tags: undefined,
-      language: repo.language || undefined,
-      year: new Date(repo.pushed_at).getFullYear().toString(),
-      sortTimestamp: new Date(repo.pushed_at).getTime(),
     });
   }
 

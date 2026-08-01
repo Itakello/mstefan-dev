@@ -1,5 +1,4 @@
 import { NextRequest } from "next/server";
-import { projects as curatedProjects } from "@/content/projects";
 import { fetchProjectsFromNotion } from "@/lib/notion";
 
 type GitHubRepo = {
@@ -24,13 +23,27 @@ async function fetchGitHubRepos(): Promise<GitHubRepo[]> {
 }
 
 export async function GET(_req: NextRequest) {
-  const [repos, notion] = await Promise.all([
-    fetchGitHubRepos(),
-    fetchProjectsFromNotion().catch(() => null),
-  ]);
+  let notion;
+  try {
+    notion = await fetchProjectsFromNotion();
+  } catch {
+    return Response.json(
+      { status: "error", count: 0, missing: [] },
+      { status: 503 },
+    );
+  }
+
+  if (notion === null) {
+    return Response.json(
+      { status: "unconfigured", count: 0, missing: [] },
+      { status: 503 },
+    );
+  }
+
+  const repos = await fetchGitHubRepos();
 
   const siteUrls = new Set(
-    (notion && notion.length > 0 ? notion : curatedProjects)
+    notion
       .map((p) => (p.url || "").toLowerCase())
       .filter(Boolean)
   );
@@ -47,9 +60,6 @@ export async function GET(_req: NextRequest) {
       pushed_at: r.pushed_at,
     }));
 
-  return new Response(JSON.stringify({ count: missing.length, missing }), {
-    headers: { "content-type": "application/json" },
-  });
+  return Response.json({ status: "ready", count: missing.length, missing });
 }
-
 
