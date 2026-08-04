@@ -15,6 +15,10 @@ model: gpt-5.6-luna?effort=high
 
 network: defaults
 
+sandbox:
+  agent:
+    token-steering: false
+
 tools:
   edit:
   bash: true
