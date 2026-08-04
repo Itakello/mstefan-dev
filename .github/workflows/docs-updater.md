@@ -11,7 +11,7 @@ permissions:
   pull-requests: read
 
 engine: codex
-model: gpt-5.6-terra?effort=medium
+model: gpt-5.6-luna?effort=high
 
 network: defaults
 
@@ -87,26 +87,4 @@ If and only if documentation changed, open one draft pull request with a concise
 
 Every successful run must call exactly one safe-output tool: `create_pull_request` when documentation changed, or `noop` when it did not. Do not call both.
 
-The pull request body must follow the repository policy exactly and contain substantive prose in every section:
-
-```markdown
-<!-- itakello-policy: pr-template@2 -->
-
-## 🎯 Intent
-
-Explain the verified documentation drift that caused the change.
-
-## ✨ Outcome
-
-Describe what a maintainer or user can now understand correctly, naming the updated documentation.
-
-## 🛡️ Boundaries and risk
-
-State that source code and provider state were not changed. Name any fact that still needs human verification.
-
-## ✅ Verification
-
-List the repository evidence inspected and the exact checks run, including `git diff --check`.
-```
-
-Replace the instructional sentences with evidence from this run. Do not leave placeholders or empty sections.
+Before calling `create_pull_request`, follow `.github/PR_POLICY.md` from the checked-out base branch. That file is the single source of truth for the pull request body; do not invent, copy, or weaken its requirements. Populate it with evidence from this run and do not leave placeholders or empty required sections.
