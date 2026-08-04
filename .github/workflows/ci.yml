@@ -117,9 +117,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install gh-aw compiler
-        uses: github/gh-aw/actions/setup-cli@53258938b59e0797fefeed05ec0c681514b2a827 # v0.84.3
+        uses: github/gh-aw/actions/setup-cli@918a49bd8c546648e99e71943e01ebd22418b7ef # v0.84.4
         with:
-          version: v0.84.3
+          version: v0.84.4
       - name: Compile and validate documentation workflow
         run: gh aw compile docs-updater --strict --validate
       - name: Reject generated workflow drift
