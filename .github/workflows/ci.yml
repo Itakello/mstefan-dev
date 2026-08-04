@@ -111,6 +111,27 @@ jobs:
               core.setFailed(`Pull request body does not follow PR policy v2: ${errors.join("; ")}`);
             }
 
+  docs-workflow-integrity:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install gh-aw compiler
+        uses: github/gh-aw/actions/setup-cli@53258938b59e0797fefeed05ec0c681514b2a827 # v0.84.3
+        with:
+          version: v0.84.3
+      - name: Compile and validate documentation workflow
+        run: gh aw compile docs-updater --strict --validate
+      - name: Reject generated workflow drift
+        shell: bash
+        run: |
+          generated=(.github/workflows/docs-updater.lock.yml .github/aw/actions-lock.json .gitattributes)
+          if [[ -n "$(git status --porcelain --untracked-files=all -- "${generated[@]}")" ]]; then
+            git diff -- "${generated[@]}"
+            git status --short --untracked-files=all -- "${generated[@]}"
+            exit 1
+          fi
+
   verify:
     runs-on: ubuntu-latest
     steps:
