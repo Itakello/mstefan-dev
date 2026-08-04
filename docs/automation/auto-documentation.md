@@ -15,6 +15,7 @@ The pilot is manual-only. `.github/workflows/docs-updater.md` is the editable wo
 | Evidence boundary | Repository evidence only; no claims that provider settings, secrets, databases, deployments, or accounts are live |
 | Write scope | At most one draft pull request per run changing only `README.md` or `docs/**`, excluding this contract file; the pre-activation search prevents overlapping automation pull requests |
 | Merge authority | Human review and merge only |
+| PR authentication | The run-scoped `GITHUB_TOKEN` creates the draft pull request; a repository-scoped `GH_AW_CI_TRIGGER_TOKEN` may only push the extra empty commit that causes normal CI to run |
 | Model | Codex with `gpt-5.6-luna`; high reasoning is pinned; `max` requires evidence that high misses material documentation drift |
 | Per-run bounds | 20 minutes, 12 turns, and 200 AI credits |
 | Pilot duration | Runs stop after 2026-09-03 unless the workflow is explicitly recompiled and reviewed |
@@ -39,7 +40,7 @@ The pilot is manual-only. `.github/workflows/docs-updater.md` is the editable wo
 ## Manual proof before scheduling
 
 1. Compile and validate the workflow source.
-2. Configure a dedicated `OPENAI_API_KEY` and a fine-grained `GH_AW_CI_TRIGGER_TOKEN` that can create the draft pull request and trigger its required checks. Do not dispatch without both secrets.
+2. Configure a dedicated `OPENAI_API_KEY` and a fine-grained `GH_AW_CI_TRIGGER_TOKEN` with repository Contents read/write access. The persistent token is used only for the extra empty commit that triggers required checks; the run-scoped `GITHUB_TOKEN` creates the draft pull request. Do not dispatch without both secrets.
 3. Run it once from GitHub Actions against the default branch.
 4. Inspect the complete run and any proposed draft pull request.
 5. Confirm that every changed file is allowed, every documentation claim is supported by repository evidence, and both `policy-gate` and `verify` ran on the draft pull request.
