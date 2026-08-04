@@ -31,7 +31,7 @@ safe-outputs:
   noop:
     report-as-issue: false
   create-pull-request:
-    github-token: ${{ secrets.GH_AW_CI_TRIGGER_TOKEN }}
+    github-token-for-extra-empty-commit: ${{ secrets.GH_AW_CI_TRIGGER_TOKEN }}
     title-prefix: "[docs-auto] "
     branch-prefix: "docs/"
     draft: true
