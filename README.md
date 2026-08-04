@@ -110,3 +110,7 @@ scripts/            # Notion/GitHub automation scripts
 ## Notes
 - MDX is enabled; you can add `.mdx` pages/components if desired.
 - The Projects page merges curated items with GitHub repos; Notion (when configured) can replace the curated list entirely.
+
+## Documentation maintenance
+
+The bounded Codex auto-documentation pilot is described in [`docs/automation/auto-documentation.md`](docs/automation/auto-documentation.md). It is manual-only until its draft-PR, replay, failure, and cost checks are proven.
