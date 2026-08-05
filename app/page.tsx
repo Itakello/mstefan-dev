@@ -1,9 +1,6 @@
 import Link from "next/link";
-import { projects } from "@/content/projects";
-import { ProjectCard } from "@/components/ProjectCard";
 
 export default function Home() {
-  const featured = projects.filter(p => p.featured).slice(0, 3);
   return (
     <section className="space-y-10">
       <header className="pt-4">
@@ -29,12 +26,6 @@ export default function Home() {
           </Link>
         </div>
       </header>
-
-      <div className="grid gap-4 sm:grid-cols-2">
-        {featured.map((p) => (
-          <ProjectCard key={p.title} {...p} />
-        ))}
-      </div>
     </section>
   );
 }

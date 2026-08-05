@@ -1,7 +1,6 @@
 import { ArrowUpRight, Code } from "lucide-react";
 import { StackBadge } from "@/components/StackBadge";
 import {
-  fallbackStack,
   findStackEntry,
   resolveProjectStack,
   type StackEntry
@@ -42,7 +41,7 @@ export function ProjectCard({ title, summary, year, url, tags, language, stackCa
   const technologyLabels = [detectedLanguage, ...nonLanguageTags].filter(
     (label): label is string => Boolean(label)
   );
-  const catalog = stackCatalog ?? fallbackStack;
+  const catalog = stackCatalog ?? [];
   const technologies = resolveProjectStack(technologyLabels, catalog);
   const unresolvedTags = nonLanguageTags.filter((tag) => !findStackEntry(tag, catalog));
   const languageEntry = detectedLanguage ? findStackEntry(detectedLanguage, catalog) : undefined;

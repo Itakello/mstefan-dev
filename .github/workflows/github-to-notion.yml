@@ -1,4 +1,4 @@
-name: Sync GitHub repos to Notion
+name: Preview GitHub repos for Notion
 
 on:
   schedule:
@@ -18,18 +18,10 @@ jobs:
         with:
           node-version: 20
       - run: pnpm install --no-frozen-lockfile
-      - name: Run sync
+      - name: Generate preview
         env:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
           NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_USER: Itakello
         run: pnpm sync:notion
-      - name: Enrich from README (optional)
-        if: ${{ env.OPENAI_API_KEY != '' }}
-        env:
-          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
-          NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: pnpm enrich:notion

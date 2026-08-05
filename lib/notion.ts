@@ -48,7 +48,7 @@ export async function fetchProjectsFromNotion(databaseId?: string): Promise<Noti
       const urlProp = r.properties?.URL?.url as string | null | undefined;
       const summaryProp = r.properties?.Summary?.rich_text || [];
       const tagsProp = r.properties?.Tags?.multi_select || [];
-      const languageProp = r.properties?.Language?.select || null;
+      const languageProp = r.properties?.Language?.multi_select || [];
       const yearProp = r.properties?.Year?.number || null;
 
       const title = titleProp.map((t: any) => t.plain_text).join("");
@@ -60,7 +60,7 @@ export async function fetchProjectsFromNotion(databaseId?: string): Promise<Noti
         summary,
         url: urlProp ?? undefined,
         tags: tags.length > 0 ? tags : undefined,
-        language: languageProp?.name ?? undefined,
+        language: languageProp[0]?.name ?? undefined,
         year: yearProp ? String(yearProp) : undefined,
         status: r.properties?.Status?.status?.name || undefined,
       });
@@ -156,7 +156,7 @@ export async function upsertNotionProject(params: {
   if (params.url) properties.URL = { url: params.url };
   if (params.summary) properties.Summary = { rich_text: [{ type: "text", text: { content: params.summary } }] };
   if (params.tags) properties.Tags = { multi_select: params.tags.map((t) => ({ name: t })) };
-  if (params.language) properties.Language = { select: { name: params.language } };
+  if (params.language) properties.Language = { multi_select: [{ name: params.language }] };
   if (params.year) properties.Year = { number: Number(params.year) };
   if (params.status) properties.Status = { status: { name: params.status } };
 

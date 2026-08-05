@@ -5,9 +5,12 @@ import { loadWebsiteStack } from "@/lib/websiteStack";
 export const metadata = { title: "About" };
 
 export default async function AboutPage() {
-  const stack = (await loadWebsiteStack()).filter(
+  const stackState = await loadWebsiteStack();
+  const stack = stackState.entries.filter(
     (entry) => entry.websiteVisible
   );
+  const stackMessage = stackState.message
+    ?? (stack.length === 0 ? "No Stack items are currently approved for website publication." : null);
 
   return (
     <Prose>
@@ -28,6 +31,15 @@ export default async function AboutPage() {
       </ul>
       <h2>Stack</h2>
       <p>Tools and technologies I use to build and ship projects.</p>
+      {stackMessage && (
+        <p
+          className="not-prose rounded-xl border border-black/10 bg-black/[0.03] p-4 text-sm text-black/70 dark:border-white/10 dark:bg-white/5 dark:text-white/70"
+          data-stack-publication-status={stackState.status === "ready" ? "empty" : stackState.status}
+          role={stackState.status === "error" || stackState.status === "unconfigured" ? "alert" : "status"}
+        >
+          {stackMessage}
+        </p>
+      )}
       <StackCatalog entries={stack} />
     </Prose>
   );
