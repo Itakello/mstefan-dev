@@ -27,9 +27,21 @@ jobs:
         run: pnpm sync:notion
       - name: Enrich from README (optional)
         if: ${{ env.OPENAI_API_KEY != '' }}
+        id: enrich
+        continue-on-error: true
         env:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
           NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: pnpm enrich:notion
+      - name: Report optional enrichment failure
+        if: ${{ steps.enrich.outcome == 'failure' }}
+        shell: bash
+        run: |
+          echo "::warning::Optional README enrichment failed; the core GitHub-to-Notion sync completed successfully."
+          {
+            echo "### Optional README enrichment failed"
+            echo
+            echo "The core GitHub-to-Notion sync completed successfully. Review the enrichment step logs before retrying."
+          } >> "$GITHUB_STEP_SUMMARY"
