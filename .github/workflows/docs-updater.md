@@ -10,8 +10,13 @@ permissions:
   contents: read
   pull-requests: read
 
-engine: codex
-model: gpt-5.6-luna?effort=high
+engine:
+  id: codex
+  # The leading space keeps v0.84.4 from joining this flag to the detection output path.
+  args:
+    - ' -c'
+    - 'model_reasoning_effort="high"'
+model: gpt-5.6-luna
 
 network: defaults
 
