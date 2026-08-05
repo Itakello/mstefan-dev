@@ -1,13 +1,13 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
-import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { promisify } from "node:util";
 
 import { diffManifests, processRepositoryTechnologies, validateManifest } from "../scripts/repository-technologies/core.mjs";
-import { buildRepositoryEvidence } from "../scripts/repository-technologies/codex-extractor.mjs";
+import { buildRepositoryEvidence, codexExecArguments, extractWithCodex } from "../scripts/repository-technologies/codex-extractor.mjs";
 
 const execFileAsync = promisify(execFile);
 
@@ -148,6 +148,7 @@ test("passes current state to the extractor and publishes a validated complete m
 
   assert.deepEqual(receivedCurrent, firstManifest);
   assert.equal(result.status, "updated");
+  if (result.status !== "updated") assert.fail("expected an updated manifest");
   assert.deepEqual(result.diff.added, ["Node.js"]);
   assert.deepEqual(JSON.parse(await readFile(paths.outputPath, "utf8")), nextManifest);
   const state = JSON.parse(await readFile(paths.statePath, "utf8"));
@@ -230,6 +231,29 @@ test("discards an invalid persisted manifest before extraction and diffing", asy
   });
 
   assert.equal(receivedCurrent, null);
+  if (result.status !== "updated") assert.fail("expected an updated manifest");
+  assert.deepEqual(result.diff.removed, []);
+});
+
+test("discards a persisted manifest when no successful SHA anchors it", async () => {
+  const paths = await fixture();
+  const sha = "a".repeat(40);
+  await writeFile(paths.outputPath, JSON.stringify({ ...firstManifest, technologies: {} }));
+  let receivedCurrent: unknown = "not-called";
+
+  const result = await processRepositoryTechnologies({
+    ...paths,
+    repository: "Itakello/example",
+    getCurrentSha: async () => sha,
+    extract: async (input) => {
+      receivedCurrent = input.currentManifest;
+      return firstManifest;
+    },
+  });
+
+  assert.equal(receivedCurrent, null);
+  assert.equal(result.status, "updated");
+  if (result.status !== "updated") assert.fail("expected an updated manifest");
   assert.deepEqual(result.diff.removed, []);
 });
 
@@ -260,6 +284,7 @@ test("retains a valid previous manifest when its evidence file was deleted", asy
     }),
   });
 
+  if (result.status !== "updated") assert.fail("expected an updated manifest");
   assert.deepEqual(result.diff.removed, ["TypeScript"]);
 });
 
@@ -283,12 +308,23 @@ test("rejects untracked and symlink evidence paths", async () => {
   }
 });
 
+test("rejects whitespace-padded technology names", async () => {
+  const paths = await fixture();
+  await assert.rejects(validateManifest({
+    ...firstManifest,
+    technologies: [{ ...firstManifest.technologies[0], name: " TypeScript " }],
+  }, {
+    repoDir: paths.repoDir,
+    repository: "Itakello/example",
+    commitSha: firstManifest.commitSha,
+    trackedFiles: await paths.getTrackedFiles(),
+  }), /technologies\[0\]\.name is invalid/);
+});
+
 test("prepares exact-commit evidence without history, untracked files, or symlinks", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "repository-snapshot-"));
   const repoDir = path.join(root, "source");
-  const evidenceDir = path.join(root, "evidence");
   await mkdir(repoDir);
-  await mkdir(evidenceDir);
   await execFileAsync("git", ["init", "--quiet"], { cwd: repoDir });
   await writeFile(path.join(repoDir, "package.json"), "{}\n");
   await writeFile(path.join(repoDir, "deleted-secret"), "OLD_SECRET=value\n");
@@ -302,12 +338,144 @@ test("prepares exact-commit evidence without history, untracked files, or symlin
   await writeFile(path.join(repoDir, ".env"), "UNTRACKED_SECRET=value\n");
   const { stdout } = await execFileAsync("git", ["rev-parse", "HEAD"], { cwd: repoDir });
 
-  const evidence = await buildRepositoryEvidence(repoDir, stdout.trim(), evidenceDir);
+  const evidence = await buildRepositoryEvidence(repoDir, stdout.trim());
 
   assert.equal(evidence.analyzedFiles.includes("package.json"), true);
   assert.equal(evidence.contents.find((file) => file.path === "package.json")?.content, "{}\n");
   assert.equal(JSON.stringify(evidence).includes("OLD_SECRET"), false);
   assert.equal(JSON.stringify(evidence).includes("UNTRACKED_SECRET"), false);
+});
+
+test("classifies target blobs independently of mutable Git attributes and accepts valid U+FFFD", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "repository-attributes-"));
+  const repoDir = path.join(root, "source");
+  await mkdir(repoDir);
+  await execFileAsync("git", ["init", "--quiet"], { cwd: repoDir });
+  await writeFile(path.join(repoDir, "package.json"), "{}\n");
+  await writeFile(path.join(repoDir, "replacement.txt"), "valid replacement: \uFFFD\n");
+  await execFileAsync("git", ["add", "package.json", "replacement.txt"], { cwd: repoDir });
+  await execFileAsync("git", ["-c", "user.name=Codex Test", "-c", "user.email=codex@example.test", "commit", "--quiet", "-m", "fixture"], { cwd: repoDir });
+  const { stdout } = await execFileAsync("git", ["rev-parse", "HEAD"], { cwd: repoDir });
+  await writeFile(path.join(repoDir, ".git", "info", "attributes"), "package.json binary\nreplacement.txt binary\n");
+
+  const evidence = await buildRepositoryEvidence(repoDir, stdout.trim());
+
+  assert.equal(evidence.analyzedFiles.includes("package.json"), true);
+  assert.equal(evidence.contents.find((file) => file.path === "replacement.txt")?.content, "valid replacement: \uFFFD\n");
+});
+
+test("reads target blobs without mutable Git replacement refs", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "repository-replacement-ref-"));
+  const repoDir = path.join(root, "source");
+  await mkdir(repoDir);
+  await execFileAsync("git", ["init", "--quiet"], { cwd: repoDir });
+  await writeFile(path.join(repoDir, "package.json"), "ORIGINAL\n");
+  await execFileAsync("git", ["add", "package.json"], { cwd: repoDir });
+  await execFileAsync("git", ["-c", "user.name=Codex Test", "-c", "user.email=codex@example.test", "commit", "--quiet", "-m", "fixture"], { cwd: repoDir });
+  const { stdout: commitSha } = await execFileAsync("git", ["rev-parse", "HEAD"], { cwd: repoDir });
+  const { stdout: originalBlob } = await execFileAsync("git", ["rev-parse", "HEAD:package.json"], { cwd: repoDir });
+  await writeFile(path.join(repoDir, "replacement-source"), "REPLACED\n");
+  const { stdout: replacementBlob } = await execFileAsync("git", ["hash-object", "-w", "replacement-source"], { cwd: repoDir });
+  await execFileAsync("git", ["replace", originalBlob.trim(), replacementBlob.trim()], { cwd: repoDir });
+
+  const evidence = await buildRepositoryEvidence(repoDir, commitSha.trim());
+
+  assert.equal(evidence.contents.find((file) => file.path === "package.json")?.content, "ORIGINAL\n");
+  assert.equal(evidence.analyzedFiles.includes("replacement-source"), false);
+});
+
+test("rejects malformed UTF-8 target blobs", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "repository-invalid-utf8-"));
+  const repoDir = path.join(root, "source");
+  await mkdir(repoDir);
+  await execFileAsync("git", ["init", "--quiet"], { cwd: repoDir });
+  await writeFile(path.join(repoDir, "invalid.txt"), Buffer.from([0x66, 0x6f, 0x80]));
+  await execFileAsync("git", ["add", "invalid.txt"], { cwd: repoDir });
+  await execFileAsync("git", ["-c", "user.name=Codex Test", "-c", "user.email=codex@example.test", "commit", "--quiet", "-m", "fixture"], { cwd: repoDir });
+  const { stdout } = await execFileAsync("git", ["rev-parse", "HEAD"], { cwd: repoDir });
+
+  await assert.rejects(buildRepositoryEvidence(repoDir, stdout.trim()), /invalid\.txt is not valid UTF-8/);
+});
+
+test("rejects target text blobs above the 128 KiB per-file bound", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "repository-oversized-text-"));
+  const repoDir = path.join(root, "source");
+  await mkdir(repoDir);
+  await execFileAsync("git", ["init", "--quiet"], { cwd: repoDir });
+  await writeFile(path.join(repoDir, "oversized.txt"), "x".repeat(128 * 1024 + 1));
+  await execFileAsync("git", ["add", "oversized.txt"], { cwd: repoDir });
+  await execFileAsync("git", ["-c", "user.name=Codex Test", "-c", "user.email=codex@example.test", "commit", "--quiet", "-m", "fixture"], { cwd: repoDir });
+  const { stdout } = await execFileAsync("git", ["rev-parse", "HEAD"], { cwd: repoDir });
+
+  await assert.rejects(buildRepositoryEvidence(repoDir, stdout.trim()), /bounded v1 limits at oversized\.txt/);
+});
+
+test("disables web search through the supported top-level Codex config", () => {
+  const args = codexExecArguments({ responsePath: "/tmp/response.json", temporaryDir: "/tmp/extractor", model: "test-model" });
+
+  assert.equal(args.includes('web_search="disabled"'), true);
+  assert.equal(args.some((argument, index) => argument === "--disable" && args[index + 1] === "web_search"), false);
+});
+
+test("records an immediate Codex child failure as retryable instead of crashing on EPIPE", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "repository-codex-epipe-"));
+  const repoDir = path.join(root, "source");
+  const binDir = path.join(root, "bin");
+  const statePath = path.join(root, "state.json");
+  const outputPath = path.join(root, "manifest.json");
+  await mkdir(repoDir);
+  await mkdir(binDir);
+  await execFileAsync("git", ["init", "--quiet"], { cwd: repoDir });
+  await writeFile(path.join(repoDir, "large.txt"), "x".repeat(120 * 1024));
+  await execFileAsync("git", ["add", "large.txt"], { cwd: repoDir });
+  await execFileAsync("git", ["-c", "user.name=Codex Test", "-c", "user.email=codex@example.test", "commit", "--quiet", "-m", "fixture"], { cwd: repoDir });
+  const { stdout } = await execFileAsync("git", ["rev-parse", "HEAD"], { cwd: repoDir });
+  const currentSha = stdout.trim();
+  const fakeCodex = path.join(binDir, "codex");
+  await writeFile(fakeCodex, "#!/bin/sh\nexit 2\n");
+  await chmod(fakeCodex, 0o755);
+  const originalPath = process.env.PATH;
+  process.env.PATH = `${binDir}${path.delimiter}${originalPath ?? ""}`;
+
+  try {
+    await assert.rejects(processRepositoryTechnologies({
+      repoDir,
+      repository: "Itakello/example",
+      statePath,
+      outputPath,
+      getCurrentSha: async () => currentSha,
+      getTrackedFiles: async () => new Set(["large.txt"]),
+      extract: extractWithCodex,
+    }), /codex exec exited with code 2/);
+  } finally {
+    process.env.PATH = originalPath;
+  }
+
+  const failedState = JSON.parse(await readFile(statePath, "utf8"));
+  assert.equal(failedState.status, "failed");
+  assert.equal(failedState.lastAttemptedSha, currentSha);
+  assert.equal(failedState.lastSuccessfulProcessedSha, null);
+
+  const result = await processRepositoryTechnologies({
+    repoDir,
+    repository: "Itakello/example",
+    statePath,
+    outputPath,
+    getCurrentSha: async () => currentSha,
+    getTrackedFiles: async () => new Set(["large.txt"]),
+    extract: async () => ({
+      schemaVersion: 1,
+      repository: "Itakello/example",
+      commitSha: currentSha,
+      summary: "A retryable example.",
+      technologies: [{
+        name: "Text",
+        category: "tool",
+        evidence: [{ path: "large.txt", detail: "Provides bounded text evidence." }],
+      }],
+    }),
+  });
+  assert.equal(result.status, "updated");
 });
 
 test("computes added and changed technologies deterministically", () => {

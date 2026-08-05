@@ -45,7 +45,9 @@ export async function validateManifest(manifest, { repoDir, repository, commitSh
   for (const [index, technology] of manifest.technologies.entries()) {
     if (!technology || Array.isArray(technology) || typeof technology !== "object") throw new Error(`technologies[${index}] must be an object.`);
     assertExactKeys(technology, ["name", "category", "evidence"], `technologies[${index}]`);
-    if (typeof technology.name !== "string" || !technology.name.trim() || technology.name.length > 80) throw new Error(`technologies[${index}].name is invalid.`);
+    if (typeof technology.name !== "string" || !technology.name.trim() || technology.name !== technology.name.trim() || technology.name.length > 80) {
+      throw new Error(`technologies[${index}].name is invalid.`);
+    }
     const normalizedName = technology.name.toLocaleLowerCase("en-US");
     if (seen.has(normalizedName)) throw new Error(`Duplicate technology: ${technology.name}.`);
     seen.add(normalizedName);
@@ -99,6 +101,7 @@ export async function processRepositoryTechnologies({ repoDir, repository, state
   const state = await readJson(statePath, { schemaVersion: 1, status: "never-run" });
   let currentManifest = await readJson(outputPath, null, { invalidAsFallback: true });
 
+  if (!state.lastSuccessfulProcessedSha) currentManifest = null;
   if (currentManifest && state.lastSuccessfulProcessedSha) {
     try {
       const previousTrackedFiles = state.lastSuccessfulProcessedSha === currentSha

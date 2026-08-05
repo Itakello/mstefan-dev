@@ -23,6 +23,7 @@ Next.js 14 App Router portfolio with TypeScript, Tailwind CSS, MDX support, and 
 ## Requirements
 - Node.js 18.17+ (recommended: latest LTS)
 - pnpm (or npm/yarn). This repo uses pnpm: `pnpm@10`.
+- Codex CLI `0.146.0` for `extract:repository-technologies`. Install the validated version with `npm install -g @openai/codex@0.146.0`, authenticate with `codex login` (or `printenv OPENAI_API_KEY | codex login --with-api-key`), then confirm both access and the supported version with `codex login status` and `codex --version`.
 
 ## Quick start
 ```bash
@@ -95,7 +96,7 @@ structured response, computes the actual technology diff, and writes state under
 `.artifacts/repository-technologies/` directory. A failed attempt preserves the
 last successful SHA and manifest so the same commit remains retryable.
 The bounded v1 fails visibly instead of producing a partial manifest when an
-analyzed text file exceeds 64 KiB, total text evidence exceeds 512 KiB, the
+analyzed text file exceeds 128 KiB, total text evidence exceeds 512 KiB, the
 serialized evidence exceeds 768 KiB, or more than 500 files require analysis.
 
 The proposal combines the validated manifest with the repository's curated
