@@ -16,6 +16,7 @@ const maxSerializedEvidenceBytes = 768 * 1024;
 const publicSummaryInstructions = [
   "Write a short public summary that describes the project directly in a natural, practical builder tone.",
   "Lead with what the project does and who it is for when the repository evidence supports that audience. Do not default to 'I built' or frame it as a personal tool unless the evidence explicitly says so.",
+  "When committed evidence conflicts about scope or audience, use the less specific claim instead of repeating the conflict.",
   "Do not refer to the owner by name. Avoid corporate portfolio language, marketing fluff, and incidental details such as the interface language unless they materially define the project.",
   "Mention implementation only when it materially distinguishes the project.",
 ];

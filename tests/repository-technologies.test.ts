@@ -423,6 +423,7 @@ test("requires direct, audience-grounded project summaries and concrete technolo
   assert.match(instructions, /describes the project directly/);
   assert.match(instructions, /Do not default to 'I built'/);
   assert.match(instructions, /unless the evidence explicitly says so/);
+  assert.match(instructions, /evidence conflicts about scope or audience/);
   assert.match(instructions, /incidental details such as the interface language/);
   assert.match(instructions, /Avoid corporate portfolio language/);
   assert.match(instructions, /external artifact link/);
