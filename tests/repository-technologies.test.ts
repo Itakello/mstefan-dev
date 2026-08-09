@@ -427,6 +427,7 @@ test("requires direct, audience-grounded project summaries and concrete technolo
   assert.match(instructions, /Avoid corporate portfolio language/);
   assert.match(instructions, /external artifact link/);
   assert.match(instructions, /unused declaration is not sufficient usage evidence/);
+  assert.match(instructions, /a package declaration alone is not use/);
 });
 
 test("records an immediate Codex child failure as retryable instead of crashing on EPIPE", async () => {
