@@ -417,13 +417,16 @@ test("disables web search through the supported top-level Codex config", () => {
   assert.equal(args.some((argument, index) => argument === "--disable" && args[index + 1] === "web_search"), false);
 });
 
-test("requires public summaries to use the repository owner's direct first-person voice", async () => {
+test("requires direct, audience-grounded project summaries and concrete technology usage", async () => {
   const instructions = await readFile(new URL("../scripts/repository-technologies/codex-extractor.mjs", import.meta.url), "utf8");
 
-  assert.match(instructions, /first-person voice/);
-  assert.match(instructions, /natural 'I' and 'my' language/);
-  assert.match(instructions, /Do not refer to the owner by name or in third person/);
+  assert.match(instructions, /describes the project directly/);
+  assert.match(instructions, /Do not default to 'I built'/);
+  assert.match(instructions, /unless the evidence explicitly says so/);
+  assert.match(instructions, /incidental details such as the interface language/);
   assert.match(instructions, /Avoid corporate portfolio language/);
+  assert.match(instructions, /external artifact link/);
+  assert.match(instructions, /unused declaration is not sufficient usage evidence/);
 });
 
 test("records an immediate Codex child failure as retryable instead of crashing on EPIPE", async () => {
