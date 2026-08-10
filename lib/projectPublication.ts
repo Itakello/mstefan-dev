@@ -1,4 +1,12 @@
-import type { Project } from "@/content/projects";
+export type Project = {
+  title: string;
+  summary: string;
+  year?: string;
+  url?: string;
+  tags?: string[];
+  language?: string;
+  featured?: boolean;
+};
 
 export type GitHubRepo = {
   name: string;
