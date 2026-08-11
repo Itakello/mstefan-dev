@@ -130,7 +130,6 @@ app/                # App Router pages and routes
   contact/
   projects/
 components/         # UI components
-content/            # Curated projects list
 lib/                # Notion integration helpers
 public/             # Static assets (og image, icon, sitemap, robots)
 scripts/            # Notion/GitHub automation scripts
