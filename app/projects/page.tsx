@@ -8,6 +8,7 @@ import {
 import { loadWebsiteStack } from "@/lib/websiteStack";
 
 export const metadata = { title: "Projects" };
+export const revalidate = 60;
 
 const GITHUB_USER = "Itakello";
 
