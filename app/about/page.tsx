@@ -3,6 +3,7 @@ import { StackCatalog } from "@/components/StackCatalog";
 import { loadWebsiteStack } from "@/lib/websiteStack";
 
 export const metadata = { title: "About" };
+export const revalidate = 60;
 
 export default async function AboutPage() {
   const stackState = await loadWebsiteStack();
