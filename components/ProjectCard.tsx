@@ -77,7 +77,7 @@ export function ProjectCard({
           />
           <span className="min-w-0 flex-1">
             <span className="block truncate text-sm font-semibold sm:text-base">{title}</span>
-            <span className="mt-1 block line-clamp-2 text-xs leading-5 text-black/60 dark:text-white/60 sm:line-clamp-1">
+            <span className="mt-1 hidden line-clamp-1 text-xs leading-5 text-black/60 dark:text-white/60 sm:block">
               {summary}
             </span>
           </span>
@@ -86,8 +86,10 @@ export function ProjectCard({
         {technologies.length > 0 && (
           <div className="flex shrink-0 items-center gap-3" aria-label={`${technologies.length} technologies`}>
             <div className="flex -space-x-1.5" aria-hidden>
-              {technologies.slice(0, 3).map((item) => (
-                <StackBadge key={item.name} item={item} label={false} compact />
+              {technologies.slice(0, 3).map((item, index) => (
+                <span key={item.name} className={index === 2 ? "hidden sm:inline-flex" : "inline-flex"}>
+                  <StackBadge item={item} label={false} compact />
+                </span>
               ))}
             </div>
             <span className="hidden w-5 text-right text-xs text-black/45 dark:text-white/45 sm:block">
@@ -118,7 +120,7 @@ export function ProjectCard({
               {groups.map(({ category, entries }) => (
                 <div
                   key={category}
-                  className="grid gap-3 border-b border-black/10 py-3 last:border-b-0 dark:border-white/10 sm:grid-cols-[10rem_1fr] sm:items-center"
+                  className="grid gap-3 border-b border-black/10 py-2.5 last:border-b-0 dark:border-white/10 sm:grid-cols-[10rem_1fr] sm:items-center"
                 >
                   <div className="flex items-center gap-2 text-xs font-medium text-black/60 dark:text-white/60">
                     <StackCategoryIcon category={category} />
@@ -126,7 +128,7 @@ export function ProjectCard({
                   </div>
                   <div className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3 lg:grid-cols-4">
                     {entries.map((item) => (
-                      <StackBadge key={item.name} item={item} />
+                      <StackBadge key={item.name} item={item} compact />
                     ))}
                   </div>
                 </div>

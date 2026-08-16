@@ -32,8 +32,8 @@ export function StackCatalog({ entries }: { entries: readonly StackEntry[] }) {
 
   return (
     <div className="divide-y divide-black/10 border-y border-black/10 dark:divide-white/10 dark:border-white/10">
-      {groups.map(({ category, entries: items }, index) => (
-        <details key={category} className="group" open={index === 0}>
+      {groups.map(({ category, entries: items }) => (
+        <details key={category} className="group">
           <summary className="flex min-h-12 cursor-pointer list-none items-center gap-3 py-2 text-sm marker:content-none">
             <span className="grid size-8 shrink-0 place-items-center rounded-md border border-black/10 dark:border-white/10">
               <StackCategoryIcon category={category} />
