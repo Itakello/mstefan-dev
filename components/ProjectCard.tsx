@@ -118,7 +118,7 @@ export function ProjectCard({
           <p className="max-w-3xl text-sm leading-6 text-black/70 dark:text-white/70">{summary}</p>
 
           {groups.length > 0 && (
-            <div className="mt-4 border-t border-black/10 pt-3 dark:border-white/10">
+            <div className="mt-3">
               <StackShelf groups={groups} label={`${title} technologies grouped by category`} />
             </div>
           )}

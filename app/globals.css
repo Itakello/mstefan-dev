@@ -45,11 +45,20 @@ a {
   @apply border-white/10 bg-white/5 shadow-softDark;
 }
 
+.stack-shelf-shell {
+  position: relative;
+}
+
 .stack-shelf {
   overflow-x: auto;
   overflow-y: hidden;
   overscroll-behavior-inline: contain;
-  scrollbar-width: thin;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.stack-shelf::-webkit-scrollbar {
+  display: none;
 }
 
 .stack-shelf-track {
@@ -103,7 +112,7 @@ a {
   --stack-card-rotation: 0deg;
   --stack-card-offset: 0px;
   position: relative;
-  z-index: calc(var(--stack-card-index) + 1);
+  z-index: var(--stack-card-index);
   display: inline-flex;
   margin-left: -0.4rem;
   transform: translateY(var(--stack-card-offset)) rotate(var(--stack-card-rotation));
@@ -166,6 +175,16 @@ a {
   opacity: 1;
 }
 
+.stack-shelf-group:first-child .stack-hand-card:first-child .stack-hand-label {
+  left: 0;
+  transform: translate(0, -0.15rem);
+}
+
+.stack-shelf-group:first-child .stack-hand-card:first-child:hover .stack-hand-label,
+.stack-shelf-group:first-child .stack-hand-card:first-child:focus .stack-hand-label {
+  transform: translate(0, 0);
+}
+
 .stack-overflow-card {
   position: relative;
   z-index: 10;
@@ -189,6 +208,52 @@ a {
   color: rgb(255 255 255 / 0.66);
 }
 
+.stack-shelf-arrow {
+  position: absolute;
+  top: 2.25rem;
+  z-index: 40;
+  display: grid;
+  width: 1.75rem;
+  height: 1.75rem;
+  place-items: center;
+  border: 1px solid rgb(0 0 0 / 0.12);
+  border-radius: 9999px;
+  background: rgb(255 255 255 / 0.94);
+  color: rgb(0 0 0 / 0.72);
+  box-shadow: 0 0.125rem 0.5rem rgb(0 0 0 / 0.12);
+  opacity: 1;
+  transition: opacity 140ms ease, transform 140ms ease;
+}
+
+.stack-shelf-arrow:hover {
+  transform: scale(1.06);
+}
+
+.stack-shelf-arrow:disabled {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.stack-shelf-arrow svg {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.stack-shelf-arrow-left {
+  left: 0.125rem;
+}
+
+.stack-shelf-arrow-right {
+  right: 0.125rem;
+}
+
+.dark .stack-shelf-arrow {
+  border-color: rgb(255 255 255 / 0.14);
+  background: rgb(18 18 18 / 0.94);
+  color: rgb(255 255 255 / 0.82);
+  box-shadow: 0 0.125rem 0.5rem rgb(0 0 0 / 0.32);
+}
+
 @media (max-width: 639px) {
   .stack-shelf-track {
     gap: 1rem;
@@ -201,7 +266,8 @@ a {
 
 @media (prefers-reduced-motion: reduce) {
   .stack-hand-card,
-  .stack-hand-label {
+  .stack-hand-label,
+  .stack-shelf-arrow {
     transition: none;
   }
 }
