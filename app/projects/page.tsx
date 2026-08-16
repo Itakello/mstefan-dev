@@ -1,4 +1,5 @@
 import { ProjectCard } from "@/components/ProjectCard";
+import { StackCatalog } from "@/components/StackCatalog";
 import { fetchProjectsFromNotion, type NotionProject } from "@/lib/notion";
 import {
   mergeAndEnrichProjects,
@@ -7,7 +8,7 @@ import {
 } from "@/lib/projectPublication";
 import { loadWebsiteStack } from "@/lib/websiteStack";
 
-export const metadata = { title: "Projects" };
+export const metadata = { title: "Work" };
 export const revalidate = 60;
 
 const GITHUB_USER = "Itakello";
@@ -53,10 +54,13 @@ export default async function ProjectsPage() {
   const publication = resolveProjectPublicationState(notionProjects, notionResult.failed);
 
   const { groups, orderedYears } = mergeAndEnrichProjects(publication.projects, repos);
+  const toolkitEntries = stackCatalog.entries.filter((entry) => entry.websiteVisible);
+  const toolkitMessage = stackCatalog.message
+    ?? (toolkitEntries.length === 0 ? "No Toolkit items are currently approved for website publication." : null);
 
   return (
     <section>
-      <h1 className="text-2xl font-semibold">Projects</h1>
+      <h1 className="text-2xl font-semibold">Work</h1>
       <p className="mt-2 text-black/70 dark:text-white/70 text-sm">
         Selected work. Grouped by year.
       </p>
@@ -71,26 +75,43 @@ export default async function ProjectsPage() {
         </p>
       )}
 
-      {stackCatalog.message && (
-        <p
-          className="mt-4 rounded-xl border border-black/10 bg-black/[0.03] p-4 text-sm text-black/70 dark:border-white/10 dark:bg-white/5 dark:text-white/70"
-          data-stack-publication-status={stackCatalog.status}
-          role={stackCatalog.status === "error" || stackCatalog.status === "unconfigured" ? "alert" : "status"}
-        >
-          {stackCatalog.message}
-        </p>
-      )}
-
-      {orderedYears.map((year) => (
+      {orderedYears.map((year, yearIndex) => (
         <div key={year} className="mt-8 first:mt-6">
           <h2 className="text-xl font-semibold">{year}</h2>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            {groups[year].map((p) => (
-              <ProjectCard key={`${year}-${p.title}`} {...p} stackCatalog={stackCatalog.entries} />
+          <div className="mt-3 border-t border-black/10 dark:border-white/10">
+            {groups[year].map((p, projectIndex) => (
+              <ProjectCard
+                key={`${year}-${p.title}`}
+                {...p}
+                stackCatalog={stackCatalog.entries}
+                defaultOpen={yearIndex === 0 && projectIndex === 0}
+              />
             ))}
           </div>
         </div>
       ))}
+
+      <section className="mt-10 rounded-xl border border-black/10 p-4 dark:border-white/10 sm:grid sm:grid-cols-[13rem_1fr] sm:gap-6 sm:p-5">
+        <div>
+          <h2 className="text-xl font-semibold">Toolkit</h2>
+          <p className="mt-2 text-sm leading-6 text-black/60 dark:text-white/60">
+            Tools and technologies I use across my work.
+          </p>
+        </div>
+        <div className="mt-4 sm:mt-0">
+          {toolkitMessage ? (
+            <p
+              className="rounded-lg border border-black/10 bg-black/[0.025] p-4 text-sm text-black/65 dark:border-white/10 dark:bg-white/[0.035] dark:text-white/65"
+              data-stack-publication-status={stackCatalog.status}
+              role={stackCatalog.status === "error" || stackCatalog.status === "unconfigured" ? "alert" : "status"}
+            >
+              {toolkitMessage}
+            </p>
+          ) : (
+            <StackCatalog entries={toolkitEntries} />
+          )}
+        </div>
+      </section>
     </section>
   );
 }
