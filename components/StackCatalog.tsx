@@ -1,7 +1,7 @@
 "use client";
 
 import { Icon } from "@iconify/react";
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type CSSProperties } from "react";
 
 import { StackBadge } from "@/components/StackBadge";
 import {
@@ -38,41 +38,64 @@ const cardOffsets = [
   { rotation: "2deg", offset: "0px" },
   { rotation: "-1deg", offset: "2px" },
   { rotation: "2.5deg", offset: "0px" },
+  { rotation: "-2.5deg", offset: "0px" },
+  { rotation: "1deg", offset: "2px" },
 ] as const;
 
-function StackHand({ entries }: { entries: readonly StackEntry[] }) {
+function stackHandVariation(category: string, entries: readonly StackEntry[]) {
+  const signature = `${category}:${entries.map((entry) => entry.name).join(":")}`;
+  const seed = [...signature].reduce(
+    (total, character) => total + character.charCodeAt(0),
+    0,
+  );
+
+  return seed % cardOffsets.length;
+}
+
+function StackHand({ category, entries }: { category: string; entries: readonly StackEntry[] }) {
   const { visibleEntries, hiddenEntries, overflowCount } = summarizeStackEntries(entries);
+  const [showAll, setShowAll] = useState(false);
+  const hiddenEntriesId = useId();
+  const variation = stackHandVariation(category, entries);
+
+  const renderCard = (item: StackEntry, index: number) => {
+    const offset = cardOffsets[(index + variation) % cardOffsets.length];
+    const style = {
+      "--stack-card-index": entries.length - index,
+      "--stack-card-rotation": offset.rotation,
+      "--stack-card-offset": offset.offset,
+    } as CSSProperties;
+
+    return (
+      <span key={item.name} className="stack-hand-card" style={style} tabIndex={0}>
+        <StackBadge item={item} label={false} compact />
+        <span className="stack-hand-label" aria-hidden>
+          {item.name}
+        </span>
+      </span>
+    );
+  };
 
   return (
     <div className="stack-hand" aria-label={entries.map((entry) => entry.name).join(", ")}>
-      {visibleEntries.map((item, index) => {
-        const offset = cardOffsets[index % cardOffsets.length];
-        const style = {
-          "--stack-card-index": visibleEntries.length - index,
-          "--stack-card-rotation": offset.rotation,
-          "--stack-card-offset": offset.offset,
-        } as CSSProperties;
+      {visibleEntries.map(renderCard)}
 
-        return (
-          <span key={item.name} className="stack-hand-card" style={style} tabIndex={0}>
-            <StackBadge item={item} label={false} compact />
-            <span className="stack-hand-label" aria-hidden>
-              {item.name}
-            </span>
-          </span>
-        );
-      })}
+      <span id={hiddenEntriesId} className="stack-hidden-cards" hidden={!showAll}>
+        {hiddenEntries.map((item, index) => renderCard(item, visibleEntries.length + index))}
+      </span>
 
       {overflowCount > 0 && (
-        <span
+        <button
+          type="button"
           className="stack-overflow-card"
+          aria-controls={hiddenEntriesId}
+          aria-expanded={showAll}
+          aria-label={`${showAll ? "Hide" : "Show"} ${overflowCount} more ${category} technologies`}
+          onClick={() => setShowAll((current) => !current)}
           title={hiddenEntries.map((entry) => entry.name).join(", ")}
         >
-          +{overflowCount}
-          <span className="sr-only">
-            {` more: ${hiddenEntries.map((entry) => entry.name).join(", ")}`}
-          </span>
-        </span>
+          {showAll ? `−${overflowCount}` : `+${overflowCount}`}
+        </button>
       )}
     </div>
   );
@@ -139,7 +162,7 @@ export function StackShelf({
                 <span>{category}</span>
                 <span className="text-black/40 dark:text-white/40">{entries.length}</span>
               </div>
-              <StackHand entries={entries} />
+              <StackHand category={category} entries={entries} />
             </section>
           ))}
         </div>

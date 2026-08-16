@@ -120,6 +120,28 @@ a {
   transition: margin 160ms ease, transform 160ms ease, z-index 0s;
 }
 
+.stack-hand-card .stack-badge-icon {
+  background: rgb(255 255 255);
+}
+
+.dark .stack-hand-card .stack-badge-icon {
+  background: rgb(10 10 10);
+}
+
+.stack-hidden-cards {
+  display: inline-flex;
+  align-items: center;
+  animation: stack-cards-reveal 160ms ease-out;
+}
+
+.stack-hidden-cards[hidden] {
+  display: none;
+}
+
+.stack-hidden-cards .stack-hand-card:first-child {
+  margin-left: -0.4rem;
+}
+
 .stack-hand-card:first-child {
   margin-left: 0;
 }
@@ -187,7 +209,7 @@ a {
 
 .stack-overflow-card {
   position: relative;
-  z-index: 10;
+  z-index: 0;
   display: inline-grid;
   width: 1.75rem;
   height: 1.75rem;
@@ -200,12 +222,40 @@ a {
   font-size: 0.6875rem;
   font-weight: 600;
   line-height: 1;
+  transition: background-color 140ms ease, color 140ms ease, transform 140ms ease;
+}
+
+.stack-overflow-card:hover,
+.stack-overflow-card:focus-visible,
+.stack-overflow-card[aria-expanded="true"] {
+  background: rgb(0 0 0 / 0.075);
+  color: rgb(0 0 0 / 0.82);
+  transform: translateY(-0.125rem);
 }
 
 .dark .stack-overflow-card {
   border-color: rgb(255 255 255 / 0.11);
   background: rgb(255 255 255 / 0.055);
   color: rgb(255 255 255 / 0.66);
+}
+
+.dark .stack-overflow-card:hover,
+.dark .stack-overflow-card:focus-visible,
+.dark .stack-overflow-card[aria-expanded="true"] {
+  background: rgb(255 255 255 / 0.1);
+  color: rgb(255 255 255 / 0.88);
+}
+
+@keyframes stack-cards-reveal {
+  from {
+    opacity: 0;
+    transform: translateX(-0.35rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 .stack-shelf-arrow {
@@ -267,8 +317,13 @@ a {
 @media (prefers-reduced-motion: reduce) {
   .stack-hand-card,
   .stack-hand-label,
-  .stack-shelf-arrow {
+  .stack-shelf-arrow,
+  .stack-overflow-card {
     transition: none;
+  }
+
+  .stack-hidden-cards {
+    animation: none;
   }
 }
 
