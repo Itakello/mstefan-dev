@@ -77,13 +77,15 @@ export function ProjectCard({
           />
           <span className="min-w-0 flex-1">
             <span className="block truncate text-sm font-semibold sm:text-base">{title}</span>
-            <span className="mt-1 hidden line-clamp-1 text-xs leading-5 text-black/60 dark:text-white/60 sm:block">
+            <span
+              className={`mt-1 line-clamp-1 text-xs leading-5 text-black/60 dark:text-white/60 ${isOpen ? "hidden" : "hidden sm:block"}`}
+            >
               {summary}
             </span>
           </span>
         </button>
 
-        {technologies.length > 0 && (
+        {technologies.length > 0 && !isOpen && (
           <div className="flex shrink-0 items-center gap-3" aria-label={`${technologies.length} technologies`}>
             <div className="flex -space-x-1.5" aria-hidden>
               {technologies.slice(0, 3).map((item, index) => (
