@@ -91,14 +91,14 @@ export default async function ProjectsPage() {
         </div>
       ))}
 
-      <section className="mt-10 rounded-xl border border-black/10 p-4 dark:border-white/10 sm:grid sm:grid-cols-[13rem_1fr] sm:gap-6 sm:p-5">
+      <section className="mt-10 border-y border-black/10 py-5 dark:border-white/10">
         <div>
           <h2 className="text-xl font-semibold">Toolkit</h2>
-          <p className="mt-2 text-sm leading-6 text-black/60 dark:text-white/60">
+          <p className="mt-2 max-w-xl text-sm leading-6 text-black/60 dark:text-white/60">
             Tools and technologies I use across my work.
           </p>
         </div>
-        <div className="mt-4 sm:mt-0">
+        <div className="mt-4">
           {toolkitMessage ? (
             <p
               className="rounded-lg border border-black/10 bg-black/[0.025] p-4 text-sm text-black/65 dark:border-white/10 dark:bg-white/[0.035] dark:text-white/65"

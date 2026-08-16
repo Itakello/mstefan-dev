@@ -4,7 +4,7 @@ import { Icon } from "@iconify/react";
 import { useId, useState } from "react";
 
 import { StackBadge } from "@/components/StackBadge";
-import { StackCategoryIcon } from "@/components/StackCatalog";
+import { StackShelf } from "@/components/StackCatalog";
 import {
   findStackEntry,
   groupStackEntries,
@@ -116,23 +116,8 @@ export function ProjectCard({
           <p className="max-w-3xl text-sm leading-6 text-black/70 dark:text-white/70">{summary}</p>
 
           {groups.length > 0 && (
-            <div className="mt-5 border-t border-black/10 pt-2 dark:border-white/10">
-              {groups.map(({ category, entries }) => (
-                <div
-                  key={category}
-                  className="grid gap-3 border-b border-black/10 py-2.5 last:border-b-0 dark:border-white/10 sm:grid-cols-[10rem_1fr] sm:items-center"
-                >
-                  <div className="flex items-center gap-2 text-xs font-medium text-black/60 dark:text-white/60">
-                    <StackCategoryIcon category={category} />
-                    <span>{category}</span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3 lg:grid-cols-4">
-                    {entries.map((item) => (
-                      <StackBadge key={item.name} item={item} compact />
-                    ))}
-                  </div>
-                </div>
-              ))}
+            <div className="mt-4 border-t border-black/10 pt-3 dark:border-white/10">
+              <StackShelf groups={groups} label={`${title} technologies grouped by category`} />
             </div>
           )}
 
