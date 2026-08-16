@@ -116,19 +116,19 @@ a {
 }
 
 .stack-hand-card:hover,
-.stack-hand-card:focus-visible {
+.stack-hand-card:focus {
   z-index: 20;
   margin-inline: 0.1rem;
   transform: translateY(-0.25rem) rotate(0deg) scale(1.06);
 }
 
 .stack-hand-card:has(+ .stack-hand-card:hover),
-.stack-hand-card:has(+ .stack-hand-card:focus-visible) {
+.stack-hand-card:has(+ .stack-hand-card:focus) {
   transform: translateX(-0.2rem) translateY(var(--stack-card-offset)) rotate(var(--stack-card-rotation));
 }
 
 .stack-hand-card:hover + .stack-hand-card,
-.stack-hand-card:focus-visible + .stack-hand-card {
+.stack-hand-card:focus + .stack-hand-card {
   transform: translateX(0.2rem) translateY(var(--stack-card-offset)) rotate(var(--stack-card-rotation));
 }
 
@@ -161,7 +161,7 @@ a {
 }
 
 .stack-hand-card:hover .stack-hand-label,
-.stack-hand-card:focus-visible .stack-hand-label {
+.stack-hand-card:focus .stack-hand-label {
   transform: translate(-50%, 0);
   opacity: 1;
 }
