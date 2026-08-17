@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -35,12 +36,14 @@ export function Header() {
     <header className="flex items-center justify-between pt-8">
       <Link href="/" aria-label="Massimo Stefan home" className="group no-underline">
         <div className="flex items-center gap-3">
-          <span
-            aria-hidden="true"
-            className="flex size-10 items-center justify-center rounded-xl bg-[hsl(var(--accent))] text-sm font-semibold text-black"
-          >
-            MS
-          </span>
+          <Image
+            src="/profile-avatar.jpg"
+            alt="Portrait of Massimo Stefan"
+            width={44}
+            height={44}
+            className="size-11 rounded-xl object-cover"
+            priority
+          />
           <div className="hidden sm:block font-semibold tracking-tight">Massimo Stefan</div>
         </div>
       </Link>
