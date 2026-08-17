@@ -88,18 +88,23 @@ export async function inspectProjectsSchema(params: {
   if (!databaseId) return blockedPlan(null, "missing-projects-database-id");
   if (!params.client) return blockedPlan(databaseId, "missing-schema-client");
 
-  let schema: NotionSchemaResponse;
+  let schema: unknown;
   try {
     schema = await params.client.databases.retrieve({ database_id: databaseId });
   } catch {
     return blockedPlan(databaseId, "provider-read-error");
   }
 
-  if (!schema.properties || typeof schema.properties !== "object" || Array.isArray(schema.properties)) {
+  if (!schema || typeof schema !== "object" || Array.isArray(schema)) {
     return blockedPlan(databaseId, "unexpected-schema-response");
   }
 
-  const property = (schema.properties as Record<string, unknown>)[REQUIRED_PROJECTS_SCHEMA_PROPERTY.name];
+  const properties = (schema as NotionSchemaResponse).properties;
+  if (!properties || typeof properties !== "object" || Array.isArray(properties)) {
+    return blockedPlan(databaseId, "unexpected-schema-response");
+  }
+
+  const property = (properties as Record<string, unknown>)[REQUIRED_PROJECTS_SCHEMA_PROPERTY.name];
   if (property === undefined) {
     return {
       ...planBase(databaseId, null),

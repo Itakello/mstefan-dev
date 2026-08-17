@@ -141,3 +141,30 @@ test("blocks provider read errors without exposing their detail", async () => {
   });
   assert.equal(JSON.stringify(plan).includes("secret-token"), false);
 });
+
+test("blocks malformed database schema responses without throwing", async () => {
+  for (const response of [null, undefined, [], "malformed", {}, { properties: null }, { properties: [] }]) {
+    const plan = await inspectProjectsSchema({
+      token: "secret-token",
+      databaseId: "projects-db",
+      client: {
+        databases: {
+          async retrieve() {
+            return response as { properties?: unknown };
+          },
+        },
+      },
+    });
+
+    assert.deepEqual(plan, {
+      state: "blocked",
+      databaseId: "projects-db",
+      requiredProperty: { name: "Summary IT", type: "rich_text" },
+      observedProperty: { name: "Summary IT", type: null },
+      proposedAction: { kind: "none" },
+      applyAllowed: false,
+      reason: "unexpected-schema-response",
+    });
+    assert.equal(JSON.stringify(plan).includes("secret-token"), false);
+  }
+});
