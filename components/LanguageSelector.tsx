@@ -78,6 +78,10 @@ export function LanguageSelector({ locale, compact = false }: { locale: Locale; 
   }
 
   function handleMenuItemKeyDown(event: React.KeyboardEvent<HTMLButtonElement>, index: number) {
+    if (event.key === "Tab") {
+      setOpen(false);
+      return;
+    }
     if (event.key === "Escape") {
       event.preventDefault();
       closeMenuAndRestoreFocus();
