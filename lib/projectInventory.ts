@@ -7,7 +7,7 @@ type GitHubInventoryRepository = {
   language: string | null;
   archived: boolean;
   fork: boolean;
-  pushed_at: string;
+  pushed_at: string | null;
 };
 
 export function findMissingInventoryRepositories(

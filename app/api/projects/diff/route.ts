@@ -10,19 +10,27 @@ type GitHubRepo = {
   language: string | null;
   archived: boolean;
   fork: boolean;
-  pushed_at: string;
+  pushed_at: string | null;
 };
+
+function isNonblankString(value: unknown): value is string {
+  return typeof value === "string" && Boolean(value.trim());
+}
+
+function isGitHubPushedAt(value: unknown): value is string | null {
+  return value === null || (isNonblankString(value) && Number.isFinite(Date.parse(value)));
+}
 
 function isGitHubRepo(value: unknown): value is GitHubRepo {
   return Boolean(value)
     && typeof value === "object"
-    && typeof (value as GitHubRepo).name === "string"
+    && isNonblankString((value as GitHubRepo).name)
     && ((value as GitHubRepo).description === null || typeof (value as GitHubRepo).description === "string")
-    && typeof (value as GitHubRepo).html_url === "string"
+    && isNonblankString((value as GitHubRepo).html_url)
     && ((value as GitHubRepo).language === null || typeof (value as GitHubRepo).language === "string")
     && typeof (value as GitHubRepo).archived === "boolean"
     && typeof (value as GitHubRepo).fork === "boolean"
-    && typeof (value as GitHubRepo).pushed_at === "string";
+    && isGitHubPushedAt((value as GitHubRepo).pushed_at);
 }
 
 export async function fetchGitHubRepos(fetchImpl: typeof fetch = fetch): Promise<GitHubRepo[]> {
