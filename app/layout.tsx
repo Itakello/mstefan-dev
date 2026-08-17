@@ -11,21 +11,19 @@ export const metadata: Metadata = {
     default: "Massimo Stefan",
     template: "%s · Massimo Stefan"
   },
-  description: "AI engineer. I build practical LLM systems, agents, and clean infra.",
+  description: "Software engineer building AI systems, agents, and reliable automation.",
   openGraph: {
     title: "Massimo Stefan",
-    description: "AI engineer. I build practical LLM systems, agents, and clean infra.",
+    description: "Software engineer building AI systems, agents, and reliable automation.",
     url: "https://mstefan.dev",
     siteName: "mstefan.dev",
-    images: ["/og-image.png"],
     locale: "en_US",
     type: "website"
   },
   twitter: {
     card: "summary_large_image",
     title: "Massimo Stefan",
-    description: "AI engineer. I build practical LLM systems, agents, and clean infra.",
-    images: ["/og-image.png"]
+    description: "Software engineer building AI systems, agents, and reliable automation."
   },
   icons: {
     icon: "/icon.svg"

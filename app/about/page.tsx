@@ -7,19 +7,15 @@ export default function AboutPage() {
     <Prose>
       <h1>About</h1>
       <p>
-        I'm Massimo. I design and ship AI systems that are useful on day one.
-        My focus is on reasoning models, agent scaffolding, and clean infra that stays maintainable.
+        I’m Massimo Stefan, a software engineer based in Italy. I build agents and
+        automation that connect models to the tools and information people already use.
       </p>
       <p>
-        I prefer simple building blocks, fast iteration, and measurable outcomes.
-        If a tool saves time without locking me in, I'm in.
+        I prefer systems with one source of truth, deterministic automation where
+        possible, human approval where it matters, and failures that are visible instead
+        of silent. The point is not to add AI everywhere. It is to remove work without
+        losing control.
       </p>
-      <h2>Now</h2>
-      <ul>
-        <li>Exploring agentic workflows with OpenAI models</li>
-        <li>Improving my resume tailoring pipeline</li>
-        <li>Looking for roles in NL, UK, Nordics</li>
-      </ul>
     </Prose>
   );
 }
