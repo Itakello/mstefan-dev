@@ -23,7 +23,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
   const { locale } = await params;
   if (!isSupportedLocale(locale)) notFound();
   const content = getCopy(locale).home;
-  const [{ projects, publication }, stackCatalog] = await Promise.all([loadPublicProjects(), loadWebsiteStack()]);
+  const [{ projects, publication }, stackCatalog] = await Promise.all([loadPublicProjects(locale), loadWebsiteStack()]);
   const projectsByTitle = new Map(projects.map((project) => [project.title, project]));
   const selectedProjects = SELECTED_PROJECTS.flatMap((title) => {
     const project = projectsByTitle.get(title);
@@ -31,7 +31,8 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
   });
   const toolkitEntries = stackCatalog.entries.filter((entry) => entry.websiteVisible);
   const toolkitMessage = stackCatalog.message
-    ?? (toolkitEntries.length === 0 ? "No Toolkit items are currently approved for website publication." : null);
+    ? getCopy(locale).publication.stack[stackCatalog.message]
+    : (toolkitEntries.length === 0 ? getCopy(locale).publication.toolkitEmpty : null);
 
   return (
     <section className="space-y-10">
@@ -77,7 +78,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
             className="mt-4 rounded-xl border border-black/10 bg-black/[0.03] p-4 text-sm text-black/70 dark:border-white/10 dark:bg-white/5 dark:text-white/70"
             role={publication.status === "error" || publication.status === "unconfigured" ? "alert" : "status"}
           >
-            {publication.message}
+            {getCopy(locale).publication.projects[publication.message]}
           </p>
         ) : null}
       </section>

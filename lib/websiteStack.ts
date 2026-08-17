@@ -48,7 +48,7 @@ type WebsiteStackOptions = {
 export type WebsiteStackState = {
   status: "ready" | "empty" | "unconfigured" | "error";
   entries: readonly StackEntry[];
-  message: string | null;
+  message: "empty" | "unconfigured" | "error" | null;
 };
 
 export async function loadWebsiteStack({
@@ -63,7 +63,7 @@ export async function loadWebsiteStack({
       return {
         status: "unconfigured",
         entries: [],
-        message: "Stack is unavailable because the publication source is not configured.",
+        message: "unconfigured",
       };
     }
     if (stack.length === 0) {
@@ -71,7 +71,7 @@ export async function loadWebsiteStack({
       return {
         status: "empty",
         entries: [],
-        message: "No Stack items are currently available for publication.",
+        message: "empty",
       };
     }
     if (vercelEnv === "production") await validateStack(stack);
@@ -83,7 +83,7 @@ export async function loadWebsiteStack({
     return {
       status: "error",
       entries: [],
-      message: "Stack is temporarily unavailable because the publication source could not be loaded.",
+      message: "error",
     };
   }
 }

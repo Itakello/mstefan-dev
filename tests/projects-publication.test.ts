@@ -6,6 +6,7 @@ import {
   resolveProjectPublicationState,
   selectPublicProjects,
 } from "../lib/projectPublication";
+import { projectPublicationMessage } from "../lib/i18n/copy";
 
 const githubRepo = {
   name: "unapproved-repository",
@@ -106,20 +107,26 @@ test("orders projects within a year by creation date, not last push date", () =>
   ]);
 });
 
-test("fails closed for missing, empty, and failed publication sources", () => {
+test("returns stable fail-closed publication status codes", () => {
   assert.deepEqual(resolveProjectPublicationState(null), {
     status: "unconfigured",
     projects: [],
-    message: "Projects are unavailable because the publication source is not configured.",
+    message: "unconfigured",
   });
   assert.deepEqual(resolveProjectPublicationState([]), {
     status: "empty",
     projects: [],
-    message: "No projects are currently approved for publication.",
+    message: "empty",
   });
   assert.deepEqual(resolveProjectPublicationState(null, true), {
     status: "error",
     projects: [],
-    message: "Projects are temporarily unavailable because the publication source could not be loaded.",
+    message: "error",
   });
+});
+
+test("maps project publication statuses to locale-owned messages", () => {
+  assert.equal(projectPublicationMessage("en", "empty"), "No projects are currently approved for publication.");
+  assert.equal(projectPublicationMessage("it", "empty"), "Nessun progetto è attualmente approvato per la pubblicazione.");
+  assert.equal(projectPublicationMessage("it", "error"), "I progetti non sono temporaneamente disponibili perché la fonte di pubblicazione non può essere caricata.");
 });

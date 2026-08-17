@@ -1,16 +1,21 @@
 import { Client } from "@notionhq/client";
 
+import type { Locale } from "@/lib/i18n/config";
 import { isStackIconSource, type StackEntry } from "@/lib/stack";
+
+export type LocalizedProjectCopy = {
+  summary: string;
+  shortSummary?: string;
+};
 
 export type NotionProject = {
   title: string;
-  shortSummary?: string;
-  summary: string;
+  copy: Record<Locale, LocalizedProjectCopy>;
   url?: string;
   tags?: string[];
   year?: string;
   language?: string;
-  status?: "To Add" | "Added" | "Removed";
+  status: "Added";
 };
 
 function getNotionClient(): Client | null {
@@ -32,48 +37,54 @@ export async function fetchProjectsFromNotion(databaseId?: string): Promise<Noti
       database_id: db,
       start_cursor: cursor,
       filter: {
-        and: [
-          {
-            or: [
-              { property: "Status", status: { equals: "Added" } },
-              // Also allow items with no status to show up
-              { property: "Status", status: { is_empty: true } },
-            ],
-          },
-        ],
+        property: "Status",
+        status: { equals: "Added" },
       },
     });
 
     for (const r of res.results as any[]) {
-      const titleProp = r.properties?.Name?.title || [];
-      const urlProp = r.properties?.URL?.url as string | null | undefined;
-      const summaryProp = r.properties?.Summary?.rich_text || [];
-      const shortSummaryProp = r.properties?.["Short summary"]?.rich_text || [];
-      const tagsProp = r.properties?.Tags?.multi_select || [];
-      const languageProp = r.properties?.Language?.multi_select || [];
-      const yearProp = r.properties?.Year?.number || null;
-
-      const title = titleProp.map((t: any) => t.plain_text).join("");
-      const summary = summaryProp.map((t: any) => t.plain_text).join("");
-      const shortSummary = shortSummaryProp.map((t: any) => t.plain_text).join("");
-      const tags = tagsProp.map((t: any) => t.name);
-
-      pages.push({
-        title,
-        shortSummary: shortSummary || undefined,
-        summary,
-        url: urlProp ?? undefined,
-        tags: tags.length > 0 ? tags : undefined,
-        language: languageProp[0]?.name ?? undefined,
-        year: yearProp ? String(yearProp) : undefined,
-        status: r.properties?.Status?.status?.name || undefined,
-      });
+      const project = parseNotionProjectPage(r);
+      if (project) pages.push(project);
     }
 
     cursor = res.has_more ? res.next_cursor ?? undefined : undefined;
   } while (cursor);
 
   return pages;
+}
+
+export function parseNotionProjectPage(page: any): NotionProject | null {
+  const properties = page?.properties;
+  if (!properties || properties.Status?.status?.name !== "Added") return null;
+
+  const title = richText(properties.Name?.title);
+  const englishSummary = richText(properties.Summary?.rich_text);
+  const italianSummary = richText(properties["Summary IT"]?.rich_text);
+  if (!title || !englishSummary || !italianSummary) return null;
+
+  const englishShortSummary = richText(properties["Short summary"]?.rich_text);
+  const italianShortSummary = richText(properties["Short summary IT"]?.rich_text);
+  const tags = (properties.Tags?.multi_select ?? [])
+    .map((tag: any) => typeof tag?.name === "string" ? tag.name.trim() : "")
+    .filter(Boolean);
+  const url = typeof properties.URL?.url === "string" ? properties.URL.url : undefined;
+  const language = typeof properties.Language?.multi_select?.[0]?.name === "string"
+    ? properties.Language.multi_select[0].name
+    : undefined;
+  const year = typeof properties.Year?.number === "number" ? String(properties.Year.number) : undefined;
+
+  return {
+    title,
+    copy: {
+      en: { summary: englishSummary, ...(englishShortSummary ? { shortSummary: englishShortSummary } : {}) },
+      it: { summary: italianSummary, ...(italianShortSummary ? { shortSummary: italianShortSummary } : {}) },
+    },
+    url,
+    tags: tags.length > 0 ? tags : undefined,
+    language,
+    year,
+    status: "Added",
+  };
 }
 
 export async function fetchStackFromNotion(databaseId?: string): Promise<StackEntry[] | null> {

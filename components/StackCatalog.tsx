@@ -114,7 +114,7 @@ function StackHand({ category, entries, locale }: { category: string; entries: r
   return (
     <div
       className="stack-hand"
-      aria-label={entries.map((entry) => entry.name).join(", ")}
+      aria-label={copy.stack.technologyList(entries.map((entry) => entry.name).join(", "))}
       onMouseLeave={() => setFloatingLabel(null)}
     >
       {visibleEntries.map(renderCard)}
@@ -237,7 +237,7 @@ export function StackShelf({
       <div ref={shelfRef} className="stack-shelf" aria-label={label}>
         <div className="stack-shelf-track">
           {groups.map(({ category, entries }) => {
-            const displayCategory = displayStackCategory(category);
+            const displayCategory = displayStackCategory(category, locale);
 
             return (
               <section

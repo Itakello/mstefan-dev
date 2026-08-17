@@ -20,7 +20,7 @@ export default async function ProjectsPage({ params }: { params: Promise<{ local
   const { locale } = await params;
   if (!isSupportedLocale(locale)) notFound();
   const content = getCopy(locale).projects;
-  const [{ groups, orderedYears, publication }, stackCatalog] = await Promise.all([loadPublicProjects(), loadWebsiteStack()]);
+  const [{ groups, orderedYears, publication }, stackCatalog] = await Promise.all([loadPublicProjects(locale), loadWebsiteStack()]);
 
   return (
     <section aria-labelledby="public-projects-heading">
@@ -33,7 +33,7 @@ export default async function ProjectsPage({ params }: { params: Promise<{ local
           data-project-publication-status={publication.status}
           role={publication.status === "error" || publication.status === "unconfigured" ? "alert" : "status"}
         >
-          {publication.message}
+          {getCopy(locale).publication.projects[publication.message]}
         </p>
       )}
 

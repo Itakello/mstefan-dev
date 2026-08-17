@@ -1,4 +1,5 @@
 import { fetchGitHubRepos, GITHUB_USER } from "@/lib/github";
+import type { Locale } from "@/lib/i18n/config";
 import { fetchProjectsFromNotion, type NotionProject } from "@/lib/notion";
 import {
   mergeAndEnrichProjects,
@@ -6,7 +7,20 @@ import {
   selectPublicProjects,
 } from "@/lib/projectPublication";
 
-export async function loadPublicProjects() {
+export function selectPublicProjectLocale(project: NotionProject, locale: Locale) {
+  const localizedCopy = project.copy[locale];
+
+  return {
+    title: project.title,
+    summary: localizedCopy.summary,
+    ...(localizedCopy.shortSummary ? { shortSummary: localizedCopy.shortSummary } : {}),
+    ...(project.url ? { url: project.url } : {}),
+    ...(project.tags ? { tags: project.tags } : {}),
+    ...(project.language ? { language: project.language } : {}),
+  };
+}
+
+export async function loadPublicProjects(locale: Locale) {
   const [repos, notionResult] = await Promise.all([
     fetchGitHubRepos(),
     fetchProjectsFromNotion()
@@ -18,14 +32,7 @@ export async function loadPublicProjects() {
   ]);
 
   const notionProjects = notionResult.projects
-    ? notionResult.projects.map((project: NotionProject) => ({
-        title: project.title,
-        shortSummary: project.shortSummary,
-        summary: project.summary,
-        url: project.url,
-        tags: project.tags,
-        language: project.language,
-      }))
+    ? notionResult.projects.map((project: NotionProject) => selectPublicProjectLocale(project, locale))
     : null;
   const publication = resolveProjectPublicationState(
     notionProjects,
@@ -38,7 +45,7 @@ export async function loadPublicProjects() {
     ? {
         status: "empty" as const,
         projects,
-        message: "No active public projects are currently approved for publication.",
+        message: "no-active" as const,
       }
     : { ...publication, projects };
   const { groups, orderedYears } = mergeAndEnrichProjects(projects, repos ?? []);

@@ -32,14 +32,23 @@ type SiteCopy = {
   projectCard: {
     viewRepository: (title: string) => string;
     technologiesByCategory: (title: string) => string;
+    toggleDetails: (title: string, expanded: boolean) => string;
+    started: (date: string) => string;
   };
   stack: {
+    categories: Record<string, string>;
     projectCategory: string;
     showMore: (count: number, category: string) => string;
     hideMore: (count: number, category: string) => string;
     scrollLeft: string;
     scrollRight: string;
     toolkitTechnologiesByCategory: string;
+    technologyList: (names: string) => string;
+  };
+  publication: {
+    projects: Record<"empty" | "no-active" | "unconfigured" | "error", string>;
+    stack: Record<"empty" | "unconfigured" | "error", string>;
+    toolkitEmpty: string;
   };
   footer: { rights: string };
   home: {
@@ -89,14 +98,42 @@ export const copy = {
     projectCard: {
       viewRepository: (title) => `View ${title} repository on GitHub`,
       technologiesByCategory: (title) => `${title} technologies grouped by category`,
+      toggleDetails: (title, expanded) => `${expanded ? "Hide" : "Show"} ${title} details`,
+      started: (date) => `Started ${date}`,
     },
     stack: {
+      categories: {
+        language: "Language",
+        framework: "Framework",
+        library: "Library",
+        runtime: "Runtime",
+        database: "Database",
+        cloud: "Cloud",
+        platform: "Infrastructure",
+        saas: "Integration",
+        cli: "CLI",
+      },
       projectCategory: "project",
       showMore: (count, category) => `Show ${count} more ${category} ${count === 1 ? "technology" : "technologies"}`,
       hideMore: (count, category) => `Hide ${count} ${category} ${count === 1 ? "technology" : "technologies"}`,
       scrollLeft: "Scroll technologies left",
       scrollRight: "Scroll technologies right",
       toolkitTechnologiesByCategory: "Toolkit technologies grouped by category",
+      technologyList: (names) => `Technologies: ${names}`,
+    },
+    publication: {
+      projects: {
+        empty: "No projects are currently approved for publication.",
+        "no-active": "No active public projects are currently approved for publication.",
+        unconfigured: "Projects are unavailable because the publication source is not configured.",
+        error: "Projects are temporarily unavailable because the publication source could not be loaded.",
+      },
+      stack: {
+        empty: "No Stack items are currently available for publication.",
+        unconfigured: "Stack is unavailable because the publication source is not configured.",
+        error: "Stack is temporarily unavailable because the publication source could not be loaded.",
+      },
+      toolkitEmpty: "No Toolkit items are currently approved for website publication.",
     },
     footer: { rights: "All rights reserved." },
     home: {
@@ -149,8 +186,21 @@ export const copy = {
     projectCard: {
       viewRepository: (title) => `Apri il repository GitHub di ${title}`,
       technologiesByCategory: (title) => `Tecnologie di ${title} raggruppate per categoria`,
+      toggleDetails: (title, expanded) => `${expanded ? "Nascondi" : "Mostra"} i dettagli di ${title}`,
+      started: (date) => `Iniziato ${date}`,
     },
     stack: {
+      categories: {
+        language: "Linguaggio",
+        framework: "Framework",
+        library: "Libreria",
+        runtime: "Runtime",
+        database: "Database",
+        cloud: "Cloud",
+        platform: "Infrastruttura",
+        saas: "Integrazione",
+        cli: "CLI",
+      },
       projectCategory: "progetto",
       showMore: (count, category) => count === 1
         ? `Mostra 1 altra tecnologia ${category}`
@@ -159,6 +209,21 @@ export const copy = {
       scrollLeft: "Scorri le tecnologie verso sinistra",
       scrollRight: "Scorri le tecnologie verso destra",
       toolkitTechnologiesByCategory: "Strumenti: tecnologie raggruppate per categoria",
+      technologyList: (names) => `Tecnologie: ${names}`,
+    },
+    publication: {
+      projects: {
+        empty: "Nessun progetto è attualmente approvato per la pubblicazione.",
+        "no-active": "Nessun repository pubblico attivo è attualmente approvato per la pubblicazione.",
+        unconfigured: "I progetti non sono disponibili perché la fonte di pubblicazione non è configurata.",
+        error: "I progetti non sono temporaneamente disponibili perché la fonte di pubblicazione non può essere caricata.",
+      },
+      stack: {
+        empty: "Nessun elemento dello Stack è attualmente disponibile per la pubblicazione.",
+        unconfigured: "Lo Stack non è disponibile perché la fonte di pubblicazione non è configurata.",
+        error: "Lo Stack non è temporaneamente disponibile perché la fonte di pubblicazione non può essere caricata.",
+      },
+      toolkitEmpty: "Nessun elemento degli Strumenti è attualmente approvato per la pubblicazione sul sito.",
     },
     footer: { rights: "Tutti i diritti riservati." },
     home: {
@@ -186,4 +251,18 @@ export const copy = {
 
 export function getCopy(locale: Locale): SiteCopy {
   return copy[locale];
+}
+
+export function projectPublicationMessage(
+  locale: Locale,
+  status: keyof SiteCopy["publication"]["projects"],
+) {
+  return getCopy(locale).publication.projects[status];
+}
+
+export function stackPublicationMessage(
+  locale: Locale,
+  status: keyof SiteCopy["publication"]["stack"],
+) {
+  return getCopy(locale).publication.stack[status];
 }

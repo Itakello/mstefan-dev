@@ -8,6 +8,7 @@ import { ProjectStackHand, StackShelf } from "@/components/StackCatalog";
 import { BRAND_ICON_CLASS } from "@/lib/iconStyles";
 import { getCopy } from "@/lib/i18n/copy";
 import type { Locale } from "@/lib/i18n/config";
+import { formatProjectStartDate, projectPreviewSummary } from "@/lib/projectPresentation";
 import {
   findStackEntry,
   groupStackEntries,
@@ -44,14 +45,6 @@ const KNOWN_LANGUAGES = new Set([
   "Scala",
   "Dart",
 ]);
-
-function formatMonthYear(value: string) {
-  return new Intl.DateTimeFormat("en", {
-    month: "short",
-    year: "numeric",
-    timeZone: "UTC",
-  }).format(new Date(value));
-}
 
 const panelTransition = {
   height: { duration: 0.36, ease: [0.4, 0, 0.2, 1] },
@@ -97,6 +90,7 @@ export function ProjectCard({
           className="group flex min-w-0 items-center gap-3 text-left"
           aria-expanded={isOpen}
           aria-controls={panelId}
+          aria-label={copy.projectCard.toggleDetails(title, isOpen)}
           onClick={() => setIsOpen((open) => !open)}
         >
           <motion.span
@@ -137,7 +131,7 @@ export function ProjectCard({
         >
           <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 pb-3">
             <p className="line-clamp-2 min-w-0 text-sm leading-5 text-black/65 dark:text-white/65">
-              {shortSummary || summary}
+              {projectPreviewSummary({ summary, shortSummary })}
             </p>
             {technologies.length > 0 && (
               <div className="shrink-0">
@@ -163,7 +157,7 @@ export function ProjectCard({
             {createdAt && (
               <p className="mt-2 flex items-center gap-1.5 text-xs text-black/45 dark:text-white/45">
                 <Icon icon="lucide:calendar-range" className="size-3.5" aria-hidden />
-                Started {formatMonthYear(createdAt)}
+                {copy.projectCard.started(formatProjectStartDate(locale, createdAt))}
               </p>
             )}
 
