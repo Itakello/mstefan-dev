@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import Image from "next/image";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Menu, Moon, Sun, X } from "lucide-react";
@@ -34,14 +34,14 @@ export function Header() {
   }
   return (
     <header className="relative flex items-center justify-between pt-8">
-      <Link href="/" className="group">
+      <Link href="/" aria-label="Massimo Stefan home" className="group no-underline">
         <div className="flex items-center gap-3">
           <Image
-            src="/profile-pic.jpg"
+            src="/profile-avatar.jpg"
             alt="Portrait of Massimo Stefan"
-            width={32}
-            height={32}
-            className="rounded-xl object-cover"
+            width={44}
+            height={44}
+            className="size-11 rounded-xl object-cover"
             priority
           />
           <div className="font-semibold tracking-tight">Massimo Stefan</div>
