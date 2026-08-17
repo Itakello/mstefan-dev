@@ -26,7 +26,7 @@ export function StackBadge({ item, label = true, compact = false }: Props) {
             aria-hidden
           />
         ) : (
-          <Icon icon={item.iconKey} className={compact ? "text-base" : "text-xl"} aria-hidden />
+          <Icon icon={item.iconKey} className={compact ? "size-4" : "size-5"} aria-hidden />
         )}
       </span>
       {label && <span className="font-medium">{item.name}</span>}
