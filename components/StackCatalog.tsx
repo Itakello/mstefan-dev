@@ -125,6 +125,7 @@ export function StackShelf({
   const shelfRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
+  const [layoutSettled, setLayoutSettled] = useState(false);
 
   const updateScrollControls = useCallback(() => {
     const shelf = shelfRef.current;
@@ -147,11 +148,20 @@ export function StackShelf({
     const shelf = shelfRef.current;
     if (!shelf) return;
 
+    setLayoutSettled(false);
     shelf.scrollLeft = 0;
     updateScrollControls();
 
     const frame = requestAnimationFrame(updateScrollControls);
-    return () => cancelAnimationFrame(frame);
+    const settleTimer = window.setTimeout(() => {
+      updateScrollControls();
+      setLayoutSettled(true);
+    }, 520);
+
+    return () => {
+      cancelAnimationFrame(frame);
+      window.clearTimeout(settleTimer);
+    };
   }, [compact, groups, updateScrollControls]);
 
   useEffect(() => {
@@ -228,12 +238,13 @@ export function StackShelf({
       </div>
 
       <AnimatePresence initial={false}>
-        {canScrollLeft && (
+        {layoutSettled && canScrollLeft && (
           <motion.button
             type="button"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
+            transition={{ duration: 0.14, ease: "easeOut" }}
             className="stack-shelf-arrow stack-shelf-arrow-left"
             aria-label="Scroll technologies left"
             onClick={() => scroll(-1)}
@@ -241,12 +252,13 @@ export function StackShelf({
             <Icon icon="lucide:chevron-left" aria-hidden />
           </motion.button>
         )}
-        {canScrollRight && (
+        {layoutSettled && canScrollRight && (
           <motion.button
             type="button"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
+            transition={{ duration: 0.14, ease: "easeOut" }}
             className="stack-shelf-arrow stack-shelf-arrow-right"
             aria-label="Scroll technologies right"
             onClick={() => scroll(1)}

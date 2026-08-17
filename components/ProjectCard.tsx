@@ -2,7 +2,7 @@
 
 import { Icon } from "@iconify/react";
 import { AnimatePresence, motion } from "motion/react";
-import { useId, useState } from "react";
+import { useId, useMemo, useState } from "react";
 
 import { StackShelf } from "@/components/StackCatalog";
 import {
@@ -69,15 +69,20 @@ export function ProjectCard({
 }: Props) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
   const panelId = useId();
-  const detectedLanguage = language || tags?.find((tag) => KNOWN_LANGUAGES.has(tag));
-  const nonLanguageTags = (tags ?? []).filter((tag) => !KNOWN_LANGUAGES.has(tag));
-  const technologyLabels = [detectedLanguage, ...nonLanguageTags].filter(
-    (label): label is string => Boolean(label),
-  );
-  const catalog = stackCatalog ?? [];
-  const technologies = resolveProjectStack(technologyLabels, catalog);
-  const groups = groupStackEntries(technologies);
-  const unresolvedLabels = technologyLabels.filter((label) => !findStackEntry(label, catalog));
+  const { groups, unresolvedLabels } = useMemo(() => {
+    const detectedLanguage = language || tags?.find((tag) => KNOWN_LANGUAGES.has(tag));
+    const nonLanguageTags = (tags ?? []).filter((tag) => !KNOWN_LANGUAGES.has(tag));
+    const technologyLabels = [detectedLanguage, ...nonLanguageTags].filter(
+      (label): label is string => Boolean(label),
+    );
+    const catalog = stackCatalog ?? [];
+    const technologies = resolveProjectStack(technologyLabels, catalog);
+
+    return {
+      groups: groupStackEntries(technologies),
+      unresolvedLabels: technologyLabels.filter((label) => !findStackEntry(label, catalog)),
+    };
+  }, [language, stackCatalog, tags]);
 
   return (
     <motion.article
