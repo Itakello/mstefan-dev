@@ -50,7 +50,6 @@ export default async function ProjectsPage() {
         url: project.url,
         tags: project.tags,
         language: project.language,
-        year: project.year,
       }))
     : null;
   const publication = resolveProjectPublicationState(notionProjects, notionResult.failed);
@@ -64,7 +63,7 @@ export default async function ProjectsPage() {
     <section>
       <h1 className="text-2xl font-semibold">Work</h1>
       <p className="mt-2 text-black/70 dark:text-white/70 text-sm">
-        Selected work. Grouped by year.
+        Selected work. Newest first.
       </p>
 
       {publication.message && (
