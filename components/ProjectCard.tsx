@@ -1,7 +1,7 @@
 "use client";
 
 import { Icon } from "@iconify/react";
-import { AnimatePresence, motion } from "motion/react";
+import { motion } from "motion/react";
 import { useId, useMemo, useState } from "react";
 
 import { ProjectStackHand, StackShelf } from "@/components/StackCatalog";
@@ -116,64 +116,60 @@ export function ProjectCard({
       </div>
 
       <div id={panelId} className="pl-7">
-        <AnimatePresence initial={false} mode="popLayout">
-          {isOpen ? (
-            <motion.div
-              key="open-project"
-              initial={{ opacity: 0, y: 5 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 3 }}
-              transition={{ duration: 0.18, ease: "easeOut" }}
-              className="pb-6"
-            >
-              <p className="max-w-3xl text-sm leading-6 text-black/70 dark:text-white/70">
-                {summary}
+        {isOpen ? (
+          <motion.div
+            key="open-project"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.16, ease: "easeOut" }}
+            className="pb-6"
+          >
+            <p className="max-w-3xl text-sm leading-6 text-black/70 dark:text-white/70">
+              {summary}
+            </p>
+
+            {createdAt && (
+              <p className="mt-2 flex items-center gap-1.5 text-xs text-black/45 dark:text-white/45">
+                <Icon icon="lucide:calendar-range" className="size-3.5" aria-hidden />
+                Started {formatMonthYear(createdAt)}
               </p>
+            )}
 
-              {createdAt && (
-                <p className="mt-2 flex items-center gap-1.5 text-xs text-black/45 dark:text-white/45">
-                  <Icon icon="lucide:calendar-range" className="size-3.5" aria-hidden />
-                  Started {formatMonthYear(createdAt)}
-                </p>
-              )}
+            {groups.length > 0 && (
+              <div className="mt-3">
+                <StackShelf
+                  groups={groups}
+                  label={`${title} technologies grouped by category`}
+                />
+              </div>
+            )}
 
-              {groups.length > 0 && (
-                <div className="mt-3">
-                  <StackShelf
-                    groups={groups}
-                    label={`${title} technologies grouped by category`}
-                  />
-                </div>
-              )}
-
-              {unresolvedLabels.length > 0 && (
-                <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-xs text-black/55 dark:text-white/55">
-                  {unresolvedLabels.map((label) => (
-                    <span key={label}>{label}</span>
-                  ))}
-                </div>
-              )}
-            </motion.div>
-          ) : (
-            <motion.div
-              key="closed-project"
-              initial={{ opacity: 0, y: -3 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -3 }}
-              transition={{ duration: 0.16, ease: "easeOut" }}
-              className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 pb-3"
-            >
-              <p className="line-clamp-2 min-w-0 text-sm leading-5 text-black/65 dark:text-white/65">
-                {shortSummary || summary}
-              </p>
-              {technologies.length > 0 && (
-                <div className="shrink-0">
-                  <ProjectStackHand entries={technologies} />
-                </div>
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
+            {unresolvedLabels.length > 0 && (
+              <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-xs text-black/55 dark:text-white/55">
+                {unresolvedLabels.map((label) => (
+                  <span key={label}>{label}</span>
+                ))}
+              </div>
+            )}
+          </motion.div>
+        ) : (
+          <motion.div
+            key="closed-project"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.14, ease: "easeOut" }}
+            className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 pb-3"
+          >
+            <p className="line-clamp-2 min-w-0 text-sm leading-5 text-black/65 dark:text-white/65">
+              {shortSummary || summary}
+            </p>
+            {technologies.length > 0 && (
+              <div className="shrink-0">
+                <ProjectStackHand entries={technologies} />
+              </div>
+            )}
+          </motion.div>
+        )}
       </div>
     </article>
   );
