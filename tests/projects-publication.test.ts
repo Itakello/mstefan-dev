@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { mergeAndEnrichProjects, resolveProjectPublicationState } from "../lib/projectPublication";
+import {
+  mergeAndEnrichProjects,
+  resolveProjectPublicationState,
+  selectPublicProjects,
+} from "../lib/projectPublication";
 
 const githubRepo = {
   name: "unapproved-repository",
@@ -17,6 +21,23 @@ const githubRepo = {
 test("never appends GitHub repositories that are absent from the approved source", () => {
   const result = mergeAndEnrichProjects([], [githubRepo]);
   assert.deepEqual(result, { groups: {}, orderedYears: [] });
+});
+
+test("publishes only active original repositories and excludes the profile repository", () => {
+  const approved = [
+    { title: "active", summary: "Active.", url: githubRepo.html_url },
+    { title: "archived", summary: "Archived.", url: `${githubRepo.html_url}-archived` },
+    { title: "fork", summary: "Fork.", url: `${githubRepo.html_url}-fork` },
+    { title: "profile", summary: "Profile.", url: `${githubRepo.html_url}-profile` },
+  ];
+  const repos = [
+    { ...githubRepo, name: "active" },
+    { ...githubRepo, name: "archived", html_url: approved[1].url!, archived: true },
+    { ...githubRepo, name: "fork", html_url: approved[2].url!, fork: true },
+    { ...githubRepo, name: "Itakello", html_url: approved[3].url! },
+  ];
+
+  assert.deepEqual(selectPublicProjects(approved, repos, "Itakello"), [approved[0]]);
 });
 
 test("groups and orders approved projects by repository creation date without changing their copy", () => {

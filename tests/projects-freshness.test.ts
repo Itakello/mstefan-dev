@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { revalidate } from "../app/projects/page";
+import { revalidate as homeRevalidate } from "../app/page";
+import { revalidate as projectsRevalidate } from "../app/projects/page";
 
-test("refreshes Work projects and Toolkit from Notion every minute", () => {
-  assert.equal(revalidate, 60);
+test("refreshes Home, projects, and Toolkit from Notion every minute", () => {
+  assert.equal(homeRevalidate, 60);
+  assert.equal(projectsRevalidate, 60);
 });
