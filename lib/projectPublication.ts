@@ -1,5 +1,6 @@
 export type Project = {
   title: string;
+  shortSummary?: string;
   summary: string;
   year?: string;
   url?: string;
@@ -16,11 +17,13 @@ export type GitHubRepo = {
   archived: boolean;
   fork: boolean;
   pushed_at: string;
+  created_at?: string;
 };
 
 type EnrichedProject = Project & {
   sortTimestamp?: number;
   language?: string;
+  createdAt?: string;
 };
 
 export type ProjectPublicationStatus = "ready" | "empty" | "unconfigured" | "error";
@@ -57,12 +60,17 @@ export function mergeAndEnrichProjects(
   approved: Project[],
   repos: GitHubRepo[],
 ): { groups: Record<string, EnrichedProject[]>; orderedYears: string[] } {
-  const repoByUrl = new Map<string, { year: string; timestamp: number; language?: string | null }>();
+  const repoByUrl = new Map<string, { year: string; timestamp: number; language?: string | null; createdAt?: string }>();
 
   for (const repo of repos) {
     const year = new Date(repo.pushed_at).getFullYear().toString();
     const timestamp = new Date(repo.pushed_at).getTime();
-    repoByUrl.set(repo.html_url.toLowerCase(), { year, timestamp, language: repo.language });
+    repoByUrl.set(repo.html_url.toLowerCase(), {
+      year,
+      timestamp,
+      language: repo.language,
+      createdAt: repo.created_at,
+    });
   }
 
   const merged: EnrichedProject[] = [];
@@ -80,6 +88,7 @@ export function mergeAndEnrichProjects(
       year: project.year || match?.year,
       tags: filteredTags.length > 0 ? filteredTags : undefined,
       language: project.language || curatedLanguageTag || match?.language || undefined,
+      createdAt: match?.createdAt,
       sortTimestamp: match?.timestamp,
     });
   }

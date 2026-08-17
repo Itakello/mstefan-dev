@@ -1,5 +1,5 @@
 import { ProjectCard } from "@/components/ProjectCard";
-import { ProjectLayoutGroup } from "@/components/ProjectLayoutGroup";
+import { ProjectLayoutGroup, ProjectLayoutItem } from "@/components/ProjectLayoutGroup";
 import { StackCatalog } from "@/components/StackCatalog";
 import { fetchProjectsFromNotion, type NotionProject } from "@/lib/notion";
 import {
@@ -45,6 +45,7 @@ export default async function ProjectsPage() {
   const notionProjects = notionResult.projects
     ? notionResult.projects.map((project: NotionProject) => ({
         title: project.title,
+        shortSummary: project.shortSummary,
         summary: project.summary,
         url: project.url,
         tags: project.tags,
@@ -76,10 +77,10 @@ export default async function ProjectsPage() {
         </p>
       )}
 
-      {orderedYears.map((year, yearIndex) => (
-        <div key={year} className="mt-8 first:mt-6">
-          <h2 className="text-xl font-semibold">{year}</h2>
-          <ProjectLayoutGroup>
+      <ProjectLayoutGroup>
+        {orderedYears.map((year, yearIndex) => (
+          <ProjectLayoutItem key={year} className="mt-8 first:mt-6">
+            <h2 className="text-xl font-semibold">{year}</h2>
             <div className="mt-3 border-t border-black/10 dark:border-white/10">
               {groups[year].map((p, projectIndex) => (
                 <ProjectCard
@@ -90,31 +91,33 @@ export default async function ProjectsPage() {
                 />
               ))}
             </div>
-          </ProjectLayoutGroup>
-        </div>
-      ))}
+          </ProjectLayoutItem>
+        ))}
 
-      <section className="mt-10 border-y border-black/10 py-5 dark:border-white/10">
-        <div>
-          <h2 className="text-xl font-semibold">Toolkit</h2>
-          <p className="mt-2 max-w-xl text-sm leading-6 text-black/60 dark:text-white/60">
-            Tools and technologies I use across my work.
-          </p>
-        </div>
-        <div className="mt-4">
-          {toolkitMessage ? (
-            <p
-              className="rounded-lg border border-black/10 bg-black/[0.025] p-4 text-sm text-black/65 dark:border-white/10 dark:bg-white/[0.035] dark:text-white/65"
-              data-stack-publication-status={stackCatalog.status}
-              role={stackCatalog.status === "error" || stackCatalog.status === "unconfigured" ? "alert" : "status"}
-            >
-              {toolkitMessage}
-            </p>
-          ) : (
-            <StackCatalog entries={toolkitEntries} />
-          )}
-        </div>
-      </section>
+        <ProjectLayoutItem className="mt-10">
+          <section className="border-y border-black/10 py-5 dark:border-white/10">
+            <div>
+              <h2 className="text-xl font-semibold">Toolkit</h2>
+              <p className="mt-2 max-w-xl text-sm leading-6 text-black/60 dark:text-white/60">
+                Tools and technologies I use across my work.
+              </p>
+            </div>
+            <div className="mt-4">
+              {toolkitMessage ? (
+                <p
+                  className="rounded-lg border border-black/10 bg-black/[0.025] p-4 text-sm text-black/65 dark:border-white/10 dark:bg-white/[0.035] dark:text-white/65"
+                  data-stack-publication-status={stackCatalog.status}
+                  role={stackCatalog.status === "error" || stackCatalog.status === "unconfigured" ? "alert" : "status"}
+                >
+                  {toolkitMessage}
+                </p>
+              ) : (
+                <StackCatalog entries={toolkitEntries} />
+              )}
+            </div>
+          </section>
+        </ProjectLayoutItem>
+      </ProjectLayoutGroup>
     </section>
   );
 }

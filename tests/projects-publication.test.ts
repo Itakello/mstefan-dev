@@ -10,12 +10,29 @@ const githubRepo = {
   language: "TypeScript",
   archived: false,
   fork: false,
+  created_at: "2024-03-15T12:00:00Z",
   pushed_at: "2026-08-01T00:00:00Z",
 };
 
 test("never appends GitHub repositories that are absent from the approved source", () => {
   const result = mergeAndEnrichProjects([], [githubRepo]);
   assert.deepEqual(result, { groups: {}, orderedYears: [] });
+});
+
+test("enriches an approved project with repository creation metadata without changing its copy", () => {
+  const result = mergeAndEnrichProjects([
+    {
+      title: "example",
+      shortSummary: "Short approved copy.",
+      summary: "Long approved copy.",
+      url: githubRepo.html_url,
+      year: "2025",
+    },
+  ], [githubRepo]);
+
+  assert.equal(result.groups["2025"][0].shortSummary, "Short approved copy.");
+  assert.equal(result.groups["2025"][0].summary, "Long approved copy.");
+  assert.equal(result.groups["2025"][0].createdAt, "2024-03-15T12:00:00Z");
 });
 
 test("fails closed for missing, empty, and failed publication sources", () => {

@@ -14,7 +14,9 @@ import {
 
 type Props = {
   title: string;
+  shortSummary?: string;
   summary: string;
+  createdAt?: string;
   url?: string;
   tags?: string[];
   language?: string;
@@ -41,14 +43,24 @@ const KNOWN_LANGUAGES = new Set([
 
 const projectLayoutTransition = {
   type: "spring",
-  stiffness: 420,
+  stiffness: 360,
   damping: 38,
-  mass: 0.7,
+  mass: 0.8,
 } as const;
+
+function formatMonthYear(value: string) {
+  return new Intl.DateTimeFormat("en", {
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(value));
+}
 
 export function ProjectCard({
   title,
+  shortSummary,
   summary,
+  createdAt,
   url,
   tags,
   language,
@@ -69,7 +81,7 @@ export function ProjectCard({
 
   return (
     <motion.article
-      layout="position"
+      layout
       transition={{ layout: projectLayoutTransition }}
       className="border-b border-black/10 dark:border-white/10"
     >
@@ -114,13 +126,34 @@ export function ProjectCard({
         transition={{ layout: projectLayoutTransition }}
         className={`overflow-hidden pl-7 ${isOpen ? "pb-6" : "pb-3"}`}
       >
-        <motion.p
-          layout="position"
-          transition={{ layout: projectLayoutTransition }}
-          className="max-w-3xl text-sm leading-6 text-black/70 dark:text-white/70"
-        >
-          {summary}
-        </motion.p>
+        <AnimatePresence initial={false} mode="popLayout">
+          <motion.p
+            key={isOpen ? "long-summary" : "short-summary"}
+            layout="position"
+            initial={{ opacity: 0, y: isOpen ? 5 : -3 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: isOpen ? -3 : 5 }}
+            transition={{ duration: 0.18, ease: "easeOut", layout: projectLayoutTransition }}
+            className={`max-w-3xl text-sm leading-6 text-black/70 dark:text-white/70 ${isOpen ? "" : "line-clamp-2"}`}
+          >
+            {isOpen ? summary : (shortSummary || summary)}
+          </motion.p>
+        </AnimatePresence>
+
+        <AnimatePresence initial={false}>
+          {isOpen && createdAt && (
+            <motion.p
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 4 }}
+              transition={{ duration: 0.16, ease: "easeOut" }}
+              className="mt-2 flex items-center gap-1.5 text-xs text-black/45 dark:text-white/45"
+            >
+              <Icon icon="lucide:calendar-range" className="size-3.5" aria-hidden />
+              Started {formatMonthYear(createdAt)}
+            </motion.p>
+          )}
+        </AnimatePresence>
 
         {groups.length > 0 && (
           <div className="mt-3">

@@ -2,7 +2,7 @@
 
 import { Icon } from "@iconify/react";
 import { AnimatePresence, motion } from "motion/react";
-import { useCallback, useEffect, useId, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 
 import { StackBadge } from "@/components/StackBadge";
 import {
@@ -45,10 +45,12 @@ const cardOffsets = [
 
 const projectShelfTransition = {
   type: "spring",
-  stiffness: 420,
+  stiffness: 360,
   damping: 38,
-  mass: 0.7,
+  mass: 0.8,
 } as const;
+
+const SCROLL_OVERFLOW_THRESHOLD = 12;
 
 function stackHandVariation(category: string, entries: readonly StackEntry[]) {
   const signature = `${category}:${entries.map((entry) => entry.name).join(":")}`;
@@ -129,9 +131,28 @@ export function StackShelf({
 
     if (!shelf) return;
 
-    setCanScrollLeft(shelf.scrollLeft > 1);
-    setCanScrollRight(shelf.scrollLeft + shelf.clientWidth < shelf.scrollWidth - 1);
+    const overflow = shelf.scrollWidth - shelf.clientWidth;
+
+    if (overflow <= SCROLL_OVERFLOW_THRESHOLD) {
+      setCanScrollLeft(false);
+      setCanScrollRight(false);
+      return;
+    }
+
+    setCanScrollLeft(shelf.scrollLeft > SCROLL_OVERFLOW_THRESHOLD);
+    setCanScrollRight(shelf.scrollLeft + shelf.clientWidth < shelf.scrollWidth - SCROLL_OVERFLOW_THRESHOLD);
   }, []);
+
+  useLayoutEffect(() => {
+    const shelf = shelfRef.current;
+    if (!shelf) return;
+
+    shelf.scrollLeft = 0;
+    updateScrollControls();
+
+    const frame = requestAnimationFrame(updateScrollControls);
+    return () => cancelAnimationFrame(frame);
+  }, [compact, groups, updateScrollControls]);
 
   useEffect(() => {
     const shelf = shelfRef.current;
@@ -179,21 +200,22 @@ export function StackShelf({
               className="stack-shelf-group"
               aria-label={category}
             >
-              <AnimatePresence initial={false}>
-                {!compact && (
-                  <motion.div
-                    key="heading"
-                    initial={{ opacity: 0, y: 4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 4 }}
-                    transition={{ duration: 0.16, delay: groupIndex * 0.018, ease: "easeOut" }}
-                    className="stack-shelf-heading"
-                  >
-                    <StackCategoryIcon category={category} />
-                    <span>{category}</span>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              <motion.div
+                initial={false}
+                animate={compact
+                  ? { height: 0, marginBottom: 0, opacity: 0, y: 4 }
+                  : { height: 16, marginBottom: 10, opacity: 1, y: 0 }}
+                transition={{
+                  ...projectShelfTransition,
+                  delay: compact ? 0 : groupIndex * 0.018,
+                  opacity: { duration: 0.14, ease: "easeOut" },
+                }}
+                aria-hidden={compact}
+                className="stack-shelf-heading overflow-hidden"
+              >
+                <StackCategoryIcon category={category} />
+                <span>{category}</span>
+              </motion.div>
               <motion.div
                 layout={animateLayout ? "position" : false}
                 transition={{ layout: projectShelfTransition }}
@@ -205,24 +227,34 @@ export function StackShelf({
         </motion.div>
       </div>
 
-      <button
-        type="button"
-        className="stack-shelf-arrow stack-shelf-arrow-left"
-        aria-label="Scroll technologies left"
-        disabled={!canScrollLeft}
-        onClick={() => scroll(-1)}
-      >
-        <Icon icon="lucide:chevron-left" aria-hidden />
-      </button>
-      <button
-        type="button"
-        className="stack-shelf-arrow stack-shelf-arrow-right"
-        aria-label="Scroll technologies right"
-        disabled={!canScrollRight}
-        onClick={() => scroll(1)}
-      >
-        <Icon icon="lucide:chevron-right" aria-hidden />
-      </button>
+      <AnimatePresence initial={false}>
+        {canScrollLeft && (
+          <motion.button
+            type="button"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            className="stack-shelf-arrow stack-shelf-arrow-left"
+            aria-label="Scroll technologies left"
+            onClick={() => scroll(-1)}
+          >
+            <Icon icon="lucide:chevron-left" aria-hidden />
+          </motion.button>
+        )}
+        {canScrollRight && (
+          <motion.button
+            type="button"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            className="stack-shelf-arrow stack-shelf-arrow-right"
+            aria-label="Scroll technologies right"
+            onClick={() => scroll(1)}
+          >
+            <Icon icon="lucide:chevron-right" aria-hidden />
+          </motion.button>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
