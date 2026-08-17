@@ -1,6 +1,28 @@
 import Link from "next/link";
 
-export default function Home() {
+import { ProjectCard } from "@/components/ProjectCard";
+import { StackCatalog } from "@/components/StackCatalog";
+import { loadPublicProjects } from "@/lib/publicProjects";
+import { loadWebsiteStack } from "@/lib/websiteStack";
+
+const SELECTED_PROJECTS = ["mstefan-dev", "ai_agents", "PhysIQ"];
+
+export const revalidate = 60;
+
+export default async function Home() {
+  const [{ projects, publication }, stackCatalog] = await Promise.all([
+    loadPublicProjects(),
+    loadWebsiteStack(),
+  ]);
+  const projectsByTitle = new Map(projects.map((project) => [project.title, project]));
+  const selectedProjects = SELECTED_PROJECTS.flatMap((title) => {
+    const project = projectsByTitle.get(title);
+    return project ? [project] : [];
+  });
+  const toolkitEntries = stackCatalog.entries.filter((entry) => entry.websiteVisible);
+  const toolkitMessage = stackCatalog.message
+    ?? (toolkitEntries.length === 0 ? "No Toolkit items are currently approved for website publication." : null);
+
   return (
     <section className="space-y-10">
       <header className="pt-4">
@@ -30,6 +52,66 @@ export default function Home() {
           </a>
         </div>
       </header>
+
+      <section aria-labelledby="selected-work-heading">
+        <div className="flex items-end justify-between gap-4">
+          <div>
+            <h2 id="selected-work-heading" className="text-xl font-semibold">
+              Selected work
+            </h2>
+            <p className="mt-2 text-sm text-black/60 dark:text-white/60">
+              A few projects that represent what I build.
+            </p>
+          </div>
+          <Link href="/projects" className="shrink-0 text-sm font-medium">
+            View all projects
+          </Link>
+        </div>
+
+        {selectedProjects.length > 0 ? (
+          <div className="mt-4 border-t border-black/10 dark:border-white/10">
+            {selectedProjects.map((project) => (
+              <ProjectCard
+                key={project.title}
+                {...project}
+                stackCatalog={stackCatalog.entries}
+              />
+            ))}
+          </div>
+        ) : publication.message ? (
+          <p
+            className="mt-4 rounded-xl border border-black/10 bg-black/[0.03] p-4 text-sm text-black/70 dark:border-white/10 dark:bg-white/5 dark:text-white/70"
+            role={publication.status === "error" || publication.status === "unconfigured" ? "alert" : "status"}
+          >
+            {publication.message}
+          </p>
+        ) : null}
+      </section>
+
+      <section
+        className="border-y border-black/10 py-5 dark:border-white/10"
+        aria-labelledby="toolkit-heading"
+      >
+        <h2 id="toolkit-heading" className="text-xl font-semibold">
+          Toolkit
+        </h2>
+        <p className="mt-2 max-w-xl text-sm leading-6 text-black/60 dark:text-white/60">
+          Tools and technologies I use across my work.
+        </p>
+        <div className="mt-4">
+          {toolkitMessage ? (
+            <p
+              className="rounded-lg border border-black/10 bg-black/[0.025] p-4 text-sm text-black/65 dark:border-white/10 dark:bg-white/[0.035] dark:text-white/65"
+              data-stack-publication-status={stackCatalog.status}
+              role={stackCatalog.status === "error" || stackCatalog.status === "unconfigured" ? "alert" : "status"}
+            >
+              {toolkitMessage}
+            </p>
+          ) : (
+            <StackCatalog entries={toolkitEntries} />
+          )}
+        </div>
+      </section>
     </section>
   );
 }

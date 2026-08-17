@@ -56,6 +56,23 @@ export function resolveProjectPublicationState(
   return { status: "ready", projects, message: null };
 }
 
+export function selectPublicProjects(
+  approved: Project[],
+  repos: GitHubRepo[],
+  githubUser: string,
+): Project[] {
+  const publicRepositoryUrls = new Set(
+    repos
+      .filter((repo) => !repo.archived && !repo.fork)
+      .filter((repo) => repo.name.toLowerCase() !== githubUser.toLowerCase())
+      .map((repo) => repo.html_url.toLowerCase()),
+  );
+
+  return approved.filter((project) =>
+    project.url ? publicRepositoryUrls.has(project.url.toLowerCase()) : false,
+  );
+}
+
 export function mergeAndEnrichProjects(
   approved: Project[],
   repos: GitHubRepo[],
