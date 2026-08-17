@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { parseNotionProjectInventoryPage, parseNotionProjectPage } from "../lib/notion";
+import { parsePublicationProjectRows, parseNotionProjectInventoryPage, parseNotionProjectPage } from "../lib/notion";
 import { findMissingInventoryRepositories } from "../lib/projectInventory";
 import { projectPreviewSummary } from "../lib/projectPresentation";
 import { loadPublicProjects, selectPublicProjectLocale } from "../lib/publicProjects";
@@ -119,6 +119,30 @@ test("keeps incomplete existing rows in the discovery inventory but out of publi
   );
 });
 
+test("fails closed when an Added publication query contains an incomplete row", async () => {
+  const incomplete = page({
+    properties: {
+      ...page().properties,
+      "Summary IT": { rich_text: [] },
+    },
+  });
+
+  assert.throws(
+    () => parsePublicationProjectRows([page(), incomplete]),
+    /Invalid public project publication record/,
+  );
+
+  const loaded = await loadPublicProjects("it", {
+    fetchProjects: async () => parsePublicationProjectRows([page(), incomplete]),
+    fetchRepos: async () => [],
+  });
+  assert.deepEqual(loaded.publication, {
+    status: "error",
+    projects: [],
+    message: "error",
+  });
+});
+
 test("keeps To Add rows in discovery inventory without making them public", () => {
   const toAdd = page({
     properties: {
@@ -191,6 +215,28 @@ test("uses an existing title-only inventory row to prevent a duplicate proposal"
     ),
     [],
   );
+});
+
+test("does not use a title fallback when inventory has a canonical URL for another repository", () => {
+  const missing = findMissingInventoryRepositories(
+    [{
+      title: "bilingual-project",
+      url: "https://github.com/Itakello/different-project",
+      status: "Added",
+    }],
+    [{
+      name: "bilingual-project",
+      html_url: "https://github.com/Itakello/bilingual-project",
+      description: "Not the canonical URL.",
+      language: "TypeScript",
+      archived: false,
+      fork: false,
+      pushed_at: "2026-08-17T00:00:00Z",
+    }],
+    "Itakello",
+  );
+
+  assert.deepEqual(missing.map((repo) => repo.url), ["https://github.com/Itakello/bilingual-project"]);
 });
 
 test("project previews use the selected locale's short summary or its own long summary", () => {

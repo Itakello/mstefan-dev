@@ -16,17 +16,20 @@ export function findMissingInventoryRepositories(
   githubUser: string,
 ) {
   const inventoryUrls = new Set(
-    inventory.map((project) => project.url?.toLowerCase()).filter((url): url is string => Boolean(url)),
+    inventory.map((project) => normalizeUrl(project.url)).filter((url): url is string => Boolean(url)),
   );
   const inventoryTitles = new Set(
-    inventory.map((project) => project.title?.trim().toLowerCase()).filter((title): title is string => Boolean(title)),
+    inventory
+      .filter((project) => !normalizeUrl(project.url))
+      .map((project) => normalizeTitle(project.title))
+      .filter((title): title is string => Boolean(title)),
   );
 
   return repos
     .filter((repo) => !repo.archived && !repo.fork)
     .filter((repo) => repo.name.toLowerCase() !== githubUser.toLowerCase())
-    .filter((repo) => !inventoryUrls.has(repo.html_url.toLowerCase()))
-    .filter((repo) => !inventoryTitles.has(repo.name.trim().toLowerCase()))
+    .filter((repo) => !inventoryUrls.has(normalizeUrl(repo.html_url)!))
+    .filter((repo) => !inventoryTitles.has(normalizeTitle(repo.name)!))
     .map((repo) => ({
       title: repo.name,
       url: repo.html_url,
@@ -34,4 +37,14 @@ export function findMissingInventoryRepositories(
       language: repo.language,
       pushed_at: repo.pushed_at,
     }));
+}
+
+function normalizeUrl(value: string | undefined) {
+  const normalized = value?.trim().toLowerCase();
+  return normalized || undefined;
+}
+
+function normalizeTitle(value: string | undefined) {
+  const normalized = value?.trim().toLowerCase();
+  return normalized || undefined;
 }

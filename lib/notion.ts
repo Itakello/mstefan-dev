@@ -48,10 +48,7 @@ export async function fetchProjectsFromNotion(databaseId?: string): Promise<Noti
       },
     });
 
-    for (const r of res.results as any[]) {
-      const project = parseNotionProjectPage(r);
-      if (project) pages.push(project);
-    }
+    pages.push(...parsePublicationProjectRows(res.results));
 
     cursor = res.has_more ? res.next_cursor ?? undefined : undefined;
   } while (cursor);
@@ -116,6 +113,18 @@ export function parseNotionProjectPage(page: any): NotionProject | null {
     year,
     status: "Added",
   };
+}
+
+export function parsePublicationProjectRows(rows: readonly unknown[]): NotionProject[] {
+  const projects: NotionProject[] = [];
+
+  for (const row of rows) {
+    const project = parseNotionProjectPage(row);
+    if (!project) throw new Error("Invalid public project publication record");
+    projects.push(project);
+  }
+
+  return projects;
 }
 
 export function parseNotionProjectInventoryPage(page: any): NotionProjectInventory | null {
