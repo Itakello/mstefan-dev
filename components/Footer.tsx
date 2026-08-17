@@ -20,12 +20,12 @@ export function Footer() {
           <IconLink
             href="https://github.com/Itakello"
             label="GitHub"
-            icon={<Icon icon="skill-icons:github-dark" className="size-4" aria-hidden />}
+            icon={<Icon icon="simple-icons:github" className="size-4" aria-hidden />}
           />
           <IconLink
             href="https://www.linkedin.com/in/itakello/"
             label="LinkedIn"
-            icon={<Icon icon="skill-icons:linkedin" className="size-4" aria-hidden />}
+            icon={<Icon icon="logos:linkedin-icon" className="size-4" aria-hidden />}
           />
           <IconLink
             href="https://x.com/itakello"
