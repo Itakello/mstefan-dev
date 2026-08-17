@@ -82,6 +82,9 @@ pnpm sync:notion
 # Apply the reviewed row-creation preview as Status="To Add"
 pnpm sync:notion -- --apply
 
+# Read the Projects schema and print the Summary IT activation plan (no writes)
+pnpm check:notion-projects-schema
+
 # Produce a reviewable repository-technology candidate with Codex
 pnpm extract:repository-technologies -- --repository Itakello/mstefan-dev
 
@@ -91,6 +94,9 @@ pnpm propose:repository-sync -- --repository Itakello/mstefan-dev
 ```
 Required env for scripts:
 - sync: `NOTION_TOKEN`, `NOTION_DATABASE_ID`, optional `GITHUB_TOKEN`, optional `GITHUB_USER`
+- Projects schema check: `NOTION_TOKEN` and `NOTION_PROJECTS_DATABASE_ID` (preferred), or `NOTION_DATABASE_ID` as the repository default.
+
+The Projects schema check reads only the configured database and emits deterministic JSON. Its states are `ready` when `Summary IT` is already `rich_text`, `changes-required` when that exact property is missing and should be added as `rich_text`, and `blocked` for missing configuration, provider read failures, ambiguous schema responses, or an existing property with the wrong type. Output includes the configured database ID but never the token. `applyAllowed` is always `false`: this task intentionally does not apply provider changes, and `--apply` is unsupported pending explicit approval. `Summary IT` is required for `Added` publication; this activation does not create or change `Short summary IT`.
 
 The repository-technology extractor compares `HEAD` with the last successfully
 processed SHA before invoking Codex. It analyzes an isolated snapshot containing

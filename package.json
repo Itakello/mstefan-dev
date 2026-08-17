@@ -9,6 +9,7 @@
     "start": "next start",
     "postbuild": "next-sitemap --config next-sitemap.config.mjs",
     "sync:notion": "node scripts/sync-github-to-notion.js",
+    "check:notion-projects-schema": "tsx scripts/check-notion-projects-schema.ts",
     "extract:repository-technologies": "node scripts/repository-technologies/run.mjs",
     "propose:repository-sync": "node scripts/repository-sync/run.mjs"
   },
