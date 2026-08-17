@@ -92,8 +92,8 @@ export const copy = {
     },
     stack: {
       projectCategory: "project",
-      showMore: (count, category) => `Show ${count} more ${category} technologies`,
-      hideMore: (count, category) => `Hide ${count} ${category} technologies`,
+      showMore: (count, category) => `Show ${count} more ${category} ${count === 1 ? "technology" : "technologies"}`,
+      hideMore: (count, category) => `Hide ${count} ${category} ${count === 1 ? "technology" : "technologies"}`,
       scrollLeft: "Scroll technologies left",
       scrollRight: "Scroll technologies right",
       toolkitTechnologiesByCategory: "Toolkit technologies grouped by category",
@@ -152,8 +152,10 @@ export const copy = {
     },
     stack: {
       projectCategory: "progetto",
-      showMore: (count, category) => `Mostra altre ${count} tecnologie ${category}`,
-      hideMore: (count, category) => `Nascondi ${count} tecnologie ${category}`,
+      showMore: (count, category) => count === 1
+        ? `Mostra 1 altra tecnologia ${category}`
+        : `Mostra altre ${count} tecnologie ${category}`,
+      hideMore: (count, category) => `Nascondi ${count} ${count === 1 ? "tecnologia" : "tecnologie"} ${category}`,
       scrollLeft: "Scorri le tecnologie verso sinistra",
       scrollRight: "Scorri le tecnologie verso destra",
       toolkitTechnologiesByCategory: "Strumenti: tecnologie raggruppate per categoria",

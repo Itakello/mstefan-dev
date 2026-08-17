@@ -7,3 +7,7 @@ export function getLanguageMenuFocusIndex(currentIndex: number, key: string, ite
   if (key === "End") return itemCount - 1;
   return null;
 }
+
+export function shouldCloseLanguageMenuOnFocusLeave(nextFocusIsWithinSelector: boolean): boolean {
+  return !nextFocusIsWithinSelector;
+}

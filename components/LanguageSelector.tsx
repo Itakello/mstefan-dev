@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { getCopy, type PublicPath } from "@/lib/i18n/copy";
 import { type Locale } from "@/lib/i18n/config";
-import { getLanguageMenuFocusIndex } from "@/lib/i18n/languageMenu";
+import { getLanguageMenuFocusIndex, shouldCloseLanguageMenuOnFocusLeave } from "@/lib/i18n/languageMenu";
 import { getPublicPathname, localizedPath } from "@/lib/i18n/routing";
 import { cn } from "@/lib/utils";
 
@@ -96,7 +96,15 @@ export function LanguageSelector({ locale, compact = false }: { locale: Locale; 
   }
 
   return (
-    <div ref={selectorRef} className="relative">
+    <div
+      ref={selectorRef}
+      className="relative"
+      onBlur={(event) => {
+        const nextFocusIsWithinSelector = event.relatedTarget instanceof Node
+          && event.currentTarget.contains(event.relatedTarget);
+        if (open && shouldCloseLanguageMenuOnFocusLeave(nextFocusIsWithinSelector)) setOpen(false);
+      }}
+    >
       <button
         ref={triggerRef}
         type="button"

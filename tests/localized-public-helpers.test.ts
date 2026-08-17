@@ -4,7 +4,7 @@ import test from "node:test";
 import { NextRequest } from "next/server";
 
 import { getCopy } from "../lib/i18n/copy";
-import { getLanguageMenuFocusIndex } from "../lib/i18n/languageMenu";
+import { getLanguageMenuFocusIndex, shouldCloseLanguageMenuOnFocusLeave } from "../lib/i18n/languageMenu";
 import { getLocalizedMetadata } from "../lib/i18n/metadata";
 import { getPublicPathname, localizedPath } from "../lib/i18n/routing";
 import { proxy } from "../proxy";
@@ -39,10 +39,20 @@ test("localized copy and metadata expose the Italian page contract", () => {
   assert.equal(italianCopy.projectCard.viewRepository("Progetto"), "Apri il repository GitHub di Progetto");
   assert.equal(italianCopy.projectCard.technologiesByCategory("Progetto"), "Tecnologie di Progetto raggruppate per categoria");
   assert.equal(italianCopy.stack.scrollLeft, "Scorri le tecnologie verso sinistra");
+  assert.equal(getCopy("en").stack.showMore(1, "framework"), "Show 1 more framework technology");
+  assert.equal(getCopy("en").stack.hideMore(1, "framework"), "Hide 1 framework technology");
+  assert.equal(italianCopy.stack.showMore(1, "framework"), "Mostra 1 altra tecnologia framework");
+  assert.equal(italianCopy.stack.hideMore(1, "framework"), "Nascondi 1 tecnologia framework");
   assert.equal(italianCopy.stack.showMore(2, "framework"), "Mostra altre 2 tecnologie framework");
+  assert.equal(italianCopy.stack.hideMore(2, "framework"), "Nascondi 2 tecnologie framework");
   assert.equal(metadata.alternates?.canonical, "/it/projects");
   assert.deepEqual(metadata.alternates?.languages, { en: "/en/projects", it: "/it/projects" });
   assert.equal(metadata.openGraph?.locale, "it_IT");
+});
+
+test("language menu closes only when focus leaves its container", () => {
+  assert.equal(shouldCloseLanguageMenuOnFocusLeave(true), false);
+  assert.equal(shouldCloseLanguageMenuOnFocusLeave(false), true);
 });
 
 test("language menu focus wraps and supports Home and End", () => {

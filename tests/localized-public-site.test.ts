@@ -49,6 +49,8 @@ test("the D1 selector and M2 header use inline SVG flags without emoji", async (
   assert.match(selector, /Escape/);
   assert.match(selector, /ArrowDown/);
   assert.match(selector, /triggerRef\.current\?\.focus/);
+  assert.match(selector, /onBlur/);
+  assert.match(selector, /shouldCloseLanguageMenuOnFocusLeave/);
   assert.match(selector, /document\.cookie/);
   assert.doesNotMatch(selector, /🇮🇹|🇬🇧/u);
   assert.match(header, /sm:hidden/);
