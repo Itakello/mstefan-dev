@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { defaultLocale, type Locale } from "../lib/i18n/config";
+import { defaultLocale } from "../lib/i18n/config";
 import {
   buildLocaleRedirectURL,
   getExplicitLocale,
@@ -60,6 +60,21 @@ test("Accept-Language parsing supports q-values and regional tags", () => {
   assert.equal(getLocaleFromAcceptLanguage(null), defaultLocale);
 });
 
+test("Accept-Language parser handles case-insensitive q parameter", () => {
+  assert.equal(getLocaleFromAcceptLanguage("en;q=0.3,it;Q=1.0"), "it");
+});
+
+test("invalid and out-of-range q values are ignored while missing q defaults to 1", () => {
+  assert.equal(getLocaleFromAcceptLanguage("en;q=not-a-number,it;q=0.4"), "it");
+  assert.equal(getLocaleFromAcceptLanguage("en;q=2,it;q=0.4"), "it");
+  assert.equal(getLocaleFromAcceptLanguage("en;q=0.5oops,it;q=0.4"), "it");
+  assert.equal(getLocaleFromAcceptLanguage("en;q=0.4,it"), "it");
+});
+
+test("wildcard ranges fallback to supported locales when explicit values are unacceptable", () => {
+  assert.equal(getLocaleFromAcceptLanguage("en;q=0,*;q=1"), "it");
+});
+
 test("explicit locale from path only matches prefix segments", () => {
   assert.equal(getExplicitLocale("/it"), "it");
   assert.equal(getExplicitLocale("/en/about"), "en");
@@ -75,6 +90,11 @@ test("invalid cookie never becomes a locale", () => {
 test("locale redirects preserve path and query", () => {
   const destination = buildLocaleRedirectURL(new URL("https://example.com/projects?sort=recent&tag=dev"), "it");
   assert.equal(destination?.toString(), "https://example.com/it/projects?sort=recent&tag=dev");
+});
+
+test("locale redirect from root path preserves query", () => {
+  const destination = buildLocaleRedirectURL(new URL("https://example.com/?foo=bar&lang=en"), "it");
+  assert.equal(destination?.toString(), "https://example.com/it?foo=bar&lang=en");
 });
 
 test("already localized paths do not redirect", () => {

@@ -8,9 +8,9 @@ export type LocaleDecision = {
 const supportedLocaleSet = new Set<Locale>(supportedLocales);
 
 export function getExplicitLocale(pathname: string): Locale | null {
-  const match = pathname.match(/^\/(en|it)(?:\/|$)/);
-  if (!match) return null;
-  return match[1] as Locale;
+  const firstSegment = pathname.split("/")[1]?.toLowerCase();
+  if (!firstSegment) return null;
+  return isSupportedLocale(firstSegment) ? firstSegment : null;
 }
 
 export function isSupportedLocale(value: string): value is Locale {
@@ -25,31 +25,42 @@ export function getLocaleFromCookie(cookieLocale: string | null | undefined): Lo
 
 function parseQuality(value: string): number | null {
   const trimmed = value.trim();
-  if (!trimmed) return null;
-
-  const parsed = Number.parseFloat(trimmed);
-  if (Number.isNaN(parsed) || parsed < 0 || parsed > 1) return null;
-  return parsed;
+  if (!/^(?:0(?:\.\d+)?|1(?:\.0+)?)$/.test(trimmed)) return null;
+  return Number(trimmed);
 }
 
 export function getLocaleFromAcceptLanguage(acceptLanguage: string | null | undefined): Locale {
   if (!acceptLanguage) return defaultLocale;
 
-  const candidates = acceptLanguage
+  const ranges = acceptLanguage
     .split(",")
     .map((entry, index) => {
       const [languagePart, ...params] = entry.split(";");
       const locale = languagePart.trim().toLowerCase();
-      const qualityParam = params.find((part) => part.trim().startsWith("q="));
-      const quality = parseQuality(qualityParam?.trim().slice(2) ?? "");
-      const normalizedLocale = locale.split("-")[0];
+      const qualityParam = params.find((part) => /^q\s*=/i.test(part.trim()));
+      if (!qualityParam) return { locale, quality: 1, index };
+
+      const quality = parseQuality(qualityParam.replace(/^\s*q\s*=\s*/i, ""));
+      if (quality === null) return null;
+
       return {
-        normalizedLocale,
-        quality: quality === null ? 1 : quality,
+        locale,
+        quality,
         index,
       };
     })
-    .filter((item) => item.quality > 0);
+    .filter((range): range is { locale: string; quality: number; index: number } => range !== null);
+
+  const candidates = supportedLocales
+    .map((locale) => {
+      const explicit = ranges.find((range) => range.locale !== "*" && range.locale.split("-")[0] === locale);
+      const wildcard = ranges.find((range) => range.locale === "*");
+      const match = explicit ?? wildcard;
+
+      return match ? { locale, quality: match.quality, index: match.index } : null;
+    })
+    .filter((candidate): candidate is { locale: Locale; quality: number; index: number } => candidate !== null)
+    .filter((candidate) => candidate.quality > 0);
 
   candidates.sort((a, b) => {
     if (b.quality !== a.quality) return b.quality - a.quality;
@@ -57,9 +68,7 @@ export function getLocaleFromAcceptLanguage(acceptLanguage: string | null | unde
   });
 
   for (const item of candidates) {
-    if (isSupportedLocale(item.normalizedLocale)) {
-      return item.normalizedLocale;
-    }
+    return item.locale;
   }
 
   return defaultLocale;
