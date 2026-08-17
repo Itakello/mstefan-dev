@@ -23,10 +23,10 @@ export default function AboutPage() {
 
       <figure className="w-full max-w-sm justify-self-center overflow-hidden rounded-2xl border border-black/10 bg-black/[0.03] md:justify-self-end dark:border-white/10 dark:bg-white/5">
         <Image
-          src="/profile-photo.jpg"
+          src="/profile-photo-full.png"
           alt="Massimo Stefan standing in an elevator, holding a laptop"
           width={764}
-          height={1026}
+          height={1146}
           unoptimized
           className="h-auto w-full"
         />
