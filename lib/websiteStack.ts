@@ -93,6 +93,10 @@ export async function validateStackIcons(
   fetchIcon: typeof fetch = fetch
 ) {
   await Promise.all(entries.map(async (entry) => {
+    if (entry.iconKey.startsWith("skill-icons:")) {
+      throw new Error(`Invalid Stack data: unsupported icon collection for ${entry.name}`);
+    }
+
     const externalIcon = isTrustedExternalIcon(entry.iconKey);
     const response = await fetchIcon(stackIconUrl(entry.iconKey), {
       method: externalIcon ? "HEAD" : "GET"

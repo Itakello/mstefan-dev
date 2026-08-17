@@ -60,6 +60,23 @@ test("rejects a well-formed Iconify key that does not exist", async () => {
   );
 });
 
+test("rejects skill-icons artwork", async () => {
+  let requested = false;
+
+  await assert.rejects(
+    validateStackIcons(
+      [{ ...liveStack[0], name: "Notion", iconKey: "skill-icons:notion-dark" }],
+      async () => {
+        requested = true;
+        return new Response('<svg viewBox="0 0 256 256"></svg>', { status: 200 });
+      },
+    ),
+    /unsupported icon collection for Notion/,
+  );
+
+  assert.equal(requested, false);
+});
+
 test("rejects an Iconify source whose canvas is too wide for a Stack card", async () => {
   await assert.rejects(
     validateStackIcons(
