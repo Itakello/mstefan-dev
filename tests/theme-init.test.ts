@@ -19,13 +19,14 @@ test("runs the theme initializer synchronously in the document head", () => {
   assert.equal(headIndex < scriptIndex && scriptIndex < bodyIndex, true);
 });
 
-for (const { storedTheme, systemDark, expectedDark } of [
-  { storedTheme: "dark", systemDark: false, expectedDark: true },
-  { storedTheme: "light", systemDark: true, expectedDark: false },
-  { storedTheme: null, systemDark: true, expectedDark: true },
-  { storedTheme: null, systemDark: false, expectedDark: false },
+for (const { storedTheme, systemDark, storageThrows, expectedDark } of [
+  { storedTheme: "dark", systemDark: false, storageThrows: false, expectedDark: true },
+  { storedTheme: "light", systemDark: true, storageThrows: false, expectedDark: false },
+  { storedTheme: null, systemDark: true, storageThrows: false, expectedDark: true },
+  { storedTheme: null, systemDark: false, storageThrows: false, expectedDark: false },
+  { storedTheme: null, systemDark: true, storageThrows: true, expectedDark: true },
 ] as const) {
-  test(`initializes ${expectedDark ? "dark" : "light"} mode for stored=${storedTheme} systemDark=${systemDark}`, () => {
+  test(`initializes ${expectedDark ? "dark" : "light"} mode for stored=${storedTheme} systemDark=${systemDark} storageThrows=${storageThrows}`, () => {
     let isDark = false;
 
     runInNewContext(INITIAL_THEME_SCRIPT, {
@@ -42,6 +43,7 @@ for (const { storedTheme, systemDark, expectedDark } of [
       localStorage: {
         getItem(key: string) {
           assert.equal(key, "theme");
+          if (storageThrows) throw new Error("Storage unavailable");
           return storedTheme;
         },
       },
