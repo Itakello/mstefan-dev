@@ -102,7 +102,7 @@ test("already localized paths do not redirect", () => {
   assert.equal(destination, null);
 });
 
-test("default locale does not request a redirect", () => {
+test("default locale receives an explicit prefix", () => {
   const destination = buildLocaleRedirectURL(new URL("https://example.com/projects?sort=recent"), defaultLocale);
-  assert.equal(destination, null);
+  assert.equal(destination?.toString(), "https://example.com/en/projects?sort=recent");
 });

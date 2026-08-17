@@ -1,4 +1,5 @@
 import { defaultLocale, type Locale, supportedLocales } from "./config";
+import type { PublicPath } from "./copy";
 
 export type LocaleDecision = {
   locale: Locale;
@@ -6,6 +7,23 @@ export type LocaleDecision = {
 };
 
 const supportedLocaleSet = new Set<Locale>(supportedLocales);
+const publicPathSet = new Set<PublicPath>(["/", "/projects", "/about"]);
+
+export type LocalizedPath = `/${Locale}` | `/${Locale}/projects` | `/${Locale}/about`;
+
+export function isPublicPathname(pathname: string): pathname is PublicPath {
+  return publicPathSet.has(pathname as PublicPath);
+}
+
+export function localizedPath(locale: Locale, pathname: PublicPath): LocalizedPath {
+  return (pathname === "/" ? `/${locale}` : `/${locale}${pathname}`) as LocalizedPath;
+}
+
+export function getPublicPathname(pathname: string): PublicPath | null {
+  const locale = getExplicitLocale(pathname);
+  const publicPath = locale ? pathname.slice(locale.length + 1) || "/" : pathname;
+  return isPublicPathname(publicPath) ? publicPath : null;
+}
 
 export function getExplicitLocale(pathname: string): Locale | null {
   const firstSegment = pathname.split("/")[1]?.toLowerCase();
@@ -89,10 +107,11 @@ export function resolveLocale(params: {
 }
 
 export function buildLocaleRedirectURL(url: URL, locale: Locale): URL | null {
-  if (locale === defaultLocale) return null;
   if (getExplicitLocale(url.pathname)) return null;
 
   const redirected = new URL(url);
-  redirected.pathname = url.pathname === "/" ? `/${locale}` : `/${locale}${url.pathname}`;
+  const publicPath = getPublicPathname(url.pathname);
+  if (!publicPath) return null;
+  redirected.pathname = localizedPath(locale, publicPath);
   return redirected;
 }

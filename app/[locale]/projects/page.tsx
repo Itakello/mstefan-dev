@@ -1,25 +1,31 @@
+import { notFound } from "next/navigation";
+
 import { ProjectCard } from "@/components/ProjectCard";
 import { ProjectLayoutGroup, ProjectLayoutItem } from "@/components/ProjectLayoutGroup";
+import { getCopy } from "@/lib/i18n/copy";
+import { getLocalizedMetadata } from "@/lib/i18n/metadata";
+import { isSupportedLocale } from "@/lib/i18n/routing";
 import { loadPublicProjects } from "@/lib/publicProjects";
 import { loadWebsiteStack } from "@/lib/websiteStack";
 
-export const metadata = { title: "Projects" };
 export const revalidate = 60;
 
-export default async function ProjectsPage() {
-  const [{ groups, orderedYears, publication }, stackCatalog] = await Promise.all([
-    loadPublicProjects(),
-    loadWebsiteStack(),
-  ]);
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+  if (!isSupportedLocale(locale)) notFound();
+  return getLocalizedMetadata(locale, "projects");
+}
+
+export default async function ProjectsPage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+  if (!isSupportedLocale(locale)) notFound();
+  const content = getCopy(locale).projects;
+  const [{ groups, orderedYears, publication }, stackCatalog] = await Promise.all([loadPublicProjects(), loadWebsiteStack()]);
 
   return (
     <section aria-labelledby="public-projects-heading">
-      <h1 id="public-projects-heading" className="text-2xl font-semibold">
-        Public projects
-      </h1>
-      <p className="mt-2 text-black/70 dark:text-white/70 text-sm">
-        Active, original repositories. Newest first.
-      </p>
+      <h1 id="public-projects-heading" className="text-2xl font-semibold">{content.title}</h1>
+      <p className="mt-2 text-sm text-black/70 dark:text-white/70">{content.description}</p>
 
       {publication.message && (
         <p
@@ -36,10 +42,10 @@ export default async function ProjectsPage() {
           <ProjectLayoutItem key={year} className="mt-8 first:mt-8">
             <h2 className="text-xl font-semibold">{year}</h2>
             <div className="mt-3 border-t border-black/10 dark:border-white/10">
-              {groups[year].map((p, projectIndex) => (
+              {groups[year].map((project, projectIndex) => (
                 <ProjectCard
-                  key={`${year}-${p.title}`}
-                  {...p}
+                  key={`${year}-${project.title}`}
+                  {...project}
                   stackCatalog={stackCatalog.entries}
                   defaultOpen={yearIndex === 0 && projectIndex === 0}
                 />
