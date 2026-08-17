@@ -6,6 +6,44 @@ export type StackEntry = {
   websiteVisible: boolean;
 };
 
+export type StackGroup = {
+  category: string;
+  entries: StackEntry[];
+};
+
+export const STACK_SHELF_VISIBLE_LIMIT = 4;
+
+export function summarizeStackEntries(
+  entries: readonly StackEntry[],
+  limit = STACK_SHELF_VISIBLE_LIMIT,
+) {
+  const visibleEntries = entries.slice(0, limit);
+  const hiddenEntries = entries.slice(limit);
+
+  return {
+    visibleEntries,
+    hiddenEntries,
+    overflowCount: hiddenEntries.length,
+  };
+}
+
+const STACK_CATEGORY_ORDER = [
+  "Language",
+  "Framework",
+  "Library",
+  "Runtime",
+  "Database",
+  "Cloud",
+  "Platform",
+  "SaaS",
+  "CLI",
+] as const;
+
+const STACK_CATEGORY_DISPLAY_LABELS: Record<string, string> = {
+  platform: "Infra",
+  saas: "Integration",
+};
+
 const ICONIFY_KEY = /^[a-z0-9][a-z0-9-]*:[a-z0-9][a-z0-9._-]*$/i;
 const NOTION_ICON_ORIGIN = "https://s3-us-west-2.amazonaws.com";
 const NOTION_ICON_PATH = "/public.notion-static.com/";
@@ -73,6 +111,35 @@ export function resolveProjectStack(
   }
 
   return [...resolved.values()];
+}
+
+export function groupStackEntries(entries: readonly StackEntry[]): StackGroup[] {
+  const groups = new Map<string, StackEntry[]>();
+
+  for (const entry of entries) {
+    const group = groups.get(entry.category) ?? [];
+    group.push(entry);
+    groups.set(entry.category, group);
+  }
+
+  const categoryRank = new Map<string, number>(
+    STACK_CATEGORY_ORDER.map((category, index) => [normalize(category), index]),
+  );
+
+  return [...groups.entries()]
+    .sort(([left], [right]) => {
+      const leftRank = categoryRank.get(normalize(left)) ?? Number.MAX_SAFE_INTEGER;
+      const rightRank = categoryRank.get(normalize(right)) ?? Number.MAX_SAFE_INTEGER;
+      return leftRank - rightRank || left.localeCompare(right);
+    })
+    .map(([category, group]) => ({
+      category,
+      entries: [...group].sort((left, right) => left.name.localeCompare(right.name)),
+    }));
+}
+
+export function displayStackCategory(category: string) {
+  return STACK_CATEGORY_DISPLAY_LABELS[normalize(category)] ?? category;
 }
 
 function normalize(value: string) {
