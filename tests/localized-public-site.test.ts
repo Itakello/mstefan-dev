@@ -47,6 +47,8 @@ test("the D1 selector and M2 header use inline SVG flags without emoji", async (
   assert.match(selector, /<svg/);
   assert.match(selector, /aria-haspopup="menu"/);
   assert.match(selector, /Escape/);
+  assert.match(selector, /ArrowDown/);
+  assert.match(selector, /triggerRef\.current\?\.focus/);
   assert.match(selector, /document\.cookie/);
   assert.doesNotMatch(selector, /🇮🇹|🇬🇧/u);
   assert.match(header, /sm:hidden/);

@@ -69,7 +69,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
         {selectedProjects.length > 0 ? (
           <div className="mt-4 border-t border-black/10 dark:border-white/10">
             {selectedProjects.map((project) => (
-              <ProjectCard key={project.title} {...project} stackCatalog={stackCatalog.entries} />
+              <ProjectCard key={project.title} {...project} stackCatalog={stackCatalog.entries} locale={locale} />
             ))}
           </div>
         ) : publication.message ? (
@@ -95,7 +95,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
               {toolkitMessage}
             </p>
           ) : (
-            <StackCatalog entries={toolkitEntries} />
+            <StackCatalog entries={toolkitEntries} locale={locale} />
           )}
         </div>
       </section>

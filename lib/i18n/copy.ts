@@ -29,6 +29,18 @@ type SiteCopy = {
     Italiano: string;
     selected: string;
   };
+  projectCard: {
+    viewRepository: (title: string) => string;
+    technologiesByCategory: (title: string) => string;
+  };
+  stack: {
+    projectCategory: string;
+    showMore: (count: number, category: string) => string;
+    hideMore: (count: number, category: string) => string;
+    scrollLeft: string;
+    scrollRight: string;
+    toolkitTechnologiesByCategory: string;
+  };
   footer: { rights: string };
   home: {
     eyebrow: string;
@@ -74,6 +86,18 @@ export const copy = {
       darkMode: "Dark mode",
     },
     language: { label: "Language", select: "Select language", English: "English", Italiano: "Italiano", selected: "Selected" },
+    projectCard: {
+      viewRepository: (title) => `View ${title} repository on GitHub`,
+      technologiesByCategory: (title) => `${title} technologies grouped by category`,
+    },
+    stack: {
+      projectCategory: "project",
+      showMore: (count, category) => `Show ${count} more ${category} technologies`,
+      hideMore: (count, category) => `Hide ${count} ${category} technologies`,
+      scrollLeft: "Scroll technologies left",
+      scrollRight: "Scroll technologies right",
+      toolkitTechnologiesByCategory: "Toolkit technologies grouped by category",
+    },
     footer: { rights: "All rights reserved." },
     home: {
       eyebrow: "Software engineer · AI systems",
@@ -122,6 +146,18 @@ export const copy = {
       darkMode: "Tema scuro",
     },
     language: { label: "Lingua", select: "Seleziona lingua", English: "English", Italiano: "Italiano", selected: "Selezionata" },
+    projectCard: {
+      viewRepository: (title) => `Apri il repository GitHub di ${title}`,
+      technologiesByCategory: (title) => `Tecnologie di ${title} raggruppate per categoria`,
+    },
+    stack: {
+      projectCategory: "progetto",
+      showMore: (count, category) => `Mostra altre ${count} tecnologie ${category}`,
+      hideMore: (count, category) => `Nascondi ${count} tecnologie ${category}`,
+      scrollLeft: "Scorri le tecnologie verso sinistra",
+      scrollRight: "Scorri le tecnologie verso destra",
+      toolkitTechnologiesByCategory: "Strumenti: tecnologie raggruppate per categoria",
+    },
     footer: { rights: "Tutti i diritti riservati." },
     home: {
       eyebrow: "Ingegnere del software · sistemi di IA",

@@ -48,6 +48,7 @@ export default async function ProjectsPage({ params }: { params: Promise<{ local
                   {...project}
                   stackCatalog={stackCatalog.entries}
                   defaultOpen={yearIndex === 0 && projectIndex === 0}
+                  locale={locale}
                 />
               ))}
             </div>

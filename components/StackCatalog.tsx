@@ -6,6 +6,8 @@ import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type 
 import { createPortal } from "react-dom";
 
 import { StackBadge } from "@/components/StackBadge";
+import { getCopy } from "@/lib/i18n/copy";
+import type { Locale } from "@/lib/i18n/config";
 import {
   displayStackCategory,
   groupStackEntries,
@@ -62,7 +64,8 @@ function stackHandVariation(category: string, entries: readonly StackEntry[]) {
   return seed % cardOffsets.length;
 }
 
-function StackHand({ category, entries }: { category: string; entries: readonly StackEntry[] }) {
+function StackHand({ category, entries, locale }: { category: string; entries: readonly StackEntry[]; locale: Locale }) {
+  const copy = getCopy(locale);
   const { visibleEntries, hiddenEntries, overflowCount } = summarizeStackEntries(entries);
   const [showAll, setShowAll] = useState(false);
   const [floatingLabel, setFloatingLabel] = useState<FloatingLabel | null>(null);
@@ -126,7 +129,7 @@ function StackHand({ category, entries }: { category: string; entries: readonly 
           className="stack-overflow-card"
           aria-controls={hiddenEntriesId}
           aria-expanded={showAll}
-          aria-label={`${showAll ? "Hide" : "Show"} ${overflowCount} more ${category} technologies`}
+          aria-label={showAll ? copy.stack.hideMore(overflowCount, category) : copy.stack.showMore(overflowCount, category)}
           onClick={() => setShowAll((current) => !current)}
           title={hiddenEntries.map((entry) => entry.name).join(", ")}
         >
@@ -144,16 +147,18 @@ function StackHand({ category, entries }: { category: string; entries: readonly 
   );
 }
 
-export function ProjectStackHand({ entries }: { entries: readonly StackEntry[] }) {
-  return <StackHand category="project" entries={entries} />;
+export function ProjectStackHand({ entries, locale }: { entries: readonly StackEntry[]; locale: Locale }) {
+  return <StackHand category={getCopy(locale).stack.projectCategory} entries={entries} locale={locale} />;
 }
 
 export function StackShelf({
   groups,
-  label = "Technologies grouped by category",
+  locale,
+  label,
 }: {
   groups: readonly StackGroup[];
-  label?: string;
+  locale: Locale;
+  label: string;
 }) {
   const shelfRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -244,7 +249,7 @@ export function StackShelf({
                   <StackCategoryIcon category={category} />
                   <span>{displayCategory}</span>
                 </div>
-                <StackHand category={displayCategory} entries={entries} />
+                <StackHand category={displayCategory} entries={entries} locale={locale} />
               </section>
             );
           })}
@@ -260,7 +265,7 @@ export function StackShelf({
             exit={{ opacity: 0, scale: 0.9 }}
             transition={{ duration: 0.14, ease: "easeOut" }}
             className="stack-shelf-arrow stack-shelf-arrow-left"
-            aria-label="Scroll technologies left"
+            aria-label={getCopy(locale).stack.scrollLeft}
             onClick={() => scroll(-1)}
           >
             <Icon icon="lucide:chevron-left" aria-hidden />
@@ -274,7 +279,7 @@ export function StackShelf({
             exit={{ opacity: 0, scale: 0.9 }}
             transition={{ duration: 0.14, ease: "easeOut" }}
             className="stack-shelf-arrow stack-shelf-arrow-right"
-            aria-label="Scroll technologies right"
+            aria-label={getCopy(locale).stack.scrollRight}
             onClick={() => scroll(1)}
           >
             <Icon icon="lucide:chevron-right" aria-hidden />
@@ -285,8 +290,8 @@ export function StackShelf({
   );
 }
 
-export function StackCatalog({ entries }: { entries: readonly StackEntry[] }) {
+export function StackCatalog({ entries, locale }: { entries: readonly StackEntry[]; locale: Locale }) {
   const groups = groupStackEntries(entries);
 
-  return <StackShelf groups={groups} label="Toolkit technologies grouped by category" />;
+  return <StackShelf groups={groups} locale={locale} label={getCopy(locale).stack.toolkitTechnologiesByCategory} />;
 }
