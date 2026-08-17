@@ -21,13 +21,13 @@ export default function AboutPage() {
         </p>
       </Prose>
 
-      <figure className="overflow-hidden rounded-2xl border border-black/10 bg-black/[0.03] dark:border-white/10 dark:bg-white/5">
+      <figure className="w-full max-w-sm justify-self-center overflow-hidden rounded-2xl border border-black/10 bg-black/[0.03] md:justify-self-end dark:border-white/10 dark:bg-white/5">
         <Image
           src="/profile-photo.jpg"
           alt="Massimo Stefan standing in an elevator, holding a laptop"
           width={764}
           height={1026}
-          sizes="(min-width: 768px) 352px, calc(100vw - 3rem)"
+          unoptimized
           className="h-auto w-full"
         />
       </figure>
