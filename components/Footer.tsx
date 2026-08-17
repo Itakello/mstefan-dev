@@ -27,7 +27,7 @@ export function Footer() {
           <IconLink
             href="https://x.com/itakello"
             label="X"
-            icon={<Icon icon="fa6-brands:square-x-twitter" className="size-4 text-black dark:text-white" aria-hidden />}
+            icon={<Icon icon="ri:twitter-x-fill" className="size-4 text-black dark:text-white" aria-hidden />}
           />
         </div>
       </div>
