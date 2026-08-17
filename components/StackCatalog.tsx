@@ -109,7 +109,11 @@ function StackHand({ category, entries }: { category: string; entries: readonly 
   };
 
   return (
-    <div className="stack-hand" aria-label={entries.map((entry) => entry.name).join(", ")}>
+    <div
+      className="stack-hand"
+      aria-label={entries.map((entry) => entry.name).join(", ")}
+      onMouseLeave={() => setFloatingLabel(null)}
+    >
       {visibleEntries.map(renderCard)}
 
       <span id={hiddenEntriesId} className="stack-hidden-cards" hidden={!showAll}>

@@ -112,7 +112,7 @@ export function ProjectCard({
             href={url}
             target="_blank"
             rel="noreferrer"
-            className="grid size-9 shrink-0 place-items-center rounded-md no-underline text-black/65 transition-colors hover:bg-black/5 hover:text-black dark:text-white/65 dark:hover:bg-white/10 dark:hover:text-white"
+            className="grid size-9 shrink-0 place-items-center rounded-md border border-black/10 bg-black/[0.025] no-underline text-black/65 transition-colors hover:border-black/20 hover:bg-black/5 hover:text-black dark:border-white/10 dark:bg-white/[0.035] dark:text-white/65 dark:hover:border-white/20 dark:hover:bg-white/10 dark:hover:text-white"
             aria-label={`View ${title} repository on GitHub`}
           >
             <Icon icon="simple-icons:github" className="size-[18px]" aria-hidden />
