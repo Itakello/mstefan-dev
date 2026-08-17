@@ -3,6 +3,7 @@ import test from "node:test";
 
 import type { StackEntry } from "../lib/stack";
 import { loadWebsiteStack, validateStackIcons } from "../lib/websiteStack";
+import { stackPublicationMessage } from "../lib/i18n/copy";
 
 const liveStack: StackEntry[] = [
   { name: "TypeScript", category: "Language", iconKey: "logos:typescript-icon", websiteVisible: true }
@@ -39,18 +40,24 @@ test("fails closed without fallback data outside production", async () => {
   assert.deepEqual(await loadWebsiteStack({ fetchStack: async () => null, vercelEnv: "preview" }), {
     status: "unconfigured",
     entries: [],
-    message: "Stack is unavailable because the publication source is not configured.",
+    message: "unconfigured",
   });
   assert.deepEqual(await loadWebsiteStack({ fetchStack: async () => [] }), {
     status: "empty",
     entries: [],
-    message: "No Stack items are currently available for publication.",
+    message: "empty",
   });
   assert.deepEqual(await loadWebsiteStack({ fetchStack: async () => { throw new Error("Notion unavailable"); } }), {
     status: "error",
     entries: [],
-    message: "Stack is temporarily unavailable because the publication source could not be loaded.",
+    message: "error",
   });
+});
+
+test("maps Stack failure statuses to locale-owned messages", () => {
+  assert.equal(stackPublicationMessage("en", "empty"), "No Stack items are currently available for publication.");
+  assert.equal(stackPublicationMessage("it", "unconfigured"), "Lo Stack non è disponibile perché la fonte di pubblicazione non è configurata.");
+  assert.equal(stackPublicationMessage("it", "error"), "Lo Stack non è temporaneamente disponibile perché la fonte di pubblicazione non può essere caricata.");
 });
 
 test("rejects a well-formed Iconify key that does not exist", async () => {

@@ -1,8 +1,11 @@
 export interface TechnologyManifest {
-  schemaVersion: number;
+  schemaVersion: 2;
   repository: string;
   commitSha: string;
-  summary: string;
+  summary: {
+    en: string;
+    it: string;
+  };
   technologies: Array<{
     name: string;
     category: string;
@@ -16,6 +19,10 @@ export interface ExtractionInput {
   currentSha: string;
   currentManifest: TechnologyManifest | null;
 }
+
+export type EvidenceLifecycleStatus = "current" | "first-run" | "missing-evidence" | "invalid-manifest" | "missing-reextracted" | "invalid-reextracted";
+export type EvidenceStatus = "current" | "first-run" | "missing-reextracted" | "invalid-reextracted";
+export type ReextractedBecause = "missing-evidence" | "invalid-manifest" | null;
 
 export function validateManifest(
   manifest: unknown,
@@ -33,6 +40,10 @@ export function diffManifests(previous: TechnologyManifest | null, next: Technol
   removed: string[];
   changed: string[];
   summaryChanged: boolean;
+  summary: {
+    previous: TechnologyManifest["summary"] | null;
+    next: TechnologyManifest["summary"];
+  };
 };
 
 export function processRepositoryTechnologies(options: {
@@ -52,5 +63,7 @@ export function processRepositoryTechnologies(options: {
       currentSha: string;
       diff: ReturnType<typeof diffManifests>;
       manifest: TechnologyManifest;
+      evidenceStatus: EvidenceStatus;
+      reextractedBecause: ReextractedBecause;
     }
 >;

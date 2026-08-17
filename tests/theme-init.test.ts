@@ -6,7 +6,7 @@ import { runInNewContext } from "node:vm";
 import { INITIAL_THEME_SCRIPT } from "../lib/theme";
 
 test("runs the theme initializer synchronously in the document head", () => {
-  const layout = readFileSync(new URL("../app/layout.tsx", import.meta.url), "utf8");
+  const layout = readFileSync(new URL("../app/[locale]/layout.tsx", import.meta.url), "utf8");
 
   assert.equal(layout.includes('from "next/script"'), false);
   const headIndex = layout.indexOf("<head>");

@@ -1,5 +1,7 @@
 import { NextRequest } from "next/server";
-import { fetchProjectsFromNotion } from "@/lib/notion";
+import { GITHUB_USER } from "@/lib/github";
+import { fetchProjectInventoryFromNotion } from "@/lib/notion";
+import { findMissingInventoryRepositories } from "@/lib/projectInventory";
 
 type GitHubRepo = {
   name: string;
@@ -8,58 +10,89 @@ type GitHubRepo = {
   language: string | null;
   archived: boolean;
   fork: boolean;
-  pushed_at: string;
+  pushed_at: string | null;
 };
 
-const GITHUB_USER = "Itakello";
+function isNonblankString(value: unknown): value is string {
+  return typeof value === "string" && Boolean(value.trim());
+}
 
-async function fetchGitHubRepos(): Promise<GitHubRepo[]> {
+function isGitHubPushedAt(value: unknown): value is string | null {
+  return value === null || (isNonblankString(value) && Number.isFinite(Date.parse(value)));
+}
+
+function isGitHubRepo(value: unknown): value is GitHubRepo {
+  return Boolean(value)
+    && typeof value === "object"
+    && isNonblankString((value as GitHubRepo).name)
+    && ((value as GitHubRepo).description === null || typeof (value as GitHubRepo).description === "string")
+    && isNonblankString((value as GitHubRepo).html_url)
+    && ((value as GitHubRepo).language === null || typeof (value as GitHubRepo).language === "string")
+    && typeof (value as GitHubRepo).archived === "boolean"
+    && typeof (value as GitHubRepo).fork === "boolean"
+    && isGitHubPushedAt((value as GitHubRepo).pushed_at);
+}
+
+export async function fetchGitHubRepos(fetchImpl: typeof fetch = fetch): Promise<GitHubRepo[]> {
   const headers: Record<string, string> = { Accept: "application/vnd.github+json" };
   if (process.env.GITHUB_TOKEN) headers.Authorization = `Bearer ${process.env.GITHUB_TOKEN}`;
   const url = `https://api.github.com/users/${GITHUB_USER}/repos?per_page=100&sort=updated`;
-  const res = await fetch(url, { headers, next: { revalidate: 60 } });
-  if (!res.ok) return [];
-  return (await res.json()) as GitHubRepo[];
-}
+  const response = await fetchImpl(url, { headers, next: { revalidate: 60 } });
+  if (!response.ok) throw new Error("GitHub repository discovery failed.");
 
-export async function GET(_req: NextRequest) {
-  let notion;
+  let payload: unknown;
   try {
-    notion = await fetchProjectsFromNotion();
+    payload = await response.json();
   } catch {
-    return Response.json(
-      { status: "error", count: 0, missing: [] },
-      { status: 503 },
-    );
+    throw new Error("GitHub repository discovery returned invalid JSON.");
   }
-
-  if (notion === null) {
-    return Response.json(
-      { status: "unconfigured", count: 0, missing: [] },
-      { status: 503 },
-    );
+  if (!Array.isArray(payload) || !payload.every(isGitHubRepo)) {
+    throw new Error("GitHub repository discovery returned an invalid repository list.");
   }
-
-  const repos = await fetchGitHubRepos();
-
-  const siteUrls = new Set(
-    notion
-      .map((p) => (p.url || "").toLowerCase())
-      .filter(Boolean)
-  );
-
-  const missing = repos
-    .filter((r) => !r.archived && !r.fork)
-    .filter((r) => r.name.toLowerCase() !== GITHUB_USER.toLowerCase())
-    .filter((r) => !siteUrls.has(r.html_url.toLowerCase()))
-    .map((r) => ({
-      title: r.name,
-      url: r.html_url,
-      description: r.description,
-      language: r.language,
-      pushed_at: r.pushed_at,
-    }));
-
-  return Response.json({ status: "ready", count: missing.length, missing });
+  return payload;
 }
 
+type ProjectsDiffDependencies = {
+  fetchNotionInventory: typeof fetchProjectInventoryFromNotion;
+  fetchRepos: typeof fetchGitHubRepos;
+};
+
+export function createProjectsDiffRoute({
+  fetchNotionInventory = fetchProjectInventoryFromNotion,
+  fetchRepos = fetchGitHubRepos,
+}: Partial<ProjectsDiffDependencies> = {}) {
+  return async function GET(_req: NextRequest) {
+    let notion;
+    try {
+      notion = await fetchNotionInventory();
+    } catch {
+      return Response.json(
+        { status: "error", count: 0, missing: [] },
+        { status: 503 },
+      );
+    }
+
+    if (notion === null) {
+      return Response.json(
+        { status: "unconfigured", count: 0, missing: [] },
+        { status: 503 },
+      );
+    }
+
+    let repos;
+    try {
+      repos = await fetchRepos();
+    } catch {
+      return Response.json(
+        { status: "error", count: 0, missing: [] },
+        { status: 503 },
+      );
+    }
+
+    const missing = findMissingInventoryRepositories(notion, repos, GITHUB_USER);
+
+    return Response.json({ status: "ready", count: missing.length, missing });
+  };
+}
+
+export const GET = createProjectsDiffRoute();

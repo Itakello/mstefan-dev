@@ -15,10 +15,13 @@ const repository = {
 };
 
 const evidenceManifest = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   repository: "Itakello/mstefan-dev",
   commitSha: "a".repeat(40),
-  summary: "A portfolio website backed by committed repository evidence.",
+  summary: {
+    en: "A portfolio website backed by committed repository evidence.",
+    it: "Un sito portfolio basato su evidenze del repository versionato.",
+  },
   technologies: [
     {
       name: "TypeScript",
@@ -50,6 +53,15 @@ test("creates an approval-gated proposal from detected and curated evidence", ()
   });
 
   assert.equal(proposal.repository.id, "1036248352");
+  assert.deepEqual(
+    {
+      visibility: proposal.repository.visibility,
+      private: proposal.repository.private,
+      archived: proposal.repository.archived,
+      fork: proposal.repository.fork,
+    },
+    { visibility: "public", private: false, archived: false, fork: false },
+  );
   assert.equal(proposal.sourceCommitSha, "a".repeat(40));
   assert.deepEqual(proposal.detectedTechnologies, ["Notion", "TypeScript"]);
   assert.deepEqual(
@@ -66,6 +78,7 @@ test("creates an approval-gated proposal from detected and curated evidence", ()
     ],
   );
   assert.equal(proposal.summaryProposal.status, "needs-approval");
+  assert.deepEqual(proposal.summaryProposal.value, evidenceManifest.summary);
   assert.equal(proposal.publication.status, "blocked-pending-approval");
 });
 
@@ -78,14 +91,41 @@ test("does not treat inferred evidence categories as curated Stack authority", (
 });
 
 test("rejects private, archived, and forked repositories", () => {
-  for (const override of [{ private: true }, { visibility: "internal" }, { archived: true }, { fork: true }]) {
+  for (const [override, message] of [
+    [{ private: true }, /repository\.private must be explicitly false/],
+    [{ visibility: "internal" }, /repository\.visibility must be explicitly "public"/],
+    [{ archived: true }, /repository\.archived must be explicitly false/],
+    [{ fork: true }, /repository\.fork must be explicitly false/],
+  ] as const) {
     assert.throws(
       () => buildRepositorySyncProposal({
         repository: { ...repository, ...override },
         evidenceManifest,
         publicTechnologyManifest,
       }),
-      /excluded from repository sync v1/,
+      message,
+    );
+  }
+});
+
+test("requires explicit, correctly typed public GitHub eligibility fields", () => {
+  for (const [override, message] of [
+    [{ visibility: undefined }, /repository\.visibility must be explicitly "public"/],
+    [{ visibility: true }, /repository\.visibility must be explicitly "public"/],
+    [{ private: undefined }, /repository\.private must be explicitly false/],
+    [{ private: "false" }, /repository\.private must be explicitly false/],
+    [{ archived: undefined }, /repository\.archived must be explicitly false/],
+    [{ archived: "false" }, /repository\.archived must be explicitly false/],
+    [{ fork: undefined }, /repository\.fork must be explicitly false/],
+    [{ fork: "false" }, /repository\.fork must be explicitly false/],
+  ] as const) {
+    assert.throws(
+      () => buildRepositorySyncProposal({
+        repository: { ...repository, ...override },
+        evidenceManifest,
+        publicTechnologyManifest,
+      }),
+      message,
     );
   }
 });
@@ -112,4 +152,35 @@ test("rejects curated public technologies without committed-file evidence", () =
     }),
     /lacks committed-file evidence: Terraform/,
   );
+});
+
+test("rejects malformed detected technologies before building a proposal", () => {
+  for (const [technology, message] of [
+    [{ ...evidenceManifest.technologies[0], category: "unknown" }, /Invalid category for TypeScript/],
+    [{ ...evidenceManifest.technologies[0], evidence: [] }, /TypeScript must have between 1 and 5 evidence entries/],
+    [{ ...evidenceManifest.technologies[0], evidence: [{ path: "", detail: "Configured in package.json." }] }, /TypeScript has an invalid evidence path/],
+  ] as const) {
+    assert.throws(
+      () => buildRepositorySyncProposal({
+        repository,
+        evidenceManifest: { ...evidenceManifest, technologies: [technology, evidenceManifest.technologies[1]] },
+        publicTechnologyManifest,
+      }),
+      message,
+    );
+  }
+});
+
+test("rejects partial and legacy evidence summaries before creating an approval proposal", () => {
+  for (const evidence of [
+    { ...evidenceManifest, summary: { en: evidenceManifest.summary.en } },
+    { ...evidenceManifest, summary: { en: evidenceManifest.summary.en, it: " " } },
+    { ...evidenceManifest, summary: { ...evidenceManifest.summary, fr: "Francais" } },
+    { ...evidenceManifest, schemaVersion: 1, summary: evidenceManifest.summary.en },
+  ]) {
+    assert.throws(
+      () => buildRepositorySyncProposal({ repository, evidenceManifest: evidence, publicTechnologyManifest }),
+      /schemaVersion 2|manifest\.summary(\.en|\.it| must contain exactly)/,
+    );
+  }
 });

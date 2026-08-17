@@ -17,6 +17,7 @@ test("maps GitHub language to the live Notion multi-select schema", () => {
   assert.deepEqual(properties.Language, {
     multi_select: [{ name: "TypeScript" }],
   });
+  assert.deepEqual(properties.Status, { status: { name: "To Add" } });
   assert.equal("select" in properties.Language, false);
 });
 

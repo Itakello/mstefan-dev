@@ -26,31 +26,40 @@ type EnrichedProject = Project & {
   createdAt?: string;
 };
 
-export type ProjectPublicationStatus = "ready" | "empty" | "unconfigured" | "error";
+export type ProjectPublicationStatus = "ready" | "empty" | "unconfigured" | "stale" | "error";
+export type ProjectPublicationMessage = "empty" | "no-active" | "unconfigured" | "stale" | "error";
 
 export function resolveProjectPublicationState(
   projects: Project[] | null,
   failed = false,
-): { status: ProjectPublicationStatus; projects: Project[]; message: string | null } {
+  stale = false,
+): { status: ProjectPublicationStatus; projects: Project[]; message: ProjectPublicationMessage | null } {
   if (failed) {
     return {
       status: "error",
       projects: [],
-      message: "Projects are temporarily unavailable because the publication source could not be loaded.",
+      message: "error",
     };
   }
   if (projects === null) {
     return {
       status: "unconfigured",
       projects: [],
-      message: "Projects are unavailable because the publication source is not configured.",
+      message: "unconfigured",
+    };
+  }
+  if (stale) {
+    return {
+      status: "stale",
+      projects: [],
+      message: "stale",
     };
   }
   if (projects.length === 0) {
     return {
       status: "empty",
       projects: [],
-      message: "No projects are currently approved for publication.",
+      message: "empty",
     };
   }
   return { status: "ready", projects, message: null };

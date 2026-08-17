@@ -1,18 +1,26 @@
+export type EvidenceCategory = "language" | "framework" | "library" | "runtime" | "database" | "infrastructure" | "tool" | "service";
+
 export interface RepositorySyncProposal {
   schemaVersion: 1;
   repository: {
     id: string;
     fullName: string;
     url: string;
-    visibility: string;
+    visibility: "public";
+    private: false;
+    archived: false;
+    fork: false;
     defaultBranch: string;
   };
   sourceCommitSha: string;
-  summaryProposal: { value: string; status: "needs-approval" };
+  summaryProposal: {
+    value: { en: string; it: string };
+    status: "needs-approval";
+  };
   detectedTechnologies: string[];
   selectedTechnologies: Array<{
     name: string;
-    evidenceCategory: string;
+    evidenceCategory: EvidenceCategory;
     stackMatch:
       | { status: "matched"; name: string; category: string; websiteVisible: boolean }
       | { status: "missing" | "not-checked"; suggestedCategory: string };

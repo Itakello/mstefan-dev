@@ -1,3 +1,6 @@
+import { getCopy } from "@/lib/i18n/copy";
+import type { Locale } from "@/lib/i18n/config";
+
 export type StackEntry = {
   name: string;
   category: string;
@@ -38,11 +41,6 @@ const STACK_CATEGORY_ORDER = [
   "SaaS",
   "CLI",
 ] as const;
-
-const STACK_CATEGORY_DISPLAY_LABELS: Record<string, string> = {
-  platform: "Infra",
-  saas: "Integration",
-};
 
 const ICONIFY_KEY = /^[a-z0-9][a-z0-9-]*:[a-z0-9][a-z0-9._-]*$/i;
 const NOTION_ICON_ORIGIN = "https://s3-us-west-2.amazonaws.com";
@@ -138,8 +136,8 @@ export function groupStackEntries(entries: readonly StackEntry[]): StackGroup[] 
     }));
 }
 
-export function displayStackCategory(category: string) {
-  return STACK_CATEGORY_DISPLAY_LABELS[normalize(category)] ?? category;
+export function displayStackCategory(category: string, locale: Locale) {
+  return getCopy(locale).stack.categories[normalize(category)] ?? category;
 }
 
 function normalize(value: string) {

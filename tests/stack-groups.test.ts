@@ -8,11 +8,19 @@ import {
   summarizeStackEntries,
   type StackEntry,
 } from "../lib/stack";
+import { formatProjectStartDate } from "../lib/projectPresentation";
 
-test("uses stable singular presentation labels without changing source categories", () => {
-  assert.equal(displayStackCategory("Platform"), "Infra");
-  assert.equal(displayStackCategory("SaaS"), "Integration");
-  assert.equal(displayStackCategory("Language"), "Language");
+test("uses locale-specific category labels without changing source categories", () => {
+  assert.equal(displayStackCategory("Platform", "en"), "Infrastructure");
+  assert.equal(displayStackCategory("SaaS", "en"), "Integration");
+  assert.equal(displayStackCategory("Platform", "it"), "Infrastruttura");
+  assert.equal(displayStackCategory("Language", "it"), "Linguaggio");
+  assert.equal(displayStackCategory("Untranslated", "it"), "Untranslated");
+});
+
+test("formats project dates for the requested locale", () => {
+  assert.equal(formatProjectStartDate("en", "2024-03-15T12:00:00Z"), "Mar 2024");
+  assert.equal(formatProjectStartDate("it", "2024-03-15T12:00:00Z"), "mar 2024");
 });
 
 function stack(name: string, category: string): StackEntry {

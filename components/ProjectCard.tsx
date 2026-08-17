@@ -6,6 +6,9 @@ import { useId, useMemo, useState } from "react";
 
 import { ProjectStackHand, StackShelf } from "@/components/StackCatalog";
 import { BRAND_ICON_CLASS } from "@/lib/iconStyles";
+import { getCopy } from "@/lib/i18n/copy";
+import type { Locale } from "@/lib/i18n/config";
+import { formatProjectStartDate, projectPreviewSummary } from "@/lib/projectPresentation";
 import {
   findStackEntry,
   groupStackEntries,
@@ -23,6 +26,7 @@ type Props = {
   language?: string;
   stackCatalog?: readonly StackEntry[];
   defaultOpen?: boolean;
+  locale: Locale;
 };
 
 const KNOWN_LANGUAGES = new Set([
@@ -42,14 +46,6 @@ const KNOWN_LANGUAGES = new Set([
   "Dart",
 ]);
 
-function formatMonthYear(value: string) {
-  return new Intl.DateTimeFormat("en", {
-    month: "short",
-    year: "numeric",
-    timeZone: "UTC",
-  }).format(new Date(value));
-}
-
 const panelTransition = {
   height: { duration: 0.36, ease: [0.4, 0, 0.2, 1] },
   opacity: { duration: 0.24, ease: [0.4, 0, 0.2, 1] },
@@ -65,7 +61,9 @@ export function ProjectCard({
   language,
   stackCatalog,
   defaultOpen = false,
+  locale,
 }: Props) {
+  const copy = getCopy(locale);
   const [isOpen, setIsOpen] = useState(defaultOpen);
   const panelId = useId();
   const { groups, technologies, unresolvedLabels } = useMemo(() => {
@@ -92,6 +90,7 @@ export function ProjectCard({
           className="group flex min-w-0 items-center gap-3 text-left"
           aria-expanded={isOpen}
           aria-controls={panelId}
+          aria-label={copy.projectCard.toggleDetails(title, isOpen)}
           onClick={() => setIsOpen((open) => !open)}
         >
           <motion.span
@@ -114,7 +113,7 @@ export function ProjectCard({
             target="_blank"
             rel="noreferrer"
             className="grid size-9 shrink-0 place-items-center rounded-md border border-black/10 bg-black/[0.025] no-underline text-black/65 transition-colors hover:border-black/20 hover:bg-black/5 hover:text-black dark:border-white/10 dark:bg-white/[0.035] dark:text-white/65 dark:hover:border-white/20 dark:hover:bg-white/10 dark:hover:text-white"
-            aria-label={`View ${title} repository on GitHub`}
+            aria-label={copy.projectCard.viewRepository(title)}
           >
             <Icon icon="simple-icons:github" className={BRAND_ICON_CLASS} aria-hidden />
           </a>
@@ -132,11 +131,11 @@ export function ProjectCard({
         >
           <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 pb-3">
             <p className="line-clamp-2 min-w-0 text-sm leading-5 text-black/65 dark:text-white/65">
-              {shortSummary || summary}
+              {projectPreviewSummary({ summary, shortSummary })}
             </p>
             {technologies.length > 0 && (
               <div className="shrink-0">
-                <ProjectStackHand entries={technologies} />
+                <ProjectStackHand entries={technologies} locale={locale} />
               </div>
             )}
           </div>
@@ -158,7 +157,7 @@ export function ProjectCard({
             {createdAt && (
               <p className="mt-2 flex items-center gap-1.5 text-xs text-black/45 dark:text-white/45">
                 <Icon icon="lucide:calendar-range" className="size-3.5" aria-hidden />
-                Started {formatMonthYear(createdAt)}
+                {copy.projectCard.started(formatProjectStartDate(locale, createdAt))}
               </p>
             )}
 
@@ -166,7 +165,8 @@ export function ProjectCard({
               <div className="mt-3">
                 <StackShelf
                   groups={groups}
-                  label={`${title} technologies grouped by category`}
+                  locale={locale}
+                  label={copy.projectCard.technologiesByCategory(title)}
                 />
               </div>
             )}
