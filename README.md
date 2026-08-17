@@ -41,7 +41,7 @@ pnpm dev
   ```
 - **Home content**: `app/page.tsx`.
 - **About**: `app/about/page.tsx`.
-- **Contact links**: `app/contact/page.tsx`.
+- **Contact links**: `components/Footer.tsx`.
 
 If you fork this repo, also update the hardcoded GitHub username used for repo fetching:
 - `app/projects/page.tsx`: `const GITHUB_USER = "Itakello"`
@@ -127,7 +127,6 @@ never receives the API key.
 app/                # App Router pages and routes
   about/
   api/projects/diff/
-  contact/
   projects/
 components/         # UI components
 lib/                # Notion integration helpers

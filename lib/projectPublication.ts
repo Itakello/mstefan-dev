@@ -1,5 +1,6 @@
 export type Project = {
   title: string;
+  shortSummary?: string;
   summary: string;
   year?: string;
   url?: string;
@@ -16,11 +17,13 @@ export type GitHubRepo = {
   archived: boolean;
   fork: boolean;
   pushed_at: string;
+  created_at?: string;
 };
 
 type EnrichedProject = Project & {
   sortTimestamp?: number;
   language?: string;
+  createdAt?: string;
 };
 
 export type ProjectPublicationStatus = "ready" | "empty" | "unconfigured" | "error";
@@ -57,12 +60,17 @@ export function mergeAndEnrichProjects(
   approved: Project[],
   repos: GitHubRepo[],
 ): { groups: Record<string, EnrichedProject[]>; orderedYears: string[] } {
-  const repoByUrl = new Map<string, { year: string; timestamp: number; language?: string | null }>();
+  const repoByUrl = new Map<string, { year?: string; timestamp?: number; language?: string | null; createdAt?: string }>();
 
   for (const repo of repos) {
-    const year = new Date(repo.pushed_at).getFullYear().toString();
-    const timestamp = new Date(repo.pushed_at).getTime();
-    repoByUrl.set(repo.html_url.toLowerCase(), { year, timestamp, language: repo.language });
+    const timestamp = repo.created_at ? Date.parse(repo.created_at) : Number.NaN;
+    const hasCreationDate = Number.isFinite(timestamp);
+    repoByUrl.set(repo.html_url.toLowerCase(), {
+      year: hasCreationDate ? new Date(timestamp).getUTCFullYear().toString() : undefined,
+      timestamp: hasCreationDate ? timestamp : undefined,
+      language: repo.language,
+      createdAt: hasCreationDate ? repo.created_at : undefined,
+    });
   }
 
   const merged: EnrichedProject[] = [];
@@ -77,9 +85,10 @@ export function mergeAndEnrichProjects(
 
     merged.push({
       ...project,
-      year: project.year || match?.year,
+      year: match?.year,
       tags: filteredTags.length > 0 ? filteredTags : undefined,
       language: project.language || curatedLanguageTag || match?.language || undefined,
+      createdAt: match?.createdAt,
       sortTimestamp: match?.timestamp,
     });
   }
@@ -92,7 +101,10 @@ export function mergeAndEnrichProjects(
   }
 
   for (const year of Object.keys(groups)) {
-    groups[year].sort((left, right) => (right.sortTimestamp || 0) - (left.sortTimestamp || 0));
+    groups[year].sort((left, right) =>
+      (right.sortTimestamp || 0) - (left.sortTimestamp || 0)
+      || left.title.localeCompare(right.title),
+    );
   }
 
   const orderedYears = Object.keys(groups).sort((left, right) => {

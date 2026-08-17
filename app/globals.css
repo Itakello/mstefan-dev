@@ -11,6 +11,10 @@ html, body {
   height: 100%;
 }
 
+html {
+  scrollbar-gutter: stable;
+}
+
 body {
   @apply bg-white text-black antialiased;
 }
@@ -20,7 +24,7 @@ a {
 }
 
 .container {
-  @apply mx-auto px-6 max-w-3xl sm:max-w-4xl lg:max-w-5xl;
+  @apply mx-auto max-w-3xl px-6 sm:max-w-4xl lg:max-w-6xl;
 }
 
 /* Prose defaults */
@@ -43,6 +47,275 @@ a {
 }
 .dark .card {
   @apply border-white/10 bg-white/5 shadow-softDark;
+}
+
+.project-layout {
+  overflow-anchor: none;
+}
+
+.project-panel {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.stack-shelf-shell {
+  position: relative;
+}
+
+.stack-shelf {
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.stack-shelf::-webkit-scrollbar {
+  display: none;
+}
+
+.stack-shelf-track {
+  display: flex;
+  min-width: max-content;
+  align-items: flex-start;
+  gap: 1.25rem;
+  padding: 0.125rem 0 0.25rem;
+}
+
+.stack-shelf-group {
+  flex: none;
+  min-width: max-content;
+  border-left: 1px solid rgb(0 0 0 / 0.1);
+  padding-left: 1.25rem;
+}
+
+.stack-shelf-group:first-child {
+  border-left: 0;
+  padding-left: 0;
+}
+
+.dark .stack-shelf-group {
+  border-left-color: rgb(255 255 255 / 0.1);
+}
+
+.stack-shelf-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin-bottom: 0.625rem;
+  color: rgb(0 0 0 / 0.58);
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1rem;
+  white-space: nowrap;
+}
+
+.dark .stack-shelf-heading {
+  color: rgb(255 255 255 / 0.62);
+}
+
+.stack-hand {
+  display: flex;
+  align-items: center;
+  min-height: 1.875rem;
+  padding-left: 0.125rem;
+}
+
+.stack-hand-card {
+  --stack-card-rotation: 0deg;
+  --stack-card-offset: 0px;
+  position: relative;
+  z-index: var(--stack-card-index);
+  display: inline-flex;
+  margin-left: -0.4rem;
+  transform: translateY(var(--stack-card-offset)) rotate(var(--stack-card-rotation));
+  transform-origin: 50% 80%;
+  transition: margin 160ms ease, transform 160ms ease, z-index 0s;
+}
+
+.stack-hand-card .stack-badge-icon {
+  background: rgb(255 255 255);
+}
+
+.dark .stack-hand-card .stack-badge-icon {
+  background: rgb(10 10 10);
+}
+
+.stack-hidden-cards {
+  display: inline-flex;
+  align-items: center;
+  animation: stack-cards-reveal 160ms ease-out;
+}
+
+.stack-hidden-cards[hidden] {
+  display: none;
+}
+
+.stack-hidden-cards .stack-hand-card:first-child {
+  margin-left: -0.4rem;
+}
+
+.stack-hand-card:first-child {
+  margin-left: 0;
+}
+
+.stack-hand-card:hover,
+.stack-hand-card:focus {
+  z-index: 20;
+  margin-inline: 0.1rem;
+  transform: translateY(-0.25rem) rotate(0deg) scale(1.06);
+}
+
+.stack-hand-card:has(+ .stack-hand-card:hover),
+.stack-hand-card:has(+ .stack-hand-card:focus) {
+  transform: translateX(-0.2rem) translateY(var(--stack-card-offset)) rotate(var(--stack-card-rotation));
+}
+
+.stack-hand-card:hover + .stack-hand-card,
+.stack-hand-card:focus + .stack-hand-card {
+  transform: translateX(0.2rem) translateY(var(--stack-card-offset)) rotate(var(--stack-card-rotation));
+}
+
+.stack-floating-label {
+  position: fixed;
+  z-index: 100;
+  max-width: 8rem;
+  border: 1px solid rgb(0 0 0 / 0.12);
+  border-radius: 0.25rem;
+  background: rgb(255 255 255 / 0.96);
+  padding: 0.125rem 0.35rem;
+  color: rgb(0 0 0 / 0.75);
+  font-size: 0.6875rem;
+  line-height: 1rem;
+  overflow: hidden;
+  pointer-events: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dark .stack-floating-label {
+  border-color: rgb(255 255 255 / 0.14);
+  background: rgb(18 18 18 / 0.96);
+  color: rgb(255 255 255 / 0.82);
+}
+
+.stack-overflow-card {
+  position: relative;
+  z-index: 0;
+  display: inline-grid;
+  width: 1.75rem;
+  height: 1.75rem;
+  margin-left: -0.3rem;
+  place-items: center;
+  border: 1px solid rgb(0 0 0 / 0.1);
+  border-radius: 0.375rem;
+  background: rgb(0 0 0 / 0.035);
+  color: rgb(0 0 0 / 0.58);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1;
+  transition: background-color 140ms ease, color 140ms ease, transform 140ms ease;
+}
+
+.stack-overflow-card:hover,
+.stack-overflow-card:focus-visible,
+.stack-overflow-card[aria-expanded="true"] {
+  background: rgb(0 0 0 / 0.075);
+  color: rgb(0 0 0 / 0.82);
+  transform: translateY(-0.125rem);
+}
+
+.dark .stack-overflow-card {
+  border-color: rgb(255 255 255 / 0.11);
+  background: rgb(255 255 255 / 0.055);
+  color: rgb(255 255 255 / 0.66);
+}
+
+.dark .stack-overflow-card:hover,
+.dark .stack-overflow-card:focus-visible,
+.dark .stack-overflow-card[aria-expanded="true"] {
+  background: rgb(255 255 255 / 0.1);
+  color: rgb(255 255 255 / 0.88);
+}
+
+@keyframes stack-cards-reveal {
+  from {
+    opacity: 0;
+    transform: translateX(-0.35rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.stack-shelf-arrow {
+  position: absolute;
+  top: 2.25rem;
+  z-index: 40;
+  display: grid;
+  width: 1.75rem;
+  height: 1.75rem;
+  place-items: center;
+  border: 1px solid rgb(0 0 0 / 0.12);
+  border-radius: 9999px;
+  background: rgb(255 255 255 / 0.94);
+  color: rgb(0 0 0 / 0.72);
+  box-shadow: 0 0.125rem 0.5rem rgb(0 0 0 / 0.12);
+  opacity: 1;
+  transition: opacity 140ms ease, transform 140ms ease;
+}
+
+.stack-shelf-arrow:hover {
+  transform: scale(1.06);
+}
+
+.stack-shelf-arrow:disabled {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.stack-shelf-arrow svg {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.stack-shelf-arrow-left {
+  left: 0.125rem;
+}
+
+.stack-shelf-arrow-right {
+  right: 0.125rem;
+}
+
+.dark .stack-shelf-arrow {
+  border-color: rgb(255 255 255 / 0.14);
+  background: rgb(18 18 18 / 0.94);
+  color: rgb(255 255 255 / 0.82);
+  box-shadow: 0 0.125rem 0.5rem rgb(0 0 0 / 0.32);
+}
+
+@media (max-width: 639px) {
+  .stack-shelf-track {
+    gap: 1rem;
+  }
+
+  .stack-shelf-group {
+    padding-left: 1rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stack-hand-card,
+  .stack-shelf-arrow,
+  .stack-overflow-card {
+    transition: none;
+  }
+
+  .stack-hidden-cards {
+    animation: none;
+  }
 }
 
 /* Focus ring */

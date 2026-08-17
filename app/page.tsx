@@ -22,12 +22,12 @@ export default function Home() {
           >
             See projects
           </Link>
-          <Link
-            href="/contact"
+          <a
+            href="mailto:massimo@mstefan.dev"
             className="rounded-xl border px-4 py-2 font-medium no-underline border-black/15 hover:border-accent dark:border-white/15"
           >
             Get in touch
-          </Link>
+          </a>
         </div>
       </header>
     </section>

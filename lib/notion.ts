@@ -4,6 +4,7 @@ import { isStackIconSource, type StackEntry } from "@/lib/stack";
 
 export type NotionProject = {
   title: string;
+  shortSummary?: string;
   summary: string;
   url?: string;
   tags?: string[];
@@ -47,16 +48,19 @@ export async function fetchProjectsFromNotion(databaseId?: string): Promise<Noti
       const titleProp = r.properties?.Name?.title || [];
       const urlProp = r.properties?.URL?.url as string | null | undefined;
       const summaryProp = r.properties?.Summary?.rich_text || [];
+      const shortSummaryProp = r.properties?.["Short summary"]?.rich_text || [];
       const tagsProp = r.properties?.Tags?.multi_select || [];
       const languageProp = r.properties?.Language?.multi_select || [];
       const yearProp = r.properties?.Year?.number || null;
 
       const title = titleProp.map((t: any) => t.plain_text).join("");
       const summary = summaryProp.map((t: any) => t.plain_text).join("");
+      const shortSummary = shortSummaryProp.map((t: any) => t.plain_text).join("");
       const tags = tagsProp.map((t: any) => t.name);
 
       pages.push({
         title,
+        shortSummary: shortSummary || undefined,
         summary,
         url: urlProp ?? undefined,
         tags: tags.length > 0 ? tags : undefined,
@@ -127,6 +131,7 @@ export function parseStackPage(page: any): StackEntry {
 export async function upsertNotionProject(params: {
   databaseId?: string;
   title: string;
+  shortSummary?: string;
   url?: string;
   summary?: string;
   tags?: string[];
@@ -154,6 +159,7 @@ export async function upsertNotionProject(params: {
     Name: { title: [{ type: "text", text: { content: params.title } }] },
   };
   if (params.url) properties.URL = { url: params.url };
+  if (params.shortSummary) properties["Short summary"] = { rich_text: [{ type: "text", text: { content: params.shortSummary } }] };
   if (params.summary) properties.Summary = { rich_text: [{ type: "text", text: { content: params.summary } }] };
   if (params.tags) properties.Tags = { multi_select: params.tags.map((t) => ({ name: t })) };
   if (params.language) properties.Language = { multi_select: [{ name: params.language }] };

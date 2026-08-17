@@ -1,86 +1,185 @@
-import { ArrowUpRight, Code } from "lucide-react";
-import { StackBadge } from "@/components/StackBadge";
+"use client";
+
+import { Icon } from "@iconify/react";
+import { motion } from "motion/react";
+import { useId, useMemo, useState } from "react";
+
+import { ProjectStackHand, StackShelf } from "@/components/StackCatalog";
 import {
   findStackEntry,
+  groupStackEntries,
   resolveProjectStack,
-  type StackEntry
+  type StackEntry,
 } from "@/lib/stack";
 
 type Props = {
   title: string;
+  shortSummary?: string;
   summary: string;
-  year?: string;
+  createdAt?: string;
   url?: string;
   tags?: string[];
   language?: string;
   stackCatalog?: readonly StackEntry[];
+  defaultOpen?: boolean;
 };
 
-export function ProjectCard({ title, summary, year, url, tags, language, stackCatalog }: Props) {
-  const KNOWN_LANGUAGES = new Set([
-    "JavaScript",
-    "TypeScript",
-    "Python",
-    "Java",
-    "C++",
-    "C#",
-    "Go",
-    "Rust",
-    "Ruby",
-    "PHP",
-    "Kotlin",
-    "Swift",
-    "Scala",
-    "Dart",
-  ]);
+const KNOWN_LANGUAGES = new Set([
+  "JavaScript",
+  "TypeScript",
+  "Python",
+  "Java",
+  "C++",
+  "C#",
+  "Go",
+  "Rust",
+  "Ruby",
+  "PHP",
+  "Kotlin",
+  "Swift",
+  "Scala",
+  "Dart",
+]);
 
-  const detectedLanguage =
-    language || (tags || []).find((t) => KNOWN_LANGUAGES.has(t));
-  const nonLanguageTags = (tags || []).filter((t) => !KNOWN_LANGUAGES.has(t));
+function formatMonthYear(value: string) {
+  return new Intl.DateTimeFormat("en", {
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(value));
+}
 
-  const technologyLabels = [detectedLanguage, ...nonLanguageTags].filter(
-    (label): label is string => Boolean(label)
-  );
-  const catalog = stackCatalog ?? [];
-  const technologies = resolveProjectStack(technologyLabels, catalog);
-  const unresolvedTags = nonLanguageTags.filter((tag) => !findStackEntry(tag, catalog));
-  const languageEntry = detectedLanguage ? findStackEntry(detectedLanguage, catalog) : undefined;
+const panelTransition = {
+  height: { duration: 0.36, ease: [0.4, 0, 0.2, 1] },
+  opacity: { duration: 0.24, ease: [0.4, 0, 0.2, 1] },
+} as const;
+
+export function ProjectCard({
+  title,
+  shortSummary,
+  summary,
+  createdAt,
+  url,
+  tags,
+  language,
+  stackCatalog,
+  defaultOpen = false,
+}: Props) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+  const panelId = useId();
+  const { groups, technologies, unresolvedLabels } = useMemo(() => {
+    const detectedLanguage = language || tags?.find((tag) => KNOWN_LANGUAGES.has(tag));
+    const nonLanguageTags = (tags ?? []).filter((tag) => !KNOWN_LANGUAGES.has(tag));
+    const technologyLabels = [detectedLanguage, ...nonLanguageTags].filter(
+      (label): label is string => Boolean(label),
+    );
+    const catalog = stackCatalog ?? [];
+    const technologies = resolveProjectStack(technologyLabels, catalog);
+
+    return {
+      groups: groupStackEntries(technologies),
+      technologies,
+      unresolvedLabels: technologyLabels.filter((label) => !findStackEntry(label, catalog)),
+    };
+  }, [language, stackCatalog, tags]);
+
   return (
-    <a
-      href={url || "#"}
-      className="card block p-6 no-underline hover:border-accent"
-      target={url ? "_blank" : undefined}
-      rel={url ? "noreferrer" : undefined}
-    >
-      <div className="flex items-start justify-between gap-4">
-        <h3 className="text-lg font-semibold">{title}</h3>
-        <ArrowUpRight className="size-4 opacity-70" />
+    <article className="border-b border-black/10 dark:border-white/10">
+      <div className="grid min-h-12 grid-cols-[minmax(0,1fr)_2.25rem] items-center gap-3 py-2">
+        <button
+          type="button"
+          className="group flex min-w-0 items-center gap-3 text-left"
+          aria-expanded={isOpen}
+          aria-controls={panelId}
+          onClick={() => setIsOpen((open) => !open)}
+        >
+          <motion.span
+            animate={{ rotate: isOpen ? 90 : 0 }}
+            transition={{ duration: 0.28, ease: [0.4, 0, 0.2, 1] }}
+            className="grid size-4 shrink-0 place-items-center opacity-60"
+          >
+            <Icon
+              icon="lucide:chevron-right"
+              className="size-4"
+              aria-hidden
+            />
+          </motion.span>
+          <span className="block min-w-0 truncate text-sm font-semibold sm:text-base">{title}</span>
+        </button>
+
+        {url && (
+          <a
+            href={url}
+            target="_blank"
+            rel="noreferrer"
+            className="grid size-9 shrink-0 place-items-center rounded-md no-underline text-black/65 transition-colors hover:bg-black/5 hover:text-black dark:text-white/65 dark:hover:bg-white/10 dark:hover:text-white"
+            aria-label={`View ${title} repository on GitHub`}
+          >
+            <Icon icon="simple-icons:github" className="size-[18px]" aria-hidden />
+          </a>
+        )}
       </div>
-      <p className="mt-2 text-sm text-black/70 dark:text-white/80">{summary}</p>
-      {(technologies.length > 0 || unresolvedTags.length > 0) && (
-        <div className="mt-4 flex flex-wrap gap-2">
-          {technologies.map((item) => (
-            <StackBadge key={item.name} item={item} />
-          ))}
-          {unresolvedTags.map((t) => (
-            <span
-              key={t}
-              className="rounded-full border px-2.5 py-1 text-xs border-black/10 bg-black/[0.03] text-black/70 dark:border-white/10 dark:bg-white/5 dark:text-white/70"
-            >
-              {t}
-            </span>
-          ))}
-        </div>
-      )}
-      {detectedLanguage && (
-        !languageEntry && (
-          <div className="mt-3 inline-flex items-center gap-2 text-xs text-black/60 dark:text-white/70">
-            <Code className="size-4 opacity-70" />
-            <span className="font-medium">{detectedLanguage}</span>
+
+      <div id={panelId} className="pl-7">
+        <motion.div
+          initial={false}
+          animate={isOpen ? { height: 0, opacity: 0 } : { height: "auto", opacity: 1 }}
+          transition={panelTransition}
+          className="project-panel"
+          aria-hidden={isOpen}
+          inert={isOpen}
+        >
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 pb-3">
+            <p className="line-clamp-2 min-w-0 text-sm leading-5 text-black/65 dark:text-white/65">
+              {shortSummary || summary}
+            </p>
+            {technologies.length > 0 && (
+              <div className="shrink-0">
+                <ProjectStackHand entries={technologies} />
+              </div>
+            )}
           </div>
-        )
-      )}
-      {/* Year intentionally not shown on the card; grouping is by year above */}
-    </a>
+        </motion.div>
+
+        <motion.div
+          initial={false}
+          animate={isOpen ? { height: "auto", opacity: 1 } : { height: 0, opacity: 0 }}
+          transition={panelTransition}
+          className="project-panel"
+          aria-hidden={!isOpen}
+          inert={!isOpen}
+        >
+          <div className="pb-2">
+            <p className="max-w-3xl text-sm leading-6 text-black/70 dark:text-white/70">
+              {summary}
+            </p>
+
+            {createdAt && (
+              <p className="mt-2 flex items-center gap-1.5 text-xs text-black/45 dark:text-white/45">
+                <Icon icon="lucide:calendar-range" className="size-3.5" aria-hidden />
+                Started {formatMonthYear(createdAt)}
+              </p>
+            )}
+
+            {groups.length > 0 && (
+              <div className="mt-3">
+                <StackShelf
+                  groups={groups}
+                  label={`${title} technologies grouped by category`}
+                />
+              </div>
+            )}
+
+            {unresolvedLabels.length > 0 && (
+              <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-xs text-black/55 dark:text-white/55">
+                {unresolvedLabels.map((label) => (
+                  <span key={label}>{label}</span>
+                ))}
+              </div>
+            )}
+          </div>
+        </motion.div>
+      </div>
+    </article>
   );
 }
