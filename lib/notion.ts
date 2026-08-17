@@ -18,6 +18,12 @@ export type NotionProject = {
   status: "Added";
 };
 
+export type NotionProjectInventory = {
+  title?: string;
+  url?: string;
+  status?: string;
+};
+
 function getNotionClient(): Client | null {
   const token = process.env.NOTION_TOKEN;
   if (!token) return null;
@@ -44,6 +50,31 @@ export async function fetchProjectsFromNotion(databaseId?: string): Promise<Noti
 
     for (const r of res.results as any[]) {
       const project = parseNotionProjectPage(r);
+      if (project) pages.push(project);
+    }
+
+    cursor = res.has_more ? res.next_cursor ?? undefined : undefined;
+  } while (cursor);
+
+  return pages;
+}
+
+export async function fetchProjectInventoryFromNotion(databaseId?: string): Promise<NotionProjectInventory[] | null> {
+  const client = getNotionClient();
+  const db = databaseId || process.env.NOTION_DATABASE_ID;
+  if (!client || !db) return null;
+
+  const pages: NotionProjectInventory[] = [];
+  let cursor: string | undefined;
+
+  do {
+    const res = await client.databases.query({
+      database_id: db,
+      start_cursor: cursor,
+    });
+
+    for (const page of res.results as any[]) {
+      const project = parseNotionProjectInventoryPage(page);
       if (project) pages.push(project);
     }
 
@@ -84,6 +115,24 @@ export function parseNotionProjectPage(page: any): NotionProject | null {
     language,
     year,
     status: "Added",
+  };
+}
+
+export function parseNotionProjectInventoryPage(page: any): NotionProjectInventory | null {
+  const properties = page?.properties;
+  if (!properties) return null;
+
+  const title = richText(properties.Name?.title);
+
+  const url = typeof properties.URL?.url === "string" ? properties.URL.url : undefined;
+  const status = typeof properties.Status?.status?.name === "string"
+    ? properties.Status.status.name
+    : undefined;
+
+  return {
+    ...(title ? { title } : {}),
+    ...(url ? { url } : {}),
+    ...(status ? { status } : {}),
   };
 }
 

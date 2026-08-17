@@ -7,6 +7,11 @@ import {
   selectPublicProjects,
 } from "@/lib/projectPublication";
 
+type PublicProjectsLoaderOptions = {
+  fetchProjects?: typeof fetchProjectsFromNotion;
+  fetchRepos?: typeof fetchGitHubRepos;
+};
+
 export function selectPublicProjectLocale(project: NotionProject, locale: Locale) {
   const localizedCopy = project.copy[locale];
 
@@ -20,10 +25,16 @@ export function selectPublicProjectLocale(project: NotionProject, locale: Locale
   };
 }
 
-export async function loadPublicProjects(locale: Locale) {
+export async function loadPublicProjects(
+  locale: Locale,
+  { fetchProjects = fetchProjectsFromNotion, fetchRepos = fetchGitHubRepos }: PublicProjectsLoaderOptions = {},
+) {
   const [repos, notionResult] = await Promise.all([
-    fetchGitHubRepos(),
-    fetchProjectsFromNotion()
+    fetchRepos().catch((error) => {
+      console.error("Failed to load GitHub repository eligibility data.", error);
+      return null;
+    }),
+    fetchProjects()
       .then((projects) => ({ projects, failed: false }))
       .catch((error) => {
         console.error("Failed to load the Notion project publication source.", error);
@@ -36,7 +47,8 @@ export async function loadPublicProjects(locale: Locale) {
     : null;
   const publication = resolveProjectPublicationState(
     notionProjects,
-    notionResult.failed || repos === null,
+    notionResult.failed,
+    repos === null,
   );
   const projects = repos
     ? selectPublicProjects(publication.projects, repos, GITHUB_USER)

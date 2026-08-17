@@ -7,6 +7,7 @@ import { getCopy } from "@/lib/i18n/copy";
 import { getLocalizedMetadata } from "@/lib/i18n/metadata";
 import { isSupportedLocale, localizedPath } from "@/lib/i18n/routing";
 import { loadPublicProjects } from "@/lib/publicProjects";
+import { projectPublicationView } from "@/lib/publicationPresentation";
 import { loadWebsiteStack } from "@/lib/websiteStack";
 
 const SELECTED_PROJECTS = ["mstefan-dev", "ai_agents", "PhysIQ"];
@@ -30,6 +31,9 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
     return project ? [project] : [];
   });
   const toolkitEntries = stackCatalog.entries.filter((entry) => entry.websiteVisible);
+  const publicationView = publication.message
+    ? projectPublicationView(locale, publication.message)
+    : null;
   const toolkitMessage = stackCatalog.message
     ? getCopy(locale).publication.stack[stackCatalog.message]
     : (toolkitEntries.length === 0 ? getCopy(locale).publication.toolkitEmpty : null);
@@ -73,12 +77,12 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
               <ProjectCard key={project.title} {...project} stackCatalog={stackCatalog.entries} locale={locale} />
             ))}
           </div>
-        ) : publication.message ? (
+        ) : publicationView ? (
           <p
             className="mt-4 rounded-xl border border-black/10 bg-black/[0.03] p-4 text-sm text-black/70 dark:border-white/10 dark:bg-white/5 dark:text-white/70"
-            role={publication.status === "error" || publication.status === "unconfigured" ? "alert" : "status"}
+            role={publicationView.role}
           >
-            {getCopy(locale).publication.projects[publication.message]}
+            {publicationView.message}
           </p>
         ) : null}
       </section>

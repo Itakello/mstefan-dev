@@ -46,7 +46,7 @@ type SiteCopy = {
     technologyList: (names: string) => string;
   };
   publication: {
-    projects: Record<"empty" | "no-active" | "unconfigured" | "error", string>;
+    projects: Record<"empty" | "no-active" | "unconfigured" | "stale" | "error", string>;
     stack: Record<"empty" | "unconfigured" | "error", string>;
     toolkitEmpty: string;
   };
@@ -126,6 +126,7 @@ export const copy = {
         empty: "No projects are currently approved for publication.",
         "no-active": "No active public projects are currently approved for publication.",
         unconfigured: "Projects are unavailable because the publication source is not configured.",
+        stale: "Project publication cannot be refreshed because repository data is unavailable.",
         error: "Projects are temporarily unavailable because the publication source could not be loaded.",
       },
       stack: {
@@ -216,6 +217,7 @@ export const copy = {
         empty: "Nessun progetto è attualmente approvato per la pubblicazione.",
         "no-active": "Nessun repository pubblico attivo è attualmente approvato per la pubblicazione.",
         unconfigured: "I progetti non sono disponibili perché la fonte di pubblicazione non è configurata.",
+        stale: "La pubblicazione dei progetti non può essere aggiornata perché i dati dei repository non sono disponibili.",
         error: "I progetti non sono temporaneamente disponibili perché la fonte di pubblicazione non può essere caricata.",
       },
       stack: {

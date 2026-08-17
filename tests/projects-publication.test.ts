@@ -7,6 +7,7 @@ import {
   selectPublicProjects,
 } from "../lib/projectPublication";
 import { projectPublicationMessage } from "../lib/i18n/copy";
+import { projectPublicationView } from "../lib/publicationPresentation";
 
 const githubRepo = {
   name: "unapproved-repository",
@@ -129,4 +130,29 @@ test("maps project publication statuses to locale-owned messages", () => {
   assert.equal(projectPublicationMessage("en", "empty"), "No projects are currently approved for publication.");
   assert.equal(projectPublicationMessage("it", "empty"), "Nessun progetto è attualmente approvato per la pubblicazione.");
   assert.equal(projectPublicationMessage("it", "error"), "I progetti non sono temporaneamente disponibili perché la fonte di pubblicazione non può essere caricata.");
+});
+
+test("builds localized empty, error, and stale project publication views", () => {
+  assert.deepEqual(projectPublicationView("en", "empty"), {
+    message: "No projects are currently approved for publication.",
+    role: "status",
+  });
+  assert.deepEqual(projectPublicationView("it", "error"), {
+    message: "I progetti non sono temporaneamente disponibili perché la fonte di pubblicazione non può essere caricata.",
+    role: "alert",
+  });
+  assert.deepEqual(projectPublicationView("it", "stale"), {
+    message: "La pubblicazione dei progetti non può essere aggiornata perché i dati dei repository non sono disponibili.",
+    role: "alert",
+  });
+});
+
+test("fails closed as stale when repository eligibility cannot be refreshed", () => {
+  assert.deepEqual(resolveProjectPublicationState([
+    { title: "approved", summary: "Approved." },
+  ], false, true), {
+    status: "stale",
+    projects: [],
+    message: "stale",
+  });
 });

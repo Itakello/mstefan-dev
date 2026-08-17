@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { parseNotionProjectPage } from "../lib/notion";
+import { parseNotionProjectInventoryPage, parseNotionProjectPage } from "../lib/notion";
+import { findMissingInventoryRepositories } from "../lib/projectInventory";
 import { projectPreviewSummary } from "../lib/projectPresentation";
-import { selectPublicProjectLocale } from "../lib/publicProjects";
+import { loadPublicProjects, selectPublicProjectLocale } from "../lib/publicProjects";
 
 function page(overrides: Record<string, unknown> = {}) {
   return {
@@ -84,6 +85,112 @@ test("projects are projected with only the requested locale and no cross-languag
     url: "https://github.com/Itakello/bilingual-project",
     tags: ["TypeScript"],
   });
+});
+
+test("keeps incomplete existing rows in the discovery inventory but out of publication", () => {
+  const incomplete = page({
+    properties: {
+      ...page().properties,
+      "Summary IT": { rich_text: [] },
+    },
+  });
+
+  assert.equal(parseNotionProjectPage(incomplete), null);
+  assert.deepEqual(parseNotionProjectInventoryPage(incomplete), {
+    title: "Bilingual project",
+    url: "https://github.com/Itakello/bilingual-project",
+    status: "Added",
+  });
+  assert.deepEqual(
+    findMissingInventoryRepositories(
+      [parseNotionProjectInventoryPage(incomplete)!],
+      [{
+        name: "bilingual-project",
+        html_url: "https://github.com/Itakello/bilingual-project",
+        description: "Existing incomplete Notion row.",
+        language: "TypeScript",
+        archived: false,
+        fork: false,
+        pushed_at: "2026-08-17T00:00:00Z",
+      }],
+      "Itakello",
+    ),
+    [],
+  );
+});
+
+test("keeps To Add rows in discovery inventory without making them public", () => {
+  const toAdd = page({
+    properties: {
+      ...page().properties,
+      Status: { status: { name: "To Add" } },
+      Summary: { rich_text: [] },
+      "Summary IT": { rich_text: [] },
+    },
+  });
+
+  assert.equal(parseNotionProjectPage(toAdd), null);
+  assert.equal(parseNotionProjectInventoryPage(toAdd)?.status, "To Add");
+});
+
+test("keeps URL identity in inventory even when the Notion title is malformed", () => {
+  const inventory = parseNotionProjectInventoryPage(page({
+    properties: {
+      ...page().properties,
+      Name: { title: [] },
+      "Summary IT": { rich_text: [] },
+    },
+  }));
+
+  assert.deepEqual(inventory, {
+    url: "https://github.com/Itakello/bilingual-project",
+    status: "Added",
+  });
+});
+
+test("loads a stale, empty publication state when repository eligibility is unavailable", async () => {
+  const loaded = await loadPublicProjects("it", {
+    fetchProjects: async () => [],
+    fetchRepos: async () => null,
+  });
+
+  assert.deepEqual(loaded.publication, {
+    status: "stale",
+    projects: [],
+    message: "stale",
+  });
+});
+
+test("loads a stale, empty publication state when repository eligibility throws", async () => {
+  const loaded = await loadPublicProjects("it", {
+    fetchProjects: async () => [],
+    fetchRepos: async () => { throw new Error("GitHub unavailable"); },
+  });
+
+  assert.deepEqual(loaded.publication, {
+    status: "stale",
+    projects: [],
+    message: "stale",
+  });
+});
+
+test("uses an existing title-only inventory row to prevent a duplicate proposal", () => {
+  assert.deepEqual(
+    findMissingInventoryRepositories(
+      [{ title: "bilingual-project", status: "To Add" }],
+      [{
+        name: "bilingual-project",
+        html_url: "https://github.com/Itakello/bilingual-project",
+        description: "Already queued.",
+        language: "TypeScript",
+        archived: false,
+        fork: false,
+        pushed_at: "2026-08-17T00:00:00Z",
+      }],
+      "Itakello",
+    ),
+    [],
+  );
 });
 
 test("project previews use the selected locale's short summary or its own long summary", () => {

@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
-import { fetchProjectsFromNotion } from "@/lib/notion";
+import { fetchProjectInventoryFromNotion } from "@/lib/notion";
+import { findMissingInventoryRepositories } from "@/lib/projectInventory";
 
 type GitHubRepo = {
   name: string;
@@ -25,7 +26,7 @@ async function fetchGitHubRepos(): Promise<GitHubRepo[]> {
 export async function GET(_req: NextRequest) {
   let notion;
   try {
-    notion = await fetchProjectsFromNotion();
+    notion = await fetchProjectInventoryFromNotion();
   } catch {
     return Response.json(
       { status: "error", count: 0, missing: [] },
@@ -42,24 +43,7 @@ export async function GET(_req: NextRequest) {
 
   const repos = await fetchGitHubRepos();
 
-  const siteUrls = new Set(
-    notion
-      .map((p) => (p.url || "").toLowerCase())
-      .filter(Boolean)
-  );
-
-  const missing = repos
-    .filter((r) => !r.archived && !r.fork)
-    .filter((r) => r.name.toLowerCase() !== GITHUB_USER.toLowerCase())
-    .filter((r) => !siteUrls.has(r.html_url.toLowerCase()))
-    .map((r) => ({
-      title: r.name,
-      url: r.html_url,
-      description: r.description,
-      language: r.language,
-      pushed_at: r.pushed_at,
-    }));
+  const missing = findMissingInventoryRepositories(notion, repos, GITHUB_USER);
 
   return Response.json({ status: "ready", count: missing.length, missing });
 }
-

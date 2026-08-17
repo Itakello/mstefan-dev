@@ -26,12 +26,13 @@ type EnrichedProject = Project & {
   createdAt?: string;
 };
 
-export type ProjectPublicationStatus = "ready" | "empty" | "unconfigured" | "error";
-export type ProjectPublicationMessage = "empty" | "no-active" | "unconfigured" | "error";
+export type ProjectPublicationStatus = "ready" | "empty" | "unconfigured" | "stale" | "error";
+export type ProjectPublicationMessage = "empty" | "no-active" | "unconfigured" | "stale" | "error";
 
 export function resolveProjectPublicationState(
   projects: Project[] | null,
   failed = false,
+  stale = false,
 ): { status: ProjectPublicationStatus; projects: Project[]; message: ProjectPublicationMessage | null } {
   if (failed) {
     return {
@@ -45,6 +46,13 @@ export function resolveProjectPublicationState(
       status: "unconfigured",
       projects: [],
       message: "unconfigured",
+    };
+  }
+  if (stale) {
+    return {
+      status: "stale",
+      projects: [],
+      message: "stale",
     };
   }
   if (projects.length === 0) {
