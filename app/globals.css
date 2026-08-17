@@ -54,37 +54,8 @@ a {
 }
 
 .project-panel {
-  display: grid;
   min-width: 0;
-  transition:
-    grid-template-rows 320ms cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 180ms ease-out;
-}
-
-.project-panel-inner {
-  min-height: 0;
   overflow: hidden;
-}
-
-.project-panel-closed {
-  grid-template-rows: 1fr;
-  opacity: 1;
-}
-
-.project-panel-open {
-  grid-template-rows: 0fr;
-  opacity: 0;
-}
-
-.project-panel-hidden {
-  grid-template-rows: 0fr;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.project-panel-visible {
-  grid-template-rows: 1fr;
-  opacity: 1;
 }
 
 .stack-shelf-shell {
@@ -357,7 +328,6 @@ a {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .project-panel,
   .stack-hand-card,
   .stack-hand-label,
   .stack-shelf-arrow,

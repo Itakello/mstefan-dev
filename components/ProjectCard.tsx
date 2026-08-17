@@ -49,6 +49,11 @@ function formatMonthYear(value: string) {
   }).format(new Date(value));
 }
 
+const panelTransition = {
+  height: { duration: 0.32, ease: [0.22, 1, 0.36, 1] },
+  opacity: { duration: 0.18, ease: "easeOut" },
+} as const;
+
 export function ProjectCard({
   title,
   shortSummary,
@@ -116,12 +121,15 @@ export function ProjectCard({
       </div>
 
       <div id={panelId} className="pl-7">
-        <div
-          className={`project-panel project-panel-closed ${isOpen ? "project-panel-hidden" : ""}`}
+        <motion.div
+          initial={false}
+          animate={isOpen ? { height: 0, opacity: 0 } : { height: "auto", opacity: 1 }}
+          transition={panelTransition}
+          className="project-panel"
           aria-hidden={isOpen}
           inert={isOpen}
         >
-          <div className="project-panel-inner grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 pb-3">
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 pb-3">
             <p className="line-clamp-2 min-w-0 text-sm leading-5 text-black/65 dark:text-white/65">
               {shortSummary || summary}
             </p>
@@ -131,14 +139,17 @@ export function ProjectCard({
               </div>
             )}
           </div>
-        </div>
+        </motion.div>
 
-        <div
-          className={`project-panel project-panel-open ${isOpen ? "project-panel-visible" : ""}`}
+        <motion.div
+          initial={false}
+          animate={isOpen ? { height: "auto", opacity: 1 } : { height: 0, opacity: 0 }}
+          transition={panelTransition}
+          className="project-panel"
           aria-hidden={!isOpen}
           inert={!isOpen}
         >
-          <div className="project-panel-inner pb-6">
+          <div className="pb-6">
             <p className="max-w-3xl text-sm leading-6 text-black/70 dark:text-white/70">
               {summary}
             </p>
@@ -167,7 +178,7 @@ export function ProjectCard({
               </div>
             )}
           </div>
-        </div>
+        </motion.div>
       </div>
     </article>
   );
