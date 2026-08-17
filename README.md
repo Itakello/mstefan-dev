@@ -108,6 +108,9 @@ and is re-extracted rather than being silently converted. The bounded extractor
 fails visibly instead of producing a partial manifest when an
 analyzed text file exceeds 128 KiB, total text evidence exceeds 512 KiB, the
 serialized evidence exceeds 768 KiB, or more than 500 files require analysis.
+When it re-extracts persisted evidence, the result and state record a non-secret
+`evidenceStatus` plus `reextractedBecause`, distinguishing invalid manifests,
+missing evidence, and a first run.
 
 The proposal combines the validated manifest with the repository's curated
 `.github/project-technologies.json` selection. It rejects private, archived, or

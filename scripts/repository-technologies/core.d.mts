@@ -20,6 +20,9 @@ export interface ExtractionInput {
   currentManifest: TechnologyManifest | null;
 }
 
+export type EvidenceStatus = "current" | "first-run" | "missing-reextracted" | "invalid-reextracted";
+export type ReextractedBecause = "missing-evidence" | "invalid-manifest" | null;
+
 export function validateManifest(
   manifest: unknown,
   options: {
@@ -59,5 +62,7 @@ export function processRepositoryTechnologies(options: {
       currentSha: string;
       diff: ReturnType<typeof diffManifests>;
       manifest: TechnologyManifest;
+      evidenceStatus: EvidenceStatus;
+      reextractedBecause: ReextractedBecause;
     }
 >;

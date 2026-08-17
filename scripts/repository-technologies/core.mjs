@@ -4,12 +4,21 @@ import path from "node:path";
 const shaPattern = /^[0-9a-f]{40}$/;
 const categories = new Set(["language", "framework", "library", "runtime", "database", "infrastructure", "tool", "service"]);
 
-async function readJson(filePath, fallback, { invalidAsFallback = false } = {}) {
+async function readJson(filePath, fallback) {
   try {
     return JSON.parse(await readFile(filePath, "utf8"));
   } catch (error) {
     if (error.code === "ENOENT") return fallback;
-    if (invalidAsFallback && error instanceof SyntaxError) return fallback;
+    throw new Error(`Could not read ${filePath}: ${error.message}`);
+  }
+}
+
+async function readPersistedManifest(filePath) {
+  try {
+    return { manifest: JSON.parse(await readFile(filePath, "utf8")), reextractedBecause: null };
+  } catch (error) {
+    if (error.code === "ENOENT") return { manifest: null, reextractedBecause: "missing-evidence" };
+    if (error instanceof SyntaxError) return { manifest: null, reextractedBecause: "invalid-manifest" };
     throw new Error(`Could not read ${filePath}: ${error.message}`);
   }
 }
@@ -109,7 +118,9 @@ export async function processRepositoryTechnologies({ repoDir, repository, state
   if (!shaPattern.test(currentSha)) throw new Error(`Invalid current commit SHA: ${currentSha}.`);
   const trackedFiles = await getTrackedFiles(repoDir, currentSha);
   const state = await readJson(statePath, { schemaVersion: 1, status: "never-run" });
-  let currentManifest = await readJson(outputPath, null, { invalidAsFallback: true });
+  const persistedEvidence = await readPersistedManifest(outputPath);
+  let currentManifest = persistedEvidence.manifest;
+  let reextractedBecause = state.lastSuccessfulProcessedSha ? persistedEvidence.reextractedBecause : null;
 
   if (!state.lastSuccessfulProcessedSha) currentManifest = null;
   if (currentManifest && state.lastSuccessfulProcessedSha) {
@@ -126,9 +137,18 @@ export async function processRepositoryTechnologies({ repoDir, repository, state
       });
     } catch {
       currentManifest = null;
+      reextractedBecause = "invalid-manifest";
     }
   }
   if (state.lastSuccessfulProcessedSha === currentSha && currentManifest) return { status: "unchanged", currentSha };
+
+  const evidenceStatus = reextractedBecause === "invalid-manifest"
+    ? "invalid-reextracted"
+    : reextractedBecause === "missing-evidence"
+      ? "missing-reextracted"
+      : state.lastSuccessfulProcessedSha
+        ? "current"
+        : "first-run";
 
   const attemptedState = {
     schemaVersion: 1,
@@ -136,6 +156,8 @@ export async function processRepositoryTechnologies({ repoDir, repository, state
     lastAttemptedSha: currentSha,
     lastSuccessfulProcessedSha: state.lastSuccessfulProcessedSha ?? null,
     status: "running",
+    evidenceStatus,
+    reextractedBecause,
   };
   await writeJsonAtomic(statePath, attemptedState);
 
@@ -147,7 +169,7 @@ export async function processRepositoryTechnologies({ repoDir, repository, state
     const diff = diffManifests(currentManifest, candidate);
     await writeJsonAtomic(outputPath, candidate);
     await writeJsonAtomic(statePath, { ...attemptedState, lastSuccessfulProcessedSha: currentSha, status: "succeeded" });
-    return { status: "updated", currentSha, diff, manifest: candidate };
+    return { status: "updated", currentSha, diff, manifest: candidate, evidenceStatus, reextractedBecause };
   } catch (error) {
     await writeJsonAtomic(statePath, { ...attemptedState, status: "failed", error: error instanceof Error ? error.message : String(error) });
     throw error;

@@ -36,6 +36,20 @@ async function fixture() {
   return { repoDir, statePath, outputPath, getTrackedFiles: async () => new Set(["package.json"]) };
 }
 
+test("marks a manifest generated without prior evidence as a first run", async () => {
+  const paths = await fixture();
+  const result = await processRepositoryTechnologies({
+    ...paths,
+    repository: "Itakello/example",
+    getCurrentSha: async () => firstManifest.commitSha,
+    extract: async () => firstManifest,
+  });
+
+  if (result.status !== "updated") assert.fail("expected an updated manifest");
+  assert.equal(result.evidenceStatus, "first-run");
+  assert.equal(result.reextractedBecause, null);
+});
+
 test("skips extraction when the current SHA was already processed successfully", async () => {
   const paths = await fixture();
   const sha = "a".repeat(40);
@@ -87,6 +101,12 @@ test("reprocesses a successful SHA when its manifest is missing", async () => {
 
   assert.equal(result.status, "updated");
   assert.equal(calls, 1);
+  if (result.status !== "updated") assert.fail("expected an updated manifest");
+  assert.equal(result.evidenceStatus, "missing-reextracted");
+  assert.equal(result.reextractedBecause, "missing-evidence");
+  const state = JSON.parse(await readFile(paths.statePath, "utf8"));
+  assert.equal(state.evidenceStatus, "missing-reextracted");
+  assert.equal(state.reextractedBecause, "missing-evidence");
 });
 
 test("reprocesses a successful SHA when its manifest JSON is malformed", async () => {
@@ -114,6 +134,9 @@ test("reprocesses a successful SHA when its manifest JSON is malformed", async (
 
   assert.equal(result.status, "updated");
   assert.equal(calls, 1);
+  if (result.status !== "updated") assert.fail("expected an updated manifest");
+  assert.equal(result.evidenceStatus, "invalid-reextracted");
+  assert.equal(result.reextractedBecause, "invalid-manifest");
 });
 
 test("passes current state to the extractor and publishes a validated complete manifest", async () => {
@@ -236,6 +259,8 @@ test("discards an invalid persisted manifest before extraction and diffing", asy
   assert.equal(receivedCurrent, null);
   if (result.status !== "updated") assert.fail("expected an updated manifest");
   assert.deepEqual(result.diff.removed, []);
+  assert.equal(result.evidenceStatus, "invalid-reextracted");
+  assert.equal(result.reextractedBecause, "invalid-manifest");
 });
 
 test("discards a persisted manifest when no successful SHA anchors it", async () => {
@@ -545,6 +570,22 @@ test("declares explicit types for every structured-output property", async () =>
   assert.equal(schema.properties.summary.properties.it.type, "string");
 });
 
+test("schema summary locale constraints reject blank and whitespace-only values", async () => {
+  const schema = JSON.parse(await readFile(new URL("../scripts/repository-technologies/manifest.schema.json", import.meta.url), "utf8"));
+  const summary = schema.properties.summary;
+  for (const locale of ["en", "it"]) {
+    const localeSchema = summary.properties[locale];
+    assert.equal(localeSchema.pattern, "\\S");
+    const matchesSchema = (value: unknown) => typeof value === "string"
+      && value.length >= localeSchema.minLength
+      && value.length <= localeSchema.maxLength
+      && new RegExp(localeSchema.pattern).test(value);
+    assert.equal(matchesSchema("Valid summary"), true);
+    assert.equal(matchesSchema(""), false);
+    assert.equal(matchesSchema(" \t\n "), false);
+  }
+});
+
 test("accepts only complete bilingual v2 summaries", async () => {
   const paths = await fixture();
   await assert.doesNotReject(validateManifest(firstManifest, {
@@ -604,4 +645,7 @@ test("rejects legacy v1 single-summary manifests and re-extracts stale local evi
 
   assert.equal(result.status, "updated");
   assert.equal(calls, 1);
+  if (result.status !== "updated") assert.fail("expected an updated manifest");
+  assert.equal(result.evidenceStatus, "invalid-reextracted");
+  assert.equal(result.reextractedBecause, "invalid-manifest");
 });
