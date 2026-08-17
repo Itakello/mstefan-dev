@@ -116,14 +116,29 @@ export function ProjectCard({
       </div>
 
       <div id={panelId} className="pl-7">
-        {isOpen ? (
-          <motion.div
-            key="open-project"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.16, ease: "easeOut" }}
-            className="pb-6"
-          >
+        <div
+          className={`project-panel project-panel-closed ${isOpen ? "project-panel-hidden" : ""}`}
+          aria-hidden={isOpen}
+          inert={isOpen}
+        >
+          <div className="project-panel-inner grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 pb-3">
+            <p className="line-clamp-2 min-w-0 text-sm leading-5 text-black/65 dark:text-white/65">
+              {shortSummary || summary}
+            </p>
+            {technologies.length > 0 && (
+              <div className="shrink-0">
+                <ProjectStackHand entries={technologies} />
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div
+          className={`project-panel project-panel-open ${isOpen ? "project-panel-visible" : ""}`}
+          aria-hidden={!isOpen}
+          inert={!isOpen}
+        >
+          <div className="project-panel-inner pb-6">
             <p className="max-w-3xl text-sm leading-6 text-black/70 dark:text-white/70">
               {summary}
             </p>
@@ -151,25 +166,8 @@ export function ProjectCard({
                 ))}
               </div>
             )}
-          </motion.div>
-        ) : (
-          <motion.div
-            key="closed-project"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.14, ease: "easeOut" }}
-            className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 pb-3"
-          >
-            <p className="line-clamp-2 min-w-0 text-sm leading-5 text-black/65 dark:text-white/65">
-              {shortSummary || summary}
-            </p>
-            {technologies.length > 0 && (
-              <div className="shrink-0">
-                <ProjectStackHand entries={technologies} />
-              </div>
-            )}
-          </motion.div>
-        )}
+          </div>
+        </div>
       </div>
     </article>
   );
