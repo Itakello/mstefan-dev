@@ -11,10 +11,10 @@ export const metadata: Metadata = {
     default: "Massimo Stefan",
     template: "%s · Massimo Stefan"
   },
-  description: "AI engineer. I build practical LLM systems, agents, and clean infra.",
+  description: "Software engineer building AI systems, agents, and reliable automation.",
   openGraph: {
     title: "Massimo Stefan",
-    description: "AI engineer. I build practical LLM systems, agents, and clean infra.",
+    description: "Software engineer building AI systems, agents, and reliable automation.",
     url: "https://mstefan.dev",
     siteName: "mstefan.dev",
     images: ["/og-image.png"],
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Massimo Stefan",
-    description: "AI engineer. I build practical LLM systems, agents, and clean infra.",
+    description: "Software engineer building AI systems, agents, and reliable automation.",
     images: ["/og-image.png"]
   },
   icons: {

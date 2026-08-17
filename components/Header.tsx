@@ -39,8 +39,8 @@ export function Header() {
           <Image
             src="/profile-pic.jpg"
             alt="Portrait of Massimo Stefan"
-            width={32}
-            height={32}
+            width={40}
+            height={40}
             className="rounded-xl object-cover"
             priority
           />

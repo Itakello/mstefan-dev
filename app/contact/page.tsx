@@ -8,7 +8,7 @@ export default function ContactPage() {
     <section className="space-y-6">
       <h1 className="text-2xl font-semibold">Contact</h1>
       <p className="text-sm text-black/70 dark:text-white/70">
-        I reply quickly. Best channels below.
+        Email is the best way to reach me. You can also find my work on GitHub and LinkedIn.
       </p>
       <div className="flex flex-wrap gap-3">
         <IconLink
