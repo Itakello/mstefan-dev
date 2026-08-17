@@ -1,9 +1,9 @@
 "use client";
 
 import { Icon } from "@iconify/react";
+import { AnimatePresence, motion } from "motion/react";
 import { useId, useState } from "react";
 
-import { StackBadge } from "@/components/StackBadge";
 import { StackShelf } from "@/components/StackCatalog";
 import {
   findStackEntry,
@@ -39,6 +39,13 @@ const KNOWN_LANGUAGES = new Set([
   "Dart",
 ]);
 
+const projectLayoutTransition = {
+  type: "spring",
+  stiffness: 420,
+  damping: 38,
+  mass: 0.7,
+} as const;
+
 export function ProjectCard({
   title,
   summary,
@@ -61,44 +68,32 @@ export function ProjectCard({
   const unresolvedLabels = technologyLabels.filter((label) => !findStackEntry(label, catalog));
 
   return (
-    <article className="border-b border-black/10 dark:border-white/10">
-      <div className="flex min-h-16 items-start gap-3 py-3 sm:items-center">
+    <motion.article
+      layout="position"
+      transition={{ layout: projectLayoutTransition }}
+      className="border-b border-black/10 dark:border-white/10"
+    >
+      <div className="grid min-h-16 grid-cols-[minmax(0,1fr)_2.25rem] items-center gap-3 py-3">
         <button
           type="button"
-          className="group flex min-w-0 flex-1 items-start gap-3 text-left sm:items-center"
+          className="group flex min-w-0 items-center gap-3 text-left"
           aria-expanded={isOpen}
           aria-controls={panelId}
           onClick={() => setIsOpen((open) => !open)}
         >
-          <Icon
-            icon="lucide:chevron-right"
-            className={`mt-1 size-4 shrink-0 opacity-60 transition-transform sm:mt-0 ${isOpen ? "rotate-90" : ""}`}
-            aria-hidden
-          />
-          <span className="min-w-0 flex-1">
-            <span className="block truncate text-sm font-semibold sm:text-base">{title}</span>
-            <span
-              className={`mt-1 line-clamp-1 text-xs leading-5 text-black/60 dark:text-white/60 ${isOpen ? "hidden" : "hidden sm:block"}`}
-            >
-              {summary}
-            </span>
-          </span>
+          <motion.span
+            animate={{ rotate: isOpen ? 90 : 0 }}
+            transition={{ duration: 0.16, ease: "easeOut" }}
+            className="grid size-4 shrink-0 place-items-center opacity-60"
+          >
+            <Icon
+              icon="lucide:chevron-right"
+              className="size-4"
+              aria-hidden
+            />
+          </motion.span>
+          <span className="block min-w-0 truncate text-sm font-semibold sm:text-base">{title}</span>
         </button>
-
-        {technologies.length > 0 && !isOpen && (
-          <div className="flex shrink-0 items-center gap-3" aria-label={`${technologies.length} technologies`}>
-            <div className="flex -space-x-1.5" aria-hidden>
-              {technologies.slice(0, 3).map((item, index) => (
-                <span key={item.name} className={index === 2 ? "hidden sm:inline-flex" : "inline-flex"}>
-                  <StackBadge item={item} label={false} compact />
-                </span>
-              ))}
-            </div>
-            <span className="hidden w-5 text-right text-xs text-black/45 dark:text-white/45 sm:block">
-              {technologies.length}
-            </span>
-          </div>
-        )}
 
         {url && (
           <a
@@ -113,25 +108,47 @@ export function ProjectCard({
         )}
       </div>
 
-      {isOpen && (
-        <div id={panelId} className="pb-6 pl-7 sm:pl-7">
-          <p className="max-w-3xl text-sm leading-6 text-black/70 dark:text-white/70">{summary}</p>
+      <motion.div
+        id={panelId}
+        layout
+        transition={{ layout: projectLayoutTransition }}
+        className={`overflow-hidden pl-7 ${isOpen ? "pb-6" : "pb-3"}`}
+      >
+        <motion.p
+          layout="position"
+          transition={{ layout: projectLayoutTransition }}
+          className="max-w-3xl text-sm leading-6 text-black/70 dark:text-white/70"
+        >
+          {summary}
+        </motion.p>
 
-          {groups.length > 0 && (
-            <div className="mt-3">
-              <StackShelf groups={groups} label={`${title} technologies grouped by category`} />
-            </div>
-          )}
+        {groups.length > 0 && (
+          <div className="mt-3">
+            <StackShelf
+              groups={groups}
+              label={`${title} technologies grouped by category`}
+              compact={!isOpen}
+              animateLayout
+            />
+          </div>
+        )}
 
-          {unresolvedLabels.length > 0 && (
-            <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-xs text-black/55 dark:text-white/55">
+        <AnimatePresence initial={false}>
+          {isOpen && unresolvedLabels.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 4 }}
+              transition={{ duration: 0.16, ease: "easeOut" }}
+              className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-xs text-black/55 dark:text-white/55"
+            >
               {unresolvedLabels.map((label) => (
                 <span key={label}>{label}</span>
               ))}
-            </div>
+            </motion.div>
           )}
-        </div>
-      )}
-    </article>
+        </AnimatePresence>
+      </motion.div>
+    </motion.article>
   );
 }

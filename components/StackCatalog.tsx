@@ -1,6 +1,7 @@
 "use client";
 
 import { Icon } from "@iconify/react";
+import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useId, useRef, useState, type CSSProperties } from "react";
 
 import { StackBadge } from "@/components/StackBadge";
@@ -41,6 +42,13 @@ const cardOffsets = [
   { rotation: "-2.5deg", offset: "0px" },
   { rotation: "1deg", offset: "2px" },
 ] as const;
+
+const projectShelfTransition = {
+  type: "spring",
+  stiffness: 420,
+  damping: 38,
+  mass: 0.7,
+} as const;
 
 function stackHandVariation(category: string, entries: readonly StackEntry[]) {
   const signature = `${category}:${entries.map((entry) => entry.name).join(":")}`;
@@ -104,9 +112,13 @@ function StackHand({ category, entries }: { category: string; entries: readonly 
 export function StackShelf({
   groups,
   label = "Technologies grouped by category",
+  compact = false,
+  animateLayout = false,
 }: {
   groups: readonly StackGroup[];
   label?: string;
+  compact?: boolean;
+  animateLayout?: boolean;
 }) {
   const shelfRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -152,20 +164,45 @@ export function StackShelf({
   };
 
   return (
-    <div className="stack-shelf-shell">
+    <div className={`stack-shelf-shell ${compact ? "stack-shelf-shell-compact" : ""}`}>
       <div ref={shelfRef} className="stack-shelf" aria-label={label}>
-        <div className="stack-shelf-track">
-          {groups.map(({ category, entries }) => (
-            <section key={category} className="stack-shelf-group" aria-label={category}>
-              <div className="stack-shelf-heading">
-                <StackCategoryIcon category={category} />
-                <span>{category}</span>
-                <span className="text-black/40 dark:text-white/40">{entries.length}</span>
-              </div>
-              <StackHand category={category} entries={entries} />
-            </section>
+        <motion.div
+          layout={animateLayout}
+          transition={{ layout: projectShelfTransition }}
+          className="stack-shelf-track"
+        >
+          {groups.map(({ category, entries }, groupIndex) => (
+            <motion.section
+              key={category}
+              layout={animateLayout ? "position" : false}
+              transition={{ layout: projectShelfTransition }}
+              className="stack-shelf-group"
+              aria-label={category}
+            >
+              <AnimatePresence initial={false}>
+                {!compact && (
+                  <motion.div
+                    key="heading"
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 4 }}
+                    transition={{ duration: 0.16, delay: groupIndex * 0.018, ease: "easeOut" }}
+                    className="stack-shelf-heading"
+                  >
+                    <StackCategoryIcon category={category} />
+                    <span>{category}</span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+              <motion.div
+                layout={animateLayout ? "position" : false}
+                transition={{ layout: projectShelfTransition }}
+              >
+                <StackHand category={category} entries={entries} />
+              </motion.div>
+            </motion.section>
           ))}
-        </div>
+        </motion.div>
       </div>
 
       <button

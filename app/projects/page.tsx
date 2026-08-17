@@ -1,4 +1,5 @@
 import { ProjectCard } from "@/components/ProjectCard";
+import { ProjectLayoutGroup } from "@/components/ProjectLayoutGroup";
 import { StackCatalog } from "@/components/StackCatalog";
 import { fetchProjectsFromNotion, type NotionProject } from "@/lib/notion";
 import {
@@ -78,16 +79,18 @@ export default async function ProjectsPage() {
       {orderedYears.map((year, yearIndex) => (
         <div key={year} className="mt-8 first:mt-6">
           <h2 className="text-xl font-semibold">{year}</h2>
-          <div className="mt-3 border-t border-black/10 dark:border-white/10">
-            {groups[year].map((p, projectIndex) => (
-              <ProjectCard
-                key={`${year}-${p.title}`}
-                {...p}
-                stackCatalog={stackCatalog.entries}
-                defaultOpen={yearIndex === 0 && projectIndex === 0}
-              />
-            ))}
-          </div>
+          <ProjectLayoutGroup>
+            <div className="mt-3 border-t border-black/10 dark:border-white/10">
+              {groups[year].map((p, projectIndex) => (
+                <ProjectCard
+                  key={`${year}-${p.title}`}
+                  {...p}
+                  stackCatalog={stackCatalog.entries}
+                  defaultOpen={yearIndex === 0 && projectIndex === 0}
+                />
+              ))}
+            </div>
+          </ProjectLayoutGroup>
         </div>
       ))}
 
