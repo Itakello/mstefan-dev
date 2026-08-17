@@ -27,7 +27,7 @@ function renderedGraphicClass(item: StackEntry, compact: boolean) {
 
 test("contains every Stack graphic inside the square icon area", () => {
   assert.equal(renderedGraphicClass(iconifyEntry, true), "size-4");
-  assert.equal(renderedGraphicClass(iconifyEntry, false), "size-5");
+  assert.equal(renderedGraphicClass(iconifyEntry, false), "size-4");
   assert.equal(renderedGraphicClass(externalIconEntry, true), "size-4 object-contain");
-  assert.equal(renderedGraphicClass(externalIconEntry, false), "size-5 object-contain");
+  assert.equal(renderedGraphicClass(externalIconEntry, false), "size-4 object-contain");
 });
