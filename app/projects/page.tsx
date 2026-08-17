@@ -1,69 +1,26 @@
 import { ProjectCard } from "@/components/ProjectCard";
 import { ProjectLayoutGroup, ProjectLayoutItem } from "@/components/ProjectLayoutGroup";
 import { StackCatalog } from "@/components/StackCatalog";
-import { fetchProjectsFromNotion, type NotionProject } from "@/lib/notion";
-import {
-  mergeAndEnrichProjects,
-  resolveProjectPublicationState,
-  type GitHubRepo,
-} from "@/lib/projectPublication";
+import { loadPublicProjects } from "@/lib/publicProjects";
 import { loadWebsiteStack } from "@/lib/websiteStack";
 
-export const metadata = { title: "Work" };
+export const metadata = { title: "Projects" };
 export const revalidate = 60;
 
-const GITHUB_USER = "Itakello";
-
-async function fetchGitHubRepos(): Promise<GitHubRepo[]> {
-  const headers: Record<string, string> = { Accept: "application/vnd.github+json" };
-  if (process.env.GITHUB_TOKEN) {
-    headers.Authorization = `Bearer ${process.env.GITHUB_TOKEN}`;
-  }
-
-  const url = `https://api.github.com/users/${GITHUB_USER}/repos?per_page=100&sort=updated`;
-  const res = await fetch(url, { headers, next: { revalidate: 3600 } });
-  if (!res.ok) {
-    // Gracefully handle rate limits or errors by returning an empty list
-    return [];
-  }
-  const data = (await res.json()) as GitHubRepo[];
-  return data;
-}
-
 export default async function ProjectsPage() {
-  const [repos, notionResult, stackCatalog] = await Promise.all([
-    fetchGitHubRepos(),
-    fetchProjectsFromNotion()
-      .then((projects) => ({ projects, failed: false }))
-      .catch((error) => {
-        console.error("Failed to load the Notion project publication source.", error);
-        return { projects: null, failed: true };
-      }),
+  const [{ groups, orderedYears, publication }, stackCatalog] = await Promise.all([
+    loadPublicProjects(),
     loadWebsiteStack(),
   ]);
-
-  const notionProjects = notionResult.projects
-    ? notionResult.projects.map((project: NotionProject) => ({
-        title: project.title,
-        shortSummary: project.shortSummary,
-        summary: project.summary,
-        url: project.url,
-        tags: project.tags,
-        language: project.language,
-      }))
-    : null;
-  const publication = resolveProjectPublicationState(notionProjects, notionResult.failed);
-
-  const { groups, orderedYears } = mergeAndEnrichProjects(publication.projects, repos);
   const toolkitEntries = stackCatalog.entries.filter((entry) => entry.websiteVisible);
   const toolkitMessage = stackCatalog.message
     ?? (toolkitEntries.length === 0 ? "No Toolkit items are currently approved for website publication." : null);
 
   return (
     <section>
-      <h1 className="text-2xl font-semibold">Work</h1>
+      <h1 className="text-2xl font-semibold">Public projects</h1>
       <p className="mt-2 text-black/70 dark:text-white/70 text-sm">
-        Selected work. Newest first.
+        Active, original repositories. Newest first.
       </p>
 
       {publication.message && (
@@ -98,9 +55,9 @@ export default async function ProjectsPage() {
         </div>
       </section>
 
-      <section className="mt-10" aria-labelledby="selected-projects-heading">
-        <h2 id="selected-projects-heading" className="text-xl font-semibold">
-          Selected projects
+      <section className="mt-10" aria-labelledby="public-projects-heading">
+        <h2 id="public-projects-heading" className="text-xl font-semibold">
+          Projects
         </h2>
         <ProjectLayoutGroup>
           {orderedYears.map((year, yearIndex) => (
