@@ -8,7 +8,10 @@ export interface RepositorySyncProposal {
     defaultBranch: string;
   };
   sourceCommitSha: string;
-  summaryProposal: { value: string; status: "needs-approval" };
+  summaryProposal: {
+    value: { en: string; it: string };
+    status: "needs-approval";
+  };
   detectedTechnologies: string[];
   selectedTechnologies: Array<{
     name: string;

@@ -1,8 +1,11 @@
 export interface TechnologyManifest {
-  schemaVersion: number;
+  schemaVersion: 2;
   repository: string;
   commitSha: string;
-  summary: string;
+  summary: {
+    en: string;
+    it: string;
+  };
   technologies: Array<{
     name: string;
     category: string;
@@ -33,6 +36,10 @@ export function diffManifests(previous: TechnologyManifest | null, next: Technol
   removed: string[];
   changed: string[];
   summaryChanged: boolean;
+  summary: {
+    previous: TechnologyManifest["summary"] | null;
+    next: TechnologyManifest["summary"];
+  };
 };
 
 export function processRepositoryTechnologies(options: {

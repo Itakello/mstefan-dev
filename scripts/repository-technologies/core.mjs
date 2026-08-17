@@ -33,11 +33,17 @@ function assertExactKeys(value, keys, label) {
 export async function validateManifest(manifest, { repoDir, repository, commitSha, trackedFiles, requireFilesPresent = true }) {
   if (!manifest || Array.isArray(manifest) || typeof manifest !== "object") throw new Error("Extractor output must be a JSON object.");
   assertExactKeys(manifest, ["schemaVersion", "repository", "commitSha", "summary", "technologies"], "Manifest");
-  if (manifest.schemaVersion !== 1) throw new Error("schemaVersion must be 1.");
+  if (manifest.schemaVersion !== 2) throw new Error("schemaVersion must be 2.");
   if (manifest.repository !== repository) throw new Error(`repository must equal ${repository}.`);
   if (manifest.commitSha !== commitSha || !shaPattern.test(manifest.commitSha)) throw new Error(`commitSha must equal ${commitSha}.`);
-  if (typeof manifest.summary !== "string" || !manifest.summary.trim() || manifest.summary.length > 400) {
-    throw new Error("summary must be a non-empty string of at most 400 characters.");
+  if (!manifest.summary || Array.isArray(manifest.summary) || typeof manifest.summary !== "object") {
+    throw new Error("summary must be an object containing en and it.");
+  }
+  assertExactKeys(manifest.summary, ["en", "it"], "summary");
+  for (const locale of ["en", "it"]) {
+    if (typeof manifest.summary[locale] !== "string" || !manifest.summary[locale].trim() || manifest.summary[locale].length > 400) {
+      throw new Error(`summary.${locale} must be a non-empty string of at most 400 characters.`);
+    }
   }
   if (!Array.isArray(manifest.technologies)) throw new Error("technologies must be an array.");
 
@@ -90,7 +96,11 @@ export function diffManifests(previous, next) {
       .filter((name) => before.has(name) && JSON.stringify(before.get(name)) !== JSON.stringify(after.get(name)))
       .map((name) => after.get(name).name)
       .sort(),
-    summaryChanged: (previous?.summary ?? null) !== next.summary,
+    summaryChanged: JSON.stringify(previous?.summary ?? null) !== JSON.stringify(next.summary),
+    summary: {
+      previous: previous?.summary ?? null,
+      next: next.summary,
+    },
   };
 }
 

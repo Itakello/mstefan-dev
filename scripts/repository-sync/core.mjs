@@ -42,11 +42,21 @@ function validateRepository(repository) {
 }
 
 function validateManifest(manifest, fullName) {
-  if (!manifest || manifest.schemaVersion !== 1) throw new Error("A schemaVersion 1 evidence manifest is required.");
+  if (!manifest || manifest.schemaVersion !== 2) throw new Error("A schemaVersion 2 evidence manifest is required.");
   if (manifest.repository !== fullName) throw new Error(`Evidence manifest must belong to ${fullName}.`);
   if (!shaPattern.test(manifest.commitSha)) throw new Error("Evidence manifest commitSha is invalid.");
-  const summary = requireString(manifest.summary, "manifest.summary");
-  if (summary.length > 400) throw new Error("manifest.summary must not exceed 400 characters.");
+  if (!manifest.summary || Array.isArray(manifest.summary) || typeof manifest.summary !== "object") {
+    throw new Error("manifest.summary must contain both en and it.");
+  }
+  const summaryKeys = Object.keys(manifest.summary).sort();
+  if (summaryKeys.length !== 2 || summaryKeys[0] !== "en" || summaryKeys[1] !== "it") {
+    throw new Error("manifest.summary must contain exactly en and it.");
+  }
+  const summary = {
+    en: requireString(manifest.summary.en, "manifest.summary.en"),
+    it: requireString(manifest.summary.it, "manifest.summary.it"),
+  };
+  if (summary.en.length > 400 || summary.it.length > 400) throw new Error("manifest.summary locales must not exceed 400 characters.");
   if (!Array.isArray(manifest.technologies)) throw new Error("manifest.technologies must be an array.");
   return { summary, technologies: manifest.technologies };
 }

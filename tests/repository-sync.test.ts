@@ -15,10 +15,13 @@ const repository = {
 };
 
 const evidenceManifest = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   repository: "Itakello/mstefan-dev",
   commitSha: "a".repeat(40),
-  summary: "A portfolio website backed by committed repository evidence.",
+  summary: {
+    en: "A portfolio website backed by committed repository evidence.",
+    it: "Un sito portfolio basato su evidenze del repository versionato.",
+  },
   technologies: [
     {
       name: "TypeScript",
@@ -66,6 +69,7 @@ test("creates an approval-gated proposal from detected and curated evidence", ()
     ],
   );
   assert.equal(proposal.summaryProposal.status, "needs-approval");
+  assert.deepEqual(proposal.summaryProposal.value, evidenceManifest.summary);
   assert.equal(proposal.publication.status, "blocked-pending-approval");
 });
 
@@ -112,4 +116,18 @@ test("rejects curated public technologies without committed-file evidence", () =
     }),
     /lacks committed-file evidence: Terraform/,
   );
+});
+
+test("rejects partial and legacy evidence summaries before creating an approval proposal", () => {
+  for (const evidence of [
+    { ...evidenceManifest, summary: { en: evidenceManifest.summary.en } },
+    { ...evidenceManifest, summary: { en: evidenceManifest.summary.en, it: " " } },
+    { ...evidenceManifest, summary: { ...evidenceManifest.summary, fr: "Francais" } },
+    { ...evidenceManifest, schemaVersion: 1, summary: evidenceManifest.summary.en },
+  ]) {
+    assert.throws(
+      () => buildRepositorySyncProposal({ repository, evidenceManifest: evidence, publicTechnologyManifest }),
+      /schemaVersion 2|manifest\.summary(\.en|\.it| must contain exactly)/,
+    );
+  }
 });

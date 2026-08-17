@@ -12,10 +12,13 @@ import { buildRepositoryEvidence, codexExecArguments, extractWithCodex } from ".
 const execFileAsync = promisify(execFile);
 
 const firstManifest = {
-  schemaVersion: 1,
+  schemaVersion: 2 as const,
   repository: "Itakello/example",
   commitSha: "a".repeat(40),
-  summary: "An example service.",
+  summary: {
+    en: "An example service.",
+    it: "Un servizio di esempio.",
+  },
   technologies: [{
     name: "TypeScript",
     category: "language",
@@ -276,10 +279,13 @@ test("retains a valid previous manifest when its evidence file was deleted", asy
     getCurrentSha: async () => newSha,
     getTrackedFiles: async (_repoDir, sha) => sha === oldSha ? new Set(["package.json"]) : new Set(),
     extract: async () => ({
-      schemaVersion: 1,
+      schemaVersion: 2 as const,
       repository: "Itakello/example",
       commitSha: newSha,
-      summary: "The project no longer has an implementation.",
+      summary: {
+        en: "The project no longer has an implementation.",
+        it: "Il progetto non ha piu un'implementazione.",
+      },
       technologies: [],
     }),
   });
@@ -429,6 +435,11 @@ test("requires direct, audience-grounded project summaries and concrete technolo
   assert.match(instructions, /external artifact link/);
   assert.match(instructions, /unused declaration is not sufficient usage evidence/);
   assert.match(instructions, /a package declaration alone is not use/);
+  assert.match(instructions, /summary\.en and summary\.it together/);
+  assert.match(instructions, /natural English/);
+  assert.match(instructions, /natural technical Italian/);
+  assert.match(instructions, /not a literal translation/);
+  assert.match(instructions, /repository, project, tool, product, framework, language, and model names exactly/);
 });
 
 test("records an immediate Codex child failure as retryable instead of crashing on EPIPE", async () => {
@@ -478,10 +489,13 @@ test("records an immediate Codex child failure as retryable instead of crashing 
     getCurrentSha: async () => currentSha,
     getTrackedFiles: async () => new Set(["large.txt"]),
     extract: async () => ({
-      schemaVersion: 1,
+      schemaVersion: 2 as const,
       repository: "Itakello/example",
       commitSha: currentSha,
-      summary: "A retryable example.",
+      summary: {
+        en: "A retryable example.",
+        it: "Un esempio ripetibile.",
+      },
       technologies: [{
         name: "Text",
         category: "tool",
@@ -495,7 +509,10 @@ test("records an immediate Codex child failure as retryable instead of crashing 
 test("computes added and changed technologies deterministically", () => {
   const next = {
     ...firstManifest,
-    summary: "A changed summary.",
+    summary: {
+      en: "A changed summary.",
+      it: "Un riepilogo modificato.",
+    },
     technologies: [{
       name: "TypeScript",
       category: "language",
@@ -511,13 +528,80 @@ test("computes added and changed technologies deterministically", () => {
     removed: [],
     changed: ["TypeScript"],
     summaryChanged: true,
+    summary: {
+      previous: firstManifest.summary,
+      next: next.summary,
+    },
   });
 });
 
 test("declares explicit types for every structured-output property", async () => {
   const schema = JSON.parse(await readFile(new URL("../scripts/repository-technologies/manifest.schema.json", import.meta.url), "utf8"));
   assert.equal(schema.properties.schemaVersion.type, "integer");
-  for (const property of Object.values(schema.properties) as Array<Record<string, unknown>>) {
-    assert.equal(typeof property.type, "string");
+  assert.equal(schema.properties.schemaVersion.const, 2);
+  assert.equal(schema.properties.summary.type, "object");
+  assert.deepEqual(schema.properties.summary.required, ["en", "it"]);
+  assert.equal(schema.properties.summary.properties.en.type, "string");
+  assert.equal(schema.properties.summary.properties.it.type, "string");
+});
+
+test("accepts only complete bilingual v2 summaries", async () => {
+  const paths = await fixture();
+  await assert.doesNotReject(validateManifest(firstManifest, {
+    repoDir: paths.repoDir,
+    repository: "Itakello/example",
+    commitSha: firstManifest.commitSha,
+    trackedFiles: await paths.getTrackedFiles(),
+  }));
+
+  for (const summary of [
+    { en: "English only" },
+    { it: "Solo italiano" },
+    { en: " ", it: "Italiano valido" },
+    { en: "English valid", it: "  " },
+  ]) {
+    await assert.rejects(validateManifest({ ...firstManifest, summary }, {
+      repoDir: paths.repoDir,
+      repository: "Itakello/example",
+      commitSha: firstManifest.commitSha,
+      trackedFiles: await paths.getTrackedFiles(),
+    }), /summary has invalid fields|summary\.(en|it) must be a non-empty string/);
   }
+});
+
+test("rejects legacy v1 single-summary manifests and re-extracts stale local evidence", async () => {
+  const paths = await fixture();
+  const legacyManifest = {
+    ...firstManifest,
+    schemaVersion: 1,
+    summary: "Legacy summary.",
+  };
+  await assert.rejects(validateManifest(legacyManifest, {
+    repoDir: paths.repoDir,
+    repository: "Itakello/example",
+    commitSha: firstManifest.commitSha,
+    trackedFiles: await paths.getTrackedFiles(),
+  }), /schemaVersion must be 2/);
+
+  await writeFile(paths.statePath, JSON.stringify({
+    schemaVersion: 1,
+    lastSeenSha: firstManifest.commitSha,
+    lastAttemptedSha: firstManifest.commitSha,
+    lastSuccessfulProcessedSha: firstManifest.commitSha,
+    status: "succeeded",
+  }));
+  await writeFile(paths.outputPath, JSON.stringify(legacyManifest));
+  let calls = 0;
+  const result = await processRepositoryTechnologies({
+    ...paths,
+    repository: "Itakello/example",
+    getCurrentSha: async () => firstManifest.commitSha,
+    extract: async () => {
+      calls += 1;
+      return firstManifest;
+    },
+  });
+
+  assert.equal(result.status, "updated");
+  assert.equal(calls, 1);
 });

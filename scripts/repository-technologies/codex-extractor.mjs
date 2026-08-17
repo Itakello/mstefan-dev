@@ -19,6 +19,8 @@ const publicSummaryInstructions = [
   "When committed evidence conflicts about scope or audience, use the less specific claim instead of repeating the conflict.",
   "Do not refer to the owner by name. Avoid corporate portfolio language, marketing fluff, and incidental details such as the interface language unless they materially define the project.",
   "Mention implementation only when it materially distinguishes the project.",
+  "Return summary.en and summary.it together: write natural English for en and natural technical Italian for it, not a literal translation.",
+  "Preserve repository, project, tool, product, framework, language, and model names exactly in both locales.",
 ];
 
 function codexEnvironment() {
