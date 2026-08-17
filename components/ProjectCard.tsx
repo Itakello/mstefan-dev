@@ -149,7 +149,7 @@ export function ProjectCard({
           aria-hidden={!isOpen}
           inert={!isOpen}
         >
-          <div className="pb-6">
+          <div className="pb-2">
             <p className="max-w-3xl text-sm leading-6 text-black/70 dark:text-white/70">
               {summary}
             </p>

@@ -79,7 +79,7 @@ a {
   min-width: max-content;
   align-items: flex-start;
   gap: 1.25rem;
-  padding: 0.125rem 0 1.75rem;
+  padding: 0.125rem 0 0.25rem;
 }
 
 .stack-shelf-group {
@@ -176,13 +176,10 @@ a {
   transform: translateX(0.2rem) translateY(var(--stack-card-offset)) rotate(var(--stack-card-rotation));
 }
 
-.stack-hand-label {
-  position: absolute;
-  top: calc(100% + 0.35rem);
-  left: 50%;
-  z-index: 30;
+.stack-floating-label {
+  position: fixed;
+  z-index: 100;
   max-width: 8rem;
-  transform: translate(-50%, -0.15rem);
   border: 1px solid rgb(0 0 0 / 0.12);
   border-radius: 0.25rem;
   background: rgb(255 255 255 / 0.96);
@@ -190,34 +187,16 @@ a {
   color: rgb(0 0 0 / 0.75);
   font-size: 0.6875rem;
   line-height: 1rem;
-  opacity: 0;
   overflow: hidden;
   pointer-events: none;
   text-overflow: ellipsis;
-  transition: opacity 120ms ease, transform 120ms ease;
   white-space: nowrap;
 }
 
-.dark .stack-hand-label {
+.dark .stack-floating-label {
   border-color: rgb(255 255 255 / 0.14);
   background: rgb(18 18 18 / 0.96);
   color: rgb(255 255 255 / 0.82);
-}
-
-.stack-hand-card:hover .stack-hand-label,
-.stack-hand-card:focus .stack-hand-label {
-  transform: translate(-50%, 0);
-  opacity: 1;
-}
-
-.stack-shelf-group:first-child .stack-hand-card:first-child .stack-hand-label {
-  left: 0;
-  transform: translate(0, -0.15rem);
-}
-
-.stack-shelf-group:first-child .stack-hand-card:first-child:hover .stack-hand-label,
-.stack-shelf-group:first-child .stack-hand-card:first-child:focus .stack-hand-label {
-  transform: translate(0, 0);
 }
 
 .stack-overflow-card {
@@ -329,7 +308,6 @@ a {
 
 @media (prefers-reduced-motion: reduce) {
   .stack-hand-card,
-  .stack-hand-label,
   .stack-shelf-arrow,
   .stack-overflow-card {
     transition: none;

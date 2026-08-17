@@ -3,6 +3,7 @@
 import { Icon } from "@iconify/react";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
+import { createPortal } from "react-dom";
 
 import { StackBadge } from "@/components/StackBadge";
 import {
@@ -46,6 +47,11 @@ const cardOffsets = [
 
 const SCROLL_OVERFLOW_THRESHOLD = 12;
 
+type FloatingLabel = {
+  name: string;
+  position: Pick<CSSProperties, "left" | "right" | "top">;
+};
+
 function stackHandVariation(category: string, entries: readonly StackEntry[]) {
   const signature = `${category}:${entries.map((entry) => entry.name).join(":")}`;
   const seed = [...signature].reduce(
@@ -59,8 +65,24 @@ function stackHandVariation(category: string, entries: readonly StackEntry[]) {
 function StackHand({ category, entries }: { category: string; entries: readonly StackEntry[] }) {
   const { visibleEntries, hiddenEntries, overflowCount } = summarizeStackEntries(entries);
   const [showAll, setShowAll] = useState(false);
+  const [floatingLabel, setFloatingLabel] = useState<FloatingLabel | null>(null);
   const hiddenEntriesId = useId();
   const variation = stackHandVariation(category, entries);
+
+  const showLabel = (target: HTMLElement, name: string) => {
+    const rect = target.getBoundingClientRect();
+    const alignRight = rect.left + rect.width / 2 > window.innerWidth / 2;
+
+    setFloatingLabel({
+      name,
+      position: {
+        top: Math.min(rect.bottom + 6, window.innerHeight - 28),
+        ...(alignRight
+          ? { right: Math.max(window.innerWidth - rect.right, 8) }
+          : { left: Math.max(rect.left, 8) }),
+      },
+    });
+  };
 
   const renderCard = (item: StackEntry, index: number) => {
     const offset = cardOffsets[(index + variation) % cardOffsets.length];
@@ -71,11 +93,17 @@ function StackHand({ category, entries }: { category: string; entries: readonly 
     } as CSSProperties;
 
     return (
-      <span key={item.name} className="stack-hand-card" style={style} tabIndex={0}>
+      <span
+        key={item.name}
+        className="stack-hand-card"
+        style={style}
+        tabIndex={0}
+        onMouseEnter={(event) => showLabel(event.currentTarget, item.name)}
+        onMouseLeave={() => setFloatingLabel(null)}
+        onFocus={(event) => showLabel(event.currentTarget, item.name)}
+        onBlur={() => setFloatingLabel(null)}
+      >
         <StackBadge item={item} label={false} compact />
-        <span className="stack-hand-label" aria-hidden>
-          {item.name}
-        </span>
       </span>
     );
   };
@@ -100,6 +128,13 @@ function StackHand({ category, entries }: { category: string; entries: readonly 
         >
           {showAll ? `−${overflowCount}` : `+${overflowCount}`}
         </button>
+      )}
+
+      {floatingLabel && createPortal(
+        <span className="stack-floating-label" style={floatingLabel.position} aria-hidden>
+          {floatingLabel.name}
+        </span>,
+        document.body,
       )}
     </div>
   );
