@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { ProjectCard } from "@/components/ProjectCard";
+import { StackCatalog } from "@/components/StackCatalog";
 import { loadPublicProjects } from "@/lib/publicProjects";
 import { loadWebsiteStack } from "@/lib/websiteStack";
 
@@ -18,6 +19,9 @@ export default async function Home() {
     const project = projectsByTitle.get(title);
     return project ? [project] : [];
   });
+  const toolkitEntries = stackCatalog.entries.filter((entry) => entry.websiteVisible);
+  const toolkitMessage = stackCatalog.message
+    ?? (toolkitEntries.length === 0 ? "No Toolkit items are currently approved for website publication." : null);
 
   return (
     <section className="space-y-10">
@@ -82,6 +86,31 @@ export default async function Home() {
             {publication.message}
           </p>
         ) : null}
+      </section>
+
+      <section
+        className="border-y border-black/10 py-5 dark:border-white/10"
+        aria-labelledby="toolkit-heading"
+      >
+        <h2 id="toolkit-heading" className="text-xl font-semibold">
+          Toolkit
+        </h2>
+        <p className="mt-2 max-w-xl text-sm leading-6 text-black/60 dark:text-white/60">
+          Tools and technologies I use across my work.
+        </p>
+        <div className="mt-4">
+          {toolkitMessage ? (
+            <p
+              className="rounded-lg border border-black/10 bg-black/[0.025] p-4 text-sm text-black/65 dark:border-white/10 dark:bg-white/[0.035] dark:text-white/65"
+              data-stack-publication-status={stackCatalog.status}
+              role={stackCatalog.status === "error" || stackCatalog.status === "unconfigured" ? "alert" : "status"}
+            >
+              {toolkitMessage}
+            </p>
+          ) : (
+            <StackCatalog entries={toolkitEntries} />
+          )}
+        </div>
       </section>
     </section>
   );
