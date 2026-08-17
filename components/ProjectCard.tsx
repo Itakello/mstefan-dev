@@ -50,8 +50,8 @@ function formatMonthYear(value: string) {
 }
 
 const panelTransition = {
-  height: { duration: 0.32, ease: [0.22, 1, 0.36, 1] },
-  opacity: { duration: 0.18, ease: "easeOut" },
+  height: { duration: 0.36, ease: [0.4, 0, 0.2, 1] },
+  opacity: { duration: 0.24, ease: [0.4, 0, 0.2, 1] },
 } as const;
 
 export function ProjectCard({
@@ -95,7 +95,7 @@ export function ProjectCard({
         >
           <motion.span
             animate={{ rotate: isOpen ? 90 : 0 }}
-            transition={{ duration: 0.16, ease: "easeOut" }}
+            transition={{ duration: 0.28, ease: [0.4, 0, 0.2, 1] }}
             className="grid size-4 shrink-0 place-items-center opacity-60"
           >
             <Icon
