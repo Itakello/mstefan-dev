@@ -36,14 +36,17 @@ export function Header() {
     <header className="relative flex items-center justify-between pt-8">
       <Link href="/" aria-label="Massimo Stefan home" className="group no-underline">
         <div className="flex items-center gap-3">
-          <Image
-            src="/profile-avatar.jpg"
-            alt="Portrait of Massimo Stefan"
-            width={44}
-            height={44}
-            className="size-11 rounded-xl object-cover"
-            priority
-          />
+          <div className="relative size-11 overflow-hidden rounded-xl">
+            <Image
+              src="/profile-photo.jpg"
+              alt="Portrait of Massimo Stefan"
+              width={1530}
+              height={2054}
+              className="absolute left-1/2 top-[-2px] h-auto w-[88px] max-w-none -translate-x-1/2"
+              priority
+              unoptimized
+            />
+          </div>
           <div className="font-semibold tracking-tight">Massimo Stefan</div>
         </div>
       </Link>
