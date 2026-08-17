@@ -4,7 +4,7 @@ import { Icon } from "@iconify/react";
 import { AnimatePresence, motion } from "motion/react";
 import { useId, useMemo, useState } from "react";
 
-import { StackShelf } from "@/components/StackCatalog";
+import { ProjectStackHand, StackShelf } from "@/components/StackCatalog";
 import {
   findStackEntry,
   groupStackEntries,
@@ -41,13 +41,6 @@ const KNOWN_LANGUAGES = new Set([
   "Dart",
 ]);
 
-const projectLayoutTransition = {
-  type: "spring",
-  stiffness: 360,
-  damping: 38,
-  mass: 0.8,
-} as const;
-
 function formatMonthYear(value: string) {
   return new Intl.DateTimeFormat("en", {
     month: "short",
@@ -69,7 +62,7 @@ export function ProjectCard({
 }: Props) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
   const panelId = useId();
-  const { groups, unresolvedLabels } = useMemo(() => {
+  const { groups, technologies, unresolvedLabels } = useMemo(() => {
     const detectedLanguage = language || tags?.find((tag) => KNOWN_LANGUAGES.has(tag));
     const nonLanguageTags = (tags ?? []).filter((tag) => !KNOWN_LANGUAGES.has(tag));
     const technologyLabels = [detectedLanguage, ...nonLanguageTags].filter(
@@ -80,17 +73,14 @@ export function ProjectCard({
 
     return {
       groups: groupStackEntries(technologies),
+      technologies,
       unresolvedLabels: technologyLabels.filter((label) => !findStackEntry(label, catalog)),
     };
   }, [language, stackCatalog, tags]);
 
   return (
-    <motion.article
-      layout
-      transition={{ layout: projectLayoutTransition }}
-      className="border-b border-black/10 dark:border-white/10"
-    >
-      <div className="grid min-h-16 grid-cols-[minmax(0,1fr)_2.25rem] items-center gap-3 py-3">
+    <article className="border-b border-black/10 dark:border-white/10">
+      <div className="grid min-h-12 grid-cols-[minmax(0,1fr)_2.25rem] items-center gap-3 py-2">
         <button
           type="button"
           className="group flex min-w-0 items-center gap-3 text-left"
@@ -125,68 +115,66 @@ export function ProjectCard({
         )}
       </div>
 
-      <motion.div
-        id={panelId}
-        layout
-        transition={{ layout: projectLayoutTransition }}
-        className={`overflow-hidden pl-7 ${isOpen ? "pb-6" : "pb-3"}`}
-      >
+      <div id={panelId} className="pl-7">
         <AnimatePresence initial={false} mode="popLayout">
-          <motion.p
-            key={isOpen ? "long-summary" : "short-summary"}
-            layout="position"
-            initial={{ opacity: 0, y: isOpen ? 5 : -3 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: isOpen ? -3 : 5 }}
-            transition={{ duration: 0.18, ease: "easeOut", layout: projectLayoutTransition }}
-            className={`max-w-3xl text-sm leading-6 text-black/70 dark:text-white/70 ${isOpen ? "" : "line-clamp-2"}`}
-          >
-            {isOpen ? summary : (shortSummary || summary)}
-          </motion.p>
-        </AnimatePresence>
-
-        <AnimatePresence initial={false}>
-          {isOpen && createdAt && (
-            <motion.p
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 4 }}
-              transition={{ duration: 0.16, ease: "easeOut" }}
-              className="mt-2 flex items-center gap-1.5 text-xs text-black/45 dark:text-white/45"
-            >
-              <Icon icon="lucide:calendar-range" className="size-3.5" aria-hidden />
-              Started {formatMonthYear(createdAt)}
-            </motion.p>
-          )}
-        </AnimatePresence>
-
-        {groups.length > 0 && (
-          <div className="mt-3">
-            <StackShelf
-              groups={groups}
-              label={`${title} technologies grouped by category`}
-              compact={!isOpen}
-              animateLayout
-            />
-          </div>
-        )}
-
-        <AnimatePresence initial={false}>
-          {isOpen && unresolvedLabels.length > 0 && (
+          {isOpen ? (
             <motion.div
-              initial={{ opacity: 0, y: 4 }}
+              key="open-project"
+              initial={{ opacity: 0, y: 5 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 4 }}
-              transition={{ duration: 0.16, ease: "easeOut" }}
-              className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-xs text-black/55 dark:text-white/55"
+              exit={{ opacity: 0, y: 3 }}
+              transition={{ duration: 0.18, ease: "easeOut" }}
+              className="pb-6"
             >
-              {unresolvedLabels.map((label) => (
-                <span key={label}>{label}</span>
-              ))}
+              <p className="max-w-3xl text-sm leading-6 text-black/70 dark:text-white/70">
+                {summary}
+              </p>
+
+              {createdAt && (
+                <p className="mt-2 flex items-center gap-1.5 text-xs text-black/45 dark:text-white/45">
+                  <Icon icon="lucide:calendar-range" className="size-3.5" aria-hidden />
+                  Started {formatMonthYear(createdAt)}
+                </p>
+              )}
+
+              {groups.length > 0 && (
+                <div className="mt-3">
+                  <StackShelf
+                    groups={groups}
+                    label={`${title} technologies grouped by category`}
+                  />
+                </div>
+              )}
+
+              {unresolvedLabels.length > 0 && (
+                <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-xs text-black/55 dark:text-white/55">
+                  {unresolvedLabels.map((label) => (
+                    <span key={label}>{label}</span>
+                  ))}
+                </div>
+              )}
+            </motion.div>
+          ) : (
+            <motion.div
+              key="closed-project"
+              initial={{ opacity: 0, y: -3 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -3 }}
+              transition={{ duration: 0.16, ease: "easeOut" }}
+              className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 pb-3"
+            >
+              <p className="line-clamp-2 min-w-0 text-sm leading-5 text-black/65 dark:text-white/65">
+                {shortSummary || summary}
+              </p>
+              {technologies.length > 0 && (
+                <div className="shrink-0">
+                  <ProjectStackHand entries={technologies} />
+                </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
-      </motion.div>
-    </motion.article>
+      </div>
+    </article>
   );
 }

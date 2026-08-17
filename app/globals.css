@@ -73,21 +73,6 @@ a {
   padding: 0.125rem 0 1.75rem;
 }
 
-.stack-shelf-shell-compact .stack-shelf-track {
-  justify-content: flex-end;
-  gap: 0;
-  padding-bottom: 0.875rem;
-}
-
-.stack-shelf-shell-compact .stack-shelf-group {
-  border-left: 0;
-  padding-left: 0;
-}
-
-.stack-shelf-shell-compact .stack-shelf-group + .stack-shelf-group .stack-hand-card:first-child {
-  margin-left: -0.4rem;
-}
-
 .stack-shelf-group {
   flex: none;
   min-width: max-content;
