@@ -17,22 +17,13 @@ export const metadata: Metadata = {
     description: "Software engineer building AI systems, agents, and reliable automation.",
     url: "https://mstefan.dev",
     siteName: "mstefan.dev",
-    images: [
-      {
-        url: "/profile-pic.jpg",
-        width: 460,
-        height: 460,
-        alt: "Portrait of Massimo Stefan"
-      }
-    ],
     locale: "en_US",
     type: "website"
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: "Massimo Stefan",
-    description: "Software engineer building AI systems, agents, and reliable automation.",
-    images: ["/profile-pic.jpg"]
+    description: "Software engineer building AI systems, agents, and reliable automation."
   },
   icons: {
     icon: "/icon.svg"
