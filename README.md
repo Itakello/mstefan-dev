@@ -33,19 +33,18 @@ pnpm dev
 ```
 
 ## Configure and personalize
-- **Site metadata**: `app/layout.tsx` (title, description, OG images, icons).
+- **Site metadata**: `app/[locale]/layout.tsx` (title, description, OG images, icons).
 - **Header name + nav**: `components/Header.tsx`.
 - **Accent color**: `app/globals.css`
   ```css
   :root { --accent: 350 89% 56%; }
   ```
-- **Home content**: `app/page.tsx`.
-- **About**: `app/about/page.tsx`.
+- **Home content**: `app/[locale]/page.tsx`.
+- **About**: `app/[locale]/about/page.tsx`.
 - **Contact links**: `components/Footer.tsx`.
 
 If you fork this repo, also update the hardcoded GitHub username used for repo fetching:
-- `app/projects/page.tsx`: `const GITHUB_USER = "Itakello"`
-- `app/api/projects/diff/route.ts`: `const GITHUB_USER = "Itakello"`
+- `lib/github.ts`: `export const GITHUB_USER = "Itakello"`
 
 ## Environment variables
 These are optional unless you use the Notion and repository proposal scripts.
@@ -120,8 +119,9 @@ pending reason (`invalid-manifest` or `missing-evidence`); only a successful
 run reports `invalid-reextracted` or `missing-reextracted`.
 
 The proposal combines the validated manifest with the repository's curated
-`.github/project-technologies.json` selection. It rejects private, archived, or
-forked repositories; rejects curated technologies without committed-file
+`.github/project-technologies.json` selection. It requires GitHub metadata to
+explicitly identify a repository as public, non-private, non-archived, and
+non-forked; rejects curated technologies without committed-file
 evidence; requires both labeled `summaryProposal.value.en` and
 `summaryProposal.value.it` before the proposal can be approved; and marks
 generated summaries and publication as approval-blocked. It never publishes or
@@ -148,11 +148,15 @@ never receives the API key.
 ## Project structure
 ```text
 app/                # App Router pages and routes
-  about/
+  [locale]/         # Localized public pages and metadata
+    about/
+    layout.tsx
+    page.tsx
+    projects/
   api/projects/diff/
-  projects/
+  globals.css
 components/         # UI components
-lib/                # Notion integration helpers
+lib/                # Notion and GitHub integration helpers
 public/             # Static assets (og image, icon, sitemap, robots)
 scripts/            # Notion/GitHub automation scripts
 ```

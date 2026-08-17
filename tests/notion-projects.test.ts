@@ -217,6 +217,25 @@ test("uses an existing title-only inventory row to prevent a duplicate proposal"
   );
 });
 
+test("treats a harmless trailing slash as the same canonical repository URL", () => {
+  assert.deepEqual(
+    findMissingInventoryRepositories(
+      [{ url: " https://github.com/Itakello/bilingual-project/ ", status: "Added" }],
+      [{
+        name: "bilingual-project",
+        html_url: "https://github.com/itakello/bilingual-project",
+        description: "Already tracked under the canonical URL.",
+        language: "TypeScript",
+        archived: false,
+        fork: false,
+        pushed_at: "2026-08-17T00:00:00Z",
+      }],
+      "Itakello",
+    ),
+    [],
+  );
+});
+
 test("does not use a title fallback when inventory has a canonical URL for another repository", () => {
   const missing = findMissingInventoryRepositories(
     [{

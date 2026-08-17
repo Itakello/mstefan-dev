@@ -53,6 +53,15 @@ test("creates an approval-gated proposal from detected and curated evidence", ()
   });
 
   assert.equal(proposal.repository.id, "1036248352");
+  assert.deepEqual(
+    {
+      visibility: proposal.repository.visibility,
+      private: proposal.repository.private,
+      archived: proposal.repository.archived,
+      fork: proposal.repository.fork,
+    },
+    { visibility: "public", private: false, archived: false, fork: false },
+  );
   assert.equal(proposal.sourceCommitSha, "a".repeat(40));
   assert.deepEqual(proposal.detectedTechnologies, ["Notion", "TypeScript"]);
   assert.deepEqual(
@@ -82,14 +91,41 @@ test("does not treat inferred evidence categories as curated Stack authority", (
 });
 
 test("rejects private, archived, and forked repositories", () => {
-  for (const override of [{ private: true }, { visibility: "internal" }, { archived: true }, { fork: true }]) {
+  for (const [override, message] of [
+    [{ private: true }, /repository\.private must be explicitly false/],
+    [{ visibility: "internal" }, /repository\.visibility must be explicitly "public"/],
+    [{ archived: true }, /repository\.archived must be explicitly false/],
+    [{ fork: true }, /repository\.fork must be explicitly false/],
+  ] as const) {
     assert.throws(
       () => buildRepositorySyncProposal({
         repository: { ...repository, ...override },
         evidenceManifest,
         publicTechnologyManifest,
       }),
-      /excluded from repository sync v1/,
+      message,
+    );
+  }
+});
+
+test("requires explicit, correctly typed public GitHub eligibility fields", () => {
+  for (const [override, message] of [
+    [{ visibility: undefined }, /repository\.visibility must be explicitly "public"/],
+    [{ visibility: true }, /repository\.visibility must be explicitly "public"/],
+    [{ private: undefined }, /repository\.private must be explicitly false/],
+    [{ private: "false" }, /repository\.private must be explicitly false/],
+    [{ archived: undefined }, /repository\.archived must be explicitly false/],
+    [{ archived: "false" }, /repository\.archived must be explicitly false/],
+    [{ fork: undefined }, /repository\.fork must be explicitly false/],
+    [{ fork: "false" }, /repository\.fork must be explicitly false/],
+  ] as const) {
+    assert.throws(
+      () => buildRepositorySyncProposal({
+        repository: { ...repository, ...override },
+        evidenceManifest,
+        publicTechnologyManifest,
+      }),
+      message,
     );
   }
 });

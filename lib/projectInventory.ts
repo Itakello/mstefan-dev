@@ -41,7 +41,7 @@ export function findMissingInventoryRepositories(
 
 function normalizeUrl(value: string | undefined) {
   const normalized = value?.trim().toLowerCase();
-  return normalized || undefined;
+  return normalized?.endsWith("/") ? normalized.slice(0, -1) : normalized || undefined;
 }
 
 function normalizeTitle(value: string | undefined) {

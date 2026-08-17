@@ -6,7 +6,10 @@ export interface RepositorySyncProposal {
     id: string;
     fullName: string;
     url: string;
-    visibility: string;
+    visibility: "public";
+    private: false;
+    archived: false;
+    fork: false;
     defaultBranch: string;
   };
   sourceCommitSha: string;

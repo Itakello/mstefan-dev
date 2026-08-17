@@ -65,17 +65,18 @@ function validateRepository(repository) {
   }
   const id = String(repository.id ?? "").trim();
   if (!/^\d+$/.test(id)) throw new Error("repository.id must be a numeric GitHub repository ID.");
-  const visibility = repository.visibility ?? (repository.private ? "private" : "public");
-  if (repository.private || visibility !== "public") {
-    throw new Error("Non-public repositories are excluded from repository sync v1.");
-  }
-  if (repository.archived) throw new Error("Archived repositories are excluded from repository sync v1.");
-  if (repository.fork) throw new Error("Forked repositories are excluded from repository sync v1.");
+  if (repository.visibility !== "public") throw new Error('repository.visibility must be explicitly "public" for repository sync v1.');
+  if (repository.private !== false) throw new Error("repository.private must be explicitly false for repository sync v1.");
+  if (repository.archived !== false) throw new Error("repository.archived must be explicitly false for repository sync v1.");
+  if (repository.fork !== false) throw new Error("repository.fork must be explicitly false for repository sync v1.");
   return {
     id,
     fullName: requireString(repository.full_name, "repository.full_name"),
     url: requireString(repository.html_url, "repository.html_url"),
-    visibility,
+    visibility: repository.visibility,
+    private: repository.private,
+    archived: repository.archived,
+    fork: repository.fork,
     defaultBranch: requireString(repository.default_branch, "repository.default_branch"),
   };
 }
