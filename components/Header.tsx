@@ -10,8 +10,7 @@ import { cn } from "@/lib/utils";
 const links = [
   { href: "/", label: "Home" },
   { href: "/projects", label: "Work" },
-  { href: "/about", label: "About" },
-  { href: "/contact", label: "Contact" }
+  { href: "/about", label: "About" }
 ] as const;
 
 export function Header() {
