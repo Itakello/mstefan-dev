@@ -1,3 +1,5 @@
+export type EvidenceCategory = "language" | "framework" | "library" | "runtime" | "database" | "infrastructure" | "tool" | "service";
+
 export interface RepositorySyncProposal {
   schemaVersion: 1;
   repository: {
@@ -15,7 +17,7 @@ export interface RepositorySyncProposal {
   detectedTechnologies: string[];
   selectedTechnologies: Array<{
     name: string;
-    evidenceCategory: string;
+    evidenceCategory: EvidenceCategory;
     stackMatch:
       | { status: "matched"; name: string; category: string; websiteVisible: boolean }
       | { status: "missing" | "not-checked"; suggestedCategory: string };

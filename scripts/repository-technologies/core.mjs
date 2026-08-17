@@ -15,7 +15,11 @@ async function readJson(filePath, fallback) {
 
 async function readPersistedManifest(filePath) {
   try {
-    return { manifest: JSON.parse(await readFile(filePath, "utf8")), reextractedBecause: null };
+    const manifest = JSON.parse(await readFile(filePath, "utf8"));
+    if (!manifest || Array.isArray(manifest) || typeof manifest !== "object") {
+      return { manifest: null, reextractedBecause: "invalid-manifest" };
+    }
+    return { manifest, reextractedBecause: null };
   } catch (error) {
     if (error.code === "ENOENT") return { manifest: null, reextractedBecause: "missing-evidence" };
     if (error instanceof SyntaxError) return { manifest: null, reextractedBecause: "invalid-manifest" };
@@ -105,7 +109,7 @@ export function diffManifests(previous, next) {
       .filter((name) => before.has(name) && JSON.stringify(before.get(name)) !== JSON.stringify(after.get(name)))
       .map((name) => after.get(name).name)
       .sort(),
-    summaryChanged: JSON.stringify(previous?.summary ?? null) !== JSON.stringify(next.summary),
+    summaryChanged: previous?.summary?.en !== next.summary.en || previous?.summary?.it !== next.summary.it,
     summary: {
       previous: previous?.summary ?? null,
       next: next.summary,
@@ -142,6 +146,7 @@ export async function processRepositoryTechnologies({ repoDir, repository, state
   }
   if (state.lastSuccessfulProcessedSha === currentSha && currentManifest) return { status: "unchanged", currentSha };
 
+  const pendingEvidenceStatus = reextractedBecause ?? (state.lastSuccessfulProcessedSha ? "current" : "first-run");
   const evidenceStatus = reextractedBecause === "invalid-manifest"
     ? "invalid-reextracted"
     : reextractedBecause === "missing-evidence"
@@ -156,7 +161,7 @@ export async function processRepositoryTechnologies({ repoDir, repository, state
     lastAttemptedSha: currentSha,
     lastSuccessfulProcessedSha: state.lastSuccessfulProcessedSha ?? null,
     status: "running",
-    evidenceStatus,
+    evidenceStatus: pendingEvidenceStatus,
     reextractedBecause,
   };
   await writeJsonAtomic(statePath, attemptedState);
@@ -168,7 +173,7 @@ export async function processRepositoryTechnologies({ repoDir, repository, state
     await validateManifest(candidate, { repoDir, repository, commitSha: currentSha, trackedFiles: evidenceFiles, requireFilesPresent: false });
     const diff = diffManifests(currentManifest, candidate);
     await writeJsonAtomic(outputPath, candidate);
-    await writeJsonAtomic(statePath, { ...attemptedState, lastSuccessfulProcessedSha: currentSha, status: "succeeded" });
+    await writeJsonAtomic(statePath, { ...attemptedState, lastSuccessfulProcessedSha: currentSha, status: "succeeded", evidenceStatus });
     return { status: "updated", currentSha, diff, manifest: candidate, evidenceStatus, reextractedBecause };
   } catch (error) {
     await writeJsonAtomic(statePath, { ...attemptedState, status: "failed", error: error instanceof Error ? error.message : String(error) });

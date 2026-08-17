@@ -1,4 +1,7 @@
+import path from "node:path";
+
 const shaPattern = /^[0-9a-f]{40}$/;
+const evidenceCategories = new Set(["language", "framework", "library", "runtime", "database", "infrastructure", "tool", "service"]);
 
 const stackCategoryByEvidenceCategory = {
   language: "Language",
@@ -18,6 +21,42 @@ function normalizedName(value) {
 function requireString(value, label) {
   if (typeof value !== "string" || !value.trim()) throw new Error(`${label} is required.`);
   return value.trim();
+}
+
+function assertExactKeys(value, keys, label) {
+  const expected = new Set(keys);
+  const unexpected = Object.keys(value).filter((key) => !expected.has(key));
+  const missing = keys.filter((key) => !(key in value));
+  if (unexpected.length || missing.length) {
+    throw new Error(`${label} has invalid fields (missing: ${missing.join(", ") || "none"}; unexpected: ${unexpected.join(", ") || "none"}).`);
+  }
+}
+
+function validateTechnology(technology, index) {
+  if (!technology || Array.isArray(technology) || typeof technology !== "object") {
+    throw new Error(`technologies[${index}] must be an object.`);
+  }
+  assertExactKeys(technology, ["name", "category", "evidence"], `technologies[${index}]`);
+  if (typeof technology.name !== "string" || !technology.name.trim() || technology.name !== technology.name.trim() || technology.name.length > 80) {
+    throw new Error(`technologies[${index}].name is invalid.`);
+  }
+  if (!evidenceCategories.has(technology.category)) throw new Error(`Invalid category for ${technology.name}.`);
+  if (!Array.isArray(technology.evidence) || technology.evidence.length < 1 || technology.evidence.length > 5) {
+    throw new Error(`${technology.name} must have between 1 and 5 evidence entries.`);
+  }
+  for (const [evidenceIndex, evidence] of technology.evidence.entries()) {
+    if (!evidence || Array.isArray(evidence) || typeof evidence !== "object") {
+      throw new Error(`${technology.name} evidence[${evidenceIndex}] must be an object.`);
+    }
+    assertExactKeys(evidence, ["path", "detail"], `${technology.name} evidence[${evidenceIndex}]`);
+    if (typeof evidence.path !== "string" || !evidence.path || evidence.path.includes("\\") || path.posix.normalize(evidence.path) !== evidence.path || evidence.path.startsWith("/")) {
+      throw new Error(`${technology.name} has an invalid evidence path.`);
+    }
+    if (typeof evidence.detail !== "string" || !evidence.detail.trim() || evidence.detail.length > 300) {
+      throw new Error(`${technology.name} has an invalid evidence detail.`);
+    }
+  }
+  return technology;
 }
 
 function validateRepository(repository) {
@@ -58,7 +97,14 @@ function validateManifest(manifest, fullName) {
   };
   if (summary.en.length > 400 || summary.it.length > 400) throw new Error("manifest.summary locales must not exceed 400 characters.");
   if (!Array.isArray(manifest.technologies)) throw new Error("manifest.technologies must be an array.");
-  return { summary, technologies: manifest.technologies };
+  const technologies = manifest.technologies.map(validateTechnology);
+  const seen = new Set();
+  for (const technology of technologies) {
+    const name = normalizedName(technology.name);
+    if (seen.has(name)) throw new Error(`Duplicate technology: ${technology.name}.`);
+    seen.add(name);
+  }
+  return { summary, technologies };
 }
 
 function validatePublicSelection(publicSelection) {

@@ -109,8 +109,9 @@ fails visibly instead of producing a partial manifest when an
 analyzed text file exceeds 128 KiB, total text evidence exceeds 512 KiB, the
 serialized evidence exceeds 768 KiB, or more than 500 files require analysis.
 When it re-extracts persisted evidence, the result and state record a non-secret
-`evidenceStatus` plus `reextractedBecause`, distinguishing invalid manifests,
-missing evidence, and a first run.
+`evidenceStatus` plus `reextractedBecause`. Running or failed work reports the
+pending reason (`invalid-manifest` or `missing-evidence`); only a successful
+run reports `invalid-reextracted` or `missing-reextracted`.
 
 The proposal combines the validated manifest with the repository's curated
 `.github/project-technologies.json` selection. It rejects private, archived, or

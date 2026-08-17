@@ -118,6 +118,23 @@ test("rejects curated public technologies without committed-file evidence", () =
   );
 });
 
+test("rejects malformed detected technologies before building a proposal", () => {
+  for (const [technology, message] of [
+    [{ ...evidenceManifest.technologies[0], category: "unknown" }, /Invalid category for TypeScript/],
+    [{ ...evidenceManifest.technologies[0], evidence: [] }, /TypeScript must have between 1 and 5 evidence entries/],
+    [{ ...evidenceManifest.technologies[0], evidence: [{ path: "", detail: "Configured in package.json." }] }, /TypeScript has an invalid evidence path/],
+  ] as const) {
+    assert.throws(
+      () => buildRepositorySyncProposal({
+        repository,
+        evidenceManifest: { ...evidenceManifest, technologies: [technology, evidenceManifest.technologies[1]] },
+        publicTechnologyManifest,
+      }),
+      message,
+    );
+  }
+});
+
 test("rejects partial and legacy evidence summaries before creating an approval proposal", () => {
   for (const evidence of [
     { ...evidenceManifest, summary: { en: evidenceManifest.summary.en } },

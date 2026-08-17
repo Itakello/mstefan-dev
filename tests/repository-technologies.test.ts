@@ -139,6 +139,76 @@ test("reprocesses a successful SHA when its manifest JSON is malformed", async (
   assert.equal(result.reextractedBecause, "invalid-manifest");
 });
 
+test("re-extracts a valid JSON primitive as invalid evidence", async () => {
+  const paths = await fixture();
+  await writeFile(paths.statePath, JSON.stringify({
+    schemaVersion: 1,
+    lastSeenSha: firstManifest.commitSha,
+    lastAttemptedSha: firstManifest.commitSha,
+    lastSuccessfulProcessedSha: firstManifest.commitSha,
+    status: "succeeded",
+  }));
+  await writeFile(paths.outputPath, "null\n");
+
+  const result = await processRepositoryTechnologies({
+    ...paths,
+    repository: "Itakello/example",
+    getCurrentSha: async () => firstManifest.commitSha,
+    extract: async () => firstManifest,
+  });
+
+  if (result.status !== "updated") assert.fail("expected an updated manifest");
+  assert.equal(result.evidenceStatus, "invalid-reextracted");
+  assert.equal(result.reextractedBecause, "invalid-manifest");
+});
+
+test("records missing evidence as incomplete when re-extraction fails", async () => {
+  const paths = await fixture();
+  await writeFile(paths.statePath, JSON.stringify({
+    schemaVersion: 1,
+    lastSeenSha: firstManifest.commitSha,
+    lastAttemptedSha: firstManifest.commitSha,
+    lastSuccessfulProcessedSha: firstManifest.commitSha,
+    status: "succeeded",
+  }));
+
+  await assert.rejects(processRepositoryTechnologies({
+    ...paths,
+    repository: "Itakello/example",
+    getCurrentSha: async () => firstManifest.commitSha,
+    extract: async () => { throw new Error("extractor unavailable"); },
+  }), /extractor unavailable/);
+
+  const state = JSON.parse(await readFile(paths.statePath, "utf8"));
+  assert.equal(state.status, "failed");
+  assert.equal(state.evidenceStatus, "missing-evidence");
+  assert.equal(state.reextractedBecause, "missing-evidence");
+});
+
+test("records invalid evidence as incomplete when re-extraction fails", async () => {
+  const paths = await fixture();
+  await writeFile(paths.statePath, JSON.stringify({
+    schemaVersion: 1,
+    lastSeenSha: firstManifest.commitSha,
+    lastAttemptedSha: firstManifest.commitSha,
+    lastSuccessfulProcessedSha: firstManifest.commitSha,
+    status: "succeeded",
+  }));
+  await writeFile(paths.outputPath, "false\n");
+
+  await assert.rejects(processRepositoryTechnologies({
+    ...paths,
+    repository: "Itakello/example",
+    getCurrentSha: async () => firstManifest.commitSha,
+    extract: async () => { throw new Error("extractor unavailable"); },
+  }), /extractor unavailable/);
+
+  const state = JSON.parse(await readFile(paths.statePath, "utf8"));
+  assert.equal(state.status, "failed");
+  assert.equal(state.evidenceStatus, "invalid-manifest");
+  assert.equal(state.reextractedBecause, "invalid-manifest");
+});
+
 test("passes current state to the extractor and publishes a validated complete manifest", async () => {
   const paths = await fixture();
   const oldSha = "a".repeat(40);
@@ -558,6 +628,13 @@ test("computes added and changed technologies deterministically", () => {
       next: next.summary,
     },
   });
+});
+
+test("compares bilingual summary locales independently of object key order", () => {
+  const reorderedSummary = { it: firstManifest.summary.it, en: firstManifest.summary.en };
+  const diff = diffManifests(firstManifest, { ...firstManifest, summary: reorderedSummary });
+  assert.equal(diff.summaryChanged, false);
+  assert.deepEqual(diff.summary.next, reorderedSummary);
 });
 
 test("declares explicit types for every structured-output property", async () => {

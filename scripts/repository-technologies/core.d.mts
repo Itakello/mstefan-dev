@@ -20,6 +20,7 @@ export interface ExtractionInput {
   currentManifest: TechnologyManifest | null;
 }
 
+export type EvidenceLifecycleStatus = "current" | "first-run" | "missing-evidence" | "invalid-manifest" | "missing-reextracted" | "invalid-reextracted";
 export type EvidenceStatus = "current" | "first-run" | "missing-reextracted" | "invalid-reextracted";
 export type ReextractedBecause = "missing-evidence" | "invalid-manifest" | null;
 
