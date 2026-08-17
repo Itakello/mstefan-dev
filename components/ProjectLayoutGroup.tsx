@@ -13,7 +13,9 @@ const projectLayoutTransition = {
 export function ProjectLayoutGroup({ children }: { children: ReactNode }) {
   return (
     <MotionConfig reducedMotion="user">
-      <LayoutGroup>{children}</LayoutGroup>
+      <LayoutGroup>
+        <div className="project-layout">{children}</div>
+      </LayoutGroup>
     </MotionConfig>
   );
 }

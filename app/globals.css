@@ -45,6 +45,10 @@ a {
   @apply border-white/10 bg-white/5 shadow-softDark;
 }
 
+.project-layout {
+  overflow-anchor: none;
+}
+
 .stack-shelf-shell {
   position: relative;
 }
