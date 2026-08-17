@@ -59,11 +59,16 @@ These are optional unless you use the Notion and repository proposal scripts.
 Notion database expected properties (create these columns):
 - `Name` (title)
 - `URL` (url)
-- `Summary` (rich_text)
+- `Summary` (rich_text, required English long summary)
+- `Summary IT` (rich_text, required Italian long summary)
+- `Short summary` (rich_text, optional English short summary)
+- `Short summary IT` (rich_text, optional Italian short summary)
 - `Tags` (multi_select)
 - `Language` (multi_select)
 - `Year` (number)
 - `Status` (status: "To Add", "Added", "Removed")
+
+An `Added` row requires both nonblank long summaries. The website never falls back between English and Italian summaries; each locale uses only its own long and optional short summary.
 
 The website renders only approved Notion entries when `NOTION_TOKEN` and `NOTION_DATABASE_ID` are present. GitHub can enrich matching approved entries with timestamps and detected language, but cannot publish additional repositories or replace approved summaries. If Notion is unconfigured or unavailable, the Projects page renders zero cards with an explicit unavailable state; an empty approved result renders zero cards with an explicit no-approved-projects state.
 
