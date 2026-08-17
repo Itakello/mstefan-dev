@@ -1,5 +1,43 @@
 import { fetchStackFromNotion } from "@/lib/notion";
-import { stackIconUrl, type StackEntry } from "@/lib/stack";
+import { isTrustedExternalIcon, stackIconUrl, type StackEntry } from "@/lib/stack";
+
+const MAX_STACK_ICON_WIDTH_RATIO = 2.5;
+const SOLID_BLACK_OR_WHITE = new Set([
+  "#000",
+  "#000000",
+  "black",
+  "rgb(0,0,0)",
+  "#fff",
+  "#ffffff",
+  "white",
+  "rgb(255,255,255)",
+]);
+
+function svgWidthRatio(svg: string) {
+  const viewBox = svg.match(/viewBox=["']\s*[-\d.]+\s+[-\d.]+\s+([\d.]+)\s+([\d.]+)\s*["']/i);
+  if (!viewBox) return null;
+
+  const width = Number(viewBox[1]);
+  const height = Number(viewBox[2]);
+  if (!Number.isFinite(width) || !Number.isFinite(height) || height <= 0) return null;
+
+  return width / height;
+}
+
+function hasFixedSingleTonePaint(svg: string) {
+  if (/currentColor/i.test(svg)) return false;
+
+  const paints = [...svg.matchAll(/(?:fill|stroke)=["']([^"']+)["']/gi)]
+    .map((match) => match[1].toLowerCase().replace(/\s+/g, ""))
+    .filter((paint) => paint !== "none");
+
+  if (paints.length === 0) {
+    return /<(?:path|circle|ellipse|polygon|polyline|rect|line)\b/i.test(svg);
+  }
+
+  const uniquePaints = new Set(paints);
+  return uniquePaints.size === 1 && SOLID_BLACK_OR_WHITE.has([...uniquePaints][0]);
+}
 
 type WebsiteStackOptions = {
   fetchStack?: () => Promise<StackEntry[] | null>;
@@ -55,11 +93,27 @@ export async function validateStackIcons(
   fetchIcon: typeof fetch = fetch
 ) {
   await Promise.all(entries.map(async (entry) => {
+    if (entry.iconKey.startsWith("skill-icons:")) {
+      throw new Error(`Invalid Stack data: unsupported icon collection for ${entry.name}`);
+    }
+
+    const externalIcon = isTrustedExternalIcon(entry.iconKey);
     const response = await fetchIcon(stackIconUrl(entry.iconKey), {
-      method: "HEAD"
+      method: externalIcon ? "HEAD" : "GET"
     });
     if (!response.ok) {
       throw new Error(`Invalid Stack data: icon not found for ${entry.name}`);
+    }
+
+    if (!externalIcon) {
+      const svg = await response.text();
+      const widthRatio = svgWidthRatio(svg);
+      if (widthRatio !== null && widthRatio > MAX_STACK_ICON_WIDTH_RATIO) {
+        throw new Error(`Invalid Stack data: icon is too wide for ${entry.name}`);
+      }
+      if (hasFixedSingleTonePaint(svg)) {
+        throw new Error(`Invalid Stack data: icon cannot adapt across themes for ${entry.name}`);
+      }
     }
   }));
 }
