@@ -2,6 +2,7 @@
 
 import { Icon } from "@iconify/react";
 
+import { BRAND_ICON_CLASS } from "@/lib/iconStyles";
 import { isTrustedExternalIcon, type StackEntry } from "@/lib/stack";
 
 type Props = {
@@ -22,11 +23,11 @@ export function StackBadge({ item, label = true, compact = false }: Props) {
           <img
             src={item.iconKey}
             alt=""
-            className={`${compact ? "size-4" : "size-5"} object-contain`}
+            className={`${BRAND_ICON_CLASS} object-contain`}
             aria-hidden
           />
         ) : (
-          <Icon icon={item.iconKey} className={compact ? "size-4" : "size-5"} aria-hidden />
+          <Icon icon={item.iconKey} className={BRAND_ICON_CLASS} aria-hidden />
         )}
       </span>
       {label && <span className="font-medium">{item.name}</span>}

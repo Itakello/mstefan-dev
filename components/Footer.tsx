@@ -1,6 +1,7 @@
 "use client";
 
 import { IconLink } from "@/components/IconLink";
+import { BRAND_ICON_CLASS } from "@/lib/iconStyles";
 import { Icon } from "@iconify/react";
 
 export function Footer() {
@@ -15,23 +16,23 @@ export function Footer() {
           <IconLink
             href="mailto:massimo@mstefan.dev"
             label="Email"
-            icon={<Icon icon="lucide:mail" className="size-4" aria-hidden />}
+            icon={<Icon icon="lucide:mail" className={BRAND_ICON_CLASS} aria-hidden />}
           />
           <IconLink
             href="https://github.com/Itakello"
             label="GitHub"
-            icon={<Icon icon="skill-icons:github-dark" className="size-4" aria-hidden />}
+            icon={<Icon icon="simple-icons:github" className={BRAND_ICON_CLASS} aria-hidden />}
           />
           <IconLink
             href="https://www.linkedin.com/in/itakello/"
             label="LinkedIn"
-            icon={<Icon icon="skill-icons:linkedin" className="size-4" aria-hidden />}
+            icon={<Icon icon="logos:linkedin-icon" className={BRAND_ICON_CLASS} aria-hidden />}
           />
           <IconLink
             href="https://x.com/itakello"
             label="X"
             icon={(
-              <span className="grid size-4 place-items-center rounded-[3px] bg-black text-white">
+              <span className={`grid ${BRAND_ICON_CLASS} place-items-center rounded-[3px] bg-black text-white`}>
                 <Icon icon="ri:twitter-x-fill" className="size-[11px]" aria-hidden />
               </span>
             )}
