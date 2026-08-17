@@ -2,11 +2,18 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  displayStackCategory,
   groupStackEntries,
   STACK_SHELF_VISIBLE_LIMIT,
   summarizeStackEntries,
   type StackEntry,
 } from "../lib/stack";
+
+test("uses stable singular presentation labels without changing source categories", () => {
+  assert.equal(displayStackCategory("Platform"), "Infra");
+  assert.equal(displayStackCategory("SaaS"), "Integration");
+  assert.equal(displayStackCategory("Language"), "Language");
+});
 
 function stack(name: string, category: string): StackEntry {
   return {

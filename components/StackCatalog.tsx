@@ -6,6 +6,7 @@ import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type 
 
 import { StackBadge } from "@/components/StackBadge";
 import {
+  displayStackCategory,
   groupStackEntries,
   summarizeStackEntries,
   type StackEntry,
@@ -191,19 +192,23 @@ export function StackShelf({
     <div className="stack-shelf-shell">
       <div ref={shelfRef} className="stack-shelf" aria-label={label}>
         <div className="stack-shelf-track">
-          {groups.map(({ category, entries }) => (
-            <section
-              key={category}
-              className="stack-shelf-group"
-              aria-label={category}
-            >
-              <div className="stack-shelf-heading">
-                <StackCategoryIcon category={category} />
-                <span>{category}</span>
-              </div>
-              <StackHand category={category} entries={entries} />
-            </section>
-          ))}
+          {groups.map(({ category, entries }) => {
+            const displayCategory = displayStackCategory(category);
+
+            return (
+              <section
+                key={category}
+                className="stack-shelf-group"
+                aria-label={displayCategory}
+              >
+                <div className="stack-shelf-heading">
+                  <StackCategoryIcon category={category} />
+                  <span>{displayCategory}</span>
+                </div>
+                <StackHand category={displayCategory} entries={entries} />
+              </section>
+            );
+          })}
         </div>
       </div>
 

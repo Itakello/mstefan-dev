@@ -39,6 +39,11 @@ const STACK_CATEGORY_ORDER = [
   "CLI",
 ] as const;
 
+const STACK_CATEGORY_DISPLAY_LABELS: Record<string, string> = {
+  platform: "Infra",
+  saas: "Integration",
+};
+
 const ICONIFY_KEY = /^[a-z0-9][a-z0-9-]*:[a-z0-9][a-z0-9._-]*$/i;
 const NOTION_ICON_ORIGIN = "https://s3-us-west-2.amazonaws.com";
 const NOTION_ICON_PATH = "/public.notion-static.com/";
@@ -131,6 +136,10 @@ export function groupStackEntries(entries: readonly StackEntry[]): StackGroup[] 
       category,
       entries: [...group].sort((left, right) => left.name.localeCompare(right.name)),
     }));
+}
+
+export function displayStackCategory(category: string) {
+  return STACK_CATEGORY_DISPLAY_LABELS[normalize(category)] ?? category;
 }
 
 function normalize(value: string) {
