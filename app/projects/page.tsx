@@ -157,7 +157,7 @@ export default async function ProjectsPage() {
     <section>
       <h1 className="text-2xl font-semibold">Projects</h1>
       <p className="mt-2 text-black/70 dark:text-white/70 text-sm">
-        Selected work. Grouped by year.
+        Selected work. Grouped by year. Auto-synced from GitHub. Descriptions, tags, and primary languages are LLM-inferred/generated.
       </p>
 
       {orderedYears.map((year) => (
