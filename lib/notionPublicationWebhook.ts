@@ -67,6 +67,18 @@ export function verifyNotionWebhookSignature(
     && timingSafeEqual(actualBuffer, expectedBuffer);
 }
 
+export function publicationNotionSourceIds(
+  environment: Readonly<Record<string, string | undefined>>,
+) {
+  const projectsId = environment.NOTION_PROJECTS_DATA_SOURCE_ID?.trim();
+  const stackId = environment.NOTION_STACK_DATA_SOURCE_ID?.trim();
+  if (!projectsId || !stackId) return null;
+  if (!isNotionId(projectsId) || !isNotionId(stackId)) return null;
+  if (normalizeNotionId(projectsId) === normalizeNotionId(stackId)) return null;
+
+  return [projectsId, stackId] as const;
+}
+
 export function isPublicationNotionEvent(
   payload: NotionWebhookPayload,
   dataSourceIds: readonly (string | undefined)[],
@@ -95,4 +107,8 @@ export function isPublicationNotionEvent(
 
 function normalizeNotionId(value: string) {
   return value.replaceAll("-", "").toLowerCase();
+}
+
+function isNotionId(value: string) {
+  return /^[0-9a-f]{32}$/.test(normalizeNotionId(value));
 }

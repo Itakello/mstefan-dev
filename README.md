@@ -52,6 +52,8 @@ These are optional unless you use the Notion and repository proposal scripts.
 - `NOTION_TOKEN`: Notion integration token
 - `NOTION_DATABASE_ID`: Target database ID
 - `NOTION_STACK_DATABASE_ID`: Stack database ID used by the Home toolkit and project technology icons
+- `NOTION_PROJECTS_DATA_SOURCE_ID`: Projects data source ID emitted in Notion webhook events
+- `NOTION_STACK_DATA_SOURCE_ID`: Stack data source ID emitted in Notion webhook events
 - `NOTION_WEBHOOK_BOOTSTRAP_PUBLIC_KEY`: base64-encoded RSA public key used to capture the one-time webhook verification token without logging plaintext
 - `NOTION_WEBHOOK_VERIFICATION_TOKEN`: signing token issued while verifying the Notion publication webhook
 - `GITHUB_TOKEN` (optional): increases GitHub API rate limit for server-side fetching
@@ -73,7 +75,7 @@ An `Added` row requires both nonblank long summaries. The website never falls ba
 
 The website renders only approved Notion entries when `NOTION_TOKEN` and `NOTION_DATABASE_ID` are present. GitHub can enrich matching approved entries with timestamps and detected language, but cannot publish additional repositories or replace approved summaries. If Notion is unconfigured or unavailable, the Projects page renders zero cards with an explicit unavailable state; an empty approved result renders zero cards with an explicit no-approved-projects state.
 
-Notion changes reach `/api/webhooks/notion`. Authenticated events from the configured Projects or Stack data source invalidate the localized Home and Projects pages plus their shared GitHub enrichment cache. The next visit fetches the latest canonical data and publishes it only after the complete Projects and Stack contract passes. A daily revalidation is retained only as recovery for a delayed or missed webhook.
+Notion changes reach `/api/webhooks/notion`. Authenticated events from the explicitly configured Projects or Stack data source invalidate the localized Home and Projects pages plus their shared GitHub enrichment cache. Database IDs remain the read configuration; `NOTION_PROJECTS_DATA_SOURCE_ID` and `NOTION_STACK_DATA_SOURCE_ID` are separately required because current Notion webhook payloads identify data sources rather than their parent database pages. Missing or duplicate webhook source IDs return `503` instead of silently accepting an event without invalidation. The next visit fetches the latest canonical data and publishes it only after the complete Projects and Stack contract passes. A daily revalidation is retained only as recovery for a delayed or missed webhook.
 
 Stack records require `Name` (title), `Category` (select), `Icon key` (an Iconify `collection:icon` key or a trusted Notion-hosted asset URL), and `Website visible` (checkbox). Every technology referenced by an approved project must resolve to one Stack record, whether or not that record is visible in the general Toolkit. Vercel production builds and refreshes require `NOTION_TOKEN`, `NOTION_STACK_DATABASE_ID`, and a non-empty valid Stack database. A failed production read, missing project technology, or missing icon blocks regeneration so the previous valid page remains live. Local and preview builds render zero Stack items with an explicit state when the canonical source is unconfigured, empty, or unavailable; there is no checked-in Stack fallback.
 

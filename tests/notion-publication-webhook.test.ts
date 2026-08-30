@@ -7,6 +7,7 @@ import {
   isPublicationNotionEvent,
   notionVerificationToken,
   parseNotionWebhookPayload,
+  publicationNotionSourceIds,
   verifyNotionWebhookSignature,
 } from "../lib/notionPublicationWebhook";
 
@@ -46,6 +47,29 @@ test("verifies the raw Notion webhook body", () => {
   assert.equal(verifyNotionWebhookSignature(body, signature, token), true);
   assert.equal(verifyNotionWebhookSignature(`${body} `, signature, token), false);
   assert.equal(verifyNotionWebhookSignature(body, null, token), false);
+});
+
+test("requires explicit, distinct data source IDs for webhook routing", () => {
+  assert.deepEqual(publicationNotionSourceIds({
+    NOTION_PROJECTS_DATA_SOURCE_ID: projectsId,
+    NOTION_STACK_DATA_SOURCE_ID: stackId,
+  }), [projectsId, stackId]);
+
+  assert.equal(publicationNotionSourceIds({
+    NOTION_DATABASE_ID: "24c05536-223f-80a0-9016-d368aa7e2cb8",
+    NOTION_STACK_DATABASE_ID: "c1872097-85eb-4783-bbd6-d9e2e0ab9bd4",
+  }), null);
+  assert.equal(publicationNotionSourceIds({
+    NOTION_PROJECTS_DATA_SOURCE_ID: projectsId,
+  }), null);
+  assert.equal(publicationNotionSourceIds({
+    NOTION_PROJECTS_DATA_SOURCE_ID: "projects",
+    NOTION_STACK_DATA_SOURCE_ID: stackId,
+  }), null);
+  assert.equal(publicationNotionSourceIds({
+    NOTION_PROJECTS_DATA_SOURCE_ID: projectsId,
+    NOTION_STACK_DATA_SOURCE_ID: projectsId.replaceAll("-", ""),
+  }), null);
 });
 
 test("invalidates only publication data source events", () => {
