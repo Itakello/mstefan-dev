@@ -57,6 +57,10 @@ test("invalidates only publication data source events", () => {
     type: "data_source.schema_updated",
     entity: { id: projectsId },
   };
+  const projectsPageCreated = {
+    type: "page.created",
+    data: { parent: { id: projectsId } },
+  };
   const unrelatedUpdate = {
     type: "page.properties_updated",
     data: { parent: { data_source_id: "11111111-1111-1111-1111-111111111111" } },
@@ -64,6 +68,7 @@ test("invalidates only publication data source events", () => {
 
   assert.equal(isPublicationNotionEvent(stackUpdate, [projectsId, stackId]), true);
   assert.equal(isPublicationNotionEvent(projectsUpdate, [projectsId, stackId]), true);
+  assert.equal(isPublicationNotionEvent(projectsPageCreated, [projectsId, stackId]), true);
   assert.equal(isPublicationNotionEvent(unrelatedUpdate, [projectsId, stackId]), false);
   assert.equal(isPublicationNotionEvent({ ...stackUpdate, type: "comment.created" }, [projectsId, stackId]), false);
 });

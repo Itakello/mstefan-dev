@@ -16,7 +16,7 @@ const PUBLICATION_EVENT_TYPES = new Set([
 type NotionWebhookPayload = {
   type?: unknown;
   entity?: { id?: unknown };
-  data?: { parent?: { data_source_id?: unknown } };
+  data?: { parent?: { data_source_id?: unknown; id?: unknown } };
   verification_token?: unknown;
 };
 
@@ -75,11 +75,14 @@ export function isPublicationNotionEvent(
     return false;
   }
 
-  const sourceId = typeof payload.data?.parent?.data_source_id === "string"
-    ? payload.data.parent.data_source_id
-    : payload.type.startsWith("data_source.") && typeof payload.entity?.id === "string"
-      ? payload.entity.id
-      : null;
+  const parent = payload.data?.parent;
+  const sourceId = typeof parent?.data_source_id === "string"
+    ? parent.data_source_id
+    : typeof parent?.id === "string"
+      ? parent.id
+      : payload.type.startsWith("data_source.") && typeof payload.entity?.id === "string"
+        ? payload.entity.id
+        : null;
   if (!sourceId) return false;
 
   const normalizedSourceId = normalizeNotionId(sourceId);
