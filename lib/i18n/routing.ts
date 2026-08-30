@@ -7,9 +7,20 @@ export type LocaleDecision = {
 };
 
 const supportedLocaleSet = new Set<Locale>(supportedLocales);
-const publicPathSet = new Set<PublicPath>(["/", "/projects", "/about"]);
+const publicPathSet = new Set<PublicPath>([
+  "/",
+  "/projects",
+  "/about",
+  "/mail-rules",
+  "/mail-rules/privacy",
+]);
 
-export type LocalizedPath = `/${Locale}` | `/${Locale}/projects` | `/${Locale}/about`;
+export type LocalizedPath =
+  | `/${Locale}`
+  | `/${Locale}/projects`
+  | `/${Locale}/about`
+  | `/${Locale}/mail-rules`
+  | `/${Locale}/mail-rules/privacy`;
 
 export function isPublicPathname(pathname: string): pathname is PublicPath {
   return publicPathSet.has(pathname as PublicPath);
