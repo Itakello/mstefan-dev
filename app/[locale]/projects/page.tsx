@@ -6,12 +6,11 @@ import { getCopy } from "@/lib/i18n/copy";
 import { getLocalizedMetadata } from "@/lib/i18n/metadata";
 import { isSupportedLocale } from "@/lib/i18n/routing";
 import { loadPublicProjects } from "@/lib/publicProjects";
-import { PUBLICATION_REVALIDATE_SECONDS } from "@/lib/publicationCache";
 import { projectPublicationView } from "@/lib/publicationPresentation";
 import { assertProjectStackCoverage } from "@/lib/stack";
 import { loadWebsiteStack } from "@/lib/websiteStack";
 
-export const revalidate = PUBLICATION_REVALIDATE_SECONDS;
+export const revalidate = 86_400;
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
