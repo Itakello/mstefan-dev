@@ -198,6 +198,28 @@ test("loads a stale, empty publication state when repository eligibility throws"
   });
 });
 
+test("blocks production regeneration when repository eligibility is unavailable", async () => {
+  await assert.rejects(
+    loadPublicProjects("en", {
+      fetchProjects: async () => [],
+      fetchRepos: async () => null,
+      vercelEnv: "production",
+    }),
+    /Cannot publish without valid Notion Projects and GitHub data/,
+  );
+});
+
+test("blocks production regeneration when the Notion Projects source is unavailable", async () => {
+  await assert.rejects(
+    loadPublicProjects("en", {
+      fetchProjects: async () => null,
+      fetchRepos: async () => [],
+      vercelEnv: "production",
+    }),
+    /Cannot publish without valid Notion Projects and GitHub data/,
+  );
+});
+
 test("uses an existing title-only inventory row to prevent a duplicate proposal", () => {
   assert.deepEqual(
     findMissingInventoryRepositories(
