@@ -75,13 +75,15 @@ export function isPublicationNotionEvent(
     return false;
   }
 
+  if (payload.type === "page.moved") return true;
+
   const parent = payload.data?.parent;
-  const sourceId = typeof parent?.data_source_id === "string"
-    ? parent.data_source_id
-    : typeof parent?.id === "string"
-      ? parent.id
-      : payload.type.startsWith("data_source.") && typeof payload.entity?.id === "string"
-        ? payload.entity.id
+  const sourceId = payload.type.startsWith("data_source.") && typeof payload.entity?.id === "string"
+    ? payload.entity.id
+    : typeof parent?.data_source_id === "string"
+      ? parent.data_source_id
+      : typeof parent?.id === "string"
+        ? parent.id
         : null;
   if (!sourceId) return false;
 
