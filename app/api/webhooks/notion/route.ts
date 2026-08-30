@@ -5,6 +5,7 @@ import {
   isPublicationNotionEvent,
   notionVerificationToken,
   parseNotionWebhookPayload,
+  publicationNotionSourceIds,
   verifyNotionWebhookSignature,
 } from "@/lib/notionPublicationWebhook";
 import {
@@ -41,10 +42,12 @@ export async function POST(request: Request) {
     return Response.json({ accepted: false }, { status: 401 });
   }
 
-  const relevant = isPublicationNotionEvent(payload, [
-    process.env.NOTION_DATABASE_ID,
-    process.env.NOTION_STACK_DATABASE_ID,
-  ]);
+  const sourceIds = publicationNotionSourceIds(process.env);
+  if (!sourceIds) {
+    return Response.json({ accepted: false, configured: false }, { status: 503 });
+  }
+
+  const relevant = isPublicationNotionEvent(payload, sourceIds);
   if (!relevant) return Response.json({ accepted: true, invalidated: false });
 
   revalidateTag(PUBLICATION_CACHE_TAG, { expire: 0 });
