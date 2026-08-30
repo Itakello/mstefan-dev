@@ -54,7 +54,7 @@ These are optional unless you use the Notion and repository proposal scripts.
 - `NOTION_STACK_DATABASE_ID`: Stack database ID used by the Home toolkit and project technology icons
 - `NOTION_PROJECTS_DATA_SOURCE_ID`: Projects data source ID emitted in Notion webhook events
 - `NOTION_STACK_DATA_SOURCE_ID`: Stack data source ID emitted in Notion webhook events
-- `NOTION_WEBHOOK_BOOTSTRAP_PUBLIC_KEY`: temporary base64-encoded RSA public key used to capture the one-time webhook verification token without logging plaintext; remove it after verification
+- `NOTION_WEBHOOK_BOOTSTRAP_PUBLIC_KEY`: base64-encoded RSA public key used to capture the one-time webhook verification token without logging plaintext
 - `NOTION_WEBHOOK_VERIFICATION_TOKEN`: signing token issued while verifying the Notion publication webhook
 - `GITHUB_TOKEN` (optional): increases GitHub API rate limit for server-side fetching
 - `GITHUB_USER` (optional for scripts): defaults to `Itakello`
