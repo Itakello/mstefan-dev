@@ -23,6 +23,16 @@ test("localized public routes expose the supported public and disclosure paths",
   ]) {
     assert.match(await source(route), /params: Promise<\{ locale: string \}>/);
   }
+
+  for (const disclosureRoute of [
+    "app/[locale]/mail-rules/page.tsx",
+    "app/[locale]/mail-rules/privacy/page.tsx",
+  ]) {
+    assert.match(
+      await source(disclosureRoute),
+      /robots: \{ index: false, follow: false \}/,
+    );
+  }
 });
 
 test("public copy and metadata are locale-aware", async () => {

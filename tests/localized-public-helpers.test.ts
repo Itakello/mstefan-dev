@@ -27,7 +27,8 @@ test("Mail Rules disclosures are localized and preserve the data-access boundary
 
   assert.equal(english.overview.title, "Mail Rules");
   assert.equal(italian.privacy.title, "Informativa sulla privacy di Mail Rules");
-  assert.match(english.privacy.accessBoundary, /short excerpt/);
+  assert.match(english.privacy.accessBoundary, /short Gmail text snippet/);
+  assert.match(english.privacy.codexHandling, /filter identifiers, criteria, and actions/);
   assert.match(english.privacy.codexHandling, /does not control or promise OpenAI's retention or training behavior/);
   assert.match(italian.privacy.deletionBoundary, /non rimuove i metadati già presenti/);
 });
