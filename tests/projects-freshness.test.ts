@@ -1,28 +1,33 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { dynamic as homeDynamic, revalidate as homeRevalidate } from "../app/[locale]/page";
+import { revalidate as homeRevalidate } from "../app/[locale]/page";
 import {
-  dynamic as projectsDynamic,
   revalidate as projectsRevalidate
 } from "../app/[locale]/projects/page";
 import { fetchGitHubRepos } from "../lib/github";
+import {
+  PUBLICATION_CACHE_TAG,
+  PUBLICATION_REVALIDATE_SECONDS,
+} from "../lib/publicationCache";
 
-test("publishes Home, projects, and Toolkit only from a deployment build", () => {
-  assert.equal(homeDynamic, "error");
-  assert.equal(projectsDynamic, "error");
-  assert.equal(homeRevalidate, false);
-  assert.equal(projectsRevalidate, false);
+test("uses a daily recovery refresh for event-driven publication", () => {
+  assert.equal(PUBLICATION_REVALIDATE_SECONDS, 86_400);
+  assert.equal(homeRevalidate, PUBLICATION_REVALIDATE_SECONDS);
+  assert.equal(projectsRevalidate, PUBLICATION_REVALIDATE_SECONDS);
 });
 
-test("keeps GitHub project enrichment in the deployment cache", async () => {
-  let requestInit: RequestInit | undefined;
+test("tags GitHub enrichment for webhook invalidation", async () => {
+  let requestInit: RequestInit & { next?: { revalidate?: number; tags?: string[] } } | undefined;
   const repositories = await fetchGitHubRepos(async (_input, init) => {
-    requestInit = init;
+    requestInit = init as typeof requestInit;
     return Response.json([]);
   });
 
   assert.deepEqual(repositories, []);
-  assert.equal(requestInit?.cache, "force-cache");
-  assert.equal("next" in (requestInit ?? {}), false);
+  assert.equal(requestInit?.cache, undefined);
+  assert.deepEqual(requestInit?.next, {
+    revalidate: PUBLICATION_REVALIDATE_SECONDS,
+    tags: [PUBLICATION_CACHE_TAG],
+  });
 });

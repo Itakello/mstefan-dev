@@ -6,11 +6,12 @@ import { getCopy } from "@/lib/i18n/copy";
 import { getLocalizedMetadata } from "@/lib/i18n/metadata";
 import { isSupportedLocale } from "@/lib/i18n/routing";
 import { loadPublicProjects } from "@/lib/publicProjects";
+import { PUBLICATION_REVALIDATE_SECONDS } from "@/lib/publicationCache";
 import { projectPublicationView } from "@/lib/publicationPresentation";
+import { assertProjectStackCoverage } from "@/lib/stack";
 import { loadWebsiteStack } from "@/lib/websiteStack";
 
-export const dynamic = "error";
-export const revalidate = false;
+export const revalidate = PUBLICATION_REVALIDATE_SECONDS;
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -23,6 +24,12 @@ export default async function ProjectsPage({ params }: { params: Promise<{ local
   if (!isSupportedLocale(locale)) notFound();
   const content = getCopy(locale).projects;
   const [{ groups, orderedYears, publication }, stackCatalog] = await Promise.all([loadPublicProjects(locale), loadWebsiteStack()]);
+  if (stackCatalog.status === "ready") {
+    assertProjectStackCoverage(
+      orderedYears.flatMap((year) => groups[year]),
+      stackCatalog.entries,
+    );
+  }
   const publicationView = publication.message
     ? projectPublicationView(locale, publication.message)
     : null;

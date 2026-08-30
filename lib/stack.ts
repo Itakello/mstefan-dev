@@ -14,6 +14,12 @@ export type StackGroup = {
   entries: StackEntry[];
 };
 
+export type ProjectStackInput = {
+  title: string;
+  tags?: readonly string[];
+  language?: string;
+};
+
 export const STACK_SHELF_VISIBLE_LIMIT = 4;
 
 export function summarizeStackEntries(
@@ -45,6 +51,23 @@ const STACK_CATEGORY_ORDER = [
 const ICONIFY_KEY = /^[a-z0-9][a-z0-9-]*:[a-z0-9][a-z0-9._-]*$/i;
 const NOTION_ICON_ORIGIN = "https://s3-us-west-2.amazonaws.com";
 const NOTION_ICON_PATH = "/public.notion-static.com/";
+
+const KNOWN_LANGUAGES = new Set([
+  "JavaScript",
+  "TypeScript",
+  "Python",
+  "Java",
+  "C++",
+  "C#",
+  "Go",
+  "Rust",
+  "Ruby",
+  "PHP",
+  "Kotlin",
+  "Swift",
+  "Scala",
+  "Dart",
+]);
 
 export function isIconifyKey(value: string) {
   return ICONIFY_KEY.test(value);
@@ -109,6 +132,30 @@ export function resolveProjectStack(
   }
 
   return [...resolved.values()];
+}
+
+export function projectStackLabels({ language, tags }: Pick<ProjectStackInput, "language" | "tags">) {
+  const detectedLanguage = language || tags?.find((tag) => KNOWN_LANGUAGES.has(tag));
+  const nonLanguageTags = (tags ?? []).filter((tag) => !KNOWN_LANGUAGES.has(tag));
+
+  return [detectedLanguage, ...nonLanguageTags].filter(
+    (label): label is string => Boolean(label),
+  );
+}
+
+export function assertProjectStackCoverage(
+  projects: readonly ProjectStackInput[],
+  catalog: readonly StackEntry[],
+) {
+  const missing = projects.flatMap((project) => {
+    const labels = projectStackLabels(project);
+    const unresolved = labels.filter((label) => !findStackEntry(label, catalog));
+    return unresolved.map((label) => `${project.title}: ${label}`);
+  });
+
+  if (missing.length > 0) {
+    throw new Error(`Cannot publish projects with missing Stack entries: ${missing.join(", ")}`);
+  }
 }
 
 export function groupStackEntries(entries: readonly StackEntry[]): StackGroup[] {
