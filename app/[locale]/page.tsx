@@ -12,7 +12,8 @@ import { loadWebsiteStack } from "@/lib/websiteStack";
 
 const SELECTED_PROJECTS = ["mstefan-dev", "ai_agents", "PhysIQ"];
 
-export const revalidate = 60;
+export const dynamic = "error";
+export const revalidate = false;
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
