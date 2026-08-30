@@ -7,9 +7,10 @@ import { getLocalizedMetadata } from "@/lib/i18n/metadata";
 import { isSupportedLocale } from "@/lib/i18n/routing";
 import { loadPublicProjects } from "@/lib/publicProjects";
 import { projectPublicationView } from "@/lib/publicationPresentation";
+import { assertProjectStackCoverage } from "@/lib/stack";
 import { loadWebsiteStack } from "@/lib/websiteStack";
 
-export const revalidate = 60;
+export const revalidate = 86_400;
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -22,6 +23,12 @@ export default async function ProjectsPage({ params }: { params: Promise<{ local
   if (!isSupportedLocale(locale)) notFound();
   const content = getCopy(locale).projects;
   const [{ groups, orderedYears, publication }, stackCatalog] = await Promise.all([loadPublicProjects(locale), loadWebsiteStack()]);
+  if (stackCatalog.status === "ready") {
+    assertProjectStackCoverage(
+      orderedYears.flatMap((year) => groups[year]),
+      stackCatalog.entries,
+    );
+  }
   const publicationView = publication.message
     ? projectPublicationView(locale, publication.message)
     : null;

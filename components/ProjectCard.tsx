@@ -10,8 +10,8 @@ import { getCopy } from "@/lib/i18n/copy";
 import type { Locale } from "@/lib/i18n/config";
 import { formatProjectStartDate, projectPreviewSummary } from "@/lib/projectPresentation";
 import {
-  findStackEntry,
   groupStackEntries,
+  projectStackLabels,
   resolveProjectStack,
   type StackEntry,
 } from "@/lib/stack";
@@ -28,23 +28,6 @@ type Props = {
   defaultOpen?: boolean;
   locale: Locale;
 };
-
-const KNOWN_LANGUAGES = new Set([
-  "JavaScript",
-  "TypeScript",
-  "Python",
-  "Java",
-  "C++",
-  "C#",
-  "Go",
-  "Rust",
-  "Ruby",
-  "PHP",
-  "Kotlin",
-  "Swift",
-  "Scala",
-  "Dart",
-]);
 
 const panelTransition = {
   height: { duration: 0.36, ease: [0.4, 0, 0.2, 1] },
@@ -66,19 +49,14 @@ export function ProjectCard({
   const copy = getCopy(locale);
   const [isOpen, setIsOpen] = useState(defaultOpen);
   const panelId = useId();
-  const { groups, technologies, unresolvedLabels } = useMemo(() => {
-    const detectedLanguage = language || tags?.find((tag) => KNOWN_LANGUAGES.has(tag));
-    const nonLanguageTags = (tags ?? []).filter((tag) => !KNOWN_LANGUAGES.has(tag));
-    const technologyLabels = [detectedLanguage, ...nonLanguageTags].filter(
-      (label): label is string => Boolean(label),
-    );
+  const { groups, technologies } = useMemo(() => {
+    const technologyLabels = projectStackLabels({ language, tags });
     const catalog = stackCatalog ?? [];
     const technologies = resolveProjectStack(technologyLabels, catalog);
 
     return {
       groups: groupStackEntries(technologies),
       technologies,
-      unresolvedLabels: technologyLabels.filter((label) => !findStackEntry(label, catalog)),
     };
   }, [language, stackCatalog, tags]);
 
@@ -168,14 +146,6 @@ export function ProjectCard({
                   locale={locale}
                   label={copy.projectCard.technologiesByCategory(title)}
                 />
-              </div>
-            )}
-
-            {unresolvedLabels.length > 0 && (
-              <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-xs text-black/55 dark:text-white/55">
-                {unresolvedLabels.map((label) => (
-                  <span key={label}>{label}</span>
-                ))}
               </div>
             )}
           </div>

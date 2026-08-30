@@ -8,11 +8,12 @@ import { getLocalizedMetadata } from "@/lib/i18n/metadata";
 import { isSupportedLocale, localizedPath } from "@/lib/i18n/routing";
 import { loadPublicProjects } from "@/lib/publicProjects";
 import { projectPublicationView } from "@/lib/publicationPresentation";
+import { assertProjectStackCoverage } from "@/lib/stack";
 import { loadWebsiteStack } from "@/lib/websiteStack";
 
 const SELECTED_PROJECTS = ["mstefan-dev", "ai_agents", "PhysIQ"];
 
-export const revalidate = 60;
+export const revalidate = 86_400;
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -25,6 +26,9 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
   if (!isSupportedLocale(locale)) notFound();
   const content = getCopy(locale).home;
   const [{ projects, publication }, stackCatalog] = await Promise.all([loadPublicProjects(locale), loadWebsiteStack()]);
+  if (stackCatalog.status === "ready") {
+    assertProjectStackCoverage(projects, stackCatalog.entries);
+  }
   const projectsByTitle = new Map(projects.map((project) => [project.title, project]));
   const selectedProjects = SELECTED_PROJECTS.flatMap((title) => {
     const project = projectsByTitle.get(title);

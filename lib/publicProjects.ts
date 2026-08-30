@@ -10,6 +10,7 @@ import {
 type PublicProjectsLoaderOptions = {
   fetchProjects?: typeof fetchProjectsFromNotion;
   fetchRepos?: typeof fetchGitHubRepos;
+  vercelEnv?: string;
 };
 
 export function selectPublicProjectLocale(project: NotionProject, locale: Locale) {
@@ -27,7 +28,11 @@ export function selectPublicProjectLocale(project: NotionProject, locale: Locale
 
 export async function loadPublicProjects(
   locale: Locale,
-  { fetchProjects = fetchProjectsFromNotion, fetchRepos = fetchGitHubRepos }: PublicProjectsLoaderOptions = {},
+  {
+    fetchProjects = fetchProjectsFromNotion,
+    fetchRepos = fetchGitHubRepos,
+    vercelEnv = process.env.VERCEL_ENV,
+  }: PublicProjectsLoaderOptions = {},
 ) {
   const [repos, notionResult] = await Promise.all([
     fetchRepos().catch((error) => {
@@ -41,6 +46,14 @@ export async function loadPublicProjects(
         return { projects: null, failed: true };
       }),
   ]);
+
+  if (vercelEnv === "production" && (
+    repos === null
+    || notionResult.failed
+    || notionResult.projects === null
+  )) {
+    throw new Error("Cannot publish without valid Notion Projects and GitHub data");
+  }
 
   const notionProjects = notionResult.projects
     ? notionResult.projects.map((project: NotionProject) => selectPublicProjectLocale(project, locale))
