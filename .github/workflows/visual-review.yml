@@ -45,6 +45,10 @@ jobs:
     if: needs.classify.outputs.run == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    permissions:
+      contents: read
+      deployments: read
+      id-token: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -112,11 +116,21 @@ jobs:
           sudo apt-get update
           sudo apt-get install --no-install-recommends --yes ffmpeg
 
+      - name: Issue temporary Vercel trusted-source token
+        id: vercel-oidc
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const token = await core.getIDToken();
+            core.setSecret(token);
+            core.setOutput("token", token);
+
       - name: Run deterministic review journey
         id: review
         continue-on-error: true
         env:
           PLAYWRIGHT_BASE_URL: ${{ steps.preview.outputs.url }}
+          VERCEL_GITHUB_OIDC_TOKEN: ${{ steps.vercel-oidc.outputs.token }}
         run: pnpm test:e2e
 
       - name: Package current-head evidence
@@ -137,7 +151,7 @@ jobs:
           retention-days: 14
 
       - name: Preserve the Playwright result
-        if: steps.review.outcome != 'success'
+        if: always() && steps.review.outcome != 'success'
         run: exit 1
 
   gate:

@@ -2,6 +2,7 @@ import { defineConfig, devices } from "@playwright/test";
 
 const baseURL = process.env.PLAYWRIGHT_BASE_URL;
 const executablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH;
+const vercelOidcToken = process.env.VERCEL_GITHUB_OIDC_TOKEN;
 
 if (!baseURL) {
   throw new Error("PLAYWRIGHT_BASE_URL must identify the exact deployed preview under review.");
@@ -25,6 +26,9 @@ export default defineConfig({
     ...devices["Desktop Chrome"],
     baseURL,
     colorScheme: "light",
+    extraHTTPHeaders: vercelOidcToken
+      ? { "x-vercel-trusted-oidc-idp-token": vercelOidcToken }
+      : undefined,
     launchOptions: executablePath ? { executablePath } : undefined,
     screenshot: "only-on-failure",
     trace: "retain-on-failure",
