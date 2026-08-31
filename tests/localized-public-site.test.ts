@@ -9,12 +9,17 @@ async function source(file: string) {
   return readFile(path.join(root, file), "utf8");
 }
 
-test("localized public routes expose only the six supported paths", async () => {
+test("localized public routes expose only the eight supported paths", async () => {
   const layout = await source("app/[locale]/layout.tsx");
 
   assert.match(layout, /generateStaticParams/);
   assert.match(layout, /supportedLocales\.map/);
-  for (const route of ["app/[locale]/page.tsx", "app/[locale]/projects/page.tsx", "app/[locale]/about/page.tsx"]) {
+  for (const route of [
+    "app/[locale]/page.tsx",
+    "app/[locale]/projects/page.tsx",
+    "app/[locale]/websites/page.tsx",
+    "app/[locale]/about/page.tsx",
+  ]) {
     assert.match(await source(route), /params: Promise<\{ locale: string \}>/);
   }
 });
@@ -62,9 +67,18 @@ test("sitemap adds localized canonicals and excludes legacy public paths", async
   const config = await source("next-sitemap.config.mjs");
   const sitemap = await source("public/sitemap-0.xml");
 
-  for (const localePath of ["/en", "/en/projects", "/en/about", "/it", "/it/projects", "/it/about"]) {
+  for (const localePath of [
+    "/en",
+    "/en/projects",
+    "/en/websites",
+    "/en/about",
+    "/it",
+    "/it/projects",
+    "/it/websites",
+    "/it/about",
+  ]) {
     assert.ok(config.includes(localePath));
     assert.ok(sitemap.includes(`mstefan.dev${localePath}`));
   }
-  assert.doesNotMatch(sitemap, /mstefan\.dev\/(?:about|projects)(?:<|\/)/);
+  assert.doesNotMatch(sitemap, /mstefan\.dev\/(?:about|projects|websites)(?:<|\/)/);
 });
