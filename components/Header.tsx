@@ -11,7 +11,7 @@ import type { Locale } from "@/lib/i18n/config";
 import { localizedPath } from "@/lib/i18n/routing";
 import { cn } from "@/lib/utils";
 
-const pages: PublicPage[] = ["home", "projects", "about"];
+const pages: PublicPage[] = ["home", "projects", "websites", "about"];
 
 export function Header({ locale }: { locale: Locale }) {
   const pathname = usePathname();
