@@ -13,6 +13,8 @@ test("showcase websites use unique secure public URLs", () => {
 
   assert.equal(new Set(urls).size, urls.length);
   assert.ok(urls.every((url) => url.startsWith("https://")));
+  assert.equal(showcaseWebsites.find((website) => website.id === "mstefan")?.preview, true);
+  assert.equal(showcaseWebsites.find((website) => website.id === "karakal")?.preview, false);
 });
 
 test("the personal website preview stays in the selected locale", () => {

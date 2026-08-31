@@ -73,6 +73,7 @@ type SiteCopy = {
     previewTitle: (title: string) => string;
     loading: string;
     previewHelp: string;
+    linkOnly: string;
     depthLimit: string;
     entries: Record<"mstefan" | "karakal", { name: string; description: string }>;
   };
@@ -168,12 +169,13 @@ export const copy = {
     projects: { title: "Public projects", description: "Active, original repositories. Newest first." },
     websites: {
       title: "Websites you can explore",
-      description: "Browse the real websites without leaving this page. The first one even contains this page, so you can keep going—within reason.",
+      description: "Explore my site here, or open the other websites in a new tab. The first one even contains this page, so you can keep going—within reason.",
       selectorLabel: "Choose a website to explore",
       openSite: (title) => `Open ${title} in a new tab`,
       previewTitle: (title) => `Interactive preview of ${title}`,
       loading: "Preparing the live preview…",
       previewHelp: "This is the live website, not a recording. If it does not load here, open the full site instead.",
+      linkOnly: "Visit the live website in a new tab.",
       depthLimit: "You reached the third website inside the website. The live preview stops here so the recursion stays intentional.",
       entries: {
         mstefan: {
@@ -283,12 +285,13 @@ export const copy = {
     projects: { title: "Progetti pubblici", description: "Repository attivi e originali. I più recenti per primi." },
     websites: {
       title: "Siti web da esplorare",
-      description: "Naviga i siti reali senza lasciare questa pagina. Il primo contiene anche questa pagina, quindi puoi continuare—entro certi limiti.",
+      description: "Esplora qui il mio sito, oppure apri gli altri siti in una nuova scheda. Il primo contiene anche questa pagina, quindi puoi continuare—entro certi limiti.",
       selectorLabel: "Scegli un sito web da esplorare",
       openSite: (title) => `Apri ${title} in una nuova scheda`,
       previewTitle: (title) => `Anteprima interattiva di ${title}`,
       loading: "Preparo l'anteprima live…",
       previewHelp: "Questo è il sito live, non una registrazione. Se qui non si carica, apri il sito completo.",
+      linkOnly: "Visita il sito live in una nuova scheda.",
       depthLimit: "Hai raggiunto il terzo sito dentro il sito. L'anteprima live si ferma qui, così la ricorsione resta intenzionale.",
       entries: {
         mstefan: {

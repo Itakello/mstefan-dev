@@ -97,7 +97,18 @@ export function WebsiteShowcase({ locale }: { locale: Locale }) {
           </a>
         </div>
 
-        {ancestorDepth === null ? (
+        {!selected.preview ? (
+          <div className="grid min-h-72 place-items-center p-8 text-center">
+            <div className="max-w-md">
+              <Globe2 className="mx-auto size-8 text-[hsl(var(--accent))]" aria-hidden="true" />
+              <p className="mt-4 text-sm text-black/70 dark:text-white/70">{copy.linkOnly}</p>
+              <a className="mt-5 inline-flex items-center gap-2" href={fullSiteUrl} target="_blank" rel="noreferrer">
+                {copy.openSite(selectedCopy.name)}
+                <ExternalLink className="size-4" aria-hidden="true" />
+              </a>
+            </div>
+          </div>
+        ) : ancestorDepth === null ? (
           <div className="grid h-[70vh] min-h-[34rem] place-items-center text-sm text-black/60 dark:text-white/60">
             {copy.loading}
           </div>
@@ -109,9 +120,6 @@ export function WebsiteShowcase({ locale }: { locale: Locale }) {
             className="h-[70vh] min-h-[34rem] w-full border-0"
             loading="lazy"
             referrerPolicy="strict-origin-when-cross-origin"
-            sandbox={selected.id === "mstefan"
-              ? undefined
-              : "allow-forms allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts"}
           />
         ) : (
           <div className="grid h-[70vh] min-h-[34rem] place-items-center p-8 text-center">
@@ -127,7 +135,9 @@ export function WebsiteShowcase({ locale }: { locale: Locale }) {
         )}
       </div>
 
-      <p className="mt-3 text-xs text-black/55 dark:text-white/55">{copy.previewHelp}</p>
+      {selected.preview ? (
+        <p className="mt-3 text-xs text-black/55 dark:text-white/55">{copy.previewHelp}</p>
+      ) : null}
     </div>
   );
 }

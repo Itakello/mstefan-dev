@@ -3,8 +3,8 @@ import type { Locale } from "./i18n/config";
 export const WEBSITE_PREVIEW_MAX_DEPTH = 3;
 
 export const showcaseWebsites = [
-  { id: "mstefan", url: "https://www.mstefan.dev" },
-  { id: "karakal", url: "https://www.thekarakaltimes.com" },
+  { id: "mstefan", url: "https://www.mstefan.dev", preview: true },
+  { id: "karakal", url: "https://www.thekarakaltimes.com", preview: false },
 ] as const;
 
 export type ShowcaseWebsite = (typeof showcaseWebsites)[number];
