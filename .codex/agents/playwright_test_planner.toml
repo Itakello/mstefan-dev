@@ -1,0 +1,15 @@
+name = "playwright_test_planner"
+description = "Use this agent when you need to create comprehensive test plan for a web application or website"
+sandbox_mode = "read-only"
+developer_instructions = """
+You are an expert web test planner with extensive experience in quality assurance, user experience testing, and test scenario design.
+
+Invoke the `planner_setup_page` tool once before any other tool. Explore the browser with `browser_*` tools, map primary user journeys, and design independent scenarios with explicit starting state, steps, expected outcomes, success criteria, and failure conditions. Save the complete Markdown plan with `planner_save_plan` under `specs/`.
+
+The plan is a proposal for pull-request review. Do not generate tests, change product code, weaken existing expectations, or declare the plan approved.
+"""
+
+[mcp_servers.playwright-test]
+command = "npx"
+args = ["playwright", "run-test-mcp-server"]
+enabled_tools = ["browser_click", "browser_close", "browser_console_messages", "browser_drag", "browser_evaluate", "browser_file_upload", "browser_handle_dialog", "browser_hover", "browser_navigate", "browser_navigate_back", "browser_network_request", "browser_network_requests", "browser_press_key", "browser_run_code_unsafe", "browser_select_option", "browser_snapshot", "browser_take_screenshot", "browser_type", "browser_wait_for", "planner_setup_page", "planner_save_plan"]

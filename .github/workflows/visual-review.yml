@@ -1,0 +1,185 @@
+name: Visual review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+concurrency:
+  group: visual-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  deployments: read
+  pull-requests: read
+
+jobs:
+  classify:
+    name: Classify UI impact
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.classify.outputs.run }}
+      reason: ${{ steps.classify.outputs.reason }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Classify changed paths
+        id: classify
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          FORCE_VISUAL_REVIEW: ${{ contains(github.event.pull_request.labels.*.name, 'visual-review') }}
+        shell: bash
+        run: |
+          git diff --name-only --diff-filter=ACDMR "$BASE_SHA" "$HEAD_SHA" > "$RUNNER_TEMP/visual-review-files.txt"
+          args=(--files "$RUNNER_TEMP/visual-review-files.txt")
+          if [[ "$FORCE_VISUAL_REVIEW" == "true" ]]; then args+=(--force); fi
+          node scripts/visual-review/classify.mjs "${args[@]}"
+
+  playwright:
+    name: Playwright preview review
+    needs: classify
+    if: needs.classify.outputs.run == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      deployments: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+
+      - name: Wait for exact Vercel Preview
+        id: preview
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        with:
+          script: |
+            const deadline = Date.now() + 10 * 60 * 1000;
+            const terminalFailures = new Set(["error", "failure", "inactive"]);
+
+            while (Date.now() < deadline) {
+              const { data: deployments } = await github.rest.repos.listDeployments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                sha: process.env.HEAD_SHA,
+                environment: "Preview",
+                per_page: 20,
+              });
+              const deployment = deployments[0];
+
+              if (deployment) {
+                const { data: statuses } = await github.rest.repos.listDeploymentStatuses({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  deployment_id: deployment.id,
+                  per_page: 20,
+                });
+                const latest = statuses[0];
+                if (latest?.state === "success") {
+                  const url = latest.environment_url || latest.target_url;
+                  if (!url) throw new Error("Successful Preview deployment has no browser URL.");
+                  core.setOutput("url", url);
+                  await core.summary.addHeading("Exact Vercel Preview", 2)
+                    .addRaw(`Head SHA: ${process.env.HEAD_SHA}\n\nPreview: ${url}\n`)
+                    .write();
+                  return;
+                }
+                if (latest && terminalFailures.has(latest.state)) {
+                  throw new Error(`Vercel Preview deployment ended in ${latest.state}.`);
+                }
+              }
+
+              await new Promise((resolve) => setTimeout(resolve, 15_000));
+            }
+
+            throw new Error(`No successful Vercel Preview appeared for ${process.env.HEAD_SHA} within 10 minutes.`);
+
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - name: Install MP4 encoder
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends --yes ffmpeg
+
+      - name: Issue temporary Vercel trusted-source token
+        id: vercel-oidc
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const token = await core.getIDToken();
+            core.setSecret(token);
+            core.setOutput("token", token);
+
+      - name: Run deterministic review journey
+        id: review
+        continue-on-error: true
+        env:
+          PLAYWRIGHT_BASE_URL: ${{ steps.preview.outputs.url }}
+          VERCEL_GITHUB_OIDC_TOKEN: ${{ steps.vercel-oidc.outputs.token }}
+        run: pnpm test:e2e
+
+      - name: Package current-head evidence
+        if: always()
+        env:
+          PLAYWRIGHT_BASE_URL: ${{ steps.preview.outputs.url }}
+          VISUAL_REVIEW_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          VISUAL_REVIEW_PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: node scripts/visual-review/package-evidence.mjs
+
+      - name: Upload visual-review evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: visual-review-pr-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
+          path: .artifacts/playwright/
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Preserve the Playwright result
+        if: always() && steps.review.outcome != 'success'
+        run: exit 1
+
+  gate:
+    name: Visual review gate
+    needs: [classify, playwright]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve the visual-review result
+        env:
+          CLASSIFY_RESULT: ${{ needs.classify.result }}
+          PLAYWRIGHT_REQUIRED: ${{ needs.classify.outputs.run }}
+          PLAYWRIGHT_RESULT: ${{ needs.playwright.result }}
+          REASON: ${{ needs.classify.outputs.reason }}
+        shell: bash
+        run: |
+          if [[ "$CLASSIFY_RESULT" != "success" ]]; then
+            echo "UI-impact classification did not succeed." >&2
+            exit 1
+          fi
+
+          if [[ "$PLAYWRIGHT_REQUIRED" == "true" && "$PLAYWRIGHT_RESULT" != "success" ]]; then
+            echo "Playwright was required but ended in $PLAYWRIGHT_RESULT." >&2
+            exit 1
+          fi
+
+          if [[ "$PLAYWRIGHT_REQUIRED" == "true" ]]; then
+            echo "Visual review passed: $REASON" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Visual review skipped: $REASON" >> "$GITHUB_STEP_SUMMARY"
+          fi

@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "test": "node --test --import tsx tests/*.test.ts",
+    "test:e2e": "playwright test --project=review",
     "start": "next start",
     "postbuild": "next-sitemap --config next-sitemap.config.mjs",
     "sync:notion": "node scripts/sync-github-to-notion.js",
@@ -30,6 +31,7 @@
   "devDependencies": {
     "@mdx-js/loader": "^2.3.0",
     "@next/mdx": "16.3.0",
+    "@playwright/test": "^1.62.1",
     "@tailwindcss/typography": "^0.5.10",
     "@types/node": "^20.12.12",
     "@types/react": "^18.3.3",
