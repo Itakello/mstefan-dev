@@ -1,32 +1,24 @@
-<!-- itakello-policy: pr-template@2 -->
-
-## 🎯 Intent
-
-<!-- What problem, constraint, or opportunity caused this change? -->
-
-## ✨ Outcome
-
-<!-- What is now different for a user, operator, or maintainer? -->
-
-## 🛡️ Boundaries and risk
-
-<!-- What deliberately did not change? Name material risk when present. -->
-
-## ✅ Verification
-
-<!-- List the checks or observations that support the outcome. -->
+<!-- itakello-policy: pr-template@3 -->
 
 <!--
-Optional: include technical detail only when it helps review.
+Briefly explain why this change was necessary, then describe the actual changed behavior for a user, operator, or maintainer. Headings are optional.
+
+Add a limitation, migration, rollback, or risk section only when it changes the review or release decision.
+
+Use a collapsed details block only when implementation detail helps the reviewer navigate the diff:
 
 <details>
 <summary>Implementation details</summary>
 
-Concise details that are not already obvious from the diff.
+Concise, decision-relevant detail.
 
 </details>
 
-Optional: add a Task section only when a real task exists.
-Optional: add migration or rollback guidance only when the change needs it.
-Delete irrelevant sections; do not leave empty headings or N/A placeholders.
+When a real owning task exists, add a final section and keep it last:
+
+## Task
+
+[Owning task](https://linear.app/...)
+
+Do not paste routine check logs or visual-review recordings here. GitHub checks own routine verification output; Linear owns video evidence.
 -->
