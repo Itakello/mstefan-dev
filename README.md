@@ -1,6 +1,6 @@
 ## mstefan.dev — Minimal, fast portfolio
 
-Next.js 14 App Router portfolio with TypeScript, Tailwind CSS, MDX support, and an approval-gated Notion + GitHub project catalog.
+Next.js 16 App Router portfolio with TypeScript, Tailwind CSS, MDX support, and an approval-gated Notion + GitHub project catalog.
 
 - **Live**: `https://mstefan.dev`
 
@@ -12,7 +12,7 @@ Next.js 14 App Router portfolio with TypeScript, Tailwind CSS, MDX support, and 
 - **Utility scripts** to preview missing Notion rows and generate evidence-grounded repository proposals for review.
 
 ## Tech stack
-- **Next.js 14 (App Router)**
+- **Next.js 16 (App Router)**
 - **TypeScript**
 - **Tailwind CSS** (+ typography)
 - **MDX** via `@next/mdx`
@@ -21,13 +21,13 @@ Next.js 14 App Router portfolio with TypeScript, Tailwind CSS, MDX support, and 
 - **next-sitemap** for sitemap/robots
 
 ## Requirements
-- Node.js 18.17+ (recommended: latest LTS)
-- pnpm (or npm/yarn). This repo uses pnpm: `pnpm@10`.
+- Node.js 20.9+ (required by the locked Next.js version).
+- pnpm 10.14.0, as pinned in `package.json`.
 - Codex CLI `0.146.0` for `extract:repository-technologies`. Install the validated version with `npm install -g @openai/codex@0.146.0`, authenticate with `codex login` (or `printenv OPENAI_API_KEY | codex login --with-api-key`), then confirm both access and the supported version with `codex login status` and `codex --version`.
 
 ## Quick start
 ```bash
-pnpm i   # or: npm i / yarn
+pnpm install --frozen-lockfile
 pnpm dev
 # open http://localhost:3000
 ```
@@ -147,7 +147,7 @@ never receives the API key.
 1. Push to GitHub.
 2. Import the repo in Vercel.
 3. Set env vars as needed (see above).
-4. Build command: `next build`.
+4. Build command: `pnpm build` (runs `next build` and the `postbuild` script).
 5. After build, `postbuild` runs `next-sitemap` and writes sitemap/robots into `public/`.
 6. Configure your custom domain in Vercel.
 
