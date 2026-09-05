@@ -1,99 +1,58 @@
-const POLICY_MARKER = "<!-- itakello-policy: pr-template@2 -->";
+const POLICY_MARKER = "<!-- itakello-policy: pr-template@3 -->";
+const EMOJI = /[\p{Extended_Pictographic}\p{Emoji_Modifier}\p{Regional_Indicator}\u20E3]/u;
 
-const REQUIRED_SEMANTICS = new Map([
-  ["why", ["why", "intent", "motivation", "problem", "purpose", "rationale", "context"]],
-  ["outcome", ["outcome", "what changed", "result"]],
-  ["boundaries", ["boundaries", "boundaries and risk", "scope", "risks and boundaries", "risk"]],
-  ["proof", ["verification", "proof", "testing"]],
-]);
-
-function normalizeHeading(value) {
-  return value
-    .toLowerCase()
-    .replace(/[`*_]/g, "")
-    .replace(/[\p{Extended_Pictographic}\uFE0F]/gu, "")
-    .replace(/[:?!.,]+$/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function visibleText(value) {
-  return value
-    .replace(/<details>[\s\S]*?<\/details>/gi, "")
-    .replace(/<!--[\s\S]*?-->/g, "")
-    .replace(/<\/?(?:details|summary)>/gi, "")
-    .replace(/^\s*[-*+]\s*$/gm, "")
-    .trim();
-}
-
-function isPlaceholder(value) {
-  return value.split("\n").some((line) => {
-    const withoutListMarker = line.replace(/^\s*[-*+]\s+/, "").trim();
-    return /^(?:n\/a|not applicable|tbd|todo)(?:\b|[\s:—-])/i.test(
-      withoutListMarker,
-    );
+// Check source conventions only; rendered and semantic completeness are advisory.
+function sourceLines(body) {
+  const lines = body.replace(/<!--[^]*?(?:-->|$)/g, "").split(/\r?\n/);
+  let fence = null;
+  return lines.map((line) => {
+    const delimiter = line.match(/^ {0,3}(`{3,}|~{3,})(.*)$/);
+    if (fence) {
+      if (delimiter && delimiter[1][0] === fence[0] &&
+          delimiter[1].length >= fence.length && !delimiter[2].trim()) fence = null;
+      return "";
+    }
+    if (delimiter) { fence = delimiter[1]; return ""; }
+    return line;
   });
 }
 
-function sections(body) {
-  const matches = [...body.matchAll(/^#{2,6}\s+(.+?)\s*$/gm)];
-
-  return matches.map((match, index) => ({
-    heading: normalizeHeading(match[1]),
-    content: body.slice(
-      match.index + match[0].length,
-      matches[index + 1]?.index ?? body.length,
-    ),
-  }));
-}
-
-export function validatePullRequestBody(body) {
+export function validatePullRequestBody(body, title = "") {
   const errors = [];
-
-  if (!body.includes(POLICY_MARKER)) {
-    errors.push(`missing policy marker ${POLICY_MARKER}`);
+  if (!body.includes(POLICY_MARKER)) errors.push(`missing policy marker ${POLICY_MARKER}`);
+  if (EMOJI.test(title)) errors.push("pull request title contains emoji");
+  const lines = sourceLines(body);
+  const headings = lines.flatMap((line, index) => {
+    const match = line.match(/^ {0,3}(#{1,6})(?:[ \t]+(.*?))?[ \t]*$/);
+    return match ? [{ index, level: match[1].length, text: (match[2] ?? "").replace(/[ \t]+#+$/, "") }] : [];
+  });
+  for (const heading of headings) {
+    if (EMOJI.test(heading.text)) errors.push("ATX heading contains emoji");
   }
-
-  const parsedSections = sections(body);
-
-  for (const section of parsedSections) {
-    const content = visibleText(section.content);
-
-    if (!content) {
-      errors.push(`section "${section.heading}" is empty; remove it or add content`);
-    } else if (isPlaceholder(content)) {
-      errors.push(`section "${section.heading}" contains a placeholder`);
+  const tasks = headings.filter(({ text }) => text.trim().toLowerCase() === "task");
+  const task = tasks[0];
+  if (tasks.length > 1) errors.push("use only one Task section");
+  if (task) {
+    if (task.level !== 2) errors.push("task section must use a level-two heading");
+    if (headings.some(({ index }) => index > task.index)) errors.push("task section must be last");
+    if (!/https?:\/\/\S+/.test(lines.slice(task.index + 1).join("\n"))) {
+      errors.push("task section must contain a link");
     }
   }
-
-  for (const [meaning, aliases] of REQUIRED_SEMANTICS) {
-    const section = parsedSections.find(({ heading }) => aliases.includes(heading));
-
-    if (!section) {
-      errors.push(`missing ${meaning} section`);
-    } else if (!visibleText(section.content)) {
-      errors.push(`${meaning} section has no narrative`);
-    }
-  }
-
+  const headingLines = new Set(headings.map(({ index }) => index));
+  const narrative = lines.filter((line, index) =>
+    !headingLines.has(index) && (!task || index < task.index)
+  ).join("\n").trim();
+  if (!narrative) errors.push("pull request narrative is empty");
   return errors;
 }
 
-function main() {
-  const errors = validatePullRequestBody(process.env.PR_BODY ?? "");
-
-  if (errors.length > 0) {
-    console.error("Pull request body does not follow PR policy v2:");
-    for (const error of errors) {
-      console.error(`- ${error}`);
-    }
-    process.exitCode = 1;
-    return;
-  }
-
-  console.log("Pull request body follows PR policy v2.");
-}
-
 if (import.meta.url === `file://${process.argv[1]}`) {
-  main();
+  const errors = validatePullRequestBody(process.env.PR_BODY ?? "", process.env.PR_TITLE ?? "");
+  if (errors.length) {
+    console.error(errors.join("\n"));
+    process.exitCode = 1;
+  } else {
+    console.log("Pull request source follows PR policy v3.");
+  }
 }
