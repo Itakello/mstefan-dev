@@ -147,7 +147,7 @@ never receives the API key.
 1. Push to GitHub.
 2. Import the repo in Vercel.
 3. Set env vars as needed (see above).
-4. Build command: `pnpm build` (runs `next build` and the `postbuild` script).
+4. Build command: `pnpm build`.
 5. After build, `postbuild` runs `next-sitemap` and writes sitemap/robots into `public/`.
 6. Configure your custom domain in Vercel.
 
