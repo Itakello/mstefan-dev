@@ -34,7 +34,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
     const project = projectsByTitle.get(title);
     return project ? [project] : [];
   });
-  const toolkitEntries = stackCatalog.entries.filter((entry) => entry.websiteVisible);
+  const toolkitEntries = stackCatalog.entries;
   const publicationView = publication.message
     ? projectPublicationView(locale, publication.message)
     : null;

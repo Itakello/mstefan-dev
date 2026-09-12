@@ -22,7 +22,7 @@ export interface RepositorySyncProposal {
     name: string;
     evidenceCategory: EvidenceCategory;
     stackMatch:
-      | { status: "matched"; name: string; category: string; websiteVisible: boolean }
+      | { status: "matched"; name: string; category: string }
       | { status: "missing" | "not-checked"; suggestedCategory: string };
     evidence: Array<{ path: string; detail: string }>;
   }>;

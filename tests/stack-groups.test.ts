@@ -28,7 +28,6 @@ function stack(name: string, category: string): StackEntry {
     name,
     category,
     iconKey: "lucide:box",
-    websiteVisible: true,
   };
 }
 

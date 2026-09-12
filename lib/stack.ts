@@ -6,7 +6,6 @@ export type StackEntry = {
   category: string;
   iconKey: string;
   proficiency?: string;
-  websiteVisible: boolean;
 };
 
 export type StackGroup = {

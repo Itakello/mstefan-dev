@@ -176,7 +176,6 @@ export function parseStackPage(page: any): StackEntry {
   const name = richText(properties.Name?.title);
   const iconKey = richText(properties["Icon key"]?.rich_text);
   const category = properties.Category?.select?.name as string | undefined;
-  const websiteVisible = properties["Website visible"]?.checkbox;
   const pageId = page.id ?? "unknown";
 
   if (!name) throw new Error(`Invalid Stack row ${pageId}: Name is required`);
@@ -184,16 +183,12 @@ export function parseStackPage(page: any): StackEntry {
   if (!isStackIconSource(iconKey)) {
     throw new Error(`Invalid Stack row ${pageId}: Icon key must use collection:icon format or an approved Notion asset URL`);
   }
-  if (typeof websiteVisible !== "boolean") {
-    throw new Error(`Invalid Stack row ${pageId}: Website visible must be a checkbox`);
-  }
 
   return {
     name,
     iconKey,
     category,
-    proficiency: properties.Proficiency?.select?.name ?? undefined,
-    websiteVisible
+    proficiency: properties.Proficiency?.select?.name ?? undefined
   };
 }
 
