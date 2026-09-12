@@ -8,9 +8,9 @@ import {
 } from "../lib/stack";
 
 const catalog: StackEntry[] = [
-  { name: "TypeScript", category: "Language", iconKey: "simple-icons:typescript", websiteVisible: true },
-  { name: "Next.js", category: "Framework", iconKey: "simple-icons:nextdotjs", websiteVisible: true },
-  { name: "Loguru", category: "Library", iconKey: "simple-icons:python", websiteVisible: false },
+  { name: "TypeScript", category: "Language", iconKey: "simple-icons:typescript" },
+  { name: "Next.js", category: "Framework", iconKey: "simple-icons:nextdotjs" },
+  { name: "Loguru", category: "Library", iconKey: "simple-icons:python" },
 ];
 
 test("builds one canonical technology label list", () => {
