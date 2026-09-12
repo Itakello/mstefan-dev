@@ -9,7 +9,6 @@ const iconifyEntry: StackEntry = {
   name: "Firebase",
   category: "Cloud",
   iconKey: "logos:firebase",
-  websiteVisible: true,
 };
 
 const externalIconEntry: StackEntry = {

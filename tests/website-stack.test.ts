@@ -6,7 +6,7 @@ import { loadWebsiteStack, validateStackIcons } from "../lib/websiteStack";
 import { stackPublicationMessage } from "../lib/i18n/copy";
 
 const liveStack: StackEntry[] = [
-  { name: "TypeScript", category: "Language", iconKey: "logos:typescript-icon", websiteVisible: true }
+  { name: "TypeScript", category: "Language", iconKey: "logos:typescript-icon" }
 ];
 test("returns valid live data in production", async () => {
   let validated = false;
@@ -136,7 +136,7 @@ test("validates a trusted external icon at its source URL", async () => {
   let requestedMethod = "";
 
   await validateStackIcons(
-    [{ name: "Loguru", category: "Library", iconKey, websiteVisible: false }],
+    [{ name: "Loguru", category: "Library", iconKey }],
     async (input, init) => {
       requestedUrl = String(input);
       requestedMethod = init?.method ?? "";

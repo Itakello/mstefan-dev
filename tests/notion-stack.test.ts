@@ -10,19 +10,17 @@ function stackPage(overrides: Record<string, unknown> = {}) {
       Name: { title: [{ plain_text: "TypeScript" }] },
       Category: { select: { name: "Language" } },
       "Icon key": { rich_text: [{ plain_text: "logos:typescript-icon" }] },
-      "Website visible": { checkbox: false },
       ...overrides
     }
   };
 }
 
-test("parses a complete hidden Stack row", () => {
+test("parses a Stack row without a visibility property", () => {
   assert.deepEqual(parseStackPage(stackPage()), {
     name: "TypeScript",
     category: "Language",
     iconKey: "logos:typescript-icon",
-    proficiency: undefined,
-    websiteVisible: false
+    proficiency: undefined
   });
 });
 
@@ -44,10 +42,6 @@ test("rejects missing required fields and invalid Iconify keys", () => {
   assert.throws(
     () => parseStackPage(stackPage({ "Icon key": { rich_text: [{ plain_text: "https://example.com/icon.png" }] } })),
     /approved Notion asset URL/
-  );
-  assert.throws(
-    () => parseStackPage(stackPage({ "Website visible": {} })),
-    /Website visible must be a checkbox/
   );
 });
 

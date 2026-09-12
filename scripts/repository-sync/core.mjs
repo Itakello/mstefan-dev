@@ -146,7 +146,6 @@ export function buildRepositorySyncProposal({ repository, evidenceManifest, publ
             status: "matched",
             name: stackEntry.name,
             category: stackEntry.category,
-            websiteVisible: Boolean(stackEntry.websiteVisible),
           }
         : {
             status: stackCatalog.length > 0 ? "missing" : "not-checked",

@@ -47,8 +47,8 @@ test("creates an approval-gated proposal from detected and curated evidence", ()
     evidenceManifest,
     publicTechnologyManifest,
     stackCatalog: [
-      { name: "TypeScript", category: "Language", websiteVisible: true },
-      { name: "Notion", category: "SaaS", websiteVisible: false },
+      { name: "TypeScript", category: "Language" },
+      { name: "Notion", category: "SaaS" },
     ],
   });
 
@@ -69,11 +69,11 @@ test("creates an approval-gated proposal from detected and curated evidence", ()
     [
       {
         name: "TypeScript",
-        stackMatch: { status: "matched", name: "TypeScript", category: "Language", websiteVisible: true },
+        stackMatch: { status: "matched", name: "TypeScript", category: "Language" },
       },
       {
         name: "Notion",
-        stackMatch: { status: "matched", name: "Notion", category: "SaaS", websiteVisible: false },
+        stackMatch: { status: "matched", name: "Notion", category: "SaaS" },
       },
     ],
   );
