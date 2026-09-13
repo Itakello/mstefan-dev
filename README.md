@@ -29,7 +29,7 @@ Next.js 16 App Router portfolio with TypeScript, Tailwind CSS, MDX support, and 
 ```bash
 pnpm install --frozen-lockfile
 pnpm dev
-# open http://localhost:3000
+# open http://127.0.0.1:3000
 ```
 
 ## Configure and personalize
