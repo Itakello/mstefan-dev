@@ -151,6 +151,21 @@ never receives the API key.
 5. After build, `postbuild` runs `next-sitemap` and writes sitemap/robots into `public/`.
 6. Configure your custom domain in Vercel.
 
+## Container test preparation (BuildKit)
+
+The Dockerfile builds with Node 24.14.0 and the pnpm version pinned in `package.json`. Supply a protected, shell-compatible environment file outside the build context containing only `NOTION_TOKEN`, `NOTION_DATABASE_ID`, `NOTION_STACK_DATABASE_ID`, and optionally `GITHUB_TOKEN`:
+
+```sh
+docker build --secret id=notion_env,src=/absolute/protected/notion.env -t mstefan-dev:test .
+docker run --rm --env-file /absolute/protected/notion.env -p 127.0.0.1:3000:3000 mstefan-dev:test
+```
+
+Build credentials are mounted through BuildKit secrets, never build arguments or image environment variables. Both build and runtime use strict production publication validation; unavailable or invalid canonical Notion content blocks the build. The same read credentials are needed at runtime for revalidation. Use a file compatible with both POSIX shell assignments and Docker `--env-file`; do not include webhook credentials. Secret changes do not invalidate Docker's build cache, so rebuild with `--no-cache` when validating changed credentials or fresh publication content.
+
+The container runs as a non-root user on port 3000, with an HTTP health check at `/en/about`. Its writable Next.js cache is disposable; no application data volume is required for a single-instance test. Verify localized Home/Projects content and Open Graph images separately from the health check. Use an isolated hostname with access restriction or proxy-level noindex: canonical URLs and sitemap still point to `mstefan.dev`. Preserve production DNS, Vercel deployment, and webhook subscriptions.
+
+This is generic BuildKit preparation. Openship build-secret mounting and protected runtime environment injection remain unverified; do not substitute build arguments or copy credentials into the image if those capabilities are unavailable.
+
 ## Project structure
 ```text
 app/                # App Router pages and routes
