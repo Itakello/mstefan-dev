@@ -1,6 +1,6 @@
 ## mstefan.dev — Minimal, fast portfolio
 
-Next.js 14 App Router portfolio with TypeScript, Tailwind CSS, MDX support, and an approval-gated Notion + GitHub project catalog.
+Next.js 16.3.0 App Router portfolio with TypeScript, Tailwind CSS, MDX support, and an approval-gated Notion + GitHub project catalog.
 
 - **Live**: `https://mstefan.dev`
 
