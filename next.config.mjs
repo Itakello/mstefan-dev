@@ -7,6 +7,7 @@ const withMDX = createMDX({
 
 const nextConfig = {
   typedRoutes: true,
+  ...(process.env.PAYLOAD_LOCAL_PROTOTYPE === "1" ? { allowedDevOrigins: ["127.0.0.1"] } : {}),
   experimental: {
     mdxRs: true
   },
