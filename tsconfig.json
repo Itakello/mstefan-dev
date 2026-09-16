@@ -18,6 +18,7 @@
     "jsx": "react-jsx",
     "incremental": true,
     "paths": {
+      "@payload-config": ["./payload.config.ts"],
       "@/*": [
         "./*"
       ]

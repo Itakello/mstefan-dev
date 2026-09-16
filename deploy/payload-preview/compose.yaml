@@ -1,0 +1,44 @@
+name: mstefan-payload-preview
+services:
+  preview:
+    build:
+      context: ../..
+      dockerfile: deploy/payload-preview/Dockerfile
+    init: true
+    restart: "on-failure:3"
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: development
+      NEXT_TELEMETRY_DISABLED: "1"
+      PAYLOAD_LOCAL_PROTOTYPE: "1"
+      PAYLOAD_DATA_DIR: /data
+      NOTION_TOKEN: ""
+      NOTION_DATABASE_ID: ""
+      NOTION_STACK_DATABASE_ID: ""
+      GITHUB_TOKEN: ""
+      GITHUB_WEBHOOK_SECRET: ""
+      NOTION_WEBHOOK_BOOTSTRAP_PUBLIC_KEY: ""
+      NOTION_WEBHOOK_VERIFICATION_TOKEN: ""
+    ports:
+      - "127.0.0.1:3101:3000"
+    volumes:
+      - preview-data:/data
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/en/about').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 20s
+      start_period: 120s
+      retries: 3
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+volumes:
+  preview-data:
+    name: mstefan-payload-preview-data

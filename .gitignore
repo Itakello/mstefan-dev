@@ -36,3 +36,10 @@ pnpm-debug.log*
 
 # Misc
 *.log
+
+# Local-only Payload prototype
+.payload-local.db*
+payload-types.ts
+*.tsbuildinfo
+
+.payload-media/
