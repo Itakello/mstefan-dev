@@ -1,0 +1,24 @@
+# Private Payload production runtime
+
+Build with `docker build -f deploy/payload-production/Dockerfile .`. Run one instance with container port 3000 behind the existing private deployment route. No public cutover is included.
+
+For the private deployment set `SITE_DEPLOYMENT=private`. Without that explicit setting, production requires valid Notion/GitHub publication sources and fails closed. Provide `PAYLOAD_SECRET` from the approved secret store (at least 32 characters), and mount persistent storage writable by UID 1000 at `/data`. Keep the same secret across restarts. The volume contains `.payload-local.db` and `.payload-media/`; back up and restore them together using a SQLite-consistent database copy. Do not mount the running preview's volume into this runtime.
+
+The container runs committed migrations before starting Next.js in production mode. New databases initialize bilingual page copy; existing published content and drafts are preserved. Project and Stack publication remain in Notion. The initial private deployment may omit those integrations; it displays their unconfigured state. Public deployment still requires verified Notion/GitHub configuration and publication validation.
+
+For a copy of the existing development preview, stop the target runtime, verify a recoverable backup, and run `pnpm migrate:baseline-preview` once in the production image with the copied volume and secret. This compares all table columns, indexes and foreign keys against a freshly migrated temporary database, rejects schema drift, and only records matching migration history. Then start normally. Never use the interactive development-schema migration prompt against the original preview database.
+
+The admin Publish button publishes only the active language by default; the secondary all-languages action remains explicit. The About photo is shared across languages. Anonymous requests may access only the photo currently referenced by the published About page. Uploaded or replaced photos remain available to authenticated editors.
+
+Outbound email is explicitly disabled, so password-reset links are never written to application logs. Account recovery must use the existing authenticated admin/approved recovery procedure; email delivery is not configured.
+
+## Verification
+
+Use Node 24 and a free registered local website port, `127.0.0.1:3000`:
+
+- `pnpm test`
+- `pnpm exec tsc --noEmit`
+- `PAYLOAD_SECRET=build-only-placeholder-not-a-runtime-secret PAYLOAD_DATA_DIR=/tmp/payload-build pnpm build`
+- `pnpm test:cms`
+
+CMS tests create disposable databases and an isolated production server, block external provider fetches, exercise the actual admin Publish button, check draft/media privacy, and verify restart persistence. They require installed Playwright Chromium and never use an existing database or account.

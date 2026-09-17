@@ -3,7 +3,7 @@ import { createRequire } from "node:module";
 import test from "node:test";
 
 const require = createRequire(import.meta.url);
-const { buildNotionProperties } = require("../scripts/sync-github-to-notion.js");
+const { buildNotionProperties } = require("../scripts/sync-github-to-notion.cjs");
 
 test("maps GitHub language to the live Notion multi-select schema", () => {
   const properties = buildNotionProperties({

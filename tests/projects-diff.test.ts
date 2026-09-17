@@ -3,7 +3,7 @@ import test from "node:test";
 
 import { NextRequest } from "next/server";
 
-import { createProjectsDiffRoute, fetchGitHubRepos } from "../app/api/projects/diff/route";
+import { createProjectsDiffRoute, fetchGitHubRepos } from "../lib/projectsDiffRoute";
 
 const request = new NextRequest("https://mstefan.dev/api/projects/diff");
 const repository = {

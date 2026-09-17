@@ -1,3 +1,4 @@
+import { publicationEnvironment } from "@/lib/publicationEnvironment";
 import { fetchStackFromNotion } from "@/lib/notion";
 import { isTrustedExternalIcon, stackIconUrl, type StackEntry } from "@/lib/stack";
 
@@ -53,7 +54,7 @@ export type WebsiteStackState = {
 
 export async function loadWebsiteStack({
   fetchStack = fetchStackFromNotion,
-  vercelEnv = process.env.VERCEL_ENV,
+  vercelEnv = publicationEnvironment(),
   validateStack = validateStackIcons
 }: WebsiteStackOptions = {}): Promise<WebsiteStackState> {
   try {
