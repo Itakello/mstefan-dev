@@ -9,4 +9,5 @@ test('self-hosted production requires valid publication sources unless explicitl
   assert.equal(publicationEnvironment({ NODE_ENV: 'production', SITE_DEPLOYMENT: 'typo' }), 'production');
   assert.equal(publicationEnvironment({ NODE_ENV: 'development' }), undefined);
   assert.equal(publicationEnvironment({ NODE_ENV: 'production', VERCEL_ENV: 'preview' }), 'preview');
+  assert.equal(publicationEnvironment({ NODE_ENV: 'production', VERCEL_ENV: 'production', SITE_DEPLOYMENT: 'private' }), 'production');
 });

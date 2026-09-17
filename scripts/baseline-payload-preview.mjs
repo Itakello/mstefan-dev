@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, rmSync, statSync } from 'node:fs';
+import { existsSync, mkdtempSync, rmSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
@@ -8,7 +8,7 @@ import { DatabaseSync } from 'node:sqlite';
 const dataDir = process.env.PAYLOAD_DATA_DIR;
 if (!dataDir || !path.isAbsolute(dataDir)) throw new Error('An absolute PAYLOAD_DATA_DIR is required. Run only against a stopped, backed-up copy of the preview volume.');
 const filename = path.join(dataDir, '.payload-local.db');
-if (!statSync(filename).isFile()) throw new Error('Preview database is missing.');
+if (!existsSync(filename) || !statSync(filename).isFile()) throw new Error('Preview database is missing.');
 const referenceDir = mkdtempSync(path.join(tmpdir(), 'payload-baseline-'));
 const quote = (value) => `"${value.replaceAll('"', '""')}"`;
 function schema(db) {
