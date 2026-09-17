@@ -144,6 +144,8 @@ jobs:
           node-version: 24
       - run: pnpm install --frozen-lockfile
       - run: pnpm test
+      - name: Verify Payload backup and replay
+        run: python3 -m unittest discover -s deploy/payload-production -p 'test_backup.py'
       - run: pnpm build
         env:
           PAYLOAD_SECRET: build-only-placeholder-not-a-runtime-secret

@@ -43,3 +43,4 @@ payload-types.ts
 *.tsbuildinfo
 
 .payload-media/
+__pycache__/
