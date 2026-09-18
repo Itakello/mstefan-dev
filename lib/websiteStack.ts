@@ -1,5 +1,6 @@
 import { publicationEnvironment } from "@/lib/publicationEnvironment";
 import { fetchStackFromNotion } from "@/lib/notion";
+import { PUBLICATION_CACHE_TAG, PUBLICATION_REVALIDATE_SECONDS } from "@/lib/publicationCache";
 import { isTrustedExternalIcon, stackIconUrl, type StackEntry } from "@/lib/stack";
 
 const MAX_STACK_ICON_WIDTH_RATIO = 2.5;
@@ -93,14 +94,17 @@ export async function validateStackIcons(
   entries: readonly StackEntry[],
   fetchIcon: typeof fetch = fetch
 ) {
-  await Promise.all(entries.map(async (entry) => {
+  let nextEntry = 0;
+  let failed = false;
+  async function validateEntry(entry: StackEntry) {
     if (entry.iconKey.startsWith("skill-icons:")) {
       throw new Error(`Invalid Stack data: unsupported icon collection for ${entry.name}`);
     }
 
     const externalIcon = isTrustedExternalIcon(entry.iconKey);
     const response = await fetchIcon(stackIconUrl(entry.iconKey), {
-      method: externalIcon ? "HEAD" : "GET"
+      method: externalIcon ? "HEAD" : "GET",
+      next: { revalidate: PUBLICATION_REVALIDATE_SECONDS, tags: [PUBLICATION_CACHE_TAG] }
     });
     if (!response.ok) {
       throw new Error(`Invalid Stack data: icon not found for ${entry.name}`);
@@ -114,6 +118,17 @@ export async function validateStackIcons(
       }
       if (hasFixedSingleTonePaint(svg)) {
         throw new Error(`Invalid Stack data: icon cannot adapt across themes for ${entry.name}`);
+      }
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(4, entries.length) }, async () => {
+    while (!failed && nextEntry < entries.length) {
+      const entry = entries[nextEntry++];
+      try {
+        await validateEntry(entry);
+      } catch (error) {
+        failed = true;
+        throw error;
       }
     }
   }));
