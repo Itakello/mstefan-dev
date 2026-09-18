@@ -18,6 +18,7 @@ mkdirSync(evidenceDirectory, { recursive: true });
 
 const metadata = {
   schemaVersion: 1,
+  source: process.env.VISUAL_REVIEW_SOURCE ?? "unspecified",
   repository: process.env.GITHUB_REPOSITORY ?? null,
   pullRequest: process.env.VISUAL_REVIEW_PR_NUMBER ?? null,
   headSha: process.env.VISUAL_REVIEW_HEAD_SHA ?? null,

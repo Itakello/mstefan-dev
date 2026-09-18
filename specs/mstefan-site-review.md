@@ -10,7 +10,7 @@
 
 ### Starting state
 
-- Use the exact successful Vercel Preview deployment for the pull-request head SHA.
+- Use the isolated production build of the exact pull-request head SHA, with disposable Payload SQLite seeded from the checked-in bilingual copy. External integrations are offline; this evidence does not validate live Notion data or deployment.
 - Use a fresh Chromium context at a 1280 × 720 viewport.
 - Start in light mode.
 
@@ -24,4 +24,4 @@
 
 ### Failure conditions
 
-Any missing assertion, unexpected route, browser error, unavailable preview, absent video, or evidence-packaging failure fails the review. The test must not be skipped, marked `fixme`, or healed by weakening an expectation.
+Any missing assertion, unexpected route, browser error, unavailable production fixture, absent video, or evidence-packaging failure fails the review. The test must not be skipped, marked `fixme`, or healed by weakening an expectation.
