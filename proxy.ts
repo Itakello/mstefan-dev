@@ -16,8 +16,9 @@ function persistLocale(response: NextResponse, locale: string) {
 
 export function proxy(request: NextRequest) {
   // Only the loopback-bound application port and SSH tunnel serve the CMS.
-  // The public reverse proxy preserves Host; forwarded headers are not trusted.
-  const privateHost = /^(?:localhost|127\.0\.0\.1|\[::1\])(?::\d+)?$/i.test(request.headers.get("host") ?? "");
+  // Openship always overwrites X-Real-IP. A spoofed loopback Host arriving
+  // through its TLS vhost must not acquire private access.
+  const privateHost = !request.headers.has("x-real-ip") && /^(?:localhost|127\.0\.0\.1|\[::1\])(?::\d+)?$/i.test(request.headers.get("host") ?? "");
   if (!privateHost) {
     let pathname: string;
     try { pathname = decodeURIComponent(request.nextUrl.pathname).replace(/\/+$/, ""); }

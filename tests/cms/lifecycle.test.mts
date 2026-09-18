@@ -127,6 +127,7 @@ test('production drafts, active-locale UI publishing, media privacy, and restart
   const publicPage = await publicRequest('/en/about', publicHeaders);
   assert.equal(publicPage.status, 200);
   assert.ok(!(await publicPage.text()).includes('en-private-draft'));
+  assert.equal((await publicRequest('/admin', { Host: 'localhost:3000', Cookie: cookie, 'X-Real-IP': '127.0.0.1' })).status, 404, 'Proxy requests with spoofed loopback Host must remain public');
   const browser = await chromium.launch({ headless: true });
   try {
     const context = await browser.newContext();
