@@ -71,6 +71,11 @@ export function LanguageSelector({ locale, compact = false }: { locale: Locale; 
   }
 
   function selectLocale(nextLocale: Locale) {
+    if (new URLSearchParams(window.location.search).get("preview") === "1" && window.parent !== window) {
+      window.parent.postMessage({ type: "mstefan:preview-locale", locale: nextLocale }, window.location.origin);
+      setOpen(false);
+      return;
+    }
     const publicPath: PublicPath = getPublicPathname(pathname ?? "/") ?? "/";
     const query = window.location.search;
     document.cookie = `site-locale=${nextLocale}; Path=/; Max-Age=31536000; SameSite=Lax`;

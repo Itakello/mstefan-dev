@@ -10,7 +10,6 @@ concurrency:
 
 permissions:
   contents: read
-  deployments: read
   pull-requests: read
 
 jobs:
@@ -40,72 +39,21 @@ jobs:
           node scripts/visual-review/classify.mjs "${args[@]}"
 
   playwright:
-    name: Playwright preview review
+    name: Playwright production fixture review
     needs: classify
     if: needs.classify.outputs.run == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    permissions:
-      contents: read
-      deployments: read
-      id-token: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           persist-credentials: false
 
-      - name: Wait for exact Vercel Preview
-        id: preview
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
-        env:
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        with:
-          script: |
-            const deadline = Date.now() + 10 * 60 * 1000;
-            const terminalFailures = new Set(["error", "failure", "inactive"]);
-
-            while (Date.now() < deadline) {
-              const { data: deployments } = await github.rest.repos.listDeployments({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                sha: process.env.HEAD_SHA,
-                environment: "Preview",
-                per_page: 20,
-              });
-              const deployment = deployments[0];
-
-              if (deployment) {
-                const { data: statuses } = await github.rest.repos.listDeploymentStatuses({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  deployment_id: deployment.id,
-                  per_page: 20,
-                });
-                const latest = statuses[0];
-                if (latest?.state === "success") {
-                  const url = latest.environment_url || latest.target_url;
-                  if (!url) throw new Error("Successful Preview deployment has no browser URL.");
-                  core.setOutput("url", url);
-                  await core.summary.addHeading("Exact Vercel Preview", 2)
-                    .addRaw(`Head SHA: ${process.env.HEAD_SHA}\n\nPreview: ${url}\n`)
-                    .write();
-                  return;
-                }
-                if (latest && terminalFailures.has(latest.state)) {
-                  throw new Error(`Vercel Preview deployment ended in ${latest.state}.`);
-                }
-              }
-
-              await new Promise((resolve) => setTimeout(resolve, 15_000));
-            }
-
-            throw new Error(`No successful Vercel Preview appeared for ${process.env.HEAD_SHA} within 10 minutes.`);
-
       - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: 20
+          node-version: 24
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
@@ -116,29 +64,19 @@ jobs:
           sudo apt-get update
           sudo apt-get install --no-install-recommends --yes ffmpeg
 
-      - name: Issue temporary Vercel trusted-source token
-        id: vercel-oidc
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
-        with:
-          script: |
-            const token = await core.getIDToken();
-            core.setSecret(token);
-            core.setOutput("token", token);
-
-      - name: Run deterministic review journey
+      - name: Run exact-head production fixture and review journey
         id: review
         continue-on-error: true
         env:
-          PLAYWRIGHT_BASE_URL: ${{ steps.preview.outputs.url }}
-          VERCEL_GITHUB_OIDC_TOKEN: ${{ steps.vercel-oidc.outputs.token }}
-        run: pnpm test:e2e
+          VISUAL_REVIEW_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: node scripts/visual-review/run-fixture.mjs
 
       - name: Package current-head evidence
         if: always()
         env:
-          PLAYWRIGHT_BASE_URL: ${{ steps.preview.outputs.url }}
           VISUAL_REVIEW_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           VISUAL_REVIEW_PR_NUMBER: ${{ github.event.pull_request.number }}
+          VISUAL_REVIEW_SOURCE: isolated-production-fixture-private-offline
         run: node scripts/visual-review/package-evidence.mjs
 
       - name: Upload visual-review evidence

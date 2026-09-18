@@ -3,6 +3,7 @@ import test from "node:test";
 
 import type { StackEntry } from "../lib/stack";
 import { loadWebsiteStack, validateStackIcons } from "../lib/websiteStack";
+import { PUBLICATION_CACHE_TAG, PUBLICATION_REVALIDATE_SECONDS } from "../lib/publicationCache";
 import { stackPublicationMessage } from "../lib/i18n/copy";
 
 const liveStack: StackEntry[] = [
@@ -146,4 +147,58 @@ test("validates a trusted external icon at its source URL", async () => {
 
   assert.equal(requestedUrl, iconKey);
   assert.equal(requestedMethod, "HEAD");
+});
+
+
+test("bounds cold Stack icon validation while checking every entry", async () => {
+  const entries = Array.from({ length: 46 }, (_, index) => ({
+    ...liveStack[0], iconKey: `logos:icon-${index}`,
+  }));
+  let inFlight = 0;
+  let maximum = 0;
+  const requested = new Set<string>();
+  let release!: () => void;
+  const blocked = new Promise<void>((resolve) => { release = resolve; });
+  const validation = validateStackIcons(entries, async (input) => {
+    requested.add(String(input));
+    maximum = Math.max(maximum, ++inFlight);
+    await blocked;
+    inFlight--;
+    return new Response('<svg viewBox="0 0 24 24"></svg>');
+  });
+  await new Promise((resolve) => setImmediate(resolve));
+  const initialRequests = requested.size;
+  release();
+  await validation;
+  assert.equal(initialRequests, 4);
+  assert.equal(maximum, 4);
+  assert.equal(requested.size, entries.length);
+});
+
+test("icon validation uses the publication revalidation and invalidation contract", async () => {
+  await validateStackIcons(liveStack, async (_input, init) => {
+    assert.deepEqual(init?.next, {
+      revalidate: PUBLICATION_REVALIDATE_SECONDS,
+      tags: [PUBLICATION_CACHE_TAG],
+    });
+    return new Response('<svg viewBox="0 0 24 24"></svg>');
+  });
+});
+
+
+test("stops scheduling icons after the first failure while in-flight requests settle", async () => {
+  const entries = Array.from({ length: 46 }, (_, index) => ({
+    ...liveStack[0], iconKey: `logos:icon-${index}`,
+  }));
+  const responses: Array<(response: Response) => void> = [];
+  const validation = validateStackIcons(entries, async () =>
+    new Promise<Response>((resolve) => { responses.push(resolve); })
+  );
+  const rejected = assert.rejects(validation, /icon not found/);
+  assert.equal(responses.length, 4);
+  responses[0](new Response(null, { status: 429, headers: { "Retry-After": "221" } }));
+  await rejected;
+  for (const resolve of responses.slice(1)) resolve(new Response('<svg viewBox="0 0 24 24"></svg>'));
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(responses.length, 4);
 });
