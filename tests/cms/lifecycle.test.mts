@@ -25,7 +25,9 @@ function publicRequest(url: string, headers: Record<string, string>) {
     const req = httpRequest(new URL(url, base), { headers, timeout: 5000 }, (res) => {
       const chunks: Buffer[] = [];
       res.on('data', (chunk) => chunks.push(chunk));
-      res.on('end', () => resolve(new Response(Buffer.concat(chunks), { status: res.statusCode })));
+      res.on('end', () => resolve(new Response(Buffer.concat(chunks), {
+        status: res.statusCode, headers: { 'cache-control': res.headers['cache-control'] ?? '' },
+      })));
       res.on('error', reject);
     });
     req.on('error', reject);
@@ -168,6 +170,7 @@ test('production drafts, active-locale UI publishing, media privacy, and restart
   assert.deepEqual(Buffer.from(await publicFile.arrayBuffer()), bytes);
   const publicHostFile = await publicRequest(media.url, publicHeaders);
   assert.equal(publicHostFile.status, 200);
+  assert.equal(publicHostFile.headers.get('cache-control'), 'no-store', 'Public CMS files must not enter browser or CDN caches');
   assert.deepEqual(Buffer.from(await publicHostFile.arrayBuffer()), bytes);
   const optimizedURL = `${base}/_next/image?url=${encodeURIComponent(media.url)}&w=640&q=75`;
   assert.equal((await publicRequest(optimizedURL, publicHeaders)).status, 404, 'CMS media must not enter the image optimizer cache');

@@ -33,7 +33,9 @@ export function proxy(request: NextRequest) {
       const headers = new Headers(request.headers);
       headers.delete("cookie");
       headers.delete("authorization");
-      return NextResponse.next({ request: { headers } });
+      const response = NextResponse.next({ request: { headers } });
+      response.headers.set("Cache-Control", "no-store");
+      return response;
     }
   }
   const explicitLocale = getExplicitLocale(request.nextUrl.pathname);
