@@ -1,3 +1,4 @@
+import { publicationEnvironment } from "@/lib/publicationEnvironment";
 import { fetchGitHubRepos, GITHUB_USER } from "@/lib/github";
 import type { Locale } from "@/lib/i18n/config";
 import { fetchProjectsFromNotion, type NotionProject } from "@/lib/notion";
@@ -31,7 +32,7 @@ export async function loadPublicProjects(
   {
     fetchProjects = fetchProjectsFromNotion,
     fetchRepos = fetchGitHubRepos,
-    vercelEnv = process.env.VERCEL_ENV,
+    vercelEnv = publicationEnvironment(),
   }: PublicProjectsLoaderOptions = {},
 ) {
   const [repos, notionResult] = await Promise.all([

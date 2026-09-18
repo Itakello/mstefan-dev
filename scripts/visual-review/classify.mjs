@@ -4,6 +4,9 @@ import { pathToFileURL } from "node:url";
 const exactPaths = new Set([
   ".github/workflows/visual-review.yml",
   "middleware.ts",
+  "proxy.ts",
+  "payload.config.ts",
+  "tests/cms/offline-fetch.mjs",
   "next.config.js",
   "next.config.mjs",
   "next.config.ts",
@@ -25,6 +28,7 @@ const pathPrefixes = [
   "components/",
   "e2e/",
   "lib/",
+  "migrations/",
   "public/",
   "scripts/visual-review/",
   "specs/",

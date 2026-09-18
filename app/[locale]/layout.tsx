@@ -9,6 +9,8 @@ import { INITIAL_THEME_SCRIPT } from "@/lib/theme";
 
 import "../globals.css";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   metadataBase: new URL("https://mstefan.dev"),
   title: { default: "Massimo Stefan", template: "%s · Massimo Stefan" },

@@ -54,3 +54,9 @@ test("review tests cannot silently suppress failures", () => {
     }
   }
 });
+
+test("CMS persistence and request-boundary changes require browser review", () => {
+  for (const file of ["payload.config.ts", "proxy.ts", "migrations/initial.ts", "tests/cms/offline-fetch.mjs"]) {
+    assert.equal(classifyVisualReview([file]).run, true, file);
+  }
+});

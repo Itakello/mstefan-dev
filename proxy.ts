@@ -15,6 +15,29 @@ function persistLocale(response: NextResponse, locale: string) {
 }
 
 export function proxy(request: NextRequest) {
+  // Only the loopback-bound application port and SSH tunnel serve the CMS.
+  // Openship always overwrites X-Real-IP. A spoofed loopback Host arriving
+  // through its TLS vhost must not acquire private access.
+  const privateHost = !request.headers.has("x-real-ip") && /^(?:localhost|127\.0\.0\.1|\[::1\])(?::\d+)?$/i.test(request.headers.get("host") ?? "");
+  if (!privateHost) {
+    let pathname: string;
+    try { pathname = decodeURIComponent(request.nextUrl.pathname).replace(/\/+$/, ""); }
+    catch { return new NextResponse(null, { status: 404 }); }
+    const api = pathname === "/api" || pathname.startsWith("/api/");
+    const media = pathname.startsWith("/api/media/file/") && ["GET", "HEAD"].includes(request.method);
+    const webhook = ["/api/webhooks/github", "/api/webhooks/notion"].includes(pathname) && request.method === "POST";
+    if (pathname === "/admin" || pathname.startsWith("/admin/") || request.nextUrl.searchParams.has("preview") || (api && !media && !webhook)) {
+      return new NextResponse(null, { status: 404, headers: { "Cache-Control": "no-store" } });
+    }
+    if (media) {
+      const headers = new Headers(request.headers);
+      headers.delete("cookie");
+      headers.delete("authorization");
+      const response = NextResponse.next({ request: { headers } });
+      response.headers.set("Cache-Control", "no-store");
+      return response;
+    }
+  }
   const explicitLocale = getExplicitLocale(request.nextUrl.pathname);
   if (explicitLocale) return persistLocale(NextResponse.next(), explicitLocale);
 
@@ -30,5 +53,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!admin|api|_next/static|_next/image|.*\\..*).*)"],
+  matcher: ["/((?!_next/static|_next/image).*)"],
 };
