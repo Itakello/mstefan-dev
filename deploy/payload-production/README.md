@@ -14,6 +14,8 @@ For a copy of the existing development preview, stop the target runtime, verify 
 
 The admin Publish button publishes only the active language by default; the secondary all-languages action remains explicit. The About photo is shared across languages. Anonymous requests may access only the photo currently referenced by the published About page. Uploaded or replaced photos remain available to authenticated editors.
 
+Administration, Payload APIs, and draft previews are available only through the loopback-bound application port or its private SSH tunnel. The reverse proxy must preserve the public Host header and reject unknown hosts; forwarded host headers do not grant private access. Public media requests discard CMS credentials and bypass the image optimizer cache so publication changes revoke access. Only signed webhook POST handlers and published media file GET/HEAD requests are exposed under `/api`.
+
 Use the [manual backup procedure](BACKUP.md) while all writers are stopped. Verify a restored copy in an isolated volume before relying on the archive for recovery; same-host archives do not protect against host loss.
 
 Outbound email is explicitly disabled, so password-reset links are never written to application logs. Account recovery must use the existing authenticated admin/approved recovery procedure; email delivery is not configured.

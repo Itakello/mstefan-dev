@@ -7,6 +7,7 @@ import path from 'node:path';
 import { randomBytes } from 'node:crypto';
 import { once } from 'node:events';
 import { createServer } from 'node:net';
+import { request as httpRequest } from 'node:http';
 import { chromium, expect } from '@playwright/test';
 
 const base = 'http://127.0.0.1:3000';
@@ -17,6 +18,21 @@ let server: ChildProcess | undefined;
 let serverLog = '';
 let cookie = '';
 let environment: NodeJS.ProcessEnv;
+
+function publicRequest(url: string, headers: Record<string, string>) {
+  // Raw HTTP preserves the Host override; newer fetch implementations discard it.
+  return new Promise<Response>((resolve, reject) => {
+    const req = httpRequest(new URL(url, base), { headers, timeout: 5000 }, (res) => {
+      const chunks: Buffer[] = [];
+      res.on('data', (chunk) => chunks.push(chunk));
+      res.on('end', () => resolve(new Response(Buffer.concat(chunks), { status: res.statusCode })));
+      res.on('error', reject);
+    });
+    req.on('error', reject);
+    req.on('timeout', () => req.destroy(new Error('Public request timed out')));
+    req.end();
+  });
+}
 
 async function request(url: string, data?: unknown, authenticated = false) {
   return fetch(`${base}${url}`, {
@@ -103,6 +119,14 @@ test('production drafts, active-locale UI publishing, media privacy, and restart
   const preview = await request('/en/about?preview=1', undefined, true);
   assert.equal(preview.status, 200);
   assert.ok((await preview.text()).includes('en-private-draft'));
+  const publicHeaders = { Host: 'mstefan.dev', Cookie: cookie, 'X-Forwarded-Host': 'localhost:3000' };
+  for (const url of ['/admin', '/admin/login', '/admin/login.json', '/%61dmin', '/api/users', '/api/users/first-register', '/api/globals/about?draft=true', '/api/graphql', '/en/about?preview=1']) {
+    const result = await publicRequest(url, publicHeaders);
+    assert.equal(result.status, 404, `Public CMS boundary failed: ${url}`);
+  }
+  const publicPage = await publicRequest('/en/about', publicHeaders);
+  assert.equal(publicPage.status, 200);
+  assert.ok(!(await publicPage.text()).includes('en-private-draft'));
   const browser = await chromium.launch({ headless: true });
   try {
     const context = await browser.newContext();
@@ -135,10 +159,17 @@ test('production drafts, active-locale UI publishing, media privacy, and restart
   }
   const authenticatedFile = await fetch(new URL(media.url, base), { headers: { Cookie: cookie } });
   assert.equal(authenticatedFile.status, 200);
+  const publicHostDraftFile = await publicRequest(media.url, publicHeaders);
+  assert.ok([401, 403, 404].includes(publicHostDraftFile.status), 'Public media accepted private CMS authentication');
   await update('about', 'en', { photo: media.id, _status: 'published' }, '&publishSpecificLocale=en');
   const publicFile = await fetch(new URL(media.url, base));
   assert.equal(publicFile.status, 200);
   assert.deepEqual(Buffer.from(await publicFile.arrayBuffer()), bytes);
+  const publicHostFile = await publicRequest(media.url, publicHeaders);
+  assert.equal(publicHostFile.status, 200);
+  assert.deepEqual(Buffer.from(await publicHostFile.arrayBuffer()), bytes);
+  const optimizedURL = `${base}/_next/image?url=${encodeURIComponent(media.url)}&w=640&q=75`;
+  assert.equal((await publicRequest(optimizedURL, publicHeaders)).status, 404, 'CMS media must not enter the image optimizer cache');
   await stop();
   await start();
   await publicTitle('en', 'en-published-from-ui');
@@ -153,6 +184,7 @@ test('production drafts, active-locale UI publishing, media privacy, and restart
   await update('about', 'en', { photo: null, _status: 'published' }, '&publishSpecificLocale=en');
   const removedFile = await fetch(new URL(media.url, base));
   assert.ok([401, 403, 404].includes(removedFile.status), 'Removed published image remained public');
+  assert.equal((await publicRequest(optimizedURL, publicHeaders)).status, 404);
   const privateFile = await fetch(new URL(media.url, base), { headers: { Cookie: cookie } });
   assert.equal(privateFile.status, 200);
   const secondRegistration = await request('/api/users/first-register', { email: 'another@example.invalid', password });
