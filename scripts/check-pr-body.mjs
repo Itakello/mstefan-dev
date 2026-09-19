@@ -3,8 +3,9 @@ const EMOJI = /[\p{Extended_Pictographic}\p{Emoji_Modifier}\p{Regional_Indicator
 
 // Check source conventions only; rendered and semantic completeness are advisory.
 function sourceLines(body) {
-  const lines = body.replace(/<!--[^]*?(?:-->|$)/g, "").split(/\r?\n/);
+  const lines = body.split(/\r?\n/);
   let fence = null;
+  let comment = false;
   return lines.map((line) => {
     const delimiter = line.match(/^ {0,3}(`{3,}|~{3,})(.*)$/);
     if (fence) {
@@ -12,8 +13,28 @@ function sourceLines(body) {
           delimiter[1].length >= fence.length && !delimiter[2].trim()) fence = null;
       return "";
     }
-    if (delimiter) { fence = delimiter[1]; return ""; }
-    return line;
+    if (!comment && delimiter &&
+        (delimiter[1][0] !== "`" || !delimiter[2].includes("`"))) {
+      fence = delimiter[1];
+      return "";
+    }
+    let visible = "";
+    let position = 0;
+    while (position < line.length) {
+      if (comment) {
+        const end = line.indexOf("-->", position);
+        if (end === -1) break;
+        comment = false;
+        position = end + 3;
+      } else {
+        const start = line.indexOf("<!--", position);
+        if (start === -1) { visible += line.slice(position); break; }
+        visible += line.slice(position, start);
+        comment = true;
+        position = start + 4;
+      }
+    }
+    return visible;
   });
 }
 
@@ -34,7 +55,7 @@ export function validatePullRequestBody(body, title = "") {
   if (tasks.length > 1) errors.push("use only one Task section");
   if (task) {
     if (task.level !== 2) errors.push("task section must use a level-two heading");
-    if (headings.some(({ index }) => index > task.index)) errors.push("task section must be last");
+    if (headings.some(({ index, level }) => index > task.index && level <= task.level)) errors.push("task section must be last");
     if (!/https?:\/\/\S+/.test(lines.slice(task.index + 1).join("\n"))) {
       errors.push("task section must contain a link");
     }
