@@ -6,20 +6,21 @@ The description explains the decision. The diff contains the implementation. Git
 
 ## Required narrative
 
-Every pull request must explain two things without making the reviewer reconstruct them from the diff:
+Write for a reviewer who has not read the task conversation. Explain the concrete problem or missing capability and the resulting behavior. For a fix, identify the trigger, consequence, and correction; for a new capability, explain what it enables. Derive the rationale from evidence; do not invent a failure to justify the change.
 
-- why the change was necessary;
-- what behavior is now different for a user, operator, or maintainer.
+Start with concise prose. Use examples, headings, lists, or tables when they clarify the change; no narrative sections or length targets are mandatory. Explain non-obvious choices when their rationale matters. Keep material limitations, compatibility effects, migration needs, and activation requirements beside the behavior they qualify.
 
-Use one or two short, concrete paragraphs or a compact list. Describe observable behavior before implementation detail. Headings are optional; do not create sections merely to satisfy a format. Do not use emoji in the title or section headings, and do not replace the narrative with a file-by-file changelog.
+Perform all required verification. Describe decision-relevant evidence by what was exercised, its result, and its limits. Disclose relevant failed or incomplete validation. Omit routine passing checks already visible in GitHub; retain relevant local or manual evidence. Link detailed records, using collapsed detail only when it helps review.
 
-## Include only when useful
+Rewrite the title and body for the final diff. Remove superseded plans, intermediate deployment history, private coordination references, and repetitive unchanged-scope lists. Reconcile the entire rendered body, including generated summaries.
 
-- Add a limitation, migration, rollback, or risk section only when it changes the review or release decision. Name the current limitation and its practical effect; omit speculative scope and future-process filler.
-- Put implementation detail in a collapsed `<details>` block only when it helps a reviewer navigate the diff.
-- When a real owning task exists, add a final `Task` section containing its link. Keep the task section last.
+## Format conventions
 
-Delete empty sections, placeholders, `N/A`, and compulsory feature, fix, or documentation checklists. Routine lint, test, build, and check logs belong in GitHub checks rather than the description. Visual-review recordings and other video evidence belong on the owning Linear issue, not in the pull request body.
+Do not use emoji in the title or section headings. Do not replace the narrative with a file-by-file changelog or compulsory feature, fix, or documentation checklists. Delete empty sections, placeholders, and `N/A`.
+
+When a real owning task exists, add a final `## Task` section containing its link. Keep the task section last.
+
+Visual-review recordings and other video evidence belong on the owning Linear issue, not in the pull request body. Required visual and runtime verification still applies.
 
 ## Automated review
 

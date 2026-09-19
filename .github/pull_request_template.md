@@ -1,24 +1,11 @@
 <!-- itakello-policy: pr-template@3 -->
 
 <!--
-Briefly explain why this change was necessary, then describe the actual changed behavior for a user, operator, or maintainer. Headings are optional.
+Explain the concrete problem or missing capability and the resulting behavior. Add an example or the reason for a non-obvious choice when useful.
 
-Add a limitation, migration, rollback, or risk section only when it changes the review or release decision.
+Include material limitations and decision-relevant verification. Disclose relevant failed or incomplete validation. Omit routine passing checks already visible in GitHub.
 
-Use a collapsed details block only when implementation detail helps the reviewer navigate the diff:
+Write for someone outside the task conversation. Describe the final change, remove placeholders, and reconcile generated summaries. Use structure only when helpful; no narrative sections are mandatory.
 
-<details>
-<summary>Implementation details</summary>
-
-Concise, decision-relevant detail.
-
-</details>
-
-When a real owning task exists, add a final section and keep it last:
-
-## Task
-
-[Owning task](https://linear.app/...)
-
-Do not paste routine check logs or visual-review recordings here. GitHub checks own routine verification output; Linear owns video evidence.
+When a real owning task exists, link it in a final ## Task section. Keep video evidence on the owning Linear issue.
 -->
