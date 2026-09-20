@@ -59,6 +59,17 @@ test.describe("Public website review", () => {
     await expect(page.getByRole("button", { name: "Toggle theme" }).first().locator(".lucide-sun")).toBeVisible();
     await page.getByRole("button", { name: "Toggle theme" }).first().click();
     await expect(page.locator("html")).not.toHaveClass(/\bdark\b/);
+
+    await page.setViewportSize({ width: 360, height: 800 });
+    await page.goto("/en");
+    await expect(page.locator("footer > div")).toHaveCSS("flex-direction", "column");
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+    await page.setViewportSize({ width: 400, height: 800 });
+    await expect(page.locator("footer > div")).toHaveCSS("flex-direction", "row");
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+    await page.goto("/it");
+    await expect(page.locator("footer > div")).toHaveCSS("flex-direction", "row");
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
     expect(browserErrors, browserErrors.join("\n")).toEqual([]);
   });
 });
