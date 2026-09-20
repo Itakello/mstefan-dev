@@ -5,6 +5,12 @@ import { expect, showReviewStep, test } from "./seed";
 
 test.describe("Public website review", () => {
   test("Review the primary bilingual visitor journey", async ({ page }) => {
+    const browserErrors: string[] = [];
+    page.on("pageerror", (error) => browserErrors.push(`Uncaught page error: ${error.message}`));
+    page.on("console", (message) => {
+      if (message.type() === "error") browserErrors.push(`Console error: ${message.text()}`);
+    });
+
     await page.addInitScript(() => localStorage.setItem("theme", "light"));
 
     // 1. Open the English home page and verify the primary introduction.
@@ -38,5 +44,7 @@ test.describe("Public website review", () => {
     await expect(page.getByRole("heading", { level: 1, name: "Profilo" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Progetti", exact: true })).toBeVisible();
     await showReviewStep(page, "5 · Italian localization");
+
+    expect(browserErrors, browserErrors.join("\n")).toEqual([]);
   });
 });
