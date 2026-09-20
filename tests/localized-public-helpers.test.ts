@@ -32,6 +32,18 @@ test("the proxy persists explicit locales and leaves unsupported locale segments
   assert.equal(unsupportedResponse.headers.get("location"), null);
 });
 
+test("the proxy redirects mixed-case locale prefixes and persists the canonical locale", () => {
+  const italian = proxy(new NextRequest("https://mstefan.dev/IT/about?tag=ai"));
+  const english = proxy(new NextRequest("https://mstefan.dev/EN"));
+  const englishProjects = proxy(new NextRequest("https://mstefan.dev/EN/projects"));
+
+  assert.equal(italian.headers.get("location"), "https://mstefan.dev/it/about?tag=ai");
+  assert.equal(italian.cookies.get("site-locale")?.value, "it");
+  assert.equal(english.headers.get("location"), "https://mstefan.dev/en");
+  assert.equal(english.cookies.get("site-locale")?.value, "en");
+  assert.equal(englishProjects.headers.get("location"), "https://mstefan.dev/en/projects");
+});
+
 test("localized copy and metadata expose the Italian page contract", () => {
   const metadata = getLocalizedMetadata("it", "projects");
   const italianCopy = getCopy("it");

@@ -39,7 +39,10 @@ export function proxy(request: NextRequest) {
     }
   }
   const explicitLocale = getExplicitLocale(request.nextUrl.pathname);
-  if (explicitLocale) return persistLocale(NextResponse.next(), explicitLocale);
+  if (explicitLocale) {
+    const destination = buildLocaleRedirectURL(request.nextUrl, explicitLocale);
+    return persistLocale(destination ? NextResponse.redirect(destination) : NextResponse.next(), explicitLocale);
+  }
 
   if (!isPublicPathname(request.nextUrl.pathname)) return NextResponse.next();
 

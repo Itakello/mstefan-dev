@@ -107,7 +107,15 @@ export function resolveLocale(params: {
 }
 
 export function buildLocaleRedirectURL(url: URL, locale: Locale): URL | null {
-  if (getExplicitLocale(url.pathname)) return null;
+  const explicitLocale = getExplicitLocale(url.pathname);
+  if (explicitLocale) {
+    const firstSegment = url.pathname.split("/")[1];
+    if (firstSegment === explicitLocale) return null;
+
+    const redirected = new URL(url);
+    redirected.pathname = `/${explicitLocale}${url.pathname.slice(firstSegment.length + 1)}`;
+    return redirected;
+  }
 
   const redirected = new URL(url);
   const publicPath = getPublicPathname(url.pathname);
