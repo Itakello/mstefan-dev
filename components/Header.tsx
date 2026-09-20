@@ -20,18 +20,16 @@ export function Header({ locale }: { locale: Locale }) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
-    const stored = typeof window !== "undefined" ? localStorage.getItem("theme") : null;
-    const prefersDark = typeof window !== "undefined" && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const shouldBeDark = stored ? stored === "dark" : prefersDark;
-    setIsDark(shouldBeDark);
-    document.documentElement.classList.toggle("dark", shouldBeDark);
+    setIsDark(document.documentElement.classList.contains("dark"));
   }, []);
 
   function toggleTheme() {
-    const nextDark = !isDark;
+    const nextDark = !document.documentElement.classList.contains("dark");
     setIsDark(nextDark);
     document.documentElement.classList.toggle("dark", nextDark);
-    localStorage.setItem("theme", nextDark ? "dark" : "light");
+    try {
+      localStorage.setItem("theme", nextDark ? "dark" : "light");
+    } catch {}
   }
   const links = pages.map((page) => ({ href: localizedPath(locale, publicPagePaths[page]), label: copy.nav[page] }));
 

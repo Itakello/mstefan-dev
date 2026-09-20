@@ -11,7 +11,9 @@ test.describe("Public website review", () => {
       if (message.type() === "error") browserErrors.push(`Console error: ${message.text()}`);
     });
 
-    await page.addInitScript(() => localStorage.setItem("theme", "light"));
+    await page.addInitScript(() => {
+      try { localStorage.setItem("theme", "light"); } catch {}
+    });
 
     // 1. Open the English home page and verify the primary introduction.
     await page.goto("/en");
@@ -45,6 +47,18 @@ test.describe("Public website review", () => {
     await expect(page.getByRole("link", { name: "Progetti", exact: true })).toBeVisible();
     await showReviewStep(page, "5 · Italian localization");
 
+    await page.emulateMedia({ colorScheme: "dark" });
+    await page.addInitScript(() => {
+      Object.defineProperty(window, "localStorage", {
+        configurable: true,
+        get() { throw new DOMException("blocked", "SecurityError"); },
+      });
+    });
+    await page.goto("/en");
+    await expect(page.locator("html")).toHaveClass(/\bdark\b/);
+    await expect(page.getByRole("button", { name: "Toggle theme" }).first().locator(".lucide-sun")).toBeVisible();
+    await page.getByRole("button", { name: "Toggle theme" }).first().click();
+    await expect(page.locator("html")).not.toHaveClass(/\bdark\b/);
     expect(browserErrors, browserErrors.join("\n")).toEqual([]);
   });
 });
