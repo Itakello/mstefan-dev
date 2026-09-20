@@ -195,7 +195,6 @@ export function parseStackPage(page: any): StackEntry {
 export async function upsertNotionProject(params: {
   databaseId?: string;
   title: string;
-  shortSummary?: string;
   url?: string;
   summary?: string;
   tags?: string[];
@@ -223,7 +222,6 @@ export async function upsertNotionProject(params: {
     Name: { title: [{ type: "text", text: { content: params.title } }] },
   };
   if (params.url) properties.URL = { url: params.url };
-  if (params.shortSummary) properties["Short summary"] = { rich_text: [{ type: "text", text: { content: params.shortSummary } }] };
   if (params.summary) properties.Summary = { rich_text: [{ type: "text", text: { content: params.summary } }] };
   if (params.tags) properties.Tags = { multi_select: params.tags.map((t) => ({ name: t })) };
   if (params.language) properties.Language = { multi_select: [{ name: params.language }] };
