@@ -69,6 +69,7 @@ function StackHand({ category, entries, locale }: { category: string; entries: r
   const { visibleEntries, hiddenEntries, overflowCount } = summarizeStackEntries(entries);
   const [showAll, setShowAll] = useState(false);
   const [floatingLabel, setFloatingLabel] = useState<FloatingLabel | null>(null);
+  const focusedCard = useRef<{ element: HTMLElement; name: string } | null>(null);
   const hiddenEntriesId = useId();
   const variation = stackHandVariation(category, entries);
 
@@ -87,6 +88,12 @@ function StackHand({ category, entries, locale }: { category: string; entries: r
     });
   };
 
+  const restoreFocusedLabel = () => {
+    const focused = focusedCard.current;
+    if (focused) showLabel(focused.element, focused.name);
+    else setFloatingLabel(null);
+  };
+
   const renderCard = (item: StackEntry, index: number) => {
     const offset = cardOffsets[(index + variation) % cardOffsets.length];
     const style = {
@@ -102,9 +109,15 @@ function StackHand({ category, entries, locale }: { category: string; entries: r
         style={style}
         tabIndex={0}
         onMouseEnter={(event) => showLabel(event.currentTarget, item.name)}
-        onMouseLeave={() => setFloatingLabel(null)}
-        onFocus={(event) => showLabel(event.currentTarget, item.name)}
-        onBlur={() => setFloatingLabel(null)}
+        onMouseLeave={restoreFocusedLabel}
+        onFocus={(event) => {
+          focusedCard.current = { element: event.currentTarget, name: item.name };
+          showLabel(event.currentTarget, item.name);
+        }}
+        onBlur={() => {
+          focusedCard.current = null;
+          setFloatingLabel(null);
+        }}
       >
         <StackBadge item={item} label={false} compact />
       </span>
@@ -115,7 +128,7 @@ function StackHand({ category, entries, locale }: { category: string; entries: r
     <div
       className="stack-hand"
       aria-label={copy.stack.technologyList(entries.map((entry) => entry.name).join(", "))}
-      onMouseLeave={() => setFloatingLabel(null)}
+      onMouseLeave={restoreFocusedLabel}
     >
       {visibleEntries.map(renderCard)}
 
