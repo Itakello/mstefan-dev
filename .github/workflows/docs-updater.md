@@ -66,7 +66,7 @@ Compare the checked-out repository's current behavior with its human-facing docu
 
 ## Inspect
 
-1. Read `AGENTS.md`, `.github/PR_POLICY.md`, `README.md`, and `docs/automation/auto-documentation.md` first.
+1. Read `AGENTS.md`, `.github/PR_POLICY.md`, `.github/pull_request_template.md`, `README.md`, and `docs/automation/auto-documentation.md` first.
 2. Inspect the current code, tests, package scripts, public routes, environment-variable usage, and GitHub workflows as evidence.
 3. Compare that evidence with claims in `README.md` and existing files under `docs/`.
 
@@ -96,4 +96,4 @@ If and only if documentation changed, open one draft pull request with a concise
 
 Every successful run must call exactly one safe-output tool: `create_pull_request` when documentation changed, or `noop` when it did not. Do not call both.
 
-Before calling `create_pull_request`, follow `.github/PR_POLICY.md` from the checked-out base branch. That file is the single source of truth for the pull request body; do not invent, copy, or weaken its requirements. Populate it with evidence from this run and do not leave placeholders or empty required sections.
+Before calling `create_pull_request`, follow `.github/PR_POLICY.md` and include the exact policy marker from `.github/pull_request_template.md` on the checked-out base branch. Populate the body with evidence from this run; do not copy the template's instructional comments or leave placeholders or empty sections.
