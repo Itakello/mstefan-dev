@@ -5,6 +5,6 @@ import type { ProjectPublicationMessage } from "@/lib/projectPublication";
 export function projectPublicationView(locale: Locale, status: ProjectPublicationMessage) {
   return {
     message: projectPublicationMessage(locale, status),
-    role: status === "empty" || status === "no-active" ? "status" : "alert",
+    role: status === "empty" ? "status" : "alert",
   } as const;
 }

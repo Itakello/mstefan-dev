@@ -26,6 +26,7 @@ test("tags GitHub enrichment for webhook invalidation", async () => {
 
   assert.deepEqual(repositories, []);
   assert.equal(requestInit?.cache, undefined);
+  assert.equal(requestInit?.signal instanceof AbortSignal, true);
   assert.deepEqual(requestInit?.next, {
     revalidate: PUBLICATION_REVALIDATE_SECONDS,
     tags: [PUBLICATION_CACHE_TAG],

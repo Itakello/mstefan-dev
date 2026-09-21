@@ -7,6 +7,7 @@ import { getCopy } from "../lib/i18n/copy";
 import { getLanguageMenuFocusIndex, shouldCloseLanguageMenuOnFocusLeave } from "../lib/i18n/languageMenu";
 import { getLocalizedMetadata } from "../lib/i18n/metadata";
 import { getPublicPathname, localizedPath } from "../lib/i18n/routing";
+import { isGitHubRepositoryUrl } from "../lib/projectPresentation";
 import { proxy } from "../proxy";
 
 test("localized route helpers preserve the equivalent public route", () => {
@@ -49,6 +50,9 @@ test("localized copy and metadata expose the Italian page contract", () => {
   const italianCopy = getCopy("it");
 
   assert.equal(italianCopy.projectCard.viewRepository("Progetto"), "Apri il repository GitHub di Progetto");
+  assert.equal(italianCopy.projects.description, "Progetti approvati per la pubblicazione, raggruppati per anno.");
+  assert.equal(getCopy("en").projects.description, "Projects approved for publication, grouped by year.");
+  assert.equal(italianCopy.projectCard.viewProject("Progetto"), "Visita il progetto Progetto");
   assert.equal(italianCopy.projectCard.technologiesByCategory("Progetto"), "Tecnologie di Progetto raggruppate per categoria");
   assert.equal(italianCopy.projectCard.started("mar 2024"), "Iniziato mar 2024");
   assert.equal(italianCopy.stack.scrollLeft, "Scorri le tecnologie verso sinistra");
@@ -61,6 +65,12 @@ test("localized copy and metadata expose the Italian page contract", () => {
   assert.equal(metadata.alternates?.canonical, "/it/projects");
   assert.deepEqual(metadata.alternates?.languages, { en: "/en/projects", it: "/it/projects" });
   assert.equal(metadata.openGraph?.locale, "it_IT");
+});
+
+test("project links distinguish GitHub repositories from other approved URLs", () => {
+  assert.equal(isGitHubRepositoryUrl("https://github.com/Itakello/project"), true);
+  assert.equal(isGitHubRepositoryUrl("https://example.com/project"), false);
+  assert.equal(isGitHubRepositoryUrl(undefined), false);
 });
 
 test("language menu closes only when focus leaves its container", () => {

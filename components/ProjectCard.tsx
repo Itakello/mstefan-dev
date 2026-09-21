@@ -8,7 +8,7 @@ import { ProjectStackHand, StackShelf } from "@/components/StackCatalog";
 import { BRAND_ICON_CLASS } from "@/lib/iconStyles";
 import { getCopy } from "@/lib/i18n/copy";
 import type { Locale } from "@/lib/i18n/config";
-import { formatProjectStartDate, projectPreviewSummary } from "@/lib/projectPresentation";
+import { formatProjectStartDate, isGitHubRepositoryUrl, projectPreviewSummary } from "@/lib/projectPresentation";
 import {
   groupStackEntries,
   projectStackLabels,
@@ -49,6 +49,7 @@ export function ProjectCard({
   const copy = getCopy(locale);
   const [isOpen, setIsOpen] = useState(defaultOpen);
   const panelId = useId();
+  const githubRepositoryUrl = isGitHubRepositoryUrl(url);
   const { groups, technologies } = useMemo(() => {
     const technologyLabels = projectStackLabels({ language, tags });
     const catalog = stackCatalog ?? [];
@@ -91,9 +92,15 @@ export function ProjectCard({
             target="_blank"
             rel="noreferrer"
             className="grid size-9 shrink-0 place-items-center rounded-md border border-black/10 bg-black/[0.025] no-underline text-black/65 transition-colors hover:border-black/20 hover:bg-black/5 hover:text-black dark:border-white/10 dark:bg-white/[0.035] dark:text-white/65 dark:hover:border-white/20 dark:hover:bg-white/10 dark:hover:text-white"
-            aria-label={copy.projectCard.viewRepository(title)}
+            aria-label={githubRepositoryUrl
+              ? copy.projectCard.viewRepository(title)
+              : copy.projectCard.viewProject(title)}
           >
-            <Icon icon="simple-icons:github" className={BRAND_ICON_CLASS} aria-hidden />
+            <Icon
+              icon={githubRepositoryUrl ? "simple-icons:github" : "lucide:external-link"}
+              className={BRAND_ICON_CLASS}
+              aria-hidden
+            />
           </a>
         )}
       </div>

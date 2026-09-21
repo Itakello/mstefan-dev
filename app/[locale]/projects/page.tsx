@@ -24,10 +24,7 @@ export default async function ProjectsPage({ params }: { params: Promise<{ local
   const content = getCopy(locale).projects;
   const [{ groups, orderedYears, publication }, stackCatalog] = await Promise.all([loadPublicProjects(locale), loadWebsiteStack()]);
   if (stackCatalog.status === "ready") {
-    assertProjectStackCoverage(
-      orderedYears.flatMap((year) => groups[year]),
-      stackCatalog.entries,
-    );
+    assertProjectStackCoverage(publication.projects, stackCatalog.entries);
   }
   const publicationView = publication.message
     ? projectPublicationView(locale, publication.message)

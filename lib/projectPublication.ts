@@ -26,13 +26,12 @@ type EnrichedProject = Project & {
   createdAt?: string;
 };
 
-export type ProjectPublicationStatus = "ready" | "empty" | "unconfigured" | "stale" | "error";
-export type ProjectPublicationMessage = "empty" | "no-active" | "unconfigured" | "stale" | "error";
+export type ProjectPublicationStatus = "ready" | "empty" | "unconfigured" | "error";
+export type ProjectPublicationMessage = "empty" | "unconfigured" | "error";
 
 export function resolveProjectPublicationState(
   projects: Project[] | null,
   failed = false,
-  stale = false,
 ): { status: ProjectPublicationStatus; projects: Project[]; message: ProjectPublicationMessage | null } {
   if (failed) {
     return {
@@ -48,13 +47,6 @@ export function resolveProjectPublicationState(
       message: "unconfigured",
     };
   }
-  if (stale) {
-    return {
-      status: "stale",
-      projects: [],
-      message: "stale",
-    };
-  }
   if (projects.length === 0) {
     return {
       status: "empty",
@@ -65,37 +57,24 @@ export function resolveProjectPublicationState(
   return { status: "ready", projects, message: null };
 }
 
-export function selectPublicProjects(
-  approved: Project[],
-  repos: GitHubRepo[],
-  githubUser: string,
-): Project[] {
-  const publicRepositoryUrls = new Set(
-    repos
-      .filter((repo) => !repo.archived && !repo.fork)
-      .filter((repo) => repo.name.toLowerCase() !== githubUser.toLowerCase())
-      .map((repo) => repo.html_url.toLowerCase()),
-  );
-
-  return approved.filter((project) =>
-    project.url ? publicRepositoryUrls.has(project.url.toLowerCase()) : false,
-  );
-}
-
 export function mergeAndEnrichProjects(
   approved: Project[],
-  repos: GitHubRepo[],
+  repos: unknown,
 ): { groups: Record<string, EnrichedProject[]>; orderedYears: string[] } {
-  const repoByUrl = new Map<string, { year?: string; timestamp?: number; language?: string | null; createdAt?: string }>();
+  const repoByUrl = new Map<string, { year?: string; timestamp?: number; createdAt?: string; language?: string }>();
 
-  for (const repo of repos) {
-    const timestamp = repo.created_at ? Date.parse(repo.created_at) : Number.NaN;
+  for (const value of Array.isArray(repos) ? repos : []) {
+    if (!value || typeof value !== "object") continue;
+    const repo = value as Partial<GitHubRepo>;
+    if (typeof repo.html_url !== "string") continue;
+    const createdAt = typeof repo.created_at === "string" ? repo.created_at : undefined;
+    const timestamp = createdAt ? Date.parse(createdAt) : Number.NaN;
     const hasCreationDate = Number.isFinite(timestamp);
     repoByUrl.set(repo.html_url.toLowerCase(), {
       year: hasCreationDate ? new Date(timestamp).getUTCFullYear().toString() : undefined,
       timestamp: hasCreationDate ? timestamp : undefined,
-      language: repo.language,
-      createdAt: hasCreationDate ? repo.created_at : undefined,
+      createdAt: hasCreationDate ? createdAt : undefined,
+      language: typeof repo.language === "string" ? repo.language : undefined,
     });
   }
 
@@ -111,7 +90,7 @@ export function mergeAndEnrichProjects(
 
     merged.push({
       ...project,
-      year: match?.year,
+      year: match?.year ?? project.year,
       tags: filteredTags.length > 0 ? filteredTags : undefined,
       language: project.language || curatedLanguageTag || match?.language || undefined,
       createdAt: match?.createdAt,

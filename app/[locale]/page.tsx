@@ -29,7 +29,7 @@ export default async function Home({ params, searchParams }: { params: Promise<{
   const content = await getPageContent("home", locale, preview);
   const [{ projects, publication }, stackCatalog] = await Promise.all([loadPublicProjects(locale), loadWebsiteStack()]);
   if (stackCatalog.status === "ready") {
-    assertProjectStackCoverage(projects, stackCatalog.entries);
+    assertProjectStackCoverage(publication.projects, stackCatalog.entries);
   }
   const projectsByTitle = new Map(projects.map((project) => [project.title, project]));
   const selectedProjects = SELECTED_PROJECTS.flatMap((title) => {

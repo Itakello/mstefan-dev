@@ -1,11 +1,10 @@
 import { publicationEnvironment } from "@/lib/publicationEnvironment";
-import { fetchGitHubRepos, GITHUB_USER } from "@/lib/github";
+import { fetchGitHubRepos } from "@/lib/github";
 import type { Locale } from "@/lib/i18n/config";
 import { fetchProjectsFromNotion, type NotionProject } from "@/lib/notion";
 import {
   mergeAndEnrichProjects,
   resolveProjectPublicationState,
-  selectPublicProjects,
 } from "@/lib/projectPublication";
 
 type PublicProjectsLoaderOptions = {
@@ -13,6 +12,22 @@ type PublicProjectsLoaderOptions = {
   fetchRepos?: typeof fetchGitHubRepos;
   vercelEnv?: string;
 };
+
+const GITHUB_ENRICHMENT_TIMEOUT_MS = 3_000;
+
+async function loadGitHubEnrichment(fetchRepos: typeof fetchGitHubRepos) {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      fetchRepos(),
+      new Promise<null>((resolve) => {
+        timer = setTimeout(() => resolve(null), GITHUB_ENRICHMENT_TIMEOUT_MS);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
 
 export function selectPublicProjectLocale(project: NotionProject, locale: Locale) {
   const localizedCopy = project.copy[locale];
@@ -23,6 +38,7 @@ export function selectPublicProjectLocale(project: NotionProject, locale: Locale
     ...(localizedCopy.shortSummary ? { shortSummary: localizedCopy.shortSummary } : {}),
     ...(project.url ? { url: project.url } : {}),
     ...(project.tags ? { tags: project.tags } : {}),
+    ...(project.year ? { year: project.year } : {}),
     ...(project.language ? { language: project.language } : {}),
   };
 }
@@ -36,8 +52,8 @@ export async function loadPublicProjects(
   }: PublicProjectsLoaderOptions = {},
 ) {
   const [repos, notionResult] = await Promise.all([
-    fetchRepos().catch((error) => {
-      console.error("Failed to load GitHub repository eligibility data.", error);
+    loadGitHubEnrichment(fetchRepos).catch((error) => {
+      console.error("Failed to load GitHub repository enrichment data.", error);
       return null;
     }),
     fetchProjects()
@@ -48,12 +64,8 @@ export async function loadPublicProjects(
       }),
   ]);
 
-  if (vercelEnv === "production" && (
-    repos === null
-    || notionResult.failed
-    || notionResult.projects === null
-  )) {
-    throw new Error("Cannot publish without valid Notion Projects and GitHub data");
+  if (vercelEnv === "production" && (notionResult.failed || notionResult.projects === null)) {
+    throw new Error("Cannot publish without valid Notion Projects data");
   }
 
   const notionProjects = notionResult.projects
@@ -62,24 +74,13 @@ export async function loadPublicProjects(
   const publication = resolveProjectPublicationState(
     notionProjects,
     notionResult.failed,
-    repos === null,
   );
-  const projects = repos
-    ? selectPublicProjects(publication.projects, repos, GITHUB_USER)
-    : [];
-  const published = publication.status === "ready" && projects.length === 0
-    ? {
-        status: "empty" as const,
-        projects,
-        message: "no-active" as const,
-      }
-    : { ...publication, projects };
-  const { groups, orderedYears } = mergeAndEnrichProjects(projects, repos ?? []);
+  const { groups, orderedYears } = mergeAndEnrichProjects(publication.projects, repos ?? []);
 
   return {
     groups,
     orderedYears,
     projects: orderedYears.flatMap((year) => groups[year]),
-    publication: published,
+    publication,
   };
 }
