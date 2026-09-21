@@ -31,6 +31,7 @@ type SiteCopy = {
   };
   projectCard: {
     viewRepository: (title: string) => string;
+    viewProject: (title: string) => string;
     technologiesByCategory: (title: string) => string;
     toggleDetails: (title: string, expanded: boolean) => string;
     started: (date: string) => string;
@@ -46,7 +47,7 @@ type SiteCopy = {
     technologyList: (names: string) => string;
   };
   publication: {
-    projects: Record<"empty" | "no-active" | "unconfigured" | "stale" | "error", string>;
+    projects: Record<"empty" | "unconfigured" | "error", string>;
     stack: Record<"empty" | "unconfigured" | "error", string>;
     toolkitEmpty: string;
   };
@@ -97,6 +98,7 @@ export const copy = {
     language: { label: "Language", select: "Select language", English: "English", Italiano: "Italiano", selected: "Selected" },
     projectCard: {
       viewRepository: (title) => `View ${title} repository on GitHub`,
+      viewProject: (title) => `Visit ${title} project`,
       technologiesByCategory: (title) => `${title} technologies grouped by category`,
       toggleDetails: (title, expanded) => `${expanded ? "Hide" : "Show"} ${title} details`,
       started: (date) => `Started ${date}`,
@@ -124,9 +126,7 @@ export const copy = {
     publication: {
       projects: {
         empty: "No projects are currently approved for publication.",
-        "no-active": "No active public projects are currently approved for publication.",
         unconfigured: "Projects are unavailable because the publication source is not configured.",
-        stale: "Project publication cannot be refreshed because repository data is unavailable.",
         error: "Projects are temporarily unavailable because the publication source could not be loaded.",
       },
       stack: {
@@ -186,6 +186,7 @@ export const copy = {
     language: { label: "Lingua", select: "Seleziona lingua", English: "English", Italiano: "Italiano", selected: "Selezionata" },
     projectCard: {
       viewRepository: (title) => `Apri il repository GitHub di ${title}`,
+      viewProject: (title) => `Visita il progetto ${title}`,
       technologiesByCategory: (title) => `Tecnologie di ${title} raggruppate per categoria`,
       toggleDetails: (title, expanded) => `${expanded ? "Nascondi" : "Mostra"} i dettagli di ${title}`,
       started: (date) => `Iniziato ${date}`,
@@ -215,9 +216,7 @@ export const copy = {
     publication: {
       projects: {
         empty: "Nessun progetto è attualmente approvato per la pubblicazione.",
-        "no-active": "Nessun repository pubblico attivo è attualmente approvato per la pubblicazione.",
         unconfigured: "I progetti non sono disponibili perché la fonte di pubblicazione non è configurata.",
-        stale: "La pubblicazione dei progetti non può essere aggiornata perché i dati dei repository non sono disponibili.",
         error: "I progetti non sono temporaneamente disponibili perché la fonte di pubblicazione non può essere caricata.",
       },
       stack: {

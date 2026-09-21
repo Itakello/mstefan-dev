@@ -172,41 +172,58 @@ test("keeps URL identity in inventory even when the Notion title is malformed", 
   });
 });
 
-test("loads a stale, empty publication state when repository eligibility is unavailable", async () => {
+test("keeps Notion-approved publication when GitHub enrichment is unavailable", async () => {
   const loaded = await loadPublicProjects("it", {
-    fetchProjects: async () => [],
+    fetchProjects: async () => [parseNotionProjectPage(page())!],
     fetchRepos: async () => null,
   });
 
-  assert.deepEqual(loaded.publication, {
-    status: "stale",
-    projects: [],
-    message: "stale",
-  });
+  assert.equal(loaded.publication.status, "ready");
+  assert.deepEqual(loaded.projects.map((project) => project.title), ["Bilingual project"]);
+  assert.equal(loaded.projects[0].summary, "Riepilogo lungo italiano.");
 });
 
-test("loads a stale, empty publication state when repository eligibility throws", async () => {
+test("keeps Notion-approved publication when GitHub enrichment throws", async () => {
   const loaded = await loadPublicProjects("it", {
-    fetchProjects: async () => [],
+    fetchProjects: async () => [parseNotionProjectPage(page())!],
     fetchRepos: async () => { throw new Error("GitHub unavailable"); },
   });
 
-  assert.deepEqual(loaded.publication, {
-    status: "stale",
-    projects: [],
-    message: "stale",
-  });
+  assert.equal(loaded.publication.status, "ready");
+  assert.deepEqual(loaded.projects.map((project) => project.title), ["Bilingual project"]);
 });
 
-test("blocks production regeneration when repository eligibility is unavailable", async () => {
-  await assert.rejects(
-    loadPublicProjects("en", {
-      fetchProjects: async () => [],
-      fetchRepos: async () => null,
-      vercelEnv: "production",
-    }),
-    /Cannot publish without valid Notion Projects and GitHub data/,
-  );
+test("permits production publication without GitHub enrichment", async () => {
+  const loaded = await loadPublicProjects("en", {
+    fetchProjects: async () => [parseNotionProjectPage(page())!],
+    fetchRepos: async () => null,
+    vercelEnv: "production",
+  });
+
+  assert.equal(loaded.publication.status, "ready");
+  assert.deepEqual(loaded.projects.map((project) => project.title), ["Bilingual project"]);
+});
+
+test("permits production publication with malformed GitHub enrichment", async () => {
+  const loaded = await loadPublicProjects("en", {
+    fetchProjects: async () => [parseNotionProjectPage(page())!],
+    fetchRepos: async () => ({ message: "unexpected 200 body" }) as never,
+    vercelEnv: "production",
+  });
+
+  assert.equal(loaded.publication.status, "ready");
+  assert.deepEqual(loaded.projects.map((project) => project.title), ["Bilingual project"]);
+});
+
+test("does not wait indefinitely for stalled GitHub enrichment", { timeout: 5_000 }, async () => {
+  const loaded = await loadPublicProjects("en", {
+    fetchProjects: async () => [parseNotionProjectPage(page())!],
+    fetchRepos: async () => new Promise<never>(() => {}),
+    vercelEnv: "production",
+  });
+
+  assert.equal(loaded.publication.status, "ready");
+  assert.deepEqual(loaded.projects.map((project) => project.title), ["Bilingual project"]);
 });
 
 test("blocks production regeneration when the Notion Projects source is unavailable", async () => {
@@ -216,7 +233,7 @@ test("blocks production regeneration when the Notion Projects source is unavaila
       fetchRepos: async () => [],
       vercelEnv: "production",
     }),
-    /Cannot publish without valid Notion Projects and GitHub data/,
+    /Cannot publish without valid Notion Projects data/,
   );
 });
 

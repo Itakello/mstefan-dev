@@ -9,6 +9,10 @@ export function projectPreviewSummary(project: ProjectPreview) {
   return project.shortSummary ?? project.summary;
 }
 
+export function isGitHubRepositoryUrl(url: string | undefined) {
+  return /^https?:\/\/github\.com\//i.test(url ?? "");
+}
+
 export function formatProjectStartDate(locale: Locale, value: string) {
   return new Intl.DateTimeFormat(locale, {
     month: "short",

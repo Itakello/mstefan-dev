@@ -15,6 +15,7 @@ export async function fetchGitHubRepos(fetchImpl: typeof fetch = fetch): Promise
   const url = `https://api.github.com/users/${GITHUB_USER}/repos?per_page=100&sort=updated`;
   const response = await fetchImpl(url, {
     headers,
+    signal: AbortSignal.timeout(3_000),
     next: {
       revalidate: PUBLICATION_REVALIDATE_SECONDS,
       tags: [PUBLICATION_CACHE_TAG],

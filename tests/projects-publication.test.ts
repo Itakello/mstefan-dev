@@ -4,10 +4,10 @@ import test from "node:test";
 import {
   mergeAndEnrichProjects,
   resolveProjectPublicationState,
-  selectPublicProjects,
 } from "../lib/projectPublication";
 import { projectPublicationMessage } from "../lib/i18n/copy";
 import { projectPublicationView } from "../lib/publicationPresentation";
+import { assertProjectStackCoverage } from "../lib/stack";
 
 const githubRepo = {
   name: "unapproved-repository",
@@ -25,12 +25,13 @@ test("never appends GitHub repositories that are absent from the approved source
   assert.deepEqual(result, { groups: {}, orderedYears: [] });
 });
 
-test("publishes only active original repositories and excludes the profile repository", () => {
+test("keeps every Notion-approved project regardless of GitHub repository state", () => {
   const approved = [
     { title: "active", summary: "Active.", url: githubRepo.html_url },
     { title: "archived", summary: "Archived.", url: `${githubRepo.html_url}-archived` },
     { title: "fork", summary: "Fork.", url: `${githubRepo.html_url}-fork` },
     { title: "profile", summary: "Profile.", url: `${githubRepo.html_url}-profile` },
+    { title: "missing", summary: "Missing from GitHub.", url: `${githubRepo.html_url}-missing` },
   ];
   const repos = [
     { ...githubRepo, name: "active" },
@@ -39,7 +40,37 @@ test("publishes only active original repositories and excludes the profile repos
     { ...githubRepo, name: "Itakello", html_url: approved[3].url! },
   ];
 
-  assert.deepEqual(selectPublicProjects(approved, repos, "Itakello"), [approved[0]]);
+  const result = mergeAndEnrichProjects(approved, repos);
+  assert.deepEqual(
+    new Set(Object.values(result.groups).flat().map((project) => project.title)),
+    new Set(approved.map((project) => project.title)),
+  );
+});
+
+test("does not let GitHub language make an approved project fail Stack coverage", () => {
+  const approved = [{ title: "Approved", summary: "Approved by Notion.", url: githubRepo.html_url }];
+  const result = mergeAndEnrichProjects(approved, [{ ...githubRepo, language: "Haskell" }]);
+  const projects = Object.values(result.groups).flat();
+
+  assert.equal(projects[0].language, "Haskell");
+  assert.doesNotThrow(() => assertProjectStackCoverage(approved, []));
+});
+
+test("preserves optional GitHub language for display when its Stack entry exists", () => {
+  const approved = [{ title: "Approved", summary: "Approved by Notion.", url: githubRepo.html_url }];
+  const result = mergeAndEnrichProjects(approved, [githubRepo]);
+
+  assert.equal(result.groups["2024"][0].language, "TypeScript");
+  assert.doesNotThrow(() => assertProjectStackCoverage(approved, []));
+});
+
+test("ignores malformed GitHub enrichment without dropping approved projects", () => {
+  const approved = [{ title: "Approved", summary: "Approved by Notion.", url: githubRepo.html_url }];
+
+  for (const repos of [{ message: "unexpected 200 body" }, [null, {}, { html_url: 123 }]]) {
+    const result = mergeAndEnrichProjects(approved, repos);
+    assert.deepEqual(Object.values(result.groups).flat().map((project) => project.title), ["Approved"]);
+  }
 });
 
 test("groups and orders approved projects by repository creation date without changing their copy", () => {
@@ -132,7 +163,7 @@ test("maps project publication statuses to locale-owned messages", () => {
   assert.equal(projectPublicationMessage("it", "error"), "I progetti non sono temporaneamente disponibili perché la fonte di pubblicazione non può essere caricata.");
 });
 
-test("builds localized empty, error, and stale project publication views", () => {
+test("builds localized empty and error project publication views", () => {
   assert.deepEqual(projectPublicationView("en", "empty"), {
     message: "No projects are currently approved for publication.",
     role: "status",
@@ -140,19 +171,5 @@ test("builds localized empty, error, and stale project publication views", () =>
   assert.deepEqual(projectPublicationView("it", "error"), {
     message: "I progetti non sono temporaneamente disponibili perché la fonte di pubblicazione non può essere caricata.",
     role: "alert",
-  });
-  assert.deepEqual(projectPublicationView("it", "stale"), {
-    message: "La pubblicazione dei progetti non può essere aggiornata perché i dati dei repository non sono disponibili.",
-    role: "alert",
-  });
-});
-
-test("fails closed as stale when repository eligibility cannot be refreshed", () => {
-  assert.deepEqual(resolveProjectPublicationState([
-    { title: "approved", summary: "Approved." },
-  ], false, true), {
-    status: "stale",
-    projects: [],
-    message: "stale",
   });
 });
