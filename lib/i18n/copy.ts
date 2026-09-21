@@ -149,7 +149,7 @@ export const copy = {
       toolkit: "Toolkit",
       toolkitDescription: "Tools and technologies I use across my work.",
     },
-    projects: { title: "Public projects", description: "Active, original repositories. Newest first." },
+    projects: { title: "Public projects", description: "Projects approved for publication, grouped by year." },
     about: {
       title: "About",
       firstParagraph: "I’m Massimo Stefan, a software engineer based in Italy. I build agents and automation that connect models to the tools and information people already use.",
@@ -239,7 +239,7 @@ export const copy = {
       toolkit: "Strumenti",
       toolkitDescription: "Strumenti e tecnologie che uso nel mio lavoro.",
     },
-    projects: { title: "Progetti pubblici", description: "Repository attivi e originali. I più recenti per primi." },
+    projects: { title: "Progetti pubblici", description: "Progetti approvati per la pubblicazione, raggruppati per anno." },
     about: {
       title: "Profilo",
       firstParagraph: "Sono Massimo Stefan, ingegnere del software in Italia. Creo agenti e automazioni che collegano i modelli agli strumenti e alle informazioni già usati dalle persone.",
