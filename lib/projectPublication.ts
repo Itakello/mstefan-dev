@@ -90,7 +90,7 @@ export function mergeAndEnrichProjects(
 
     merged.push({
       ...project,
-      year: match?.year,
+      year: match?.year ?? project.year,
       tags: filteredTags.length > 0 ? filteredTags : undefined,
       language: project.language || curatedLanguageTag || match?.language || undefined,
       createdAt: match?.createdAt,

@@ -38,6 +38,7 @@ export function selectPublicProjectLocale(project: NotionProject, locale: Locale
     ...(localizedCopy.shortSummary ? { shortSummary: localizedCopy.shortSummary } : {}),
     ...(project.url ? { url: project.url } : {}),
     ...(project.tags ? { tags: project.tags } : {}),
+    ...(project.year ? { year: project.year } : {}),
     ...(project.language ? { language: project.language } : {}),
   };
 }

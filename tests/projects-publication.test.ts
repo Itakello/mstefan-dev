@@ -73,6 +73,19 @@ test("ignores malformed GitHub enrichment without dropping approved projects", (
   }
 });
 
+test("uses the Notion year when optional GitHub creation metadata is absent", () => {
+  for (const { url, repos } of [
+    { url: "https://example.com/project", repos: [] },
+    { url: githubRepo.html_url, repos: [{ ...githubRepo, created_at: "invalid" }] },
+  ]) {
+    const result = mergeAndEnrichProjects([
+      { title: "Approved", summary: "Approved by Notion.", year: "2023", url },
+    ], repos);
+    assert.deepEqual(result.orderedYears, ["2023"]);
+    assert.equal(result.groups["2023"][0].title, "Approved");
+  }
+});
+
 test("groups and orders approved projects by repository creation date without changing their copy", () => {
   const newerRepo = {
     ...githubRepo,
@@ -104,12 +117,12 @@ test("groups and orders approved projects by repository creation date without ch
     },
   ], [githubRepo, newerRepo]);
 
-  assert.deepEqual(result.orderedYears, ["2025", "2024", "Unknown"]);
+  assert.deepEqual(result.orderedYears, ["2026", "2025", "2024"]);
   assert.equal(result.groups["2025"][0].title, "newer");
   assert.equal(result.groups["2024"][0].shortSummary, "Short approved copy.");
   assert.equal(result.groups["2024"][0].summary, "Long approved copy.");
   assert.equal(result.groups["2024"][0].createdAt, "2024-03-15T12:00:00Z");
-  assert.equal(result.groups.Unknown[0].title, "unmatched");
+  assert.equal(result.groups["2026"][0].title, "unmatched");
 });
 
 test("orders projects within a year by creation date, not last push date", () => {

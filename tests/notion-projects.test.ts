@@ -87,6 +87,26 @@ test("projects are projected with only the requested locale and no cross-languag
   });
 });
 
+test("preserves the Notion year for a project without GitHub enrichment", async () => {
+  const notionProject = parseNotionProjectPage(page({
+    properties: {
+      ...page().properties,
+      Year: { number: 2023 },
+      URL: { url: "https://example.com/project" },
+    },
+  }));
+  assert.ok(notionProject);
+
+  const loaded = await loadPublicProjects("en", {
+    fetchProjects: async () => [notionProject],
+    fetchRepos: async () => [],
+    vercelEnv: "production",
+  });
+
+  assert.deepEqual(loaded.orderedYears, ["2023"]);
+  assert.equal(loaded.projects[0].year, "2023");
+});
+
 test("keeps incomplete existing rows in the discovery inventory but out of publication", () => {
   const incomplete = page({
     properties: {
