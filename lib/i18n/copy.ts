@@ -1,10 +1,11 @@
 import type { Locale } from "./config";
 
-export type PublicPage = "home" | "projects" | "about";
+export type PublicPage = "home" | "projects" | "websites" | "about";
 
 export const publicPagePaths = {
   home: "/",
   projects: "/projects",
+  websites: "/websites",
   about: "/about",
 } as const;
 
@@ -65,13 +66,27 @@ type SiteCopy = {
     toolkitDescription: string;
   };
   projects: { title: string; description: string };
+  work: { selectorLabel: string; projects: string; websites: string };
+  websites: {
+    title: string;
+    description: string;
+    selectorLabel: string;
+    selectSite: (title: string) => string;
+    openSite: (title: string) => string;
+    previewTitle: (title: string) => string;
+    loading: string;
+    previewHelp: string;
+    linkOnly: string;
+    depthLimit: string;
+    entries: Record<"mstefan" | "karakal", { name: string; description: string }>;
+  };
   about: { title: string; firstParagraph: string; secondParagraph: string; imageAlt: string };
   og: { description: string };
 };
 
 export const copy = {
   en: {
-    nav: { home: "Home", projects: "Projects", about: "About" },
+    nav: { home: "Home", projects: "Work", websites: "Websites", about: "About" },
     metadata: {
       home: {
         title: "Massimo Stefan",
@@ -80,6 +95,10 @@ export const copy = {
       projects: {
         title: "Projects",
         description: "Selected public software projects by Massimo Stefan.",
+      },
+      websites: {
+        title: "Websites",
+        description: "Websites designed and built by Massimo Stefan.",
       },
       about: {
         title: "About",
@@ -150,6 +169,29 @@ export const copy = {
       toolkitDescription: "Tools and technologies I use across my work.",
     },
     projects: { title: "Public projects", description: "Projects approved for publication, grouped by year." },
+    work: { selectorLabel: "Browse work", projects: "Projects", websites: "Websites" },
+    websites: {
+      title: "Websites you can explore",
+      description: "Browse finished websites alongside the repositories behind my work.",
+      selectorLabel: "Choose a website to explore",
+      selectSite: (title) => `Select ${title}`,
+      openSite: (title) => `Open ${title} in a new tab`,
+      previewTitle: (title) => `Interactive preview of ${title}`,
+      loading: "Preparing the live preview…",
+      previewHelp: "This is the live website, not a recording. If it does not load here, open the full site instead.",
+      linkOnly: "Explore the live website in a new tab.",
+      depthLimit: "You reached the third website inside the website. The live preview stops here so the recursion stays intentional.",
+      entries: {
+        mstefan: {
+          name: "mstefan.dev",
+          description: "My personal website for projects, tools, and the systems I build.",
+        },
+        karakal: {
+          name: "The Karakal Times",
+          description: "An independent publication with a custom editorial workflow and multilingual site.",
+        },
+      },
+    },
     about: {
       title: "About",
       firstParagraph: "I’m Massimo Stefan, a software engineer based in Italy. I build agents and automation that connect models to the tools and information people already use.",
@@ -159,7 +201,7 @@ export const copy = {
     og: { description: "Software engineer building AI systems for real work." },
   },
   it: {
-    nav: { home: "Home", projects: "Progetti", about: "Profilo" },
+    nav: { home: "Home", projects: "Lavori", websites: "Siti web", about: "Profilo" },
     metadata: {
       home: {
         title: "Massimo Stefan",
@@ -168,6 +210,10 @@ export const copy = {
       projects: {
         title: "Progetti",
         description: "Progetti software pubblici selezionati di Massimo Stefan.",
+      },
+      websites: {
+        title: "Siti web",
+        description: "Siti web progettati e realizzati da Massimo Stefan.",
       },
       about: {
         title: "Profilo",
@@ -240,6 +286,29 @@ export const copy = {
       toolkitDescription: "Strumenti e tecnologie che uso nel mio lavoro.",
     },
     projects: { title: "Progetti pubblici", description: "Progetti approvati per la pubblicazione, raggruppati per anno." },
+    work: { selectorLabel: "Esplora i lavori", projects: "Progetti", websites: "Siti web" },
+    websites: {
+      title: "Siti web da esplorare",
+      description: "Esplora i siti realizzati insieme ai repository dei miei lavori.",
+      selectorLabel: "Scegli un sito web da esplorare",
+      selectSite: (title) => `Seleziona ${title}`,
+      openSite: (title) => `Apri ${title} in una nuova scheda`,
+      previewTitle: (title) => `Anteprima interattiva di ${title}`,
+      loading: "Preparo l'anteprima live…",
+      previewHelp: "Questo è il sito live, non una registrazione. Se qui non si carica, apri il sito completo.",
+      linkOnly: "Esplora il sito live in una nuova scheda.",
+      depthLimit: "Hai raggiunto il terzo sito dentro il sito. L'anteprima live si ferma qui, così la ricorsione resta intenzionale.",
+      entries: {
+        mstefan: {
+          name: "mstefan.dev",
+          description: "Il mio sito personale per progetti, strumenti e sistemi che costruisco.",
+        },
+        karakal: {
+          name: "The Karakal Times",
+          description: "Una pubblicazione indipendente con un flusso editoriale su misura e un sito multilingue.",
+        },
+      },
+    },
     about: {
       title: "Profilo",
       firstParagraph: "Sono Massimo Stefan, ingegnere del software in Italia. Creo agenti e automazioni che collegano i modelli agli strumenti e alle informazioni già usati dalle persone.",

@@ -58,7 +58,7 @@ export function Header({ locale }: { locale: Locale }) {
             href={link.href}
             className={cn(
               "hover:text-[hsl(var(--accent))] transition-colors",
-              pathname === link.href && "text-[hsl(var(--accent))]"
+              (pathname === link.href || (link.href.endsWith("/projects") && pathname.endsWith("/websites"))) && "text-[hsl(var(--accent))]"
             )}
           >
             {link.label}
@@ -103,7 +103,7 @@ export function Header({ locale }: { locale: Locale }) {
               onClick={() => setMenuOpen(false)}
               className={cn(
                 "rounded-md px-3 py-2 no-underline transition-colors hover:bg-black/5 dark:hover:bg-white/10",
-                pathname === link.href && "text-[hsl(var(--accent))]",
+                (pathname === link.href || (link.href.endsWith("/projects") && pathname.endsWith("/websites"))) && "text-[hsl(var(--accent))]",
               )}
             >
               {link.label}

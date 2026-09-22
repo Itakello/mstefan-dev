@@ -13,7 +13,9 @@ import { proxy } from "../proxy";
 test("localized route helpers preserve the equivalent public route", () => {
   assert.equal(getPublicPathname("/it/projects"), "/projects");
   assert.equal(getPublicPathname("/en/about"), "/about");
+  assert.equal(getPublicPathname("/en/websites"), "/websites");
   assert.equal(localizedPath("it", "/projects"), "/it/projects");
+  assert.equal(localizedPath("it", "/websites"), "/it/websites");
   assert.equal(getPublicPathname("/it/unknown"), null);
 });
 
@@ -23,6 +25,10 @@ test("the proxy redirects unprefixed pages with a preferred locale and preserves
   }));
 
   assert.equal(response.headers.get("location"), "https://mstefan.dev/it/projects?tag=ai");
+  const websites = proxy(new NextRequest("https://mstefan.dev/websites?site=mstefan", {
+    headers: { cookie: "site-locale=it" },
+  }));
+  assert.equal(websites.headers.get("location"), "https://mstefan.dev/it/websites?site=mstefan");
 });
 
 test("the proxy persists explicit locales and leaves unsupported locale segments alone", () => {

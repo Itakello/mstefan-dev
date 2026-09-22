@@ -21,11 +21,17 @@ test.describe("Public website review", () => {
     await expect(page.getByRole("heading", { level: 2, name: "Selected work" })).toBeVisible();
     await showReviewStep(page, "1 · English home and selected work");
 
-    // 2. Open Projects and verify the public-projects surface.
-    await page.getByRole("link", { name: "Projects", exact: true }).click();
+    // 2. Open Work and switch between projects and websites.
+    await page.getByRole("link", { name: "Work", exact: true }).click();
     await expect(page).toHaveURL(/\/en\/projects$/);
     await expect(page.getByRole("heading", { level: 1, name: "Public projects" })).toBeVisible();
-    await showReviewStep(page, "2 · Public projects");
+    await page.getByRole("navigation", { name: "Browse work" }).getByRole("link", { name: "Websites" }).click();
+    await expect(page).toHaveURL(/\/en\/websites$/);
+    await expect(page.frameLocator('iframe[title="Interactive preview of mstefan.dev"]').getByRole("heading", { level: 1 })).toBeVisible();
+    await page.getByRole("group", { name: "Choose a website to explore" }).getByRole("button", { name: "Select The Karakal Times" }).click();
+    await expect(page.locator("iframe")).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "Open The Karakal Times in a new tab" }).last()).toBeVisible();
+    await showReviewStep(page, "2 · Projects and website gallery");
 
     // 3. Open About and verify its portrait and biography.
     await page.getByRole("link", { name: "About", exact: true }).click();
@@ -44,7 +50,13 @@ test.describe("Public website review", () => {
     await page.getByRole("menuitemradio", { name: /Italiano/ }).click();
     await expect(page).toHaveURL(/\/it\/about$/);
     await expect(page.getByRole("heading", { level: 1, name: "Profilo" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Progetti", exact: true })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Lavori", exact: true })).toBeVisible();
+    await page.getByRole("link", { name: "Lavori", exact: true }).click();
+    await page.getByRole("navigation", { name: "Esplora i lavori" }).getByRole("link", { name: "Siti web" }).click();
+    await expect(page).toHaveURL(/\/it\/websites$/);
+    await page.getByRole("button", { name: "Seleziona lingua" }).click();
+    await page.getByRole("menuitemradio", { name: /English/ }).click();
+    await expect(page).toHaveURL(/\/en\/websites$/);
     await showReviewStep(page, "5 · Italian localization");
 
     await page.emulateMedia({ colorScheme: "dark" });
