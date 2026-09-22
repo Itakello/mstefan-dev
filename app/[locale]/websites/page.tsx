@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { WebsiteShowcase } from "@/components/WebsiteShowcase";
+import { WorkViewSwitcher } from "@/components/WorkViewSwitcher";
 import { getCopy } from "@/lib/i18n/copy";
 import { getLocalizedMetadata } from "@/lib/i18n/metadata";
 import { isSupportedLocale } from "@/lib/i18n/routing";
@@ -20,6 +21,7 @@ export default async function WebsitesPage({ params }: { params: Promise<{ local
     <section aria-labelledby="websites-heading">
       <h1 id="websites-heading" className="text-2xl font-semibold">{content.title}</h1>
       <p className="mt-2 max-w-2xl text-sm text-black/70 dark:text-white/70">{content.description}</p>
+      <WorkViewSwitcher locale={locale} current="websites" />
       <WebsiteShowcase locale={locale} />
     </section>
   );

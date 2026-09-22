@@ -10,6 +10,12 @@ export const showcaseWebsites = [
 export type ShowcaseWebsite = (typeof showcaseWebsites)[number];
 export type ShowcaseWebsiteId = ShowcaseWebsite["id"];
 
+export function personalPreviewOrigin(hostname: string, currentOrigin: string) {
+  return hostname === "mstefan.dev" || hostname === "www.mstefan.dev"
+    ? currentOrigin
+    : showcaseWebsites[0].url;
+}
+
 export function websitePreviewUrl(
   website: ShowcaseWebsite,
   locale: Locale,

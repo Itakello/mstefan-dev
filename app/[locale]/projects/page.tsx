@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 
 import { ProjectCard } from "@/components/ProjectCard";
 import { ProjectLayoutGroup, ProjectLayoutItem } from "@/components/ProjectLayoutGroup";
+import { WorkViewSwitcher } from "@/components/WorkViewSwitcher";
 import { getCopy } from "@/lib/i18n/copy";
 import { getLocalizedMetadata } from "@/lib/i18n/metadata";
 import { isSupportedLocale } from "@/lib/i18n/routing";
@@ -34,6 +35,7 @@ export default async function ProjectsPage({ params }: { params: Promise<{ local
     <section aria-labelledby="public-projects-heading">
       <h1 id="public-projects-heading" className="text-2xl font-semibold">{content.title}</h1>
       <p className="mt-2 text-sm text-black/70 dark:text-white/70">{content.description}</p>
+      <WorkViewSwitcher locale={locale} current="projects" />
 
       {publicationView && (
         <p
