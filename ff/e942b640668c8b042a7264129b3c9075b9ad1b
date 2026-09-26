@@ -1,0 +1,21 @@
+lib/i18n/mailRules.ts
+  s_6dde00d551b0ac::t_9104101dfca56b 37,48,56,98,109,117
+  s_6dde00d551b0ac::t_4658bcd2e90e87 46,107
+  s_6dde00d551b0ac::t_b53c4396de3d8a 28,89
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ffe942b640668c8b042a7264129b3c9075b9ad1b",
+  "prompts": {},
+  "sessions": {
+    "s_6dde00d551b0ac": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fd69e-d4e3-7881-ac81-ed1488c4b6cb",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
