@@ -5,6 +5,7 @@ import { NextRequest } from "next/server";
 
 import { getCopy } from "../lib/i18n/copy";
 import { getLanguageMenuFocusIndex, shouldCloseLanguageMenuOnFocusLeave } from "../lib/i18n/languageMenu";
+import { getMailRulesCopy } from "../lib/i18n/mailRules";
 import { getLocalizedMetadata } from "../lib/i18n/metadata";
 import { getPublicPathname, localizedPath } from "../lib/i18n/routing";
 import { isGitHubRepositoryUrl } from "../lib/projectPresentation";
@@ -13,8 +14,24 @@ import { proxy } from "../proxy";
 test("localized route helpers preserve the equivalent public route", () => {
   assert.equal(getPublicPathname("/it/projects"), "/projects");
   assert.equal(getPublicPathname("/en/about"), "/about");
+  assert.equal(getPublicPathname("/it/mail-rules/privacy"), "/mail-rules/privacy");
   assert.equal(localizedPath("it", "/projects"), "/it/projects");
+  assert.equal(localizedPath("en", "/mail-rules"), "/en/mail-rules");
+  assert.equal(localizedPath("it", "/mail-rules/privacy"), "/it/mail-rules/privacy");
   assert.equal(getPublicPathname("/it/unknown"), null);
+});
+
+test("Mail Rules disclosures are localized and preserve the data-access boundary", () => {
+  const english = getMailRulesCopy("en");
+  const italian = getMailRulesCopy("it");
+
+  assert.equal(english.overview.title, "Mail Rules");
+  assert.equal(italian.privacy.title, "Informativa sulla privacy di Mail Rules");
+  assert.match(english.privacy.accessBoundary, /short Gmail text snippet/);
+  assert.match(english.privacy.codexHandling, /filter identifiers, criteria, and actions/);
+  assert.match(english.privacy.sharing, /rule test, or approved write/);
+  assert.match(english.privacy.codexHandling, /does not control or promise OpenAI's retention or training behavior/);
+  assert.match(italian.privacy.deletionBoundary, /non rimuove i metadati già presenti/);
 });
 
 test("the proxy redirects unprefixed pages with a preferred locale and preserves queries", () => {
