@@ -62,7 +62,8 @@ export function CareerGraph({ career, locale, expanded = false }: { career: Care
         if (row.top < viewport.top) titleList.current.scrollTop += row.top - viewport.top;
         else if (row.bottom > viewport.bottom) titleList.current.scrollTop += row.bottom - viewport.bottom;
       }
-    } else revealHead(key);
+    }
+    revealHead(key);
   }
 
   if (!jobs.length) return null;

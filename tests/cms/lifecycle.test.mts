@@ -302,12 +302,13 @@ test('career admin live preview keeps About text intact and locale drafts privat
     await page.mouse.wheel(0, 400);
     await expect.poll(() => tree.evaluate((element) => element.scrollTop)).toBeGreaterThan(scrollToPath);
     await expect(heads.nth(1)).not.toBeInViewport();
-    const datedPathPoint = await graph.locator('[data-career-branch]').nth(1).locator('path').last().evaluate((element) => {
+    const datedPathPosition = () => graph.locator('[data-career-branch]').nth(1).locator('path').last().evaluate((element) => {
       const path = element as SVGPathElement;
       const point = path.getPointAtLength(50);
       const screen = new DOMPoint(point.x, point.y).matrixTransform(path.getScreenCTM()!);
       return { x: screen.x, y: screen.y };
     });
+    const datedPathPoint = await datedPathPosition();
     assert.equal(await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.closest('[data-career-branch]')?.getAttribute('data-career-branch'), datedPathPoint), await graph.locator('[data-career-branch]').nth(1).getAttribute('data-career-branch'), 'The dated path click must hit the visible intended branch');
     await page.mouse.click(datedPathPoint.x, datedPathPoint.y);
     await expect(graph.getByText('Amazon dated fixture', { exact: true })).toBeVisible();
@@ -317,9 +318,15 @@ test('career admin live preview keeps About text intact and locale drafts privat
     await tree.hover();
     const beforeScroll = await tree.evaluate((element) => element.scrollTop);
     const pageScroll = await page.evaluate(() => window.scrollY);
-    await page.mouse.wheel(0, 200);
+    await page.mouse.wheel(0, 400);
     await expect.poll(() => tree.evaluate((element) => element.scrollTop)).toBeGreaterThan(beforeScroll);
     assert.equal(await page.evaluate(() => window.scrollY), pageScroll, 'Tree scrolling must not move the page');
+    await expect(heads.nth(1)).not.toBeInViewport();
+    const selectedPathPoint = await datedPathPosition();
+    assert.equal(await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.closest('[data-career-branch]')?.getAttribute('data-career-branch'), selectedPathPoint), await graph.locator('[data-career-branch]').nth(1).getAttribute('data-career-branch'), 'Reselecting must hit the visible selected branch');
+    await page.mouse.click(selectedPathPoint.x, selectedPathPoint.y);
+    await expect(heads.nth(1)).toBeInViewport();
+    await expect(graph.locator('button[data-career-job]', { hasText: 'work/amazon' })).toBeFocused();
     await graph.locator('button[data-career-job]', { hasText: 'work/undated-fixture' }).click();
     await expect(graph.getByText('Undated fixture details', { exact: true })).toBeVisible();
     await expect(heads.nth(2)).toBeInViewport();
