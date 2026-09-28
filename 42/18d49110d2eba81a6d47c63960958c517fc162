@@ -1,0 +1,53 @@
+lib/cms/career.ts
+  s_fc646ba2f41cef::t_d351f963d420bc 1-18
+components/CareerGraph.module.css
+  s_fc646ba2f41cef::t_d351f963d420bc 1-24
+  s_fc646ba2f41cef::t_da9eb888374099 25-26
+components/CareerGraph.tsx
+  s_fc646ba2f41cef::t_d351f963d420bc 1-89
+  s_fc646ba2f41cef::t_fd2eba285b9b84 90-91
+app/[locale]/about/page.tsx
+  s_fc646ba2f41cef::t_f013f2cb1d6c86 1,14,18-22,24-26
+app/[locale]/page.tsx
+  s_fc646ba2f41cef::t_acafd260852412 1,25,29-33,51-52,57
+components/cms/AboutContent.tsx
+  s_fc646ba2f41cef::t_51316613233567 8,10,13-19,21-33,37,39,43
+components/cms/HomeContent.tsx
+  s_fc646ba2f41cef::t_b836080fa13ba7 14,17,40-41
+deploy/payload-production/README.md
+  s_fc646ba2f41cef::t_ada2e499dc531e 15
+e2e/mstefan-site.review.spec.ts
+  s_fc646ba2f41cef::t_b64164774c031c 22-32,76-83,89
+migrations/20260928_212105_career.json
+  s_fc646ba2f41cef::t_047c9c7efc9651 1-2120
+migrations/20260928_212105_career.ts
+  s_fc646ba2f41cef::t_ab1d38bcc6fc5f 1-94
+migrations/index.ts
+  s_fc646ba2f41cef::t_f19ab72451e65b 2,8-13
+payload.config.ts
+  s_fc646ba2f41cef::t_cd40defc5f0bce 58-96,114,133,136-153
+scripts/baseline-payload-preview.mjs
+  s_fc646ba2f41cef::t_b57acf4eaa3ec0 6,30-49,55-66,76
+tests/cms/career.test.mts
+  s_fc646ba2f41cef::t_fadec1da403670 1-183
+tests/cms/lifecycle.test.mts
+  s_fc646ba2f41cef::t_6ef8389f186e95 117,125,197-270
+tests/cms/migration.test.mts
+  s_fc646ba2f41cef::t_ac8c30cbb8e336 9-10,15-28,51,98,106-107,110
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4218d49110d2eba81a6d47c63960958c517fc162",
+  "prompts": {},
+  "sessions": {
+    "s_fc646ba2f41cef": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0e9a5-4cb9-7890-88b5-1b5cca1ba8c4",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
