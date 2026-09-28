@@ -24,6 +24,7 @@ async function run(args, timeout = 600_000) {
 try {
   // Payload's onInit seeds the checked-in bilingual copy after migrations.
   await run(['node_modules/payload/bin.js', 'migrate']);
+  await run(['node_modules/payload/bin.js', 'generate:types']);
   await run(['node_modules/next/dist/bin/next', 'build', '--webpack']);
   const probe = createServer();
   probe.listen(0, '127.0.0.1');

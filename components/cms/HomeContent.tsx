@@ -11,9 +11,10 @@ type Props = {
   locale: Locale;
   selectedWork: React.ReactNode;
   toolkit: React.ReactNode;
+  career: React.ReactNode;
 };
 
-export function HomeContent({ content, locale, selectedWork, toolkit }: Props) {
+export function HomeContent({ content, locale, selectedWork, toolkit, career }: Props) {
   return (
     <section className="space-y-10">
       <header className="pt-4">
@@ -35,6 +36,8 @@ export function HomeContent({ content, locale, selectedWork, toolkit }: Props) {
           </a>
         </div>
       </header>
+
+      {career}
 
       <section aria-labelledby="selected-work-heading">
         <div className="flex items-end justify-between gap-4">

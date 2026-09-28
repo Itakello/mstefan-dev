@@ -55,6 +55,45 @@ function pageGlobal(slug: "home" | "about"): GlobalConfig {
   };
 }
 
+const validateHexColor = (value: unknown) => typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value)
+  ? true : "Use a six-digit hex color, for example #c77835.";
+
+const careerGlobal: GlobalConfig = {
+  slug: "career",
+  label: "Career",
+  access: { read: authenticated, update: authenticated, readVersions: authenticated },
+  versions: { drafts: true, max: 20 },
+  admin: {
+    components: { elements: { beforeDocumentControls: ["./components/cms/PreviewLocaleSync#PreviewLocaleSync"] } },
+    description: "Personal career history. Arrange experiences newest first; dates are optional.",
+    livePreview: {
+      url: ({ locale }) => `/${locale?.code === "it" ? "it" : "en"}/about?preview=1&previewSource=career`,
+    },
+  },
+  fields: [{ name: "mainlineColor", type: "text", localized: true, required: true, defaultValue: "#25b8f3", validate: validateHexColor }, {
+    name: "jobs", type: "array", label: "Experiences", localized: true,
+    admin: { description: "Drag entries into display order, with the newest at the top." },
+    fields: [
+      {
+        name: "branchName", type: "text", required: true,
+        admin: { description: "Choose a branch path, for example work/amazon or education/university." },
+        validate: (value: unknown) => typeof value === "string" && /^[a-z0-9][a-z0-9_-]*(\/[a-z0-9][a-z0-9_-]*)+$/i.test(value)
+          ? true : "Use a branch path such as work/amazon or education/university.",
+      },
+      { name: "company", label: "Organization", type: "text", required: true },
+      { name: "role", label: "Role or qualification", type: "text", required: true },
+      { name: "summary", type: "textarea" },
+      { name: "startDate", type: "date" },
+      { name: "endDate", type: "date" },
+      {
+        name: "color", type: "text", required: true, defaultValue: "#c77835",
+        admin: { description: "Branch color as a six-digit hex value, for example #c77835." },
+        validate: validateHexColor,
+      },
+    ],
+  }],
+};
+
 export default buildConfig({
   secret: process.env.PAYLOAD_SECRET,
   telemetry: false,
@@ -72,6 +111,7 @@ export default buildConfig({
   db: sqliteAdapter({
     client: { url: `file:${path.resolve(dataDir, ".payload-local.db")}` },
     migrationDir: path.resolve(dirname, "migrations"),
+    transactionOptions: {},
   }),
   localization: { locales: [...supportedLocales], defaultLocale: "en", fallback: false, defaultLocalePublishOption: "active" },
   collections: [{
@@ -90,9 +130,27 @@ export default buildConfig({
     access: { read: publishedMedia, create: authenticated, update: authenticated, delete: authenticated },
     fields: [],
   }],
-  globals: [pageGlobal("home"), pageGlobal("about")],
+  globals: [pageGlobal("home"), pageGlobal("about"), careerGlobal],
   typescript: { outputFile: path.resolve(dirname, "payload-types.ts") },
   onInit: async (payload) => {
+    const career = await payload.findGlobal({ slug: "career", draft: true, overrideAccess: true });
+    if (!career.id) {
+      const jobs = [{ branchName: "work/amazon", company: "Amazon", role: "Software Development Engineer I", color: "#d568fc" }];
+      const transactionID = await payload.db.beginTransaction();
+      if (!transactionID) throw new Error("Career initialization requires a database transaction.");
+      try {
+        for (const locale of supportedLocales) {
+          await payload.updateGlobal({
+            slug: "career", locale, publishSpecificLocale: locale, overrideAccess: true,
+            req: { transactionID }, data: { jobs, _status: "published" },
+          });
+        }
+        await payload.db.commitTransaction(transactionID);
+      } catch (error) {
+        await payload.db.rollbackTransaction(transactionID);
+        throw error;
+      }
+    }
     for (const slug of ["home", "about"] as const) {
       for (const locale of supportedLocales) {
         const existing = await payload.findGlobal({ slug, locale, draft: true, fallbackLocale: false, overrideAccess: true });
