@@ -65,6 +65,16 @@ test('undated Amazon uses a visible continuous branch without invented axis date
   assert.ok(layout.entries[0].forkY - layout.entries[0].headY >= 220);
 });
 
+test('scheduled experiences keep the present inside the dated timeline and above undated entries', () => {
+  const layout = layoutCareerTimeline([
+    { id: 'scheduled', startDate: '2029-01-01', endDate: '2030-01-01' },
+    { id: 'undated' },
+  ], now);
+  assert.ok(layout.nowY > layout.entries[0].forkY);
+  assert.ok(layout.nowY > 0 && layout.nowY < layout.undatedTop);
+  assert.ok(layout.entries[1].headY > layout.undatedTop);
+});
+
 test('dense histories get unique spaced lanes and a wider canvas rather than overlapping lanes', () => {
   const layout = layoutCareerTimeline(Array.from({ length: 20 }, (_, index) => ({ id: `entry-${index}` })), now);
   assert.equal(new Set(layout.entries.map((entry) => entry.x)).size, 20);

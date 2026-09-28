@@ -28,7 +28,7 @@ export function layoutCareerTimeline(jobs: TimelineJob[], now: number) {
   const dated = dates.filter((entry) => entry.dated);
   const undated = dates.filter((entry) => !entry.dated);
   const newest = Math.ceil(Math.max(monthPosition(now), ...dated.map((entry) => monthPosition(entry.end!))));
-  const oldest = dated.length ? Math.floor(Math.min(...dated.map((entry) => monthPosition(entry.start!)))) : newest;
+  const oldest = dated.length ? Math.floor(Math.min(monthPosition(now), ...dated.map((entry) => monthPosition(entry.start!)))) : newest;
   const datedHeight = dated.length ? Math.max(160, (newest - oldest) * 32 + 80) : 0;
   const undatedTop = datedHeight;
   const height = datedHeight + (undated.length ? Math.max(320, 88 + undated.length * 84) : 0);
