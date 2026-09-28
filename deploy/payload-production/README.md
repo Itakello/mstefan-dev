@@ -1,6 +1,6 @@
-# Private Payload production runtime
+# Payload production runtime
 
-Build with `docker build .`. The root Dockerfile is also the build recipe for native Git deployments in Openship. Run one instance with container port 3000 behind the existing private deployment route. No public cutover is included.
+Build with `docker build .`. The root Dockerfile is also the build recipe for native Git deployments in Openship. Run one instance with container port 3000 behind the existing loopback-bound deployment route. The public `mstefan.dev` domains use the existing edge configuration; administration and previews remain private. Keep those domains and the persistent volume attached when redeploying the existing project.
 
 For the private deployment set `SITE_DEPLOYMENT=private`. Without that explicit setting, production requires valid Notion/GitHub publication sources and fails closed. Provide `PAYLOAD_SECRET` from the approved secret store (at least 32 characters), and mount persistent storage writable by UID 1000 at `/data`. Keep the same secret across restarts. The volume contains `.payload-local.db` and `.payload-media/`; back up and restore them together using a SQLite-consistent database copy. Do not mount the running preview's volume into this runtime.
 
