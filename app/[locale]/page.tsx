@@ -1,4 +1,3 @@
-import { CareerGraph, CareerLivePreview } from "@/components/CareerGraph";
 import { HomeContent, HomeLivePreview } from "@/components/cms/HomeContent";
 import { notFound } from "next/navigation";
 
@@ -26,6 +25,7 @@ export default async function Home({ params, searchParams }: { params: Promise<{
   const { locale } = await params;
   if (!isSupportedLocale(locale)) notFound();
   const { getPageContent } = await import("@/lib/cms/pageContent");
+  const { CareerGraph, CareerLivePreview } = await import("@/components/CareerGraph");
   const query = await searchParams;
   const preview = query.preview === "1";
   const careerPreview = preview && query.previewSource === "career";
