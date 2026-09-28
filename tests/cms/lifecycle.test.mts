@@ -196,53 +196,6 @@ test('production drafts, active-locale UI publishing, media privacy, and restart
 });
 
 
-test('authenticated previews load only the active source draft', { timeout: 60_000 }, async () => {
-  const slugs = ['home', 'about', 'career'] as const;
-  const published = Object.fromEntries(await Promise.all(slugs.map(async (slug) => [slug, await (await request(`/api/globals/${slug}?locale=en&draft=false`, undefined, true)).json()])));
-  const originals = Object.fromEntries(await Promise.all(slugs.map(async (slug) => [slug, await (await request(`/api/globals/${slug}?locale=en&draft=true`, undefined, true)).json()])));
-  const titles = { home: 'Home source private title', about: 'About source private title' };
-  const privateRole = 'Career source private role';
-  const privateSummary = 'Career source private summary';
-  const browser = await chromium.launch({ headless: true });
-  try {
-    await update('home', 'en', { title: titles.home }, '&draft=true');
-    await update('about', 'en', { title: titles.about }, '&draft=true');
-    await update('career', 'en', { jobs: originals.career.jobs.map((job: { role: string; summary?: string | null }) => ({ ...job, role: privateRole, summary: privateSummary })) }, '&draft=true');
-    const context = await browser.newContext();
-    await context.addCookies([{ name: cookie.split('=')[0], value: cookie.slice(cookie.indexOf('=') + 1), url: base }]);
-    const page = await context.newPage();
-    for (const slug of ['home', 'about'] as const) {
-      const pathname = slug === 'home' ? '/en' : '/en/about';
-      await page.goto(`${base}${pathname}?preview=1&previewSource=career`);
-      await expect(page.getByRole('heading', { level: 1 })).toHaveText(published[slug].title);
-      await expect(page.getByText(titles[slug], { exact: true })).toHaveCount(0);
-      const careerPreview = page.getByRole('region', { name: 'Career', exact: true });
-      await expect(careerPreview.locator('button[data-career-job]').first()).toContainText(privateRole);
-      await expect(careerPreview.getByText(privateSummary, { exact: true })).toBeVisible();
-      await page.goto(`${base}${pathname}?preview=1`);
-      await expect(page.getByRole('heading', { level: 1 })).toHaveText(titles[slug]);
-      const pagePreviewCareer = page.getByRole('region', { name: 'Career', exact: true });
-      await expect(pagePreviewCareer.locator('button[data-career-job]').first()).toContainText(published.career.jobs[0].role);
-      await expect(pagePreviewCareer.getByText(privateRole, { exact: true })).toHaveCount(0);
-      await expect(pagePreviewCareer.getByText(privateSummary, { exact: true })).toHaveCount(0);
-      for (const query of ['?preview=1', '?preview=1&previewSource=career']) {
-        const anonymous = await request(`${pathname}${query}`);
-        assert.ok([401, 403, 404].includes(anonymous.status), `Anonymous preview succeeded: ${pathname}${query}`);
-      }
-      await page.goto(`${base}${pathname}`);
-      await expect(page.getByRole('heading', { level: 1 })).toHaveText(published[slug].title);
-      await expect(page.getByText(privateSummary, { exact: true })).toHaveCount(0);
-    }
-    await context.close();
-  } finally {
-    await browser.close();
-    for (const slug of slugs) {
-      const { id, _status, createdAt, updatedAt, ...data } = originals[slug];
-      await update(slug, 'en', data, '&draft=true');
-    }
-  }
-});
-
 test('career admin live preview keeps About text intact and locale drafts private', { timeout: 90_000 }, async () => {
   const browser = await chromium.launch({ headless: true });
   try {
@@ -380,6 +333,47 @@ test('career admin live preview keeps About text intact and locale drafts privat
     await expect(tree.getByText('Dates not provided', { exact: true })).toBeVisible();
 
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), 'Career page overflows at 320px');
+    await context.close();
+  } finally { await browser.close(); }
+});
+
+test('authenticated previews load only the active source draft', { timeout: 60_000 }, async () => {
+  const slugs = ['home', 'about', 'career'] as const;
+  const published = Object.fromEntries(await Promise.all(slugs.map(async (slug) => [slug, await (await request(`/api/globals/${slug}?locale=en&draft=false`, undefined, true)).json()])));
+  const originals = Object.fromEntries(await Promise.all(slugs.map(async (slug) => [slug, await (await request(`/api/globals/${slug}?locale=en&draft=true`, undefined, true)).json()])));
+  const titles = { home: 'Home source private title', about: 'About source private title' };
+  const privateRole = 'Career source private role';
+  const privateSummary = 'Career source private summary';
+  const browser = await chromium.launch({ headless: true });
+  try {
+    await update('home', 'en', { title: titles.home }, '&draft=true');
+    await update('about', 'en', { title: titles.about }, '&draft=true');
+    await update('career', 'en', { jobs: originals.career.jobs.map((job: { role: string; summary?: string | null }) => ({ ...job, role: privateRole, summary: privateSummary })) }, '&draft=true');
+    const context = await browser.newContext();
+    await context.addCookies([{ name: cookie.split('=')[0], value: cookie.slice(cookie.indexOf('=') + 1), url: base }]);
+    const page = await context.newPage();
+    for (const slug of ['home', 'about'] as const) {
+      const pathname = slug === 'home' ? '/en' : '/en/about';
+      await page.goto(`${base}${pathname}?preview=1&previewSource=career`);
+      await expect(page.getByRole('heading', { level: 1 })).toHaveText(published[slug].title);
+      await expect(page.getByText(titles[slug], { exact: true })).toHaveCount(0);
+      const careerPreview = page.getByRole('region', { name: 'Career', exact: true });
+      await expect(careerPreview.locator('button[data-career-job]').first()).toContainText(privateRole);
+      await expect(careerPreview.getByText(privateSummary, { exact: true })).toBeVisible();
+      await page.goto(`${base}${pathname}?preview=1`);
+      await expect(page.getByRole('heading', { level: 1 })).toHaveText(titles[slug]);
+      const pagePreviewCareer = page.getByRole('region', { name: 'Career', exact: true });
+      await expect(pagePreviewCareer.locator('button[data-career-job]').first()).toContainText(published.career.jobs[0].role);
+      await expect(pagePreviewCareer.getByText(privateRole, { exact: true })).toHaveCount(0);
+      await expect(pagePreviewCareer.getByText(privateSummary, { exact: true })).toHaveCount(0);
+      for (const query of ['?preview=1', '?preview=1&previewSource=career']) {
+        const anonymous = await request(`${pathname}${query}`);
+        assert.ok([401, 403, 404].includes(anonymous.status), `Anonymous preview succeeded: ${pathname}${query}`);
+      }
+      await page.goto(`${base}${pathname}`);
+      await expect(page.getByRole('heading', { level: 1 })).toHaveText(published[slug].title);
+      await expect(page.getByText(privateSummary, { exact: true })).toHaveCount(0);
+    }
     await context.close();
   } finally { await browser.close(); }
 });
