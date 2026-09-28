@@ -22,7 +22,7 @@ test.describe("Public website review", () => {
     const career = page.getByRole("region", { name: "Career", exact: true });
     await expect(career).toBeVisible();
     await expect(career.getByRole("button", { name: /Amazon.*Software Development Engineer I/ })).toHaveAttribute("aria-pressed", "true");
-    await expect(career.getByText("work/amazon", { exact: true })).toBeVisible();
+    await expect(career.getByRole("button").getByText("work/amazon", { exact: true })).toBeVisible();
     await expect(career.getByRole("img")).toHaveAccessibleName(/Time moves upward/);
     await page.screenshot({ path: ".artifacts/playwright/career-home-desktop.png", fullPage: true });
     await career.getByRole("link", { name: "Explore my background" }).click();

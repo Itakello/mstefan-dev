@@ -135,7 +135,7 @@ export default buildConfig({
   onInit: async (payload) => {
     const career = await payload.findGlobal({ slug: "career", draft: true, overrideAccess: true });
     if (!career.id) {
-      const jobs = [{ branchName: "work/amazon", company: "Amazon", role: "Software Development Engineer I", color: "#c77835" }];
+      const jobs = [{ branchName: "work/amazon", company: "Amazon", role: "Software Development Engineer I", color: "#d568fc" }];
       const transactionID = await payload.db.beginTransaction();
       if (!transactionID) throw new Error("Career initialization requires a database transaction.");
       try {
