@@ -117,7 +117,7 @@ test('production drafts, active-locale UI publishing, media privacy, and restart
   await update('about', 'en', { title: 'en-private-draft' }, '&draft=true');
   await publicTitle('en', 'en-published', 'en-private-draft');
   await publicTitle('it', 'it-published', 'it-private-draft');
-  for (const url of ['/en/about?preview=1', '/it/about?preview=1', '/en?preview=1', '/api/globals/about?draft=true', '/api/globals/about/versions', '/api/users']) {
+  for (const url of ['/en/about?preview=1', '/it/about?preview=1', '/en?preview=1', '/api/globals/about?draft=true', '/api/globals/about/versions', '/api/globals/career?draft=true', '/api/globals/career/versions', '/api/users']) {
     const response = await request(url);
     assert.ok([401, 403, 404].includes(response.status), `Anonymous access succeeded: ${url} (${response.status})`);
   }
@@ -125,7 +125,7 @@ test('production drafts, active-locale UI publishing, media privacy, and restart
   assert.equal(preview.status, 200);
   assert.ok((await preview.text()).includes('en-private-draft'));
   const publicHeaders = { Host: 'mstefan.dev', Cookie: cookie, 'X-Forwarded-Host': 'localhost:3000' };
-  for (const url of ['/admin', '/admin/login', '/admin/login.json', '/%61dmin', '/api/users', '/api/users/first-register', '/api/globals/about?draft=true', '/api/graphql', '/en/about?preview=1']) {
+  for (const url of ['/admin', '/admin/login', '/admin/login.json', '/%61dmin', '/api/users', '/api/users/first-register', '/api/globals/about?draft=true', '/api/globals/career?draft=true', '/api/graphql', '/en/about?preview=1']) {
     const result = await publicRequest(url, publicHeaders);
     assert.equal(result.status, 404, `Public CMS boundary failed: ${url}`);
   }
@@ -196,4 +196,187 @@ test('production drafts, active-locale UI publishing, media privacy, and restart
   assert.equal(privateFile.status, 200);
   const secondRegistration = await request('/api/users/first-register', { email: 'another@example.invalid', password });
   assert.notEqual(secondRegistration.status, 200);
+});
+
+
+test('career admin live preview keeps About text intact and locale drafts private', { timeout: 90_000 }, async () => {
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const context = await browser.newContext();
+    await context.addCookies([{ name: cookie.split('=')[0], value: cookie.slice(cookie.indexOf('=') + 1), url: base }]);
+    const page = await context.newPage();
+    await page.goto(`${base}/admin/globals/career?locale=en`);
+    await expect(page.locator('#field-jobs__0__company')).toHaveValue('Amazon');
+    await expect(page.locator('#field-jobs__0__branchName')).toHaveValue('work/amazon');
+    await expect(page.locator('#field-jobs__0__role')).toHaveValue('Software Development Engineer I');
+    await page.getByRole('button', { name: /live preview/i }).click();
+    const iframe = page.locator('iframe');
+    await expect(iframe).toHaveAttribute('src', /previewSource=career/);
+    const preview = page.frameLocator('iframe');
+    await expect(preview.getByRole('heading', { level: 1 })).toHaveText('en-published-from-ui');
+    await page.locator('#field-jobs__0__summary').fill('Unsaved career live preview');
+    await expect(preview.getByText('Unsaved career live preview', { exact: true })).toBeVisible();
+    await expect(preview.getByRole('heading', { level: 1 })).toHaveText('en-published-from-ui');
+    const publicPage = await request('/en/about');
+    assert.ok(!(await publicPage.text()).includes('Unsaved career live preview'));
+    const saveDraft = page.waitForResponse((response) => response.request().method() === 'POST' && response.url().includes('/api/globals/career') && response.url().includes('draft=true'));
+    await page.getByRole('button', { name: /save draft/i }).click();
+    assert.equal((await saveDraft).status(), 200);
+    const englishDraft = await request('/api/globals/career?locale=en&draft=true', undefined, true);
+    const career = await (await request('/api/globals/career?locale=it&draft=true', undefined, true)).json();
+    assert.equal((await englishDraft.json()).jobs[0].summary, 'Unsaved career live preview');
+    await update('career', 'it', { jobs: career.jobs.map((job: { company: string; role: string; summary: string }) => ({ ...job, company: 'Amazon', role: 'Software Development Engineer I', summary: 'Sintesi privata italiana' })) }, '&draft=true');
+    const publish = page.waitForResponse((response) => response.request().method() === 'POST' && response.url().includes('/api/globals/career') && response.url().includes('publishSpecificLocale=en'));
+    await page.getByRole('button', { name: /publish/i }).first().click();
+    assert.equal((await publish).status(), 200);
+    const publishedPage = await request('/en/about');
+    assert.ok((await publishedPage.text()).includes('Unsaved career live preview'));
+    const italianPage = await request('/it/about');
+    const italianHTML = await italianPage.text();
+    assert.ok(!italianHTML.includes('Sintesi privata italiana'));
+    assert.ok(!italianHTML.includes('Unsaved career live preview'));
+    const italianDraft = await request('/api/globals/career?locale=it&draft=true', undefined, true);
+    assert.equal((await italianDraft.json()).jobs[0].summary, 'Sintesi privata italiana');
+    for (const url of ['/en/about?preview=1&previewSource=career', '/en?preview=1&previewSource=career']) {
+      const anonymous = await request(url);
+      assert.ok([401, 403, 404].includes(anonymous.status), `Anonymous career preview succeeded: ${url}`);
+    }
+    await update('career', 'en', { _status: 'published', jobs: [
+      { branchName: 'education/test-university', company: 'Test University with a deliberately long organization name', role: 'Qualification with a long title to exercise wrapping on small screens', summary: 'Education fixture details', color: '#1267ab' },
+      { branchName: 'work/amazon', company: 'Amazon', role: 'Software Development Engineer I', summary: 'Amazon fixture details', color: '#c77835' },
+    ] }, '&publishSpecificLocale=en');
+    await page.setViewportSize({ width: 320, height: 800 });
+    await page.goto(`${base}/en`);
+    const graph = page.getByRole('region', { name: 'Career', exact: true });
+    await expect(graph.locator('button[data-career-job]')).toHaveCount(2);
+    await expect(graph.getByText('Education fixture details', { exact: true })).toBeVisible();
+    await expect(graph.locator('button[data-career-job]').first()).toHaveAttribute('aria-pressed', 'true');
+    const amazon = graph.locator('button[data-career-job]', { hasText: 'work/amazon' });
+    await amazon.click();
+    await expect(amazon).toHaveAttribute('aria-pressed', 'true');
+    await expect(graph.getByText('Amazon fixture details', { exact: true })).toBeVisible();
+    await expect(graph.getByText('Education fixture details', { exact: true })).toHaveCount(0);
+    const branches = graph.locator('svg [data-career-branch]');
+    await expect(branches).toHaveCount(2);
+    await branches.first().focus();
+    await branches.first().press('Enter');
+    await expect(graph.getByText('Education fixture details', { exact: true })).toBeVisible();
+    await expect(graph.locator('button[data-career-job]').first()).toHaveAttribute('aria-pressed', 'true');
+    await expect(branches.first()).toHaveAttribute('aria-pressed', 'true');
+    await branches.last().focus();
+    await branches.last().press('Space');
+    await expect(graph.getByText('Amazon fixture details', { exact: true })).toBeVisible();
+    await expect(amazon).toHaveAttribute('aria-pressed', 'true');
+    await expect(graph.getByText('Dates not provided').first()).toBeVisible();
+    await branches.first().locator('[data-career-head]').click();
+    await expect(graph.getByText('Education fixture details', { exact: true })).toBeVisible();
+    await expect(graph.locator('button[data-career-job]').first()).toBeFocused();
+    await branches.last().locator('[data-career-head]').click();
+    await expect(graph.getByText('Amazon fixture details', { exact: true })).toBeVisible();
+    await expect(amazon).toHaveAttribute('aria-pressed', 'true');
+    await expect(amazon).toBeFocused();
+    const pathPoint = await branches.first().locator('path').last().evaluate((element) => {
+      const path = element as SVGPathElement;
+      const point = path.getPointAtLength(path.getTotalLength() * 0.85);
+      const screen = new DOMPoint(point.x, point.y).matrixTransform(path.getScreenCTM()!);
+      return { x: screen.x, y: screen.y };
+    });
+    await page.mouse.click(pathPoint.x, pathPoint.y);
+    await expect(graph.getByText('Education fixture details', { exact: true })).toBeVisible();
+    await expect(graph.locator('button[data-career-job]').first()).toHaveAttribute('aria-pressed', 'true');
+
+    await update('career', 'en', { _status: 'published', jobs: [
+      { branchName: 'education/test-university', company: 'Test University', role: 'Qualification', startDate: '2020-01-01', endDate: '2023-01-01', summary: `Education dated fixture\n${'Long description fixture. '.repeat(120)}`, color: '#1267ab' },
+      { branchName: 'work/amazon', company: 'Amazon', role: 'Software Development Engineer I', startDate: '2022-01-01', endDate: '2024-01-01', summary: 'Amazon dated fixture', color: '#c77835' },
+      { branchName: 'work/undated-fixture', company: 'Undated fixture', role: 'Test role', summary: 'Undated fixture details', color: '#d568fc' },
+    ] }, '&publishSpecificLocale=en');
+    await page.reload();
+    const heads = graph.locator('[data-career-head]');
+    assert.ok(Number(await heads.nth(0).getAttribute('cy')) > Number(await heads.nth(1).getAttribute('cy')), 'Later dates must appear above earlier dates despite title order');
+    const tree = graph.getByRole('region', { name: 'Graph. Time moves upward.', exact: true });
+    assert.ok(await tree.evaluate((element) => element.scrollHeight > element.clientHeight), 'Long history must scroll inside the tree');
+    const detail = graph.locator('[aria-live="polite"]');
+    await detail.hover();
+    await page.mouse.wheel(0, 500);
+    await expect.poll(() => detail.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
+    await tree.scrollIntoViewIfNeeded();
+    await tree.hover();
+    const scrollToPath = await tree.evaluate((element) => element.scrollTop);
+    await page.mouse.wheel(0, 400);
+    await expect.poll(() => tree.evaluate((element) => element.scrollTop)).toBeGreaterThan(scrollToPath);
+    await expect(heads.nth(1)).not.toBeInViewport();
+    const datedPathPosition = () => graph.locator('[data-career-branch]').nth(1).locator('path').last().evaluate((element) => {
+      const path = element as SVGPathElement;
+      const point = path.getPointAtLength(50);
+      const screen = new DOMPoint(point.x, point.y).matrixTransform(path.getScreenCTM()!);
+      return { x: screen.x, y: screen.y };
+    });
+    const datedPathPoint = await datedPathPosition();
+    assert.equal(await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.closest('[data-career-branch]')?.getAttribute('data-career-branch'), datedPathPoint), await graph.locator('[data-career-branch]').nth(1).getAttribute('data-career-branch'), 'The dated path click must hit the visible intended branch');
+    await page.mouse.click(datedPathPoint.x, datedPathPoint.y);
+    await expect(graph.getByText('Amazon dated fixture', { exact: true })).toBeVisible();
+    await expect(heads.nth(1)).toBeInViewport();
+    await expect.poll(() => detail.evaluate((element) => element.scrollTop)).toBe(0);
+    await expect(graph.getByRole('heading', { name: 'Amazon', exact: true })).toBeVisible();
+    await tree.hover();
+    const beforeScroll = await tree.evaluate((element) => element.scrollTop);
+    const pageScroll = await page.evaluate(() => window.scrollY);
+    await page.mouse.wheel(0, 400);
+    await expect.poll(() => tree.evaluate((element) => element.scrollTop)).toBeGreaterThan(beforeScroll);
+    assert.equal(await page.evaluate(() => window.scrollY), pageScroll, 'Tree scrolling must not move the page');
+    await expect(heads.nth(1)).not.toBeInViewport();
+    const selectedPathPoint = await datedPathPosition();
+    assert.equal(await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.closest('[data-career-branch]')?.getAttribute('data-career-branch'), selectedPathPoint), await graph.locator('[data-career-branch]').nth(1).getAttribute('data-career-branch'), 'Reselecting must hit the visible selected branch');
+    await page.mouse.click(selectedPathPoint.x, selectedPathPoint.y);
+    await expect(heads.nth(1)).toBeInViewport();
+    await expect(graph.locator('button[data-career-job]', { hasText: 'work/amazon' })).toBeFocused();
+    await graph.locator('button[data-career-job]', { hasText: 'work/undated-fixture' }).click();
+    await expect(graph.getByText('Undated fixture details', { exact: true })).toBeVisible();
+    await expect(heads.nth(2)).toBeInViewport();
+    await expect(tree.getByText('Dates not provided', { exact: true })).toBeVisible();
+
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), 'Career page overflows at 320px');
+    await context.close();
+  } finally { await browser.close(); }
+});
+
+test('authenticated previews load only the active source draft', { timeout: 60_000 }, async () => {
+  const slugs = ['home', 'about', 'career'] as const;
+  const published = Object.fromEntries(await Promise.all(slugs.map(async (slug) => [slug, await (await request(`/api/globals/${slug}?locale=en&draft=false`, undefined, true)).json()])));
+  const originals = Object.fromEntries(await Promise.all(slugs.map(async (slug) => [slug, await (await request(`/api/globals/${slug}?locale=en&draft=true`, undefined, true)).json()])));
+  const titles = { home: 'Home source private title', about: 'About source private title' };
+  const privateRole = 'Career source private role';
+  const privateSummary = 'Career source private summary';
+  const browser = await chromium.launch({ headless: true });
+  try {
+    await update('home', 'en', { title: titles.home }, '&draft=true');
+    await update('about', 'en', { title: titles.about }, '&draft=true');
+    await update('career', 'en', { jobs: originals.career.jobs.map((job: { role: string; summary?: string | null }) => ({ ...job, role: privateRole, summary: privateSummary })) }, '&draft=true');
+    const context = await browser.newContext();
+    await context.addCookies([{ name: cookie.split('=')[0], value: cookie.slice(cookie.indexOf('=') + 1), url: base }]);
+    const page = await context.newPage();
+    for (const slug of ['home', 'about'] as const) {
+      const pathname = slug === 'home' ? '/en' : '/en/about';
+      await page.goto(`${base}${pathname}?preview=1&previewSource=career`);
+      await expect(page.getByRole('heading', { level: 1 })).toHaveText(published[slug].title);
+      await expect(page.getByText(titles[slug], { exact: true })).toHaveCount(0);
+      const careerPreview = page.getByRole('region', { name: 'Career', exact: true });
+      await expect(careerPreview.locator('button[data-career-job]').first()).toContainText(privateRole);
+      await expect(careerPreview.getByText(privateSummary, { exact: true })).toBeVisible();
+      await page.goto(`${base}${pathname}?preview=1`);
+      await expect(page.getByRole('heading', { level: 1 })).toHaveText(titles[slug]);
+      const pagePreviewCareer = page.getByRole('region', { name: 'Career', exact: true });
+      await expect(pagePreviewCareer.locator('button[data-career-job]').first()).toContainText(published.career.jobs[0].role);
+      await expect(pagePreviewCareer.getByText(privateRole, { exact: true })).toHaveCount(0);
+      await expect(pagePreviewCareer.getByText(privateSummary, { exact: true })).toHaveCount(0);
+      for (const query of ['?preview=1', '?preview=1&previewSource=career']) {
+        const anonymous = await request(`${pathname}${query}`);
+        assert.ok([401, 403, 404].includes(anonymous.status), `Anonymous preview succeeded: ${pathname}${query}`);
+      }
+      await page.goto(`${base}${pathname}`);
+      await expect(page.getByRole('heading', { level: 1 })).toHaveText(published[slug].title);
+      await expect(page.getByText(privateSummary, { exact: true })).toHaveCount(0);
+    }
+    await context.close();
+  } finally { await browser.close(); }
 });
