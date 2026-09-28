@@ -1,0 +1,30 @@
+tests/cms/lifecycle.test.mts
+  s_fc646ba2f41cef::t_baff1d9d615f8b 248,250-251,256-285,287-294,317-327
+  s_fc646ba2f41cef::t_add3728226a254 299,311
+  s_fc646ba2f41cef::t_1c33aa8504b911 286,295-298,304-310,312-316
+  s_fc646ba2f41cef::t_032bcc03a9fb87 300-303
+components/CareerGraph.module.css
+  s_fc646ba2f41cef::t_ea3c42ccd72b3d 2,10-15,27-34,39
+components/CareerGraph.tsx
+  s_fc646ba2f41cef::t_4b5156fa7e53ae 9,13-14,25-46,49-66,69-73,84-94,96-131
+e2e/mstefan-site.review.spec.ts
+  s_fc646ba2f41cef::t_7fabfe375a9193 24-26,78-88
+lib/career-timeline.ts
+  s_fc646ba2f41cef::t_2b9cb0eeef17e5 1-51
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1d98953e728bed561d89eb8c60c53e3743bf3dbd",
+  "prompts": {},
+  "sessions": {
+    "s_fc646ba2f41cef": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0e9a5-4cb9-7890-88b5-1b5cca1ba8c4",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
