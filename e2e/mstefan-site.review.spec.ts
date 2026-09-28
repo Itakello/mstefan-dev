@@ -21,9 +21,9 @@ test.describe("Public website review", () => {
     await expect(page.getByRole("heading", { level: 2, name: "Selected work" })).toBeVisible();
     const career = page.getByRole("region", { name: "Career", exact: true });
     await expect(career).toBeVisible();
-    await expect(career.getByRole("button", { name: /Amazon.*Software Development Engineer I/ })).toHaveAttribute("aria-pressed", "true");
-    await expect(career.getByRole("button").getByText("work/amazon", { exact: true })).toBeVisible();
-    await expect(career.getByRole("img")).toHaveAccessibleName(/Time moves upward/);
+    await expect(career.locator("button[data-career-job]", { hasText: "Amazon" })).toHaveAttribute("aria-pressed", "true");
+    await expect(career.locator("button[data-career-job]").getByText("work/amazon", { exact: true })).toBeVisible();
+    await expect(career.getByRole("region", { name: /Graph.*Time moves upward/ })).toBeVisible();
     await page.screenshot({ path: ".artifacts/playwright/career-home-desktop.png", fullPage: true });
     await career.getByRole("link", { name: "Explore my background" }).click();
     await expect(page).toHaveURL(/\/en\/about#career$/);
@@ -75,11 +75,17 @@ test.describe("Public website review", () => {
     await expect(page.locator("footer > div")).toHaveCSS("flex-direction", "column");
     const mobileCareer = page.getByRole("region", { name: "Career", exact: true });
     await expect(mobileCareer).toBeVisible();
-    await expect.poll(() => mobileCareer.evaluate((section) => {
-      const row = section.querySelector("button")!.getBoundingClientRect();
-      const dot = section.querySelector("svg g circle")!.getBoundingClientRect();
-      return Math.abs(row.top + row.height / 2 - (dot.top + dot.height / 2));
-    })).toBeLessThan(2);
+    await expect(mobileCareer.getByText("Dates not provided").first()).toBeVisible();
+    const mobileBranch = mobileCareer.locator('svg [data-career-branch]');
+    await mobileBranch.focus();
+    await mobileBranch.press("Enter");
+    await expect(mobileBranch).toHaveAttribute("aria-pressed", "true");
+    await expect(mobileCareer.locator('button[data-career-job]')).toHaveAttribute("aria-pressed", "true");
+    await expect.poll(() => mobileCareer.locator('[aria-label^="Graph."]').evaluate((tree) => {
+      const main = tree.querySelector('circle')!.getBoundingClientRect();
+      const viewport = tree.getBoundingClientRect();
+      return main.left >= viewport.left && main.right <= viewport.right;
+    })).toBe(true);
     await page.screenshot({ path: ".artifacts/playwright/career-home-mobile.png", fullPage: true });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
     await page.setViewportSize({ width: 400, height: 800 });
