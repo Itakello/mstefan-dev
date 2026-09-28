@@ -30,7 +30,7 @@ export default async function Home({ params, searchParams }: { params: Promise<{
   const preview = query.preview === "1";
   const careerPreview = preview && query.previewSource === "career";
   const { getCareerContent } = await import("@/lib/cms/career");
-  const [content, career] = await Promise.all([getPageContent("home", locale, preview), getCareerContent(locale, preview)]);
+  const [content, career] = await Promise.all([getPageContent("home", locale, preview && !careerPreview), getCareerContent(locale, careerPreview)]);
   const [{ projects, publication }, stackCatalog] = await Promise.all([loadPublicProjects(locale), loadWebsiteStack()]);
   if (stackCatalog.status === "ready") {
     assertProjectStackCoverage(publication.projects, stackCatalog.entries);

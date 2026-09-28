@@ -19,7 +19,7 @@ export default async function AboutPage({ params, searchParams }: { params: Prom
   const preview = query.preview === "1";
   const careerPreview = preview && query.previewSource === "career";
   const { getCareerContent } = await import("@/lib/cms/career");
-  const [content, career] = await Promise.all([getPageContent("about", locale, preview), getCareerContent(locale, preview)]);
+  const [content, career] = await Promise.all([getPageContent("about", locale, preview && !careerPreview), getCareerContent(locale, careerPreview)]);
 
   const Content = preview && !careerPreview ? AboutLivePreview : AboutContent;
   const CareerContent = careerPreview ? CareerLivePreview : CareerGraph;
