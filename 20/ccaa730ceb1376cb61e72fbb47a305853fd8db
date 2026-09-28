@@ -1,0 +1,72 @@
+scripts/visual-review/run-fixture.mjs
+  s_378fc10f812003::t_14ae4cc4eb5628 14,16
+  s_378fc10f812003::t_ec67f19aa4e648 12,26
+tests/website-showcase.test.ts
+  s_378fc10f812003::t_5df9c43cdd38b5 7,11-18,24-26,32,45-76
+  s_378fc10f812003::t_c4eed38cdba085 77-92
+lib/publicProjects.ts
+  s_378fc10f812003::t_c80ea5bc0cc13f 40
+lib/notion.ts
+  s_378fc10f812003::t_c80ea5bc0cc13f 15,116
+  s_378fc10f812003::t_c6a1b2118e8b5e 100-103
+tests/cms/notion-publication-fixture.mjs
+  s_378fc10f812003::t_14ae4cc4eb5628 1-25
+  s_378fc10f812003::t_4d289a6a578ef4 26-72
+lib/projectPublication.ts
+  s_378fc10f812003::t_c80ea5bc0cc13f 7
+lib/websiteShowcase.ts
+  s_378fc10f812003::t_c80ea5bc0cc13f 2-3,7-8,10-26
+  s_fc646ba2f41cef::t_6665d222d5277d 27,32,38,40-41
+app/[locale]/projects/page.tsx
+  s_378fc10f812003::t_870d9d877f2ee3 3,11,25-27,47
+app/[locale]/websites/page.tsx
+  s_378fc10f812003::t_32346db59448e4 1,7
+components/WebsiteAnalytics.tsx
+  s_378fc10f812003::t_0c0f10ce945584 6,12,17
+components/WorkExplorer.tsx
+  s_378fc10f812003::t_9c71a383dbe935 3-4,7,9,14-17,22-27,29-33,36-42,44-75,77-85
+e2e/mstefan-site.review.spec.ts
+  s_378fc10f812003::t_ef84ac4c91fa21 4-5,9-28,41,46,49-82,84-88,109,112,140-181
+lib/analytics.ts
+  s_378fc10f812003::t_df2cd39bf88016 11-14,25
+lib/i18n/copy.ts
+  s_378fc10f812003::t_bea5faac4925d3 69,90-91,165-166,173,191-192,268-269,276
+scripts/visual-review/package-evidence.mjs
+  s_378fc10f812003::t_337254608101f3 3,33-46
+specs/mstefan-site-review.md
+  s_378fc10f812003::t_9065ecb58253bb 13,20,23-30
+tests/analytics.test.ts
+  s_378fc10f812003::t_bc9fd91b971ebe 65-85
+tests/cms/lifecycle.test.mts
+  s_378fc10f812003::t_48a7e48fe8530f 13-14,72,91,93-94
+tests/localized-public-helpers.test.ts
+  s_378fc10f812003::t_84ac6e2822230a 59-60
+tests/localized-public-site.test.ts
+  s_378fc10f812003::t_4d9ea03319bcf5 81
+tests/notion-projects.test.ts
+  s_378fc10f812003::t_950d1cb1253ac8 332-343
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "20ccaa730ceb1376cb61e72fbb47a305853fd8db",
+  "prompts": {},
+  "sessions": {
+    "s_378fc10f812003": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0e6e9-85f7-70e3-aded-c9af1613e5f2",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    },
+    "s_fc646ba2f41cef": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0e9a5-4cb9-7890-88b5-1b5cca1ba8c4",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
