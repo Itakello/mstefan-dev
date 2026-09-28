@@ -20,7 +20,7 @@ function schema(db) {
     foreignKeys: db.prepare(`PRAGMA foreign_key_list(${quote(name)})`).all().sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b))),
     indexes: db.prepare(`PRAGMA index_list(${quote(name)})`).all().map(({ name: indexName, unique, origin, partial }) => ({
       name: indexName, unique, origin, partial,
-      columns: db.prepare(`PRAGMA index_info(${quote(indexName)})`).all(),
+      columns: db.prepare(`PRAGMA index_xinfo(${quote(indexName)})`).all(),
     })).sort((a, b) => a.name.localeCompare(b.name)),
   })), objects: db.prepare("SELECT type, name, tbl_name, sql FROM sqlite_master WHERE type IN ('view', 'trigger') ORDER BY type, name").all() };
 }
@@ -66,10 +66,14 @@ try {
   assert.ok(migrations, 'Preview schema differs from the committed production migrations; refusing to baseline.');
   const existing = target.prepare('SELECT name, batch FROM payload_migrations ORDER BY id').all();
   const recorded = existing.filter(({ name, batch }) => name !== 'development' || batch !== -1);
-  assert.deepEqual(recorded, migrations.slice(0, recorded.length),
+  assert.deepEqual(recorded.map(({ name }) => name), migrations.slice(0, recorded.length).map(({ name }) => name),
     'Unexpected migration history; refusing to replace it.');
-  for (const { name, batch } of migrations.slice(recorded.length)) {
-    target.prepare('INSERT INTO payload_migrations (name, batch) VALUES (?, ?)').run(name, batch);
+  assert.ok(recorded.every(({ batch }, index) => Number.isInteger(batch) && batch > 0 &&
+    (index === 0 ? batch === 1 : batch === recorded[index - 1].batch || batch === recorded[index - 1].batch + 1)),
+    'Unexpected migration history; refusing to replace it.');
+  const nextBatch = recorded.length ? recorded[recorded.length - 1].batch + 1 : 1;
+  for (const { name } of migrations.slice(recorded.length)) {
+    target.prepare('INSERT INTO payload_migrations (name, batch) VALUES (?, ?)').run(name, nextBatch);
   }
   target.prepare("DELETE FROM payload_migrations WHERE name = 'development' AND batch = -1").run();
   target.exec('COMMIT');

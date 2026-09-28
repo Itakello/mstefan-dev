@@ -50,9 +50,9 @@ test(`preview ${schemaVersion} baseline preserves drafts and rejects unexpected 
 });
 }
 
-test('career preview baseline appends only missing migration history after an existing initial prefix', async () => {
+test('career preview baseline adds a separate rollback batch and preserves legacy content', async () => {
   const dataDir = await mkdtemp(path.join(tmpdir(), 'payload-baseline-upgrade-'));
-  const environment = { ...process.env, PAYLOAD_DATA_DIR: dataDir };
+  const environment = { ...process.env, NODE_ENV: 'production', PAYLOAD_DATA_DIR: dataDir, PAYLOAD_SECRET: 'disposable-local-baseline-rollback-only', PAYLOAD_DISABLE_DEPENDENCY_CHECKER: 'true' };
   const filename = path.join(dataDir, '.payload-local.db');
   const { SQLiteSyncDialect } = await import('@payloadcms/db-sqlite/drizzle/sqlite-core');
   const { up: initialUp } = await import('../../migrations/20260917_195926_initial');
@@ -67,13 +67,18 @@ test('career preview baseline appends only missing migration history after an ex
       INSERT INTO payload_migrations (id, name, batch, created_at, updated_at) VALUES
         (7, '20260917_195926_initial', 1, '2026-09-17T00:00:00Z', '2026-09-17T00:00:00Z'),
         (8, 'development', -1, '2026-09-28T00:00:00Z', '2026-09-28T00:00:00Z');
+      INSERT INTO users (id, email) VALUES (1, 'legacy@example.invalid');
+      INSERT INTO media (id, filename, width, height) VALUES (1, 'legacy.png', 100, 200);
       INSERT INTO home (id, _status) VALUES (1, 'published');
-      INSERT INTO home_locales (title, _locale, _parent_id) VALUES ('Existing published home', 'en', 1);
-      INSERT INTO _about_v (id, version__status, latest) VALUES (1, 'draft', 1);
-      INSERT INTO _about_v_locales (version_title, _locale, _parent_id) VALUES ('Existing private draft', 'it', 1);
+      INSERT INTO home_locales (title, _locale, _parent_id) VALUES ('Existing published home', 'en', 1), ('Existing Italian home', 'it', 1);
+      INSERT INTO about (id, _status, photo_id) VALUES (1, 'published', 1);
+      INSERT INTO about_locales (title, _locale, _parent_id) VALUES ('Existing about', 'en', 1), ('Existing Italian about', 'it', 1);
+      INSERT INTO _about_v (id, version__status, version_photo_id, latest) VALUES (1, 'draft', 1, 1);
+      INSERT INTO _about_v_locales (version_title, _locale, _parent_id) VALUES ('Existing English draft', 'en', 1), ('Existing private draft', 'it', 1);
+      INSERT INTO career (id, _status) VALUES (1, 'published');
     `);
     const initial = db.prepare('SELECT * FROM payload_migrations WHERE id = 7').get();
-    const content = () => ['home', 'home_locales', '_about_v', '_about_v_locales'].map((table) => db.prepare(`SELECT * FROM ${table} ORDER BY id`).all());
+    const content = () => ['users', 'media', 'home', 'home_locales', 'about', 'about_locales', '_about_v', '_about_v_locales'].map((table) => db.prepare(`SELECT * FROM ${table} ORDER BY id`).all());
     const before = content();
     db.close();
     let baselineHistory;
@@ -84,12 +89,19 @@ test('career preview baseline appends only missing migration history after an ex
       const history = db.prepare('SELECT * FROM payload_migrations ORDER BY id').all();
       assert.deepEqual(history.map((row) => row.name), ['20260917_195926_initial', '20260928_212105_career']);
       assert.deepEqual(history[0], initial);
-      assert.equal(history[1].batch, 1);
+      assert.equal(history[1].batch, 2);
       assert.deepEqual(content(), before);
       if (attempt === 0) baselineHistory = history;
       else assert.deepEqual(history, baselineHistory, 'Retry changed already baselined history');
       db.close();
     }
+    const rollback = spawnSync(process.execPath, ['node_modules/payload/bin.js', 'migrate:down'], { env: environment, encoding: 'utf8', timeout: 30_000 });
+    assert.equal(rollback.status, 0, `${rollback.stderr}\n${rollback.stdout}`);
+    db = new DatabaseSync(filename);
+    assert.deepEqual(content(), before, 'Career rollback changed legacy content');
+    assert.deepEqual(db.prepare('SELECT * FROM payload_migrations ORDER BY id').all(), [initial]);
+    assert.deepEqual(db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name IN ('career', 'career_jobs', 'career_locales', '_career_v', '_career_v_version_jobs', '_career_v_locales')").all(), []);
+    assert.deepEqual(db.prepare('PRAGMA foreign_key_check').all(), []);
   } finally { if (db.isOpen) db.close(); await rm(dataDir, { recursive: true, force: true }); }
 });
 
@@ -106,16 +118,19 @@ test('career preview baseline rejects malformed migration prefixes and mismatche
     await initialUp(args);
     await careerUp(args);
     db.exec("INSERT INTO home (id, _status) VALUES (1, 'published');");
-    for (const { names, batch } of [
+    for (const { names, batch, lastBatch } of [
       { names: ['unknown'], batch: 1 },
       { names: ['20260928_212105_career', '20260917_195926_initial'], batch: 1 },
       { names: ['20260928_212105_career'], batch: 1 },
       { names: ['20260917_195926_initial', '20260917_195926_initial'], batch: 1 },
       { names: ['20260917_195926_initial', '20260928_212105_career', 'unknown'], batch: 1 },
       { names: ['20260917_195926_initial'], batch: 2 },
+      { names: ['20260917_195926_initial'], batch: 0 },
+      { names: ['20260917_195926_initial', '20260928_212105_career'], batch: 1, lastBatch: 3 },
+      { names: ['20260917_195926_initial', '20260928_212105_career'], batch: 1, lastBatch: 0 },
     ]) {
       db.exec('DELETE FROM payload_migrations');
-      for (const name of names) db.prepare('INSERT INTO payload_migrations (name, batch) VALUES (?, ?)').run(name, batch);
+      for (const [index, name] of names.entries()) db.prepare('INSERT INTO payload_migrations (name, batch) VALUES (?, ?)').run(name, index > 0 ? lastBatch ?? batch : batch);
       db.prepare('INSERT INTO payload_migrations (name, batch) VALUES (?, -1)').run('development');
       const history = db.prepare('SELECT * FROM payload_migrations ORDER BY id').all();
       const content = db.prepare('SELECT * FROM home').all();
@@ -130,7 +145,7 @@ test('career preview baseline rejects malformed migration prefixes and mismatche
   } finally { if (db.isOpen) db.close(); await rm(dataDir, { recursive: true, force: true }); }
 });
 
-test('career prefix baselining rejects unknown development-batch entries, triggers, and views without mutation', async () => {
+test('career prefix baselining rejects unexpected history, objects, and index details without mutation', async () => {
   const { SQLiteSyncDialect } = await import('@payloadcms/db-sqlite/drizzle/sqlite-core');
   const { up: initialUp } = await import('../../migrations/20260917_195926_initial');
   const { up: careerUp } = await import('../../migrations/20260928_212105_career');
@@ -139,6 +154,8 @@ test('career prefix baselining rejects unknown development-batch entries, trigge
     { label: 'unknown development batch', sql: "INSERT INTO payload_migrations (name, batch) VALUES ('unknown', -1)", error: /Unexpected migration history/ },
     { label: 'extra trigger', sql: "CREATE TRIGGER unexpected_career_guard BEFORE INSERT ON career_jobs BEGIN SELECT RAISE(ABORT, 'Blocked career write'); END", error: /Preview schema differs/ },
     { label: 'extra view', sql: 'CREATE VIEW unexpected_career_view AS SELECT * FROM career_jobs', error: /Preview schema differs/ },
+    { label: 'descending index', sql: 'DROP INDEX career_jobs_order_idx; CREATE INDEX career_jobs_order_idx ON career_jobs (_order DESC)', error: /Preview schema differs/ },
+    { label: 'index collation', sql: 'DROP INDEX career_jobs_order_idx; CREATE INDEX career_jobs_order_idx ON career_jobs (_order COLLATE NOCASE)', error: /Preview schema differs/ },
   ]) {
     const dataDir = await mkdtemp(path.join(tmpdir(), 'payload-baseline-extra-'));
     const filename = path.join(dataDir, '.payload-local.db');
