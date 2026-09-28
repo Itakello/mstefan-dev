@@ -1,0 +1,21 @@
+components/CareerGraph.tsx
+  s_fc646ba2f41cef::t_0fdc32180cacc3 65-66
+tests/cms/lifecycle.test.mts
+  s_fc646ba2f41cef::t_0fdc32180cacc3 305,311,321,324-329
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0e07cfdd367fe9aff563a70d93d8adbf3af5666a",
+  "prompts": {},
+  "sessions": {
+    "s_fc646ba2f41cef": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0e9a5-4cb9-7890-88b5-1b5cca1ba8c4",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
