@@ -20,6 +20,12 @@ Use the [manual backup procedure](BACKUP.md) while all writers are stopped. Veri
 
 Outbound email is explicitly disabled, so password-reset links are never written to application logs. Account recovery must use the existing authenticated admin/approved recovery procedure; email delivery is not configured.
 
+## Website analytics
+
+Set `POSTHOG_PROJECT_TOKEN` in the runtime environment to enable PostHog page views on the public `mstefan.dev` and `www.mstefan.dev` localized routes. The token is passed from the dynamic public layout, so changing it requires a runtime restart rather than an image rebuild. Enable stateless Cookieless server hash mode in the EU PostHog project before deployment. Without the token, analytics stays disabled.
+
+Analytics respects Do Not Track, excludes previews and private hosts, and removes query strings, fragments, campaign parameters, and referrer paths before delivery. It uses no analytics cookies or browser storage, person profiles, interaction autocapture, or session recordings. [Cookieless measurement](https://posthog.com/tutorials/cookieless-tracking) cannot recognize returning visitors across days and does not provide IP-based location data.
+
 ## Verification
 
 Use Node 24 and a free registered local website port, `127.0.0.1:3000`:
