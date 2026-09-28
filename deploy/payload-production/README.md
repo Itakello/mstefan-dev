@@ -1,6 +1,6 @@
-# Private Payload production runtime
+# Payload production runtime
 
-Build with `docker build .`. The root Dockerfile is also the build recipe for native Git deployments in Openship. Run one instance with container port 3000 behind the existing private deployment route. No public cutover is included.
+Build with `docker build .`. The root Dockerfile is also the build recipe for native Git deployments in Openship. Run one instance with container port 3000 behind the existing loopback-bound deployment route. The public `mstefan.dev` domains use the existing edge configuration; administration and previews remain private. Keep those domains and the persistent volume attached when redeploying the existing project.
 
 For the private deployment set `SITE_DEPLOYMENT=private`. Without that explicit setting, production requires valid Notion/GitHub publication sources and fails closed. Provide `PAYLOAD_SECRET` from the approved secret store (at least 32 characters), and mount persistent storage writable by UID 1000 at `/data`. Keep the same secret across restarts. The volume contains `.payload-local.db` and `.payload-media/`; back up and restore them together using a SQLite-consistent database copy. Do not mount the running preview's volume into this runtime.
 
@@ -19,6 +19,12 @@ Administration, Payload APIs, and draft previews are available only through the 
 Use the [manual backup procedure](BACKUP.md) while all writers are stopped. Verify a restored copy in an isolated volume before relying on the archive for recovery; same-host archives do not protect against host loss.
 
 Outbound email is explicitly disabled, so password-reset links are never written to application logs. Account recovery must use the existing authenticated admin/approved recovery procedure; email delivery is not configured.
+
+## Website analytics
+
+Set `POSTHOG_PROJECT_TOKEN` in the runtime environment to enable PostHog page views on the public `mstefan.dev` and `www.mstefan.dev` localized routes. The token is passed from the dynamic public layout, so changing it requires a runtime restart rather than an image rebuild. Enable stateless Cookieless server hash mode in the EU PostHog project before deployment. Without the token, analytics stays disabled.
+
+Analytics respects Do Not Track, excludes previews and private hosts, and removes query strings, fragments, campaign parameters, and referrer paths before delivery. It uses no analytics cookies or browser storage, person profiles, interaction autocapture, or session recordings. [Cookieless measurement](https://posthog.com/tutorials/cookieless-tracking) cannot recognize returning visitors across days and does not provide IP-based location data.
 
 ## Verification
 

@@ -143,13 +143,11 @@ never receives the API key.
 ## API
 - `GET /api/projects/diff` — lists GitHub repos not yet present on the site (based on curated/Notion URLs).
 
-## Deployment (Vercel)
-1. Push to GitHub.
-2. Import the repo in Vercel.
-3. Set env vars as needed (see above).
-4. Build command: `pnpm build`.
-5. After build, `postbuild` runs `next-sitemap` and writes sitemap/robots into `public/`.
-6. Configure your custom domain in Vercel.
+## Deployment
+
+The public `mstefan.dev` site runs on Openship using the root Dockerfile and the existing persistent Payload volume. Follow the [production runtime procedure](deploy/payload-production/README.md) for routing, backups, and deployment. Automatic deployment is disabled; deploy the verified commit through the existing Openship project.
+
+Set `POSTHOG_PROJECT_TOKEN` in that project's production runtime environment and enable stateless Cookieless server hash mode in the EU PostHog project to activate public website analytics. See [Website analytics](deploy/payload-production/README.md#website-analytics) for collection boundaries and measurement limitations. Private runtimes do not collect analytics.
 
 ## Project structure
 ```text
