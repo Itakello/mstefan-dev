@@ -50,6 +50,86 @@ test(`preview ${schemaVersion} baseline preserves drafts and rejects unexpected 
 });
 }
 
+test('career preview baseline appends only missing migration history after an existing initial prefix', async () => {
+  const dataDir = await mkdtemp(path.join(tmpdir(), 'payload-baseline-upgrade-'));
+  const environment = { ...process.env, PAYLOAD_DATA_DIR: dataDir };
+  const filename = path.join(dataDir, '.payload-local.db');
+  const { SQLiteSyncDialect } = await import('@payloadcms/db-sqlite/drizzle/sqlite-core');
+  const { up: initialUp } = await import('../../migrations/20260917_195926_initial');
+  const { up: careerUp } = await import('../../migrations/20260928_212105_career');
+  const dialect = new SQLiteSyncDialect();
+  let db = new DatabaseSync(filename);
+  const args = { db: { run: (query: Parameters<typeof dialect.sqlToQuery>[0]) => db.exec(dialect.sqlToQuery(query).sql) } } as unknown as Parameters<typeof initialUp>[0];
+  try {
+    await initialUp(args);
+    await careerUp(args);
+    db.exec(`
+      INSERT INTO payload_migrations (id, name, batch, created_at, updated_at) VALUES
+        (7, '20260917_195926_initial', 1, '2026-09-17T00:00:00Z', '2026-09-17T00:00:00Z'),
+        (8, 'development', -1, '2026-09-28T00:00:00Z', '2026-09-28T00:00:00Z');
+      INSERT INTO home (id, _status) VALUES (1, 'published');
+      INSERT INTO home_locales (title, _locale, _parent_id) VALUES ('Existing published home', 'en', 1);
+      INSERT INTO _about_v (id, version__status, latest) VALUES (1, 'draft', 1);
+      INSERT INTO _about_v_locales (version_title, _locale, _parent_id) VALUES ('Existing private draft', 'it', 1);
+    `);
+    const initial = db.prepare('SELECT * FROM payload_migrations WHERE id = 7').get();
+    const content = () => ['home', 'home_locales', '_about_v', '_about_v_locales'].map((table) => db.prepare(`SELECT * FROM ${table} ORDER BY id`).all());
+    const before = content();
+    db.close();
+    let baselineHistory;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const result = spawnSync(process.execPath, ['scripts/baseline-payload-preview.mjs'], { env: environment, encoding: 'utf8', timeout: 30_000 });
+      assert.equal(result.status, 0, result.stderr);
+      db = new DatabaseSync(filename);
+      const history = db.prepare('SELECT * FROM payload_migrations ORDER BY id').all();
+      assert.deepEqual(history.map((row) => row.name), ['20260917_195926_initial', '20260928_212105_career']);
+      assert.deepEqual(history[0], initial);
+      assert.equal(history[1].batch, 1);
+      assert.deepEqual(content(), before);
+      if (attempt === 0) baselineHistory = history;
+      else assert.deepEqual(history, baselineHistory, 'Retry changed already baselined history');
+      db.close();
+    }
+  } finally { if (db.isOpen) db.close(); await rm(dataDir, { recursive: true, force: true }); }
+});
+
+test('career preview baseline rejects malformed migration prefixes and mismatched batches without mutation', async () => {
+  const dataDir = await mkdtemp(path.join(tmpdir(), 'payload-baseline-invalid-prefix-'));
+  const filename = path.join(dataDir, '.payload-local.db');
+  const { SQLiteSyncDialect } = await import('@payloadcms/db-sqlite/drizzle/sqlite-core');
+  const { up: initialUp } = await import('../../migrations/20260917_195926_initial');
+  const { up: careerUp } = await import('../../migrations/20260928_212105_career');
+  const dialect = new SQLiteSyncDialect();
+  let db = new DatabaseSync(filename);
+  const args = { db: { run: (query: Parameters<typeof dialect.sqlToQuery>[0]) => db.exec(dialect.sqlToQuery(query).sql) } } as unknown as Parameters<typeof initialUp>[0];
+  try {
+    await initialUp(args);
+    await careerUp(args);
+    db.exec("INSERT INTO home (id, _status) VALUES (1, 'published');");
+    for (const { names, batch } of [
+      { names: ['unknown'], batch: 1 },
+      { names: ['20260928_212105_career', '20260917_195926_initial'], batch: 1 },
+      { names: ['20260928_212105_career'], batch: 1 },
+      { names: ['20260917_195926_initial', '20260917_195926_initial'], batch: 1 },
+      { names: ['20260917_195926_initial', '20260928_212105_career', 'unknown'], batch: 1 },
+      { names: ['20260917_195926_initial'], batch: 2 },
+    ]) {
+      db.exec('DELETE FROM payload_migrations');
+      for (const name of names) db.prepare('INSERT INTO payload_migrations (name, batch) VALUES (?, ?)').run(name, batch);
+      db.prepare('INSERT INTO payload_migrations (name, batch) VALUES (?, -1)').run('development');
+      const history = db.prepare('SELECT * FROM payload_migrations ORDER BY id').all();
+      const content = db.prepare('SELECT * FROM home').all();
+      db.close();
+      const refused = spawnSync(process.execPath, ['scripts/baseline-payload-preview.mjs'], { env: { ...process.env, PAYLOAD_DATA_DIR: dataDir }, encoding: 'utf8', timeout: 30_000 });
+      assert.notEqual(refused.status, 0, `Accepted malformed history: ${names.join(', ')}`);
+      assert.match(refused.stderr, /Unexpected migration history/);
+      db = new DatabaseSync(filename);
+      assert.deepEqual(db.prepare('SELECT * FROM payload_migrations ORDER BY id').all(), history);
+      assert.deepEqual(db.prepare('SELECT * FROM home').all(), content);
+    }
+  } finally { if (db.isOpen) db.close(); await rm(dataDir, { recursive: true, force: true }); }
+});
+
 test('initial migration rolls back populated foreign-key relations and recreates its schema', async () => {
   const { SQLiteSyncDialect } = await import('@payloadcms/db-sqlite/drizzle/sqlite-core');
   const { up, down } = await import('../../migrations/20260917_195926_initial');

@@ -66,10 +66,10 @@ try {
   assert.ok(migrations, 'Preview schema differs from the committed production migrations; refusing to baseline.');
   const existing = target.prepare('SELECT name, batch FROM payload_migrations ORDER BY id').all();
   const recorded = existing.filter(({ batch }) => batch !== -1);
-  if (recorded.length) {
-    assert.deepEqual(recorded, migrations, 'Unexpected migration history; refusing to replace it.');
-  } else {
-    for (const { name, batch } of migrations) target.prepare('INSERT INTO payload_migrations (name, batch) VALUES (?, ?)').run(name, batch);
+  assert.deepEqual(recorded, migrations.slice(0, recorded.length),
+    'Unexpected migration history; refusing to replace it.');
+  for (const { name, batch } of migrations.slice(recorded.length)) {
+    target.prepare('INSERT INTO payload_migrations (name, batch) VALUES (?, ?)').run(name, batch);
   }
   target.prepare('DELETE FROM payload_migrations WHERE batch = -1').run();
   target.exec('COMMIT');
