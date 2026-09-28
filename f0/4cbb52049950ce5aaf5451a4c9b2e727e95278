@@ -1,0 +1,21 @@
+tests/analytics.test.ts
+  s_60effe178c437b::t_11e42f3e968877 27
+lib/analytics.ts
+  s_60effe178c437b::t_11e42f3e968877 24,46
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f04cbb52049950ce5aaf5451a4c9b2e727e95278",
+  "prompts": {},
+  "sessions": {
+    "s_60effe178c437b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0967e-1ff7-7ce3-ae94-fc9e8a749518",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
