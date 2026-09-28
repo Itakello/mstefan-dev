@@ -1,3 +1,4 @@
+import { CareerGraph, CareerLivePreview } from "@/components/CareerGraph";
 import { AboutContent, AboutLivePreview } from "@/components/cms/AboutContent";
 import { notFound } from "next/navigation";
 
@@ -10,13 +11,17 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   return getLocalizedMetadata(locale, "about");
 }
 
-export default async function AboutPage({ params, searchParams }: { params: Promise<{ locale: string }>; searchParams: Promise<{ preview?: string }> }) {
+export default async function AboutPage({ params, searchParams }: { params: Promise<{ locale: string }>; searchParams: Promise<{ preview?: string; previewSource?: string }> }) {
   const { locale } = await params;
   if (!isSupportedLocale(locale)) notFound();
   const { getPageContent } = await import("@/lib/cms/pageContent");
-  const preview = (await searchParams).preview === "1";
-  const content = await getPageContent("about", locale, preview);
+  const query = await searchParams;
+  const preview = query.preview === "1";
+  const careerPreview = preview && query.previewSource === "career";
+  const { getCareerContent } = await import("@/lib/cms/career");
+  const [content, career] = await Promise.all([getPageContent("about", locale, preview), getCareerContent(locale, preview)]);
 
-  const Content = preview ? AboutLivePreview : AboutContent;
-  return <Content content={content} />;
+  const Content = preview && !careerPreview ? AboutLivePreview : AboutContent;
+  const CareerContent = careerPreview ? CareerLivePreview : CareerGraph;
+  return <Content content={content} career={<CareerContent career={career} locale={locale} expanded />} />;
 }

@@ -3,6 +3,7 @@ import { spawnSync } from 'node:child_process';
 import { existsSync, mkdtempSync, rmSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { isDeepStrictEqual } from 'node:util';
 import { DatabaseSync } from 'node:sqlite';
 
 const dataDir = process.env.PAYLOAD_DATA_DIR;
@@ -26,16 +27,43 @@ function schema(db) {
 let target;
 let reference;
 try {
-  const result = spawnSync(process.execPath, ['node_modules/payload/bin.js', 'migrate'], {
-    env: { ...process.env, NODE_ENV: 'production', PAYLOAD_DATA_DIR: referenceDir }, stdio: 'inherit',
+  const result = spawnSync(process.execPath, ['--import', 'tsx', '--input-type=module', '-e', `
+    import { DatabaseSync } from 'node:sqlite';
+    import { SQLiteSyncDialect } from '@payloadcms/db-sqlite/drizzle/sqlite-core';
+    import { up as initialUp } from './migrations/20260917_195926_initial.ts';
+    import { up as careerUp } from './migrations/20260928_212105_career.ts';
+    import path from 'node:path';
+    const dialect = new SQLiteSyncDialect();
+    for (const version of ['initial', 'career']) {
+      const db = new DatabaseSync(path.join(process.env.BASELINE_REFERENCE_DIR, version + '.db'));
+      const args = { db: { run: (query) => db.exec(dialect.sqlToQuery(query).sql) } };
+      await initialUp(args);
+      db.prepare('INSERT INTO payload_migrations (name, batch) VALUES (?, ?)').run('20260917_195926_initial', 1);
+      if (version === 'career') {
+        await careerUp(args);
+        db.prepare('INSERT INTO payload_migrations (name, batch) VALUES (?, ?)').run('20260928_212105_career', 1);
+      }
+      db.close();
+    }
+  `], {
+    env: { ...process.env, BASELINE_REFERENCE_DIR: referenceDir }, stdio: 'inherit',
   });
   if (result.status !== 0) throw new Error('Reference schema migration failed.');
-  reference = new DatabaseSync(path.join(referenceDir, '.payload-local.db'), { readOnly: true });
   target = new DatabaseSync(filename);
   target.exec('BEGIN EXCLUSIVE');
   assert.equal(target.prepare('PRAGMA integrity_check').get().integrity_check, 'ok');
-  assert.deepEqual(schema(target), schema(reference), 'Preview schema differs from the initial production migration; refusing to baseline.');
-  const migrations = reference.prepare('SELECT name, batch FROM payload_migrations ORDER BY id').all();
+  const targetSchema = schema(target);
+  let migrations;
+  for (const version of ['initial', 'career']) {
+    reference = new DatabaseSync(path.join(referenceDir, `${version}.db`), { readOnly: true });
+    if (isDeepStrictEqual(targetSchema, schema(reference))) {
+      migrations = reference.prepare('SELECT name, batch FROM payload_migrations ORDER BY id').all();
+      break;
+    }
+    reference.close();
+    reference = undefined;
+  }
+  assert.ok(migrations, 'Preview schema differs from the committed production migrations; refusing to baseline.');
   const existing = target.prepare('SELECT name, batch FROM payload_migrations ORDER BY id').all();
   const recorded = existing.filter(({ batch }) => batch !== -1);
   if (recorded.length) {
@@ -45,7 +73,7 @@ try {
   }
   target.prepare('DELETE FROM payload_migrations WHERE batch = -1').run();
   target.exec('COMMIT');
-  console.log('Preview schema matches; initial production migration recorded. Content and uploads are unchanged.');
+  console.log('Preview schema matches; matching production migrations recorded. Content and uploads are unchanged.');
 } finally {
   target?.close();
   reference?.close();

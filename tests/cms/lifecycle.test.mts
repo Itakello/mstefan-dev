@@ -114,7 +114,7 @@ test('production drafts, active-locale UI publishing, media privacy, and restart
   await update('about', 'en', { title: 'en-private-draft' }, '&draft=true');
   await publicTitle('en', 'en-published', 'en-private-draft');
   await publicTitle('it', 'it-published', 'it-private-draft');
-  for (const url of ['/en/about?preview=1', '/it/about?preview=1', '/en?preview=1', '/api/globals/about?draft=true', '/api/globals/about/versions', '/api/users']) {
+  for (const url of ['/en/about?preview=1', '/it/about?preview=1', '/en?preview=1', '/api/globals/about?draft=true', '/api/globals/about/versions', '/api/globals/career?draft=true', '/api/globals/career/versions', '/api/users']) {
     const response = await request(url);
     assert.ok([401, 403, 404].includes(response.status), `Anonymous access succeeded: ${url} (${response.status})`);
   }
@@ -122,7 +122,7 @@ test('production drafts, active-locale UI publishing, media privacy, and restart
   assert.equal(preview.status, 200);
   assert.ok((await preview.text()).includes('en-private-draft'));
   const publicHeaders = { Host: 'mstefan.dev', Cookie: cookie, 'X-Forwarded-Host': 'localhost:3000' };
-  for (const url of ['/admin', '/admin/login', '/admin/login.json', '/%61dmin', '/api/users', '/api/users/first-register', '/api/globals/about?draft=true', '/api/graphql', '/en/about?preview=1']) {
+  for (const url of ['/admin', '/admin/login', '/admin/login.json', '/%61dmin', '/api/users', '/api/users/first-register', '/api/globals/about?draft=true', '/api/globals/career?draft=true', '/api/graphql', '/en/about?preview=1']) {
     const result = await publicRequest(url, publicHeaders);
     assert.equal(result.status, 404, `Public CMS boundary failed: ${url}`);
   }
@@ -193,4 +193,78 @@ test('production drafts, active-locale UI publishing, media privacy, and restart
   assert.equal(privateFile.status, 200);
   const secondRegistration = await request('/api/users/first-register', { email: 'another@example.invalid', password });
   assert.notEqual(secondRegistration.status, 200);
+});
+
+
+test('career admin live preview keeps About text intact and locale drafts private', { timeout: 90_000 }, async () => {
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const context = await browser.newContext();
+    await context.addCookies([{ name: cookie.split('=')[0], value: cookie.slice(cookie.indexOf('=') + 1), url: base }]);
+    const page = await context.newPage();
+    await page.goto(`${base}/admin/globals/career?locale=en`);
+    await expect(page.locator('#field-jobs__0__company')).toHaveValue('Amazon');
+    await expect(page.locator('#field-jobs__0__branchName')).toHaveValue('work/amazon');
+    await expect(page.locator('#field-jobs__0__role')).toHaveValue('Software Development Engineer I');
+    await page.getByRole('button', { name: /live preview/i }).click();
+    const iframe = page.locator('iframe');
+    await expect(iframe).toHaveAttribute('src', /previewSource=career/);
+    const preview = page.frameLocator('iframe');
+    await expect(preview.getByRole('heading', { level: 1 })).toHaveText('en-published-from-ui');
+    await page.locator('#field-jobs__0__summary').fill('Unsaved career live preview');
+    await expect(preview.getByText('Unsaved career live preview', { exact: true })).toBeVisible();
+    await expect(preview.getByRole('heading', { level: 1 })).toHaveText('en-published-from-ui');
+    const publicPage = await request('/en/about');
+    assert.ok(!(await publicPage.text()).includes('Unsaved career live preview'));
+    const saveDraft = page.waitForResponse((response) => response.request().method() === 'POST' && response.url().includes('/api/globals/career') && response.url().includes('draft=true'));
+    await page.getByRole('button', { name: /save draft/i }).click();
+    assert.equal((await saveDraft).status(), 200);
+    const englishDraft = await request('/api/globals/career?locale=en&draft=true', undefined, true);
+    const career = await (await request('/api/globals/career?locale=it&draft=true', undefined, true)).json();
+    assert.equal((await englishDraft.json()).jobs[0].summary, 'Unsaved career live preview');
+    await update('career', 'it', { jobs: career.jobs.map((job: { company: string; role: string; summary: string }) => ({ ...job, company: 'Amazon', role: 'Software Development Engineer I', summary: 'Sintesi privata italiana' })) }, '&draft=true');
+    const publish = page.waitForResponse((response) => response.request().method() === 'POST' && response.url().includes('/api/globals/career') && response.url().includes('publishSpecificLocale=en'));
+    await page.getByRole('button', { name: /publish/i }).first().click();
+    assert.equal((await publish).status(), 200);
+    const publishedPage = await request('/en/about');
+    assert.ok((await publishedPage.text()).includes('Unsaved career live preview'));
+    const italianPage = await request('/it/about');
+    const italianHTML = await italianPage.text();
+    assert.ok(!italianHTML.includes('Sintesi privata italiana'));
+    assert.ok(!italianHTML.includes('Unsaved career live preview'));
+    const italianDraft = await request('/api/globals/career?locale=it&draft=true', undefined, true);
+    assert.equal((await italianDraft.json()).jobs[0].summary, 'Sintesi privata italiana');
+    for (const url of ['/en/about?preview=1&previewSource=career', '/en?preview=1&previewSource=career']) {
+      const anonymous = await request(url);
+      assert.ok([401, 403, 404].includes(anonymous.status), `Anonymous career preview succeeded: ${url}`);
+    }
+    await update('career', 'en', { _status: 'published', jobs: [
+      { branchName: 'education/test-university', company: 'Test University with a deliberately long organization name', role: 'Qualification with a long title to exercise wrapping on small screens', summary: 'Education fixture details', color: '#1267ab' },
+      { branchName: 'work/amazon', company: 'Amazon', role: 'Software Development Engineer I', summary: 'Amazon fixture details', color: '#c77835' },
+    ] }, '&publishSpecificLocale=en');
+    await page.setViewportSize({ width: 320, height: 800 });
+    await page.goto(`${base}/en`);
+    const graph = page.getByRole('region', { name: 'Career', exact: true });
+    await expect(graph.getByRole('button')).toHaveCount(2);
+    await expect(graph.getByText('Education fixture details', { exact: true })).toBeVisible();
+    await expect(graph.getByRole('button').first()).toHaveAttribute('aria-pressed', 'true');
+    const amazon = graph.getByRole('button', { name: /work\/amazon/ });
+    await amazon.click();
+    await expect(amazon).toHaveAttribute('aria-pressed', 'true');
+    await expect(graph.getByText('Amazon fixture details', { exact: true })).toBeVisible();
+    await expect(graph.getByText('Education fixture details', { exact: true })).toHaveCount(0);
+    await expect.poll(() => graph.evaluate((section) => {
+      const buttons = [...section.querySelectorAll('button')];
+      const circles = [...section.querySelectorAll('svg > g > circle:first-of-type')];
+      return buttons.every((button, index) => {
+        const row = button.getBoundingClientRect();
+        const dot = circles[index]?.getBoundingClientRect();
+        return dot && Math.abs((row.top + row.height / 2) - (dot.top + dot.height / 2)) < 1;
+      });
+    })).toBe(true);
+    const heights = await graph.getByRole('button').evaluateAll((rows) => rows.map((row) => row.getBoundingClientRect().height));
+    assert.notEqual(heights[0], heights[1], 'Fixtures must exercise differently sized graph rows');
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), 'Career page overflows at 320px');
+    await context.close();
+  } finally { await browser.close(); }
 });

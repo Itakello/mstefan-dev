@@ -1,0 +1,26 @@
+.section { min-width: 0; }
+.browser { border: 1px solid #3c3c42; border-radius: 10px; overflow: hidden; background: #1e1e21; color: #e9e9ed; scroll-margin-top: 2rem; }
+.header { display: flex; justify-content: space-between; padding: 10px 20px; background: #252528; border-bottom: 1px solid #3c3c42; color: #b5b5c0; font-size: 12px; }
+.rows { position: relative; }
+.row, .mainRow { display: flex; flex-direction: column; justify-content: center; gap: 8px; min-height: 72px; width: 100%; padding: 16px 144px 16px 20px; text-align: left; border-bottom: 1px solid #303035; }
+.mainRow { flex-direction: row; align-items: center; justify-content: flex-start; font-size: 14px; }
+.row:focus-visible { outline: 2px solid var(--career-main); outline-offset: -2px; }
+.row:hover { background: #29292e; }
+.row[aria-pressed="true"] { background: #34313c; }
+.jobTitle { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; font-size: 14px; overflow-wrap: anywhere; }
+.badge, .mainBadge { font-family: ui-monospace, monospace; font-size: 12px; border: 1px solid currentColor; border-radius: 3px; padding: 2px 6px; }
+.mainBadge { color: var(--career-main); }
+.jobRole { font-size: 13px; color: #d4d4dc; overflow-wrap: anywhere; }
+.period { font-family: ui-monospace, monospace; font-size: 12px; color: #b5b5c0; }
+.graph { position: absolute; top: 0; right: 0; width: 128px; pointer-events: none; border-left: 1px solid #3c3c42; }
+.mainPath { fill: none; stroke: var(--career-main); stroke-width: 2; stroke-linecap: round; }
+.mainDot { fill: var(--career-main); }
+.branch { fill: none; stroke-width: 2; stroke-linecap: round; }
+.detail { padding: 18px 20px; background: #252528; }
+.detailCompany { font-weight: 500; }
+@media (max-width: 480px) {
+  .graph { width: 96px; }
+  .row, .mainRow { padding-right: 108px; padding-left: 12px; }
+  .mainRow { flex-wrap: wrap; }
+  .jobTitle { font-size: 13px; }
+}

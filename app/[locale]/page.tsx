@@ -1,3 +1,4 @@
+import { CareerGraph, CareerLivePreview } from "@/components/CareerGraph";
 import { HomeContent, HomeLivePreview } from "@/components/cms/HomeContent";
 import { notFound } from "next/navigation";
 
@@ -21,12 +22,15 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   return getLocalizedMetadata(locale, "home");
 }
 
-export default async function Home({ params, searchParams }: { params: Promise<{ locale: string }>; searchParams: Promise<{ preview?: string }> }) {
+export default async function Home({ params, searchParams }: { params: Promise<{ locale: string }>; searchParams: Promise<{ preview?: string; previewSource?: string }> }) {
   const { locale } = await params;
   if (!isSupportedLocale(locale)) notFound();
   const { getPageContent } = await import("@/lib/cms/pageContent");
-  const preview = (await searchParams).preview === "1";
-  const content = await getPageContent("home", locale, preview);
+  const query = await searchParams;
+  const preview = query.preview === "1";
+  const careerPreview = preview && query.previewSource === "career";
+  const { getCareerContent } = await import("@/lib/cms/career");
+  const [content, career] = await Promise.all([getPageContent("home", locale, preview), getCareerContent(locale, preview)]);
   const [{ projects, publication }, stackCatalog] = await Promise.all([loadPublicProjects(locale), loadWebsiteStack()]);
   if (stackCatalog.status === "ready") {
     assertProjectStackCoverage(publication.projects, stackCatalog.entries);
@@ -44,11 +48,13 @@ export default async function Home({ params, searchParams }: { params: Promise<{
     ? getCopy(locale).publication.stack[stackCatalog.message]
     : (toolkitEntries.length === 0 ? getCopy(locale).publication.toolkitEmpty : null);
 
-  const Content = preview ? HomeLivePreview : HomeContent;
+  const Content = preview && !careerPreview ? HomeLivePreview : HomeContent;
+  const CareerContent = careerPreview ? CareerLivePreview : CareerGraph;
   return (
     <Content
       content={content}
       locale={locale}
+      career={<CareerContent career={career} locale={locale} />}
       selectedWork={selectedProjects.length > 0 ? (
         <div className="mt-4 border-t border-black/10 dark:border-white/10">
           {selectedProjects.map((project) => (
