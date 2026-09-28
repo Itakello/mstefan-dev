@@ -20,7 +20,7 @@ export function workItemsFromProjects(projects: readonly Project[]): ShowcaseWeb
       throw new Error("Invalid or duplicate approved website URL");
     }
     seen.add(url.href);
-    const preview = [PERSONAL_SITE_ORIGIN, "https://mstefan.dev"].includes(url.origin)
+    const preview = [PERSONAL_SITE_ORIGIN, "https://mstefan.dev", "https://www.thekarakaltimes.com"].includes(url.origin)
       && url.pathname === "/" && !url.search && !url.hash;
     return { ...metadata, id: url.href, url: url.href, preview };
   });
@@ -38,7 +38,11 @@ export function websitePreviewUrl(
   personalSiteOrigin: string = website.url || PERSONAL_SITE_ORIGIN,
 ) {
   if (!website.url) return undefined;
-  return website.preview ? `${personalSiteOrigin.replace(/\/$/, "")}/${locale}` : website.url;
+  if (!website.preview) return website.url;
+  if (new URL(website.url).origin === "https://www.thekarakaltimes.com") {
+    return new URL(locale === "en" ? "/en" : "/", website.url).href;
+  }
+  return `${personalSiteOrigin.replace(/\/$/, "")}/${locale}`;
 }
 
 export function canRenderWebsitePreview(depth: number) {

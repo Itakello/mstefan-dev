@@ -16,6 +16,8 @@ test.describe("Public website review", () => {
       if (["www.mstefan.dev", "mstefan.dev"].includes(url.hostname)) {
         const response = await route.fetch({ url: `${base}${url.pathname}${url.search}`, maxRedirects: 0 });
         await route.fulfill({ response });
+      } else if (url.hostname === "www.thekarakaltimes.com") {
+        await route.fulfill({ contentType: "text/html", body: `<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1"></head><body><h1>${url.pathname === "/about" ? "Karakal about fixture" : "The Karakal Times fixture"}</h1><a href="/about">About</a></body></html>` });
       } else if (url.hostname === "api.iconify.design") {
         const prefix = url.pathname.split("/")[1].replace(/\.json$/, "");
         await route.fulfill({ json: { prefix, icons: {}, not_found: (url.searchParams.get("icons") || "").split(",") } });
@@ -59,43 +61,48 @@ test.describe("Public website review", () => {
     await expect(page.getByRole("heading", { level: 1, name: "My work" })).toBeVisible();
 
     await page.getByRole("button", { name: "Select mstefan.dev", exact: true }).click();
-    await expect(page.frameLocator('iframe[title="Desktop: Interactive preview of mstefan.dev"]').getByRole("heading", { level: 1 })).toBeVisible();
     const desktop = page.frameLocator('iframe[title="Desktop: Interactive preview of mstefan.dev"]');
     const mobile = page.frameLocator('iframe[title="Mobile: Interactive preview of mstefan.dev"]');
-    await expect(mobile.getByRole("heading", { level: 1, name: "I build AI systems for real work." })).toBeVisible();
-    for (const [label, width] of [["Desktop", 1280], ["Mobile", 390]] as const) {
-      const handle = await page.locator(`iframe[title="${label}: Interactive preview of mstefan.dev"]`).elementHandle();
-      const frame = await handle?.contentFrame();
-      expect(await frame?.evaluate(() => window.innerWidth)).toBe(width);
-      const header = await page.getByRole("link", { name: "Visit website", exact: true }).boundingBox();
-      const preview = await page.locator(`iframe[title="${label}: Interactive preview of mstefan.dev"]`).boundingBox();
-      expect(header && preview && header.y + header.height < preview.y).toBeTruthy();
-    }
+    const modes = page.getByRole("group", { name: "Preview size" });
+    await expect(page.locator("iframe")).toHaveCount(1);
+    await expect(desktop.getByRole("heading", { level: 1, name: "I build AI systems for real work." })).toBeVisible();
+    await expect(modes.getByRole("button", { name: "Desktop", exact: true })).toHaveAttribute("aria-pressed", "true");
+    const stageHeight = await page.locator("iframe").evaluate(node => node.parentElement?.parentElement?.getBoundingClientRect().height);
+    const frame = await page.locator("iframe").elementHandle().then(handle => handle?.contentFrame());
+    expect(await frame?.evaluate(() => window.innerWidth)).toBe(1280);
+    const header = await page.getByRole("link", { name: "Visit website", exact: true }).boundingBox();
+    const preview = await page.locator("iframe").boundingBox();
+    expect(header && preview && header.y + header.height < preview.y).toBeTruthy();
     await page.locator("#playwright-review-step").evaluate(node => node.remove());
     await page.screenshot({ path: ".artifacts/playwright/work-desktop.png", fullPage: true });
-    await desktop.getByRole("button", { name: "Open navigation", exact: true }).isVisible().then(async visible => {
-      if (visible) await desktop.getByRole("button", { name: "Open navigation", exact: true }).click();
-    });
     await desktop.getByRole("link", { name: "About", exact: true }).click();
     await expect(desktop.getByRole("heading", { level: 1, name: "About", exact: true })).toBeVisible();
-    await expect(mobile.getByRole("heading", { level: 1, name: "I build AI systems for real work." })).toBeVisible();
-    await mobile.getByRole("button", { name: "Open navigation", exact: true }).click();
-    await mobile.getByRole("link", { name: "Work", exact: true }).click();
-    await expect(mobile.getByRole("heading", { level: 1, name: "My work" })).toBeVisible();
+    await modes.getByRole("button", { name: "Mobile", exact: true }).click();
+    await expect(page.locator("iframe")).toHaveCount(1);
+    await expect(mobile.getByRole("heading", { level: 1, name: "About", exact: true })).toBeVisible();
+    await expect(modes.getByRole("button", { name: "Mobile", exact: true })).toHaveAttribute("aria-pressed", "true");
+    expect(await frame?.evaluate(() => window.innerWidth)).toBe(390);
+    expect(await page.locator("iframe").evaluate(node => node.parentElement?.parentElement?.getBoundingClientRect().height)).toBe(stageHeight);
+    await page.screenshot({ path: ".artifacts/playwright/work-phone.png", fullPage: true });
+    await modes.getByRole("button", { name: "Desktop", exact: true }).click();
     await expect(desktop.getByRole("heading", { level: 1, name: "About", exact: true })).toBeVisible();
+    expect(await frame?.evaluate(() => window.innerWidth)).toBe(1280);
     const clientSelection = page.getByRole("navigation", { name: "Choose a project" }).getByRole("button", { name: "Select The Karakal Times" });
     await clientSelection.focus();
     await page.keyboard.press("Enter");
-    await expect(page.locator("iframe")).toHaveCount(0);
+    await expect(page.locator("iframe")).toHaveCount(1);
+    await expect(page.locator("iframe")).toHaveAttribute("src", "https://www.thekarakaltimes.com/en");
+    await expect(page.frameLocator("iframe").getByRole("heading", { name: "The Karakal Times fixture" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Visit website", exact: true })).toBeVisible();
     await expect(page.getByRole("link", { name: "Source code", exact: true })).toHaveCount(0);
     await page.getByRole("button", { name: "Select Automation tools", exact: true }).click();
     await expect(page.locator("iframe")).toHaveCount(0);
+    await expect(page.getByRole("group", { name: "Preview size" })).toHaveCount(0);
     await expect(page.getByRole("link", { name: "Source code", exact: true })).toBeVisible();
     await expect(page.getByRole("link", { name: "Visit website", exact: true })).toHaveCount(0);
     await page.getByRole("button", { name: "Select mstefan.dev", exact: true }).click();
-    for (const preview of [desktop, mobile]) await expect(preview.getByRole("heading", { level: 1, name: "I build AI systems for real work." })).toBeVisible();
-    await showReviewStep(page, "2 · Work explorer and independent previews");
+    await expect(desktop.getByRole("heading", { level: 1, name: "I build AI systems for real work." })).toBeVisible();
+    await showReviewStep(page, "2 · Work explorer and responsive preview toggle");
 
     // 3. Open About and verify its portrait and biography.
     await page.getByRole("link", { name: "About", exact: true }).click();
@@ -170,7 +177,7 @@ test.describe("Public website review", () => {
     await page.getByRole("button", { name: "Select mstefan.dev", exact: true }).click();
     let frame = page.mainFrame();
     for (let depth = 1; depth <= 3; depth++) {
-      await expect(frame.locator("iframe")).toHaveCount(2);
+      await expect(frame.locator("iframe")).toHaveCount(1);
       const child = frame.locator('iframe[title="Desktop: Interactive preview of mstefan.dev"]').contentFrame();
       await expect(child.getByRole("heading", { level: 1 })).toBeVisible();
       const menu = child.getByRole("button", { name: "Open navigation", exact: true });

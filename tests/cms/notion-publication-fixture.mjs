@@ -9,7 +9,7 @@ import { urlToHttpOptions } from 'node:url';
 
 const fixtureRows = [
   ['mstefan.dev', 'https://www.mstefan.dev', 'Personal website fixture.', 'Sito personale di prova.'],
-  ['The Karakal Times', 'https://www.thekarakaltimes.com', 'Link-only client fixture.', 'Sito cliente di prova, solo link.'],
+  ['The Karakal Times', 'https://www.thekarakaltimes.com', 'Client website fixture.', 'Sito cliente di prova.'],
   ['Automation tools', null, 'Repository-only fixture.', 'Progetto di prova senza sito web.'],
 ].map(([name, website, en, it], index) => ({ id: `visual-project-${index}`, properties: {
   Year: { number: 2026 }, Tags: { multi_select: [{ name: index === 2 ? "Tools" : "Web" }] },
