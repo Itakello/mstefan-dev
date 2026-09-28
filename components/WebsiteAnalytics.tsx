@@ -14,7 +14,7 @@ export function WebsiteAnalytics({ projectToken }: { projectToken?: string }) {
 
     let cancelled = false;
     void import("posthog-js").then(({ default: posthog }) => {
-      if (cancelled) return;
+      if (cancelled || !isAnalyticsPage(new URL(window.location.href)) || doNotTrackEnabled()) return;
       if (!posthog.__loaded) posthog.init(projectToken, analyticsConfig);
       posthog.capture("$pageview", {
         $current_url: window.location.origin + pathname,
