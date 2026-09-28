@@ -1,0 +1,23 @@
+tests/analytics.test.ts
+  s_60effe178c437b::t_a62a724a2bbd86 45-64
+components/WebsiteAnalytics.tsx
+  s_60effe178c437b::t_25d46575c4b881 6,13
+lib/analytics.ts
+  s_60effe178c437b::t_25d46575c4b881 3-10,21
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9d3ff6d0ee500e674fa2a323393c721bb6b1a0a0",
+  "prompts": {},
+  "sessions": {
+    "s_60effe178c437b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0967e-1ff7-7ce3-ae94-fc9e8a749518",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
