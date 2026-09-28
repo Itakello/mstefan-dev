@@ -1,0 +1,19 @@
+components/WebsiteAnalytics.tsx
+  s_60effe178c437b::t_cd9748422b9fe1 17
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "aeda9136125f4fb136d8de07a4930485c965b09c",
+  "prompts": {},
+  "sessions": {
+    "s_60effe178c437b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0967e-1ff7-7ce3-ae94-fc9e8a749518",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
