@@ -130,6 +130,47 @@ test('career preview baseline rejects malformed migration prefixes and mismatche
   } finally { if (db.isOpen) db.close(); await rm(dataDir, { recursive: true, force: true }); }
 });
 
+test('career prefix baselining rejects unknown development-batch entries, triggers, and views without mutation', async () => {
+  const { SQLiteSyncDialect } = await import('@payloadcms/db-sqlite/drizzle/sqlite-core');
+  const { up: initialUp } = await import('../../migrations/20260917_195926_initial');
+  const { up: careerUp } = await import('../../migrations/20260928_212105_career');
+  const dialect = new SQLiteSyncDialect();
+  for (const extra of [
+    { label: 'unknown development batch', sql: "INSERT INTO payload_migrations (name, batch) VALUES ('unknown', -1)", error: /Unexpected migration history/ },
+    { label: 'extra trigger', sql: "CREATE TRIGGER unexpected_career_guard BEFORE INSERT ON career_jobs BEGIN SELECT RAISE(ABORT, 'Blocked career write'); END", error: /Preview schema differs/ },
+    { label: 'extra view', sql: 'CREATE VIEW unexpected_career_view AS SELECT * FROM career_jobs', error: /Preview schema differs/ },
+  ]) {
+    const dataDir = await mkdtemp(path.join(tmpdir(), 'payload-baseline-extra-'));
+    const filename = path.join(dataDir, '.payload-local.db');
+    let db = new DatabaseSync(filename);
+    const args = { db: { run: (query: Parameters<typeof dialect.sqlToQuery>[0]) => db.exec(dialect.sqlToQuery(query).sql) } } as unknown as Parameters<typeof initialUp>[0];
+    try {
+      await initialUp(args);
+      await careerUp(args);
+      db.exec(`
+        INSERT INTO payload_migrations (name, batch) VALUES ('20260917_195926_initial', 1), ('development', -1);
+        INSERT INTO home (id, _status) VALUES (1, 'published');
+        INSERT INTO home_locales (title, _locale, _parent_id) VALUES ('Preserved home', 'en', 1);
+        INSERT INTO career (id, _status) VALUES (1, 'published');
+        INSERT INTO career_jobs (_order, _parent_id, _locale, id, branch_name, company, role) VALUES (1, 1, 'en', 'amazon', 'work/amazon', 'Amazon', 'Software Development Engineer I');
+      `);
+      db.exec(extra.sql);
+      const history = db.prepare('SELECT * FROM payload_migrations ORDER BY id').all();
+      const content = () => ['home', 'home_locales', 'career', 'career_jobs'].map((table) => db.prepare(`SELECT * FROM ${table} ORDER BY id`).all());
+      const before = content();
+      const objects = db.prepare("SELECT type, name, tbl_name, sql FROM sqlite_master ORDER BY type, name").all();
+      db.close();
+      const refused = spawnSync(process.execPath, ['scripts/baseline-payload-preview.mjs'], { env: { ...process.env, PAYLOAD_DATA_DIR: dataDir }, encoding: 'utf8', timeout: 30_000 });
+      assert.notEqual(refused.status, 0, `Baselined ${extra.label}`);
+      assert.match(refused.stderr, extra.error);
+      db = new DatabaseSync(filename);
+      assert.deepEqual(db.prepare('SELECT * FROM payload_migrations ORDER BY id').all(), history);
+      assert.deepEqual(content(), before);
+      assert.deepEqual(db.prepare("SELECT type, name, tbl_name, sql FROM sqlite_master ORDER BY type, name").all(), objects);
+    } finally { if (db.isOpen) db.close(); await rm(dataDir, { recursive: true, force: true }); }
+  }
+});
+
 test('initial migration rolls back populated foreign-key relations and recreates its schema', async () => {
   const { SQLiteSyncDialect } = await import('@payloadcms/db-sqlite/drizzle/sqlite-core');
   const { up, down } = await import('../../migrations/20260917_195926_initial');

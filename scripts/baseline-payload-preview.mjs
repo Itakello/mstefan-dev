@@ -14,7 +14,7 @@ const referenceDir = mkdtempSync(path.join(tmpdir(), 'payload-baseline-'));
 const quote = (value) => `"${value.replaceAll('"', '""')}"`;
 function schema(db) {
   const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name").all();
-  return tables.map(({ name }) => ({
+  return { tables: tables.map(({ name }) => ({
     name,
     columns: db.prepare(`PRAGMA table_info(${quote(name)})`).all(),
     foreignKeys: db.prepare(`PRAGMA foreign_key_list(${quote(name)})`).all().sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b))),
@@ -22,7 +22,7 @@ function schema(db) {
       name: indexName, unique, origin, partial,
       columns: db.prepare(`PRAGMA index_info(${quote(indexName)})`).all(),
     })).sort((a, b) => a.name.localeCompare(b.name)),
-  }));
+  })), objects: db.prepare("SELECT type, name, tbl_name, sql FROM sqlite_master WHERE type IN ('view', 'trigger') ORDER BY type, name").all() };
 }
 let target;
 let reference;
@@ -65,13 +65,13 @@ try {
   }
   assert.ok(migrations, 'Preview schema differs from the committed production migrations; refusing to baseline.');
   const existing = target.prepare('SELECT name, batch FROM payload_migrations ORDER BY id').all();
-  const recorded = existing.filter(({ batch }) => batch !== -1);
+  const recorded = existing.filter(({ name, batch }) => name !== 'development' || batch !== -1);
   assert.deepEqual(recorded, migrations.slice(0, recorded.length),
     'Unexpected migration history; refusing to replace it.');
   for (const { name, batch } of migrations.slice(recorded.length)) {
     target.prepare('INSERT INTO payload_migrations (name, batch) VALUES (?, ?)').run(name, batch);
   }
-  target.prepare('DELETE FROM payload_migrations WHERE batch = -1').run();
+  target.prepare("DELETE FROM payload_migrations WHERE name = 'development' AND batch = -1").run();
   target.exec('COMMIT');
   console.log('Preview schema matches; matching production migrations recorded. Content and uploads are unchanged.');
 } finally {
