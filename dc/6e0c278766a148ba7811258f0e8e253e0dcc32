@@ -1,0 +1,19 @@
+deploy/payload-production/README.md
+  s_60effe178c437b::t_0c337134b65786 23-28
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "dc6e0c278766a148ba7811258f0e8e253e0dcc32",
+  "prompts": {},
+  "sessions": {
+    "s_60effe178c437b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0967e-1ff7-7ce3-ae94-fc9e8a749518",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
