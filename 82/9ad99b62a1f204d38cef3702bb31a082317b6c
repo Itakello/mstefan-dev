@@ -1,0 +1,21 @@
+scripts/baseline-payload-preview.mjs
+  s_fc646ba2f41cef::t_6f1b74f72d13d4 17,25,68,74
+tests/cms/migration.test.mts
+  s_fc646ba2f41cef::t_3e9f4d1b4c24c3 133-173
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "829ad99b62a1f204d38cef3702bb31a082317b6c",
+  "prompts": {},
+  "sessions": {
+    "s_fc646ba2f41cef": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0e9a5-4cb9-7890-88b5-1b5cca1ba8c4",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
