@@ -24,6 +24,7 @@ test("analytics removes query strings, fragments, campaign data and initial URLs
       $initial_current_url: "https://www.mstefan.dev/en?token=private",
       $initial_referrer: "https://example.com/private",
       utm_campaign: "private", $utm_source: "private", gclid: "private",
+      ph_keyword: "private",
       $pathname: "/en", $browser: "Chrome",
     },
   } as unknown as CaptureResult;

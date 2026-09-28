@@ -21,7 +21,7 @@ export function sanitizeAnalyticsEvent(event: CaptureResult | null) {
   }
 
   for (const key of Object.keys(event.properties)) {
-    if (key.startsWith("$initial_") || /utm_|gclid|fbclid|msclkid|dclid|gbraid|wbraid/i.test(key)) {
+    if (key === "ph_keyword" || key.startsWith("$initial_") || /utm_|gclid|fbclid|msclkid|dclid|gbraid|wbraid/i.test(key)) {
       delete event.properties[key];
     }
   }
@@ -43,6 +43,7 @@ export const analyticsConfig: Partial<PostHogConfig> = {
   persistence: "memory",
   person_profiles: "never",
   respect_dnt: true,
+  save_campaign_params: false,
   autocapture: false,
   capture_pageview: false,
   capture_pageleave: true,
