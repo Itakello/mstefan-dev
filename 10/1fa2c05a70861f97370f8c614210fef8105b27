@@ -1,0 +1,23 @@
+package.json
+  s_fc646ba2f41cef::t_fd012e66c73225 7
+app/[locale]/page.tsx
+  s_fc646ba2f41cef::t_b7baf8461ef479 28
+scripts/visual-review/run-fixture.mjs
+  s_fc646ba2f41cef::t_fd012e66c73225 27
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "101fa2c05a70861f97370f8c614210fef8105b27",
+  "prompts": {},
+  "sessions": {
+    "s_fc646ba2f41cef": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0e9a5-4cb9-7890-88b5-1b5cca1ba8c4",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
