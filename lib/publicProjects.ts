@@ -37,6 +37,7 @@ export function selectPublicProjectLocale(project: NotionProject, locale: Locale
     summary: localizedCopy.summary,
     ...(localizedCopy.shortSummary ? { shortSummary: localizedCopy.shortSummary } : {}),
     ...(project.url ? { url: project.url } : {}),
+    ...(project.websiteUrl ? { websiteUrl: project.websiteUrl } : {}),
     ...(project.tags ? { tags: project.tags } : {}),
     ...(project.year ? { year: project.year } : {}),
     ...(project.language ? { language: project.language } : {}),

@@ -62,3 +62,24 @@ test("Do Not Track suppresses events after initialization, including page leave"
     }
   }
 });
+
+test("embedded browsing suppresses pageview and pageleave while top-level tracking remains allowed", () => {
+  const originalWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
+  const originalNavigator = Object.getOwnPropertyDescriptor(globalThis, "navigator");
+  try {
+    Object.defineProperty(globalThis, "navigator", { configurable: true, value: {} });
+    const top = {};
+    for (const embedded of [true, false]) {
+      Object.defineProperty(globalThis, "window", { configurable: true, value: { self: embedded ? {} : top, top } });
+      for (const event of ["$pageview", "$pageleave"]) {
+        const result = sanitizeAnalyticsEvent({ event, uuid: "test", properties: { $current_url: "https://www.mstefan.dev/en" } });
+        assert.equal(result === null, embedded);
+      }
+    }
+  } finally {
+    for (const [key, descriptor] of [["window", originalWindow], ["navigator", originalNavigator]] as const) {
+      if (descriptor) Object.defineProperty(globalThis, key, descriptor);
+      else delete (globalThis as unknown as Record<string, unknown>)[key];
+    }
+  }
+});

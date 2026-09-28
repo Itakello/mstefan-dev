@@ -70,15 +70,14 @@ test("sitemap adds localized canonicals and excludes legacy public paths", async
   for (const localePath of [
     "/en",
     "/en/projects",
-    "/en/websites",
     "/en/about",
     "/it",
     "/it/projects",
-    "/it/websites",
     "/it/about",
   ]) {
     assert.ok(config.includes(localePath));
     assert.ok(sitemap.includes(`mstefan.dev${localePath}`));
   }
+  assert.doesNotMatch(sitemap, /mstefan\.dev\/(?:en|it)\/websites/);
   assert.doesNotMatch(sitemap, /mstefan\.dev\/(?:about|projects|websites)(?:<|\/)/);
 });

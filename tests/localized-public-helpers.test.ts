@@ -56,8 +56,8 @@ test("localized copy and metadata expose the Italian page contract", () => {
   const italianCopy = getCopy("it");
 
   assert.equal(italianCopy.projectCard.viewRepository("Progetto"), "Apri il repository GitHub di Progetto");
-  assert.equal(italianCopy.projects.description, "Progetti approvati per la pubblicazione, raggruppati per anno.");
-  assert.equal(getCopy("en").projects.description, "Projects approved for publication, grouped by year.");
+  assert.equal(italianCopy.projects.description, "Esplora i progetti, i siti web e gli strumenti che realizzo.");
+  assert.equal(getCopy("en").projects.description, "Explore the projects, websites and tools I build.");
   assert.equal(italianCopy.projectCard.viewProject("Progetto"), "Visita il progetto Progetto");
   assert.equal(italianCopy.projectCard.technologiesByCategory("Progetto"), "Tecnologie di Progetto raggruppate per categoria");
   assert.equal(italianCopy.projectCard.started("mar 2024"), "Iniziato mar 2024");

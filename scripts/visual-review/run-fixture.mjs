@@ -9,10 +9,11 @@ import path from 'node:path';
 const dataDir = await mkdtemp(path.join(tmpdir(), 'payload-visual-review-'));
 const environment = {
   ...process.env, NODE_ENV: 'production', PAYLOAD_DATA_DIR: dataDir,
+  VISUAL_NOTION_FIXTURE_STATE: path.join(dataDir, 'notion-state'),
   PAYLOAD_SECRET: randomBytes(32).toString('hex'), NEXT_TELEMETRY_DISABLED: '1',
-  NOTION_TOKEN: '', NOTION_DATABASE_ID: '', NOTION_STACK_DATABASE_ID: '', GITHUB_TOKEN: '',
+  NOTION_TOKEN: 'visual-review-fixture', NOTION_DATABASE_ID: 'visual-review-fixture', NOTION_STACK_DATABASE_ID: '', GITHUB_TOKEN: '',
   VERCEL: '', VERCEL_ENV: '', VERCEL_GITHUB_OIDC_TOKEN: '', SITE_DEPLOYMENT: 'private',
-  NODE_OPTIONS: `--import=${path.resolve('tests/cms/offline-fetch.mjs')}`,
+  NODE_OPTIONS: `--import=${path.resolve('tests/cms/notion-publication-fixture.mjs')}`,
 };
 let server;
 let serverLog = '';
@@ -22,6 +23,7 @@ async function run(args, timeout = 600_000) {
   if (code !== 0) throw new Error(`${args[0]} failed (${signal ?? code}).`);
 }
 try {
+  await writeFile(environment.VISUAL_NOTION_FIXTURE_STATE, 'multiple');
   // Payload's onInit seeds the checked-in bilingual copy after migrations.
   await run(['node_modules/payload/bin.js', 'migrate']);
   await run(['node_modules/next/dist/bin/next', 'build', '--webpack']);

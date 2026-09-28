@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { mkdirSync, readdirSync, statSync, writeFileSync } from "node:fs";
-import { basename, join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 
 function findFiles(root, extension) {
   const matches = [];
@@ -30,21 +30,18 @@ const metadata = {
 };
 writeFileSync(join(evidenceDirectory, "metadata.json"), `${JSON.stringify(metadata, null, 2)}\n`);
 
-const videos = findFiles(resultsDirectory, ".webm");
-if (videos.length !== 1) {
-  throw new Error(`Expected exactly one Playwright video, found ${videos.length}: ${videos.map(basename).join(", ")}`);
+const videos = findFiles(resultsDirectory, ".webm").sort();
+if (!videos.length) throw new Error("Playwright produced no review videos.");
+metadata.recordings = videos.map((video, index) => ({
+  test: basename(dirname(video)),
+  file: videos.length === 1 ? "mstefan-site-review.mp4" : `mstefan-site-review-${index + 1}.mp4`,
+}));
+writeFileSync(join(evidenceDirectory, "metadata.json"), `${JSON.stringify(metadata, null, 2)}\n`);
+for (const [index, video] of videos.entries()) {
+  if (statSync(video).size === 0) throw new Error(`Playwright produced an empty video: ${video}`);
+  const reviewVideo = join(evidenceDirectory, metadata.recordings[index].file);
+  execFileSync("ffmpeg", [
+    "-y", "-i", video, "-an", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-movflags", "+faststart", reviewVideo,
+  ], { stdio: "inherit" });
+  if (statSync(reviewVideo).size === 0) throw new Error("Evidence packaging produced an empty MP4.");
 }
-if (statSync(videos[0]).size === 0) throw new Error("Playwright produced an empty video.");
-
-const reviewVideo = join(evidenceDirectory, "mstefan-site-review.mp4");
-execFileSync("ffmpeg", [
-  "-y",
-  "-i", videos[0],
-  "-an",
-  "-c:v", "libx264",
-  "-pix_fmt", "yuv420p",
-  "-movflags", "+faststart",
-  reviewVideo,
-], { stdio: "inherit" });
-
-if (statSync(reviewVideo).size === 0) throw new Error("Evidence packaging produced an empty MP4.");

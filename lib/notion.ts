@@ -12,6 +12,7 @@ export type NotionProject = {
   title: string;
   copy: Record<Locale, LocalizedProjectCopy>;
   url?: string;
+  websiteUrl?: string;
   tags?: string[];
   year?: string;
   language?: string;
@@ -96,6 +97,10 @@ export function parseNotionProjectPage(page: any): NotionProject | null {
     .map((tag: any) => typeof tag?.name === "string" ? tag.name.trim() : "")
     .filter(Boolean);
   const url = typeof properties.URL?.url === "string" ? properties.URL.url : undefined;
+  const website = properties["Website URL"];
+  if (website && (typeof website !== "object" || (website.type && website.type !== "url")
+    || (website.url !== null && typeof website.url !== "string"))) return null;
+  const websiteUrl = typeof website?.url === "string" ? website.url.trim() : undefined;
   const language = typeof properties.Language?.multi_select?.[0]?.name === "string"
     ? properties.Language.multi_select[0].name
     : undefined;
@@ -108,6 +113,7 @@ export function parseNotionProjectPage(page: any): NotionProject | null {
       it: { summary: italianSummary, ...(italianShortSummary ? { shortSummary: italianShortSummary } : {}) },
     },
     url,
+    ...(websiteUrl ? { websiteUrl } : {}),
     tags: tags.length > 0 ? tags : undefined,
     language,
     year,

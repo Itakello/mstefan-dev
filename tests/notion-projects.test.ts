@@ -329,3 +329,15 @@ test("project previews use the selected locale's short summary or its own long s
   assert.equal(projectPreviewSummary(selectPublicProjectLocale(project, "en")), "English short.");
   assert.equal(projectPreviewSummary(selectPublicProjectLocale(project, "it")), "Riepilogo lungo italiano.");
 });
+
+
+test("website URLs are optional and malformed property shapes fail closed", () => {
+  assert.equal(parseNotionProjectPage(page())?.websiteUrl, undefined);
+  for (const value of [null, "", "   "]) {
+    const row = page({ properties: { ...page().properties, "Website URL": { type: "url", url: value } } });
+    assert.equal(parseNotionProjectPage(row)?.websiteUrl, undefined);
+  }
+  for (const value of ["wrong-shape", { type: "rich_text", rich_text: [] }, { type: "url", url: 42 }]) {
+    assert.equal(parseNotionProjectPage(page({ properties: { ...page().properties, "Website URL": value } })), null);
+  }
+});

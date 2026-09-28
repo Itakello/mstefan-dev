@@ -1,11 +1,9 @@
 const localizedPaths = [
   "/en",
   "/en/projects",
-  "/en/websites",
   "/en/about",
   "/it",
   "/it/projects",
-  "/it/websites",
   "/it/about",
 ];
 
