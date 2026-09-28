@@ -3,14 +3,14 @@
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 
-import { analyticsConfig, isAnalyticsPage } from "@/lib/analytics";
+import { analyticsConfig, doNotTrackEnabled, isAnalyticsPage } from "@/lib/analytics";
 
 export function WebsiteAnalytics({ projectToken }: { projectToken?: string }) {
   const pathname = usePathname();
 
   useEffect(() => {
     if (!projectToken || !isAnalyticsPage(new URL(window.location.href))) return;
-    if (navigator.doNotTrack === "1") return;
+    if (doNotTrackEnabled()) return;
 
     let cancelled = false;
     void import("posthog-js").then(({ default: posthog }) => {

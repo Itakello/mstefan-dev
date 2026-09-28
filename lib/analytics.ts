@@ -1,5 +1,13 @@
 import type { CaptureResult, PostHogConfig } from "posthog-js";
 
+export function doNotTrackEnabled() {
+  if (typeof window === "undefined") return false;
+  const legacyNavigator = navigator as Navigator & { msDoNotTrack?: string };
+  const legacyWindow = window as Window & { doNotTrack?: string };
+  return [navigator.doNotTrack, legacyNavigator.msDoNotTrack, legacyWindow.doNotTrack]
+    .some((value) => value === "1" || value === "yes");
+}
+
 export function isAnalyticsPage(url: URL) {
   return (
     url.protocol === "https:" &&
@@ -10,7 +18,7 @@ export function isAnalyticsPage(url: URL) {
 }
 
 export function sanitizeAnalyticsEvent(event: CaptureResult | null) {
-  if (!event || !["$pageview", "$pageleave"].includes(event.event)) return null;
+  if (doNotTrackEnabled() || !event || !["$pageview", "$pageleave"].includes(event.event)) return null;
 
   try {
     const url = new URL(event.properties.$current_url);

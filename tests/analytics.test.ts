@@ -42,3 +42,23 @@ test("analytics drops unexpected events and private or invalid URLs", () => {
     assert.equal(sanitizeAnalyticsEvent({ event, uuid: "test", properties: { $current_url: url } }), null);
   }
 });
+
+test("Do Not Track suppresses events after initialization, including page leave", () => {
+  const globals = globalThis as unknown as Record<string, unknown>;
+  const originalWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
+  const originalNavigator = Object.getOwnPropertyDescriptor(globalThis, "navigator");
+  try {
+    for (const [windowValue, navigatorValue] of [
+      [{}, { doNotTrack: "1" }], [{}, { msDoNotTrack: "1" }], [{ doNotTrack: "yes" }, {}],
+    ]) {
+      Object.defineProperty(globals, "window", { configurable: true, value: windowValue });
+      Object.defineProperty(globals, "navigator", { configurable: true, value: navigatorValue });
+      assert.equal(sanitizeAnalyticsEvent({ event: "$pageleave", uuid: "test", properties: { $current_url: "https://www.mstefan.dev/en" } }), null);
+    }
+  } finally {
+    for (const [key, descriptor] of [["window", originalWindow], ["navigator", originalNavigator]] as const) {
+      if (descriptor) Object.defineProperty(globals, key, descriptor);
+      else delete globals[key];
+    }
+  }
+});
