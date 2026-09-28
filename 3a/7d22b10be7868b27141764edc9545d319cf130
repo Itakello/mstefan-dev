@@ -1,0 +1,25 @@
+e2e/mstefan-site.review.spec.ts
+  s_fc646ba2f41cef::t_5a722285df8b93 25
+components/CareerGraph.module.css
+  s_fc646ba2f41cef::t_31e1501e19a1c3 2-9,11-14,16-24,26,28-34,36-43
+components/CareerGraph.tsx
+  s_fc646ba2f41cef::t_6ad826b35058b0 16-19,26-27,35,38,48,60,63,65-66,71-79,82-86,88-90
+payload.config.ts
+  s_fc646ba2f41cef::t_82da6e0696b7bd 138
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3a7d22b10be7868b27141764edc9545d319cf130",
+  "prompts": {},
+  "sessions": {
+    "s_fc646ba2f41cef": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0e9a5-4cb9-7890-88b5-1b5cca1ba8c4",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
