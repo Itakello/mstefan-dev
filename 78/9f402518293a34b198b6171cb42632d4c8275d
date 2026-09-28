@@ -1,0 +1,31 @@
+tests/analytics.test.ts
+  s_60effe178c437b::t_99ee9a30f24239 41
+  s_60effe178c437b::t_4a38b6b0d7f5e5 1-40,42-43
+lib/analytics.ts
+  s_60effe178c437b::t_4a38b6b0d7f5e5 1-55
+components/WebsiteAnalytics.tsx
+  s_60effe178c437b::t_4a38b6b0d7f5e5 1-12,14-27
+  s_60effe178c437b::t_99ee9a30f24239 13
+app/[locale]/layout.tsx
+  s_60effe178c437b::t_4a38b6b0d7f5e5 6,41
+package.json
+  s_60effe178c437b::t_47b39c0981bd81 37
+pnpm-lock.yaml
+  s_60effe178c437b::t_ae33905a212d00 64-66,1138-1146,1470-1472,1556-1558,1799-1801,2545-2563,2592-2594,3009-3014,3986-3996,4332-4333,4392-4395,4620-4621,5542-5561,5588-5589,6048-6051
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "789f402518293a34b198b6171cb42632d4c8275d",
+  "prompts": {},
+  "sessions": {
+    "s_60effe178c437b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0967e-1ff7-7ce3-ae94-fc9e8a749518",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
