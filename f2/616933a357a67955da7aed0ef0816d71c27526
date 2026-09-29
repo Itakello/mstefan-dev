@@ -1,0 +1,19 @@
+components/CareerGraph.module.css
+  s_7027b947e4761d::t_e9847486667a2b 28,43
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f2616933a357a67955da7aed0ef0816d71c27526",
+  "prompts": {},
+  "sessions": {
+    "s_7027b947e4761d": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a08c68-dd71-7f93-85f1-556209f25a3a",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}

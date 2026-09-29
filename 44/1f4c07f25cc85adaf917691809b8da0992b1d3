@@ -1,0 +1,31 @@
+proxy.ts
+  s_7027b947e4761d::t_09423788c63814 21-24
+tests/localized-public-helpers.test.ts
+  s_7027b947e4761d::t_09423788c63814 105
+deploy/payload-production/README.md
+  s_7027b947e4761d::t_98323be25f6d0d 17
+components/CareerGraph.module.css
+  s_7027b947e4761d::t_84facee4179fbe 1-2
+components/CareerGraph.tsx
+  s_7027b947e4761d::t_c9f86e7d6820a8 74,80
+lib/career-timeline.ts
+  s_7027b947e4761d::t_e96dffd7745a17 85
+tests/career-timeline.test.ts
+  s_7027b947e4761d::t_a6105765c53d0b 383
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "441f4c07f25cc85adaf917691809b8da0992b1d3",
+  "prompts": {},
+  "sessions": {
+    "s_7027b947e4761d": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a08c68-dd71-7f93-85f1-556209f25a3a",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
