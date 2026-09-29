@@ -10,7 +10,7 @@ import { createServer } from 'node:net';
 import { request as httpRequest } from 'node:http';
 import { chromium, expect } from '@playwright/test';
 
-const port = 3000;
+const port = Number(process.env.CMS_TEST_PORT || 3000);
 const base = `http://127.0.0.1:${port}`;
 const password = randomBytes(24).toString('base64url');
 const email = 'cms-integration@example.invalid';
@@ -471,6 +471,9 @@ test('nested career branches share junctions and synchronize graph and Experienc
     const project = graph.locator('[data-career-branch][aria-label^="work/company/project:"]');
     const firstTitle = graph.locator('button[data-career-job]').first();
     const projectTitle = graph.locator('button[data-career-job]', { hasText: 'work/company/project' });
+    const careerBounds = () => graph.evaluate(element => { const box = element.getBoundingClientRect(); return { top: box.top + window.scrollY, height: box.height }; });
+    const initialCareerBounds = await careerBounds();
+    assert.ok(await graph.evaluate(element => element.getBoundingClientRect().bottom <= document.querySelector('#career-story')!.getBoundingClientRect().top), 'Career should precede the selected story');
     const centeredPhotoOffset = () => page.locator('#career-story').evaluate((story) => {
       const container = story.getBoundingClientRect();
       const photo = story.querySelector('figure')!.getBoundingClientRect();
@@ -489,14 +492,13 @@ test('nested career branches share junctions and synchronize graph and Experienc
     await expect(page.locator('#career-story img')).toHaveAttribute('alt', 'Synthetic experience portrait');
     const pdfPreview = page.locator('#career-story [data-pdf-document]');
     await expect(pdfPreview.getByRole('heading', { name: 'Synthetic project PDF' })).toBeVisible();
-    await expect(pdfPreview.getByRole('link', { name: 'Download PDF' }).first()).toHaveAttribute('href', pdfFile.url);
-    await expect(pdfPreview.locator('[data-pdf-preview]')).toHaveCount(0);
-    await pdfPreview.getByRole('button', { name: 'View PDF' }).click();
+    await expect(pdfPreview.getByRole('link', { name: 'Download PDF' }).first()).toHaveAttribute('href', new RegExp(pdfFile.url!.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$'));
     const reader = pdfPreview.locator('[data-pdf-preview]');
     await expect(reader).toBeVisible();
     await expect(reader.getByRole('status', { name: /preview unavailable/i })).toHaveCount(0);
     await expect.poll(() => reader.locator('canvas').evaluate((canvas) => (canvas as HTMLCanvasElement).width)).toBeGreaterThan(0);
     await expect(reader.locator('[data-document-text]')).toContainText('Synthetic career PDF');
+    assert.deepEqual(await careerBounds(), initialCareerBounds, 'Career must not move or resize when the story and PDF change');
     await page.screenshot({ path: path.join(dataDir, 'career-pdf-reader-desktop.png'), fullPage: true });
     await reader.getByRole('button', { name: 'Next page' }).click();
     await expect(reader.locator('[data-document-text]')).toContainText('PDF page two');
@@ -505,8 +507,6 @@ test('nested career branches share junctions and synchronize graph and Experienc
     await expect(reader.locator('[data-document-text]')).not.toContainText('page two');
     await reader.getByRole('button', { name: 'Zoom in' }).click();
     await expect(reader.getByText('125%')).toBeVisible();
-    await pdfPreview.getByRole('button', { name: 'Close preview' }).click();
-    await expect(pdfPreview.locator('[data-pdf-preview]')).toHaveCount(0);
     await graph.locator('button[data-career-job]', { hasText: 'work/next' }).click();
     await expect(page.locator('#career-story h1')).toHaveText('H');
     await expect(page.locator('#career-story img')).toHaveCount(0);
@@ -579,7 +579,6 @@ test('nested career branches share junctions and synchronize graph and Experienc
     await expect(project).toHaveAttribute('aria-pressed', 'true');
     assert.ok((await centeredPhotoOffset()) < 2, 'Experience photo should be centered on mobile');
     await expect(page.getByRole('link', { name: /F · Read story/i })).toHaveAttribute('href', '#career-story');
-    await page.locator('#career-story [data-pdf-document]').getByRole('button', { name: 'View PDF' }).click();
     await expect(page.locator('#career-story [data-document-text]')).toContainText('Synthetic career PDF');
     await page.screenshot({ path: path.join(dataDir, 'career-pdf-reader-gallery-mobile.png'), fullPage: true });
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), 'Career page overflows at 320px');

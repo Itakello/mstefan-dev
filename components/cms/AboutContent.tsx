@@ -24,10 +24,14 @@ export function AboutContent({ content, career, locale }: Props) {
   const photo = selected ? experiencePhoto : profilePhoto;
   const photoURL = selected ? photo?.url : photo?.url || "/profile-photo.jpg";
   const imageAlt = selected ? experiencePhoto?.alt || `${selected.company} · ${selected.role}` : content.imageAlt;
-  const readStory = locale === "it" ? "Leggi la storia ↑" : "Read story ↑";
-  const viewDocuments = locale === "it" ? "Vedi i documenti ↑" : "View documents ↑";
+  const readStory = locale === "it" ? "Leggi la storia ↓" : "Read story ↓";
+  const viewDocuments = locale === "it" ? "Vedi i documenti ↓" : "View documents ↓";
   return (
     <div className={styles.layout}>
+      <div className={styles.explorer}>
+        <CareerGraph career={career} locale={locale} expanded showDetails={false} onSelectionChange={select} />
+        {selected && <a className={styles.readStory} href="#career-story">{selected.company} · {selected.summary?.trim() ? readStory : viewDocuments}</a>}
+      </div>
       <section id="career-story" className={styles.story} aria-label={selected?.company || content.title}>
         <div aria-live="polite" aria-atomic="true">
           <Prose>
@@ -48,10 +52,6 @@ export function AboutContent({ content, career, locale }: Props) {
         </figure>}
         {documents.map((document) => document.file && typeof document.file === "object" && document.file.url && <PdfPreview key={document.id || document.file.id} title={document.title} url={document.file.url} filename={document.file.filename} locale={locale} />)}
       </section>
-      <div className={styles.explorer}>
-        <CareerGraph career={career} locale={locale} expanded showDetails={false} onSelectionChange={select} />
-        {selected && <a className={styles.readStory} href="#career-story">{selected.company} · {selected.summary?.trim() ? readStory : viewDocuments}</a>}
-      </div>
     </div>
   );
 }

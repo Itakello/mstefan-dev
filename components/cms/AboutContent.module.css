@@ -5,7 +5,3 @@
 .photo { margin: 2rem auto 0; width: 100%; max-width: 24rem; overflow: hidden; border-radius: 1rem; border: 1px solid #71717a33; }
 .explorer { min-width: 0; }
 .readStory { display: inline-block; margin-top: 1rem; font-size: .8rem; text-decoration: underline; text-underline-offset: 3px; }
-@media (min-width: 960px) {
-  .layout { grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr); gap: 2.5rem; }
-  .explorer { position: sticky; top: 2rem; }
-}

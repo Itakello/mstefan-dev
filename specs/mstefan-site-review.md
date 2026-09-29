@@ -18,7 +18,7 @@
 
 1. Open `/en`. The English introduction and Selected work heading are visible.
 2. Follow Work to `/en/projects`. One project list selects details and links above a single preview. Desktop/Mobile buttons with matching icons change its real viewport between 1280px and 390px. Navigate to About and toggle both directions; the same page remains loaded and the preview stage keeps its height. Switch projects and return; the homepage restarts. Karakal remains link-only; website-only and repository-only selections expose only their available links. `/en/websites` redirects to Work.
-3. Follow the About navigation link. The URL ends in `/en/about`; the main branch heading, profile text, and centered portrait are visible. Selecting an experience without a summary or document keeps the profile and offers no Read story link. One with a summary shows its own story and optional photo; one with an attached PDF shows an inline reader and download link.
+3. Follow the About navigation link. The URL ends in `/en/about`; the career graph stays above the profile and selected content at every width. Selecting an experience without a summary or document keeps the profile and offers no Read story link. One with a summary shows its own story and optional photo; one with an attached PDF shows an immediately visible inline reader and download link below the graph.
 4. Toggle the theme. The document enters dark mode.
 5. Switch the language to Italian. The same page becomes `/it/about`; the main branch heading, Italian profile, and Lavori navigation link are visible.
 

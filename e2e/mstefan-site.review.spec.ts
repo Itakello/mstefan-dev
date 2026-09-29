@@ -167,7 +167,7 @@ test.describe("Public website review", () => {
     await expect(aboutCareer.locator("[data-career-main-row]")).toHaveAttribute("aria-pressed", "true");
     const storyBox = await story.boundingBox();
     const careerBox = await aboutCareer.boundingBox();
-    expect(storyBox && careerBox && storyBox.x + storyBox.width <= careerBox.x).toBeTruthy();
+    expect(storyBox && careerBox && careerBox.y + careerBox.height <= storyBox.y).toBeTruthy();
     await aboutCareer.locator("button[data-career-job]", { hasText: "Amazon" }).click();
     await expect(aboutCareer.locator("button[data-career-job]", { hasText: "Amazon" })).toHaveAttribute("aria-pressed", "true");
     await expect(story.getByRole("heading", { level: 1, name: "main" })).toBeVisible();
@@ -232,7 +232,7 @@ test.describe("Public website review", () => {
     const mobileExplorer = page.getByRole("region", { name: "Career", exact: true });
     const mobileStoryBox = await mobileStory.boundingBox();
     const mobileExplorerBox = await mobileExplorer.boundingBox();
-    expect(mobileStoryBox && mobileExplorerBox && mobileStoryBox.y + mobileStoryBox.height <= mobileExplorerBox.y).toBeTruthy();
+    expect(mobileStoryBox && mobileExplorerBox && mobileExplorerBox.y + mobileExplorerBox.height <= mobileStoryBox.y).toBeTruthy();
     await mobileExplorer.locator("button[data-career-job]", { hasText: "Amazon" }).click();
     await expect(mobileStory.getByRole("heading", { level: 1, name: "main" })).toBeVisible();
     await expect(page.getByRole("link", { name: /Read story/ })).toHaveCount(0);
