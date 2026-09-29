@@ -352,6 +352,14 @@ test('career admin live preview keeps About text intact and locale drafts privat
 });
 
 test('nested career branches share junctions and synchronize graph and Experience selection', { timeout: 60_000 }, async () => {
+  const form = new FormData();
+  const photoBytes = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6ks8AAAAASUVORK5CYII=', 'base64');
+  form.set('file', new Blob([photoBytes], { type: 'image/png' }), 'synthetic-experience.png');
+  form.set('_payload', JSON.stringify({ alt: 'Synthetic experience portrait' }));
+  const upload = await fetch(`${base}/api/media`, { method: 'POST', headers: { Cookie: cookie }, body: form });
+  assert.equal(upload.status, 201);
+  const photo = (await upload.json()).doc;
+  assert.ok([401, 403, 404].includes((await fetch(new URL(photo.url, base))).status), 'Unpublished experience photo must be private');
   const fixtures = [
     ['B', 'education/university', 1, 9, null, '#ffaa66'],
     ['C', 'work/independent', 1, 6, null, '#66dd88'],
@@ -364,9 +372,13 @@ test('nested career branches share junctions and synchronize graph and Experienc
   ] as const;
   const jobs = fixtures.map(([company, branchName, start, end, parentBranchName, color]) => ({
     company, branchName, role: 'Synthetic test experience', parentBranchName, color,
+    ...(company === 'F' ? { photo: photo.id } : {}),
     startDate: new Date(Date.UTC(2024, start, 1)).toISOString(), endDate: new Date(Date.UTC(2024, end, 1)).toISOString(),
   }));
   await update('career', 'en', { jobs, laneSpacing: 24, _status: 'published' }, '&publishSpecificLocale=en');
+  const publishedPhoto = await fetch(new URL(photo.url, base));
+  assert.equal(publishedPhoto.status, 200);
+  assert.deepEqual(Buffer.from(await publishedPhoto.arrayBuffer()), photoBytes);
   const browser = await chromium.launch({ headless: true });
   try {
     const page = await browser.newPage({ viewport: { width: 1000, height: 900 } });
@@ -375,11 +387,15 @@ test('nested career branches share junctions and synchronize graph and Experienc
     const project = graph.locator('[data-career-branch][aria-label^="work/company/project:"]');
     const firstTitle = graph.locator('button[data-career-job]').first();
     const projectTitle = graph.locator('button[data-career-job]', { hasText: 'work/company/project' });
+    await expect(page.locator('#career-story img')).toHaveAttribute('src', '/profile-photo.jpg');
     await expect(graph.locator('[data-career-label]')).toHaveCount(0);
     await projectTitle.hover();
     await expect(project).toHaveAttribute('data-highlighted', 'true');
     await expect(graph.locator('[data-career-main-row]')).toHaveAttribute('aria-pressed', 'true');
     await projectTitle.click();
+    await expect(page.locator('#career-story img')).toHaveAttribute('src', photo.url);
+    await expect(page.locator('#career-story img')).toHaveAttribute('alt', 'Synthetic experience portrait');
+    assert.ok(await page.locator('#career-story img').evaluate((image) => (image as HTMLImageElement).complete && (image as HTMLImageElement).naturalWidth > 0));
     await expect(project).toHaveAttribute('aria-pressed', 'true');
     await project.focus();
     await project.press('Enter');
@@ -387,6 +403,7 @@ test('nested career branches share junctions and synchronize graph and Experienc
     const mainRow = graph.locator('[data-career-main-row]');
     const mainline = graph.locator('[data-career-main-branch]');
     await mainRow.click();
+    await expect(page.locator('#career-story img')).toHaveAttribute('src', '/profile-photo.jpg');
     await expect(mainline).toHaveAttribute('aria-pressed', 'true');
     await expect(page.locator('#career-story').getByRole('heading', { level: 1 })).toHaveText('en-published-from-ui');
     await projectTitle.click();
