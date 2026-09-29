@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 
-import { WorkExplorer } from "@/components/WorkExplorer";
+import { WorkShowcase } from "@/components/WorkShowcase";
 import { getCopy } from "@/lib/i18n/copy";
 import { getLocalizedMetadata } from "@/lib/i18n/metadata";
 import { isSupportedLocale } from "@/lib/i18n/routing";
@@ -44,7 +44,7 @@ export default async function ProjectsPage({ params }: { params: Promise<{ local
         </p>
       )}
 
-      <WorkExplorer locale={locale} items={items} stackCatalog={stackCatalog} />
+      <WorkShowcase locale={locale} items={items} stackCatalog={stackCatalog} />
     </section>
   );
 }

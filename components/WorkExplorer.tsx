@@ -11,7 +11,7 @@ import { getCopy } from "@/lib/i18n/copy";
 import type { Locale } from "@/lib/i18n/config";
 import { canRenderWebsitePreview, personalPreviewOrigin, type ShowcaseWebsite, websitePreviewUrl } from "@/lib/websiteShowcase";
 
-function ancestorDepth() {
+export function ancestorDepth() {
   let current: Window = window;
   let depth = 0;
   while (current.parent !== current) {
@@ -24,11 +24,11 @@ function ancestorDepth() {
   return depth;
 }
 
-function ResponsivePreview({ url, title, mobile, sandbox }: { url: string; title: string; mobile: boolean; sandbox?: string }) {
+export function ResponsivePreview({ url, title, mobile, sandbox }: { url: string; title: string; mobile: boolean; sandbox?: string }) {
   const container = useRef<HTMLDivElement>(null);
   const [available, setAvailable] = useState({ width: 0, height: 0 });
   const width = mobile ? 390 : 1280;
-  const scale = mobile ? available.width / width : Math.min(1, available.width / width, available.height / 800);
+  const scale = mobile ? Math.min(1, available.width / width) : Math.min(1, available.width / width, available.height / 800);
   const height = mobile && scale > 0 ? available.height / scale : 800;
   useEffect(() => {
     const element = container.current;
@@ -49,7 +49,7 @@ function ResponsivePreview({ url, title, mobile, sandbox }: { url: string; title
   );
 }
 
-export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; items: ShowcaseWebsite[]; stackCatalog: WebsiteStackState }) {
+export function WorkExplorer({ locale, items, stackCatalog, embedWebsites = true }: { locale: Locale; items: ShowcaseWebsite[]; stackCatalog: WebsiteStackState; embedWebsites?: boolean }) {
   const copy = getCopy(locale);
   const [documentKind, setDocumentKind] = useState<"paper" | "slides">("paper");
   const [mobile, setMobile] = useState(false);
@@ -167,7 +167,7 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
             <DocumentPreview key={`${selected.id}-${documentKind}`} url={(documentKind === "slides" && selected.slidesUrl ? selected.slidesUrl : selected.paperUrl || selected.slidesUrl)!} title={selected.name} locale={locale} presentation={Boolean(selected.slidesUrl && (documentKind === "slides" || !selected.paperUrl))} />
           </>}
         </section>}
-        {selected.preview && previewUrl && (depth === null || !parentOrigin ? <p role="status" className="mt-6 text-sm">{copy.websites.loading}</p>
+        {embedWebsites && selected.preview && previewUrl && (depth === null || !parentOrigin ? <p role="status" className="mt-6 text-sm">{copy.websites.loading}</p>
           : canRenderWebsitePreview(depth) ? <div className="mt-7">
             <div role="group" aria-label={copy.work.previewSize} className="mb-4 inline-flex gap-1 rounded-lg border border-black/10 p-1 dark:border-white/15">
               {([{ mobile: false, label: copy.work.desktop, Icon: Monitor }, { mobile: true, label: copy.work.mobile, Icon: Smartphone }]).map(mode => (
@@ -179,7 +179,7 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
             </div>
             <ResponsivePreview key={selected.id} url={previewUrl} title={`${mobile ? copy.work.mobile : copy.work.desktop}: ${copy.websites.previewTitle(selected.name)}`} mobile={mobile} sandbox={new URL(previewUrl).origin === parentOrigin ? undefined : "allow-scripts allow-same-origin allow-forms allow-popups"} />
           </div> : <p className="mt-6 text-sm text-black/60 dark:text-white/60">{copy.websites.depthLimit}</p>)}
-        {selected.url && !selected.preview && <p className="mt-6 text-sm text-black/60 dark:text-white/60">{copy.websites.linkOnly}</p>}
+        {embedWebsites && selected.url && !selected.preview && <p className="mt-6 text-sm text-black/60 dark:text-white/60">{copy.websites.linkOnly}</p>}
       </section>
       {stackLabel && createPortal(<span data-work-stack-label aria-hidden className="fixed z-50 max-w-40 rounded-md border border-black/10 bg-white px-2 py-1 text-xs shadow-md dark:border-white/15 dark:bg-zinc-900" style={{ right: stackLabel.right, top: stackLabel.top }}>
         <span className="block font-medium">{stackLabel.name}</span>
