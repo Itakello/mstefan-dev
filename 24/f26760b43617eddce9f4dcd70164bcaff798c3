@@ -1,0 +1,25 @@
+components/Header.tsx
+  s_378fc10f812003::t_42ae4192e49345 61,106
+next-sitemap.config.mjs
+  s_378fc10f812003::t_69150cab273221 1
+scripts/visual-review/package-evidence.mjs
+  s_378fc10f812003::t_14d4bd4e570d99 34-37
+tests/cms/lifecycle.test.mts
+  s_378fc10f812003::t_da4ebbd7578401 13,71,90
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "24f26760b43617eddce9f4dcd70164bcaff798c3",
+  "prompts": {},
+  "sessions": {
+    "s_378fc10f812003": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0e6e9-85f7-70e3-aded-c9af1613e5f2",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
