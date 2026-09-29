@@ -510,6 +510,7 @@ test('nested career branches share junctions and synchronize graph and Experienc
     await graph.locator('button[data-career-job]', { hasText: 'work/next' }).click();
     await expect(page.locator('#career-story h1')).toHaveText('H');
     await expect(page.locator('#career-story [data-pdf-document]')).toBeVisible();
+    await expect(page.getByRole('link', { name: /H · View documents/i })).toHaveAttribute('href', '#career-story');
     await expect(page.getByRole('link', { name: /Read story/i })).toHaveCount(0);
     await projectTitle.click();
     await expect(page.locator('#career-story h1')).toHaveText('F');

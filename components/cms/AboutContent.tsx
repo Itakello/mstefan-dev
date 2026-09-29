@@ -25,6 +25,7 @@ export function AboutContent({ content, career, locale }: Props) {
   const photoURL = selected ? photo?.url : photo?.url || "/profile-photo.jpg";
   const imageAlt = selected ? experiencePhoto?.alt || `${selected.company} · ${selected.role}` : content.imageAlt;
   const readStory = locale === "it" ? "Leggi la storia ↑" : "Read story ↑";
+  const viewDocuments = locale === "it" ? "Vedi i documenti ↑" : "View documents ↑";
   return (
     <div className={styles.layout}>
       <section id="career-story" className={styles.story} aria-label={selected?.company || content.title}>
@@ -49,7 +50,7 @@ export function AboutContent({ content, career, locale }: Props) {
       </section>
       <div className={styles.explorer}>
         <CareerGraph career={career} locale={locale} expanded showDetails={false} onSelectionChange={select} />
-        {selectedJob?.summary?.trim() && <a className={styles.readStory} href="#career-story">{selected?.company || (locale === "it" ? "Profilo" : "Profile")} · {readStory}</a>}
+        {selected && <a className={styles.readStory} href="#career-story">{selected.company} · {selected.summary?.trim() ? readStory : viewDocuments}</a>}
       </div>
     </div>
   );
