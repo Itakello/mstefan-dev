@@ -62,6 +62,7 @@ These are optional unless you use the Notion and repository proposal scripts.
 Notion database expected properties (create these columns):
 - `Name` (title)
 - `URL` (url)
+- `Website URL` (url, optional public website; supplies Work visit links and previews for permitted website origins)
 - `Summary` (rich_text, required English long summary)
 - `Summary IT` (rich_text, required Italian long summary)
 - `Short summary` (rich_text, optional English short summary)

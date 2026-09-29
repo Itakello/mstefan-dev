@@ -1,15 +1,14 @@
 import type { Locale } from "./config";
 
-export type PublicPage = "home" | "projects" | "websites" | "about";
+export type PublicPage = "home" | "projects" | "about";
 
 export const publicPagePaths = {
   home: "/",
   projects: "/projects",
-  websites: "/websites",
   about: "/about",
 } as const;
 
-export type PublicPath = (typeof publicPagePaths)[PublicPage];
+export type PublicPath = (typeof publicPagePaths)[PublicPage] | "/websites";
 
 type SiteCopy = {
   nav: Record<PublicPage, string>;
@@ -80,7 +79,7 @@ type SiteCopy = {
 
 export const copy = {
   en: {
-    nav: { home: "Home", projects: "Work", websites: "Websites", about: "About" },
+    nav: { home: "Home", projects: "Work", about: "About" },
     metadata: {
       home: {
         title: "Massimo Stefan",
@@ -89,10 +88,6 @@ export const copy = {
       projects: {
         title: "Work",
         description: "Selected websites and software projects by Massimo Stefan.",
-      },
-      websites: {
-        title: "Websites",
-        description: "Websites designed and built by Massimo Stefan.",
       },
       about: {
         title: "About",
@@ -181,7 +176,7 @@ export const copy = {
     og: { description: "Software engineer building AI systems for real work." },
   },
   it: {
-    nav: { home: "Home", projects: "Lavori", websites: "Siti web", about: "Profilo" },
+    nav: { home: "Home", projects: "Lavori", about: "Profilo" },
     metadata: {
       home: {
         title: "Massimo Stefan",
@@ -190,10 +185,6 @@ export const copy = {
       projects: {
         title: "Lavori",
         description: "Siti web e progetti software selezionati di Massimo Stefan.",
-      },
-      websites: {
-        title: "Siti web",
-        description: "Siti web progettati e realizzati da Massimo Stefan.",
       },
       about: {
         title: "Profilo",

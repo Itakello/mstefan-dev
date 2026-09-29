@@ -95,7 +95,11 @@ test.describe("Public website review", () => {
     await page.keyboard.press("Enter");
     await expect(page.locator("iframe")).toHaveCount(1);
     await expect(page.locator("iframe")).toHaveAttribute("src", "https://www.thekarakaltimes.com/en");
+    await expect(page.locator("iframe")).toHaveAttribute("sandbox", "allow-scripts allow-same-origin allow-forms allow-popups");
     await expect(page.frameLocator("iframe").getByRole("heading", { name: "The Karakal Times fixture" })).toBeVisible();
+    await page.frameLocator("iframe").getByRole("link", { name: "About", exact: true }).click();
+    await expect(page.frameLocator("iframe").getByRole("heading", { name: "Karakal about fixture" })).toBeVisible();
+    await expect(page).toHaveURL(/\/en\/projects$/);
     await expect(page.getByRole("link", { name: "Visit website", exact: true })).toBeVisible();
     await expect(page.getByRole("link", { name: "Source code", exact: true })).toHaveCount(0);
     await page.getByRole("button", { name: "Select Automation tools", exact: true }).click();

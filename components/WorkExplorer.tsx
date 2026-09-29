@@ -23,7 +23,7 @@ function ancestorDepth() {
   return depth;
 }
 
-function ResponsivePreview({ url, title, mobile }: { url: string; title: string; mobile: boolean }) {
+function ResponsivePreview({ url, title, mobile, sandbox }: { url: string; title: string; mobile: boolean; sandbox?: string }) {
   const container = useRef<HTMLDivElement>(null);
   const [available, setAvailable] = useState({ width: 0, height: 0 });
   const width = mobile ? 390 : 1280;
@@ -42,7 +42,7 @@ function ResponsivePreview({ url, title, mobile }: { url: string; title: string;
         style={{ width: width * scale, height: height * scale, transform: "translateX(-50%)" }}>
         <iframe src={url} title={title} width={width} height={height}
           className="block origin-top-left border-0" style={{ width, height, transform: `scale(${scale})` }}
-          referrerPolicy="strict-origin-when-cross-origin" />
+          referrerPolicy="strict-origin-when-cross-origin" sandbox={sandbox} />
       </div>
     </div>
   );
@@ -53,10 +53,12 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
   const [mobile, setMobile] = useState(false);
   const [selectedId, setSelectedId] = useState(items[0]?.id);
   const selected = items.find(item => item.id === selectedId) || items[0];
+  const [parentOrigin, setParentOrigin] = useState("");
   const [depth, setDepth] = useState<number | null>(null);
   const [origin, setOrigin] = useState(personalPreviewOrigin("", ""));
   useEffect(() => {
     setDepth(ancestorDepth());
+    setParentOrigin(window.location.origin);
     setOrigin(personalPreviewOrigin(window.location.hostname, window.location.origin));
   }, []);
   if (!selected) return null;
@@ -110,7 +112,7 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
                 </button>
               ))}
             </div>
-            <ResponsivePreview key={selected.id} url={previewUrl} title={`${mobile ? copy.work.mobile : copy.work.desktop}: ${copy.websites.previewTitle(selected.name)}`} mobile={mobile} />
+            <ResponsivePreview key={selected.id} url={previewUrl} title={`${mobile ? copy.work.mobile : copy.work.desktop}: ${copy.websites.previewTitle(selected.name)}`} mobile={mobile} sandbox={new URL(previewUrl).origin === parentOrigin ? undefined : "allow-scripts allow-same-origin allow-forms allow-popups"} />
           </div> : <p className="mt-6 text-sm text-black/60 dark:text-white/60">{copy.websites.depthLimit}</p>)}
         {selected.url && !selected.preview && <p className="mt-6 text-sm text-black/60 dark:text-white/60">{copy.websites.linkOnly}</p>}
       </section>
