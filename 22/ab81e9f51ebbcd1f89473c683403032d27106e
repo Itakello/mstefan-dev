@@ -1,0 +1,39 @@
+components/DocumentPreview.tsx
+  s_7027b947e4761d::t_2d5b2c5ad5f790 8,17,24-26,29,54,66-68,94,111
+README.md
+  s_7027b947e4761d::t_9495aeb29a26c9 64
+components/WorkExplorer.tsx
+  s_7027b947e4761d::t_f0c9a00a3610d9 104,112,160
+e2e/mstefan-site.review.spec.ts
+  s_7027b947e4761d::t_0e7e03a3cb15ae 64,117,128,133-140,142-144
+lib/i18n/copy.ts
+  s_7027b947e4761d::t_ee6f805753e779 68,161,260
+lib/notion.ts
+  s_7027b947e4761d::t_d5ad483dd04bb4 1,15,99-108,145
+lib/projectPublication.ts
+  s_7027b947e4761d::t_522039eba3c8a1 1-3,6
+lib/publicProjects.ts
+  s_7027b947e4761d::t_b37e57700cc69b 37
+lib/websiteShowcase.ts
+  s_7027b947e4761d::t_468bed218c8e3d 3,9,14
+tests/cms/notion-publication-fixture.mjs
+  s_7027b947e4761d::t_3f967fb33bdfef 15
+tests/notion-projects.test.ts
+  s_7027b947e4761d::t_bdac1c82b8db7c 382-396
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "22ab81e9f51ebbcd1f89473c683403032d27106e",
+  "prompts": {},
+  "sessions": {
+    "s_7027b947e4761d": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a08c68-dd71-7f93-85f1-556209f25a3a",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
