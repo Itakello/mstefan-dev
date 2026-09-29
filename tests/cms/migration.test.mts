@@ -6,7 +6,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { DatabaseSync } from 'node:sqlite';
 
-for (const schemaVersion of ['initial', 'career']) {
+for (const schemaVersion of ['initial', 'career', 'branch_graph']) {
 test(`preview ${schemaVersion} baseline preserves drafts and rejects unexpected schema`, async () => {
   const dataDir = await mkdtemp(path.join(tmpdir(), 'payload-baseline-test-'));
   const environment = { ...process.env, NODE_ENV: 'production', PAYLOAD_DATA_DIR: dataDir, PAYLOAD_SECRET: 'disposable-local-integration-test-only', PAYLOAD_DISABLE_DEPENDENCY_CHECKER: 'true' };
@@ -22,9 +22,13 @@ test(`preview ${schemaVersion} baseline preserves drafts and rejects unexpected 
     INSERT INTO _about_v_locales (version_title, _locale, _parent_id) VALUES ('preserved-private-title', 'it', 1);
     INSERT INTO payload_migrations (name, batch) VALUES ('development', -1);
   `);
-  if (schemaVersion === 'career') {
+  if (schemaVersion !== 'initial') {
     const { up: careerUp } = await import('../../migrations/20260928_212105_career');
     await careerUp({ db: { run: (query) => db.exec(dialect.sqlToQuery(query).sql) } } as unknown as Parameters<typeof careerUp>[0]);
+  }
+  if (schemaVersion === 'branch_graph') {
+    const { up: branchUp } = await import('../../migrations/20260929_081759_career_branch_graph');
+    await branchUp({ db: { run: (query) => db.exec(dialect.sqlToQuery(query).sql) } } as unknown as Parameters<typeof branchUp>[0]);
   }
   const before = db.prepare('SELECT * FROM _about_v_locales ORDER BY id').all();
   db.close();
@@ -49,6 +53,87 @@ test(`preview ${schemaVersion} baseline preserves drafts and rejects unexpected 
   } finally { await rm(dataDir, { recursive: true, force: true }); }
 });
 }
+
+test('branch graph preview baseline preserves populated published and draft fields and rolls back only its own batch', async () => {
+  const dataDir = await mkdtemp(path.join(tmpdir(), 'payload-baseline-branch-graph-'));
+  const environment = { ...process.env, NODE_ENV: 'production', PAYLOAD_DATA_DIR: dataDir, PAYLOAD_SECRET: 'disposable-local-branch-baseline-only', PAYLOAD_DISABLE_DEPENDENCY_CHECKER: 'true' };
+  const filename = path.join(dataDir, '.payload-local.db');
+  const { SQLiteSyncDialect } = await import('@payloadcms/db-sqlite/drizzle/sqlite-core');
+  const { up: initialUp } = await import('../../migrations/20260917_195926_initial');
+  const { up: careerUp } = await import('../../migrations/20260928_212105_career');
+  const { up: branchUp } = await import('../../migrations/20260929_081759_career_branch_graph');
+  const dialect = new SQLiteSyncDialect();
+  let db = new DatabaseSync(filename);
+  const args = { db: { run: (query: Parameters<typeof dialect.sqlToQuery>[0]) => db.exec(dialect.sqlToQuery(query).sql) } } as unknown as Parameters<typeof initialUp>[0];
+  const content = () => db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name != 'payload_migrations' ORDER BY name").all()
+    .map(({ name }) => ({ name, rows: db.prepare(`SELECT * FROM "${name}" ORDER BY rowid`).all() }));
+  try {
+    await initialUp(args);
+    await careerUp(args);
+    db.exec(`
+      INSERT INTO payload_migrations (id, name, batch, created_at, updated_at) VALUES
+        (7, '20260917_195926_initial', 1, '2026-09-17T00:00:00Z', '2026-09-17T00:00:00Z'),
+        (8, '20260928_212105_career', 1, '2026-09-28T00:00:00Z', '2026-09-28T00:00:00Z'),
+        (9, 'development', -1, '2026-09-29T00:00:00Z', '2026-09-29T00:00:00Z');
+      INSERT INTO users (id, email) VALUES (1, 'preserved@example.invalid');
+      INSERT INTO media (id, filename, width, height) VALUES (1, 'preserved.png', 100, 200);
+      INSERT INTO home (id, _status) VALUES (1, 'published');
+      INSERT INTO home_locales (title, _locale, _parent_id) VALUES ('Existing home', 'en', 1);
+      INSERT INTO about (id, _status, photo_id) VALUES (1, 'published', 1);
+      INSERT INTO _about_v (id, version__status, version_photo_id, latest) VALUES (1, 'draft', 1, 1);
+      INSERT INTO _about_v_locales (version_title, _locale, _parent_id) VALUES ('Existing private draft', 'it', 1);
+      INSERT INTO career (id, _status) VALUES (1, 'published');
+      INSERT INTO career_locales (id, mainline_color, _locale, _parent_id) VALUES (1, '#123456', 'en', 1), (2, '#654321', 'it', 1);
+      INSERT INTO career_jobs (_order, _parent_id, _locale, id, branch_name, company, role, summary, start_date, end_date, color) VALUES
+        (1, 1, 'en', 'parent', 'work/parent', 'Parent company', 'Engineer', 'Published summary', '2024-01-01', '2024-12-31', '#123456'),
+        (2, 1, 'en', 'child', 'work/child', 'Child company', 'Intern', 'Child summary', '2024-02-01', '2024-10-31', '#654321');
+      INSERT INTO _career_v (id, version__status, latest) VALUES (1, 'draft', 1);
+      INSERT INTO _career_v_locales (id, version_mainline_color, _locale, _parent_id) VALUES (1, '#abcdef', 'en', 1), (2, '#fedcba', 'it', 1);
+      INSERT INTO _career_v_version_jobs (_order, _parent_id, _locale, id, branch_name, company, role, summary, start_date, end_date, color, _uuid) VALUES
+        (1, 1, 'en', 1, 'work/parent', 'Draft parent', 'Engineer', 'Private parent summary', '2024-01-01', '2024-12-31', '#abcdef', 'parent'),
+        (2, 1, 'en', 2, 'work/child', 'Draft child', 'Intern', 'Private child summary', '2024-02-01', '2024-10-31', '#fedcba', 'child');
+    `);
+    const prefix = db.prepare('SELECT * FROM payload_migrations WHERE batch = 1 ORDER BY id').all();
+    const legacyContent = content();
+    await branchUp(args);
+    db.exec(`
+      UPDATE career_jobs SET parent_branch_name = 'work/parent' WHERE id = 'child';
+      UPDATE _career_v_version_jobs SET parent_branch_name = 'work/parent' WHERE id = 2;
+      UPDATE career_locales SET lane_spacing = CASE _locale WHEN 'en' THEN 18 ELSE 64 END;
+      UPDATE _career_v_locales SET version_lane_spacing = CASE _locale WHEN 'en' THEN 32 ELSE 48 END;
+    `);
+    const currentContent = content();
+    db.close();
+    let baselineHistory;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const result = spawnSync(process.execPath, ['scripts/baseline-payload-preview.mjs'], { env: environment, encoding: 'utf8', timeout: 30_000 });
+      assert.equal(result.status, 0, result.stderr);
+      db = new DatabaseSync(filename);
+      const history = db.prepare('SELECT * FROM payload_migrations ORDER BY id').all();
+      assert.deepEqual(history.slice(0, 2), prefix);
+      assert.equal(history.length, 3);
+      assert.equal(history[2].name, '20260929_081759_career_branch_graph');
+      assert.equal(history[2].batch, 2);
+      assert.deepEqual(content(), currentContent, 'Baseline changed populated publication or draft fields');
+      if (attempt === 0) baselineHistory = history;
+      else assert.deepEqual(history, baselineHistory, 'Rerun changed the matching production history');
+      db.close();
+    }
+    const migrate = spawnSync(process.execPath, ['node_modules/payload/bin.js', 'migrate'], { env: environment, encoding: 'utf8', timeout: 30_000 });
+    assert.equal(migrate.status, 0, `${migrate.stderr}\n${migrate.stdout}`);
+    db = new DatabaseSync(filename);
+    assert.deepEqual(content(), currentContent, 'Migration after baseline changed existing branch fields');
+    assert.deepEqual(db.prepare('SELECT * FROM payload_migrations ORDER BY id').all(), baselineHistory);
+    db.close();
+    const rollback = spawnSync(process.execPath, ['node_modules/payload/bin.js', 'migrate:down'], { env: environment, encoding: 'utf8', timeout: 30_000 });
+    assert.equal(rollback.status, 0, `${rollback.stderr}\n${rollback.stdout}`);
+    db = new DatabaseSync(filename);
+    assert.deepEqual(content(), legacyContent, 'Branch rollback changed legacy publication or draft content');
+    assert.deepEqual(db.prepare('SELECT * FROM payload_migrations ORDER BY id').all(), prefix);
+    assert.deepEqual(db.prepare('PRAGMA foreign_key_check').all(), []);
+    assert.equal(db.prepare('PRAGMA integrity_check').get()!.integrity_check, 'ok');
+  } finally { if (db.isOpen) db.close(); await rm(dataDir, { recursive: true, force: true }); }
+});
 
 test('career preview baseline adds a separate rollback batch and preserves legacy content', async () => {
   const dataDir = await mkdtemp(path.join(tmpdir(), 'payload-baseline-upgrade-'));
@@ -241,7 +326,7 @@ test('Payload migration runner can remove and recreate the initial migration his
       assert.equal(result.status, 0, `${command}: ${result.stderr}\n${result.stdout}`);
       const database = new DatabaseSync(path.join(dataDir, '.payload-local.db'));
       try {
-        remainingMigrations = command === 'migrate' ? 2 : 0;
+        remainingMigrations = command === 'migrate' ? 3 : 0;
         if (remainingMigrations === 0) {
           assert.deepEqual(database.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").all(), []);
         } else {

@@ -32,16 +32,21 @@ try {
     import { SQLiteSyncDialect } from '@payloadcms/db-sqlite/drizzle/sqlite-core';
     import { up as initialUp } from './migrations/20260917_195926_initial.ts';
     import { up as careerUp } from './migrations/20260928_212105_career.ts';
+    import { up as branchUp } from './migrations/20260929_081759_career_branch_graph.ts';
     import path from 'node:path';
     const dialect = new SQLiteSyncDialect();
-    for (const version of ['initial', 'career']) {
+    for (const version of ['initial', 'career', 'branch_graph']) {
       const db = new DatabaseSync(path.join(process.env.BASELINE_REFERENCE_DIR, version + '.db'));
       const args = { db: { run: (query) => db.exec(dialect.sqlToQuery(query).sql) } };
       await initialUp(args);
       db.prepare('INSERT INTO payload_migrations (name, batch) VALUES (?, ?)').run('20260917_195926_initial', 1);
-      if (version === 'career') {
+      if (version !== 'initial') {
         await careerUp(args);
         db.prepare('INSERT INTO payload_migrations (name, batch) VALUES (?, ?)').run('20260928_212105_career', 1);
+      }
+      if (version === 'branch_graph') {
+        await branchUp(args);
+        db.prepare('INSERT INTO payload_migrations (name, batch) VALUES (?, ?)').run('20260929_081759_career_branch_graph', 1);
       }
       db.close();
     }
@@ -54,7 +59,7 @@ try {
   assert.equal(target.prepare('PRAGMA integrity_check').get().integrity_check, 'ok');
   const targetSchema = schema(target);
   let migrations;
-  for (const version of ['initial', 'career']) {
+  for (const version of ['initial', 'career', 'branch_graph']) {
     reference = new DatabaseSync(path.join(referenceDir, `${version}.db`), { readOnly: true });
     if (isDeepStrictEqual(targetSchema, schema(reference))) {
       migrations = reference.prepare('SELECT name, batch FROM payload_migrations ORDER BY id').all();

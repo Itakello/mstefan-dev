@@ -58,6 +58,30 @@ function pageGlobal(slug: "home" | "about"): GlobalConfig {
 const validateHexColor = (value: unknown) => typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value)
   ? true : "Use a six-digit hex color, for example #c77835.";
 
+function validateCareerBranches(value: unknown) {
+  if (!Array.isArray(value)) return true;
+  const jobs = value as { branchName?: string; parentBranchName?: string; startDate?: string; endDate?: string }[];
+  const named = new Map(jobs.map((job) => [job.branchName, job]));
+  if (named.size !== jobs.length) return "Each experience must have a unique branch name.";
+  for (const job of jobs) {
+    const seen = new Set([job.branchName]);
+    let parentName = job.parentBranchName;
+    while (parentName && parentName !== "main") {
+      if (seen.has(parentName)) return "Parent branches cannot form a cycle.";
+      const parent = named.get(parentName);
+      if (!parent) return `Parent branch ${parentName} must name another experience.`;
+      seen.add(parentName);
+      parentName = parent.parentBranchName;
+    }
+    const parent = named.get(job.parentBranchName);
+    if (parent?.startDate && parent.endDate && job.startDate && job.endDate &&
+      (Date.parse(job.startDate) < Date.parse(parent.startDate) || Date.parse(job.endDate) > Date.parse(parent.endDate))) {
+      return `The dates of ${job.branchName} must fall within its parent branch.`;
+    }
+  }
+  return true;
+}
+
 const careerGlobal: GlobalConfig = {
   slug: "career",
   label: "Career",
@@ -71,7 +95,12 @@ const careerGlobal: GlobalConfig = {
     },
   },
   fields: [{ name: "mainlineColor", type: "text", localized: true, required: true, defaultValue: "#25b8f3", validate: validateHexColor }, {
+    name: "laneSpacing", label: "Branch spacing (px)", type: "number", localized: true, defaultValue: 24, min: 18, max: 64,
+    validate: (value: unknown) => value == null || (typeof value === "number" && Number.isInteger(value) && value >= 18 && value <= 64)
+      ? true : "Use a whole number between 18 and 64.",
+  }, {
     name: "jobs", type: "array", label: "Experiences", localized: true,
+    validate: validateCareerBranches,
     admin: { description: "Drag entries into display order, with the newest at the top." },
     fields: [
       {
@@ -79,6 +108,10 @@ const careerGlobal: GlobalConfig = {
         admin: { description: "Choose a branch path, for example work/amazon or education/university." },
         validate: (value: unknown) => typeof value === "string" && /^[a-z0-9][a-z0-9_-]*(\/[a-z0-9][a-z0-9_-]*)+$/i.test(value)
           ? true : "Use a branch path such as work/amazon or education/university.",
+      },
+      {
+        name: "parentBranchName", label: "Parent branch", type: "text",
+        admin: { description: "Leave empty for main. For a related experience, use its parent’s branch name, such as education/university." },
       },
       { name: "company", label: "Organization", type: "text", required: true },
       { name: "role", label: "Role or qualification", type: "text", required: true },
