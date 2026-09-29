@@ -3,6 +3,7 @@
 import { BookOpen, Presentation, ChevronDown, ExternalLink, Github, Monitor, Smartphone } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { DocumentPreview } from "@/components/DocumentPreview";
 import { StackBadge } from "@/components/StackBadge";
 import { displayStackCategory, groupStackEntries, projectStackLabels, resolveProjectStack } from "@/lib/stack";
 import type { WebsiteStackState } from "@/lib/websiteStack";
@@ -50,6 +51,7 @@ function ResponsivePreview({ url, title, mobile, sandbox }: { url: string; title
 
 export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; items: ShowcaseWebsite[]; stackCatalog: WebsiteStackState }) {
   const copy = getCopy(locale);
+  const [documentKind, setDocumentKind] = useState<"paper" | "slides">("paper");
   const [mobile, setMobile] = useState(false);
   const stackScroll = useRef<HTMLDivElement>(null);
   const [moreStack, setMoreStack] = useState(false);
@@ -77,6 +79,9 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
   const [depth, setDepth] = useState<number | null>(null);
   const [origin, setOrigin] = useState(personalPreviewOrigin("", ""));
   useEffect(() => {
+    const requested = new URLSearchParams(window.location.search).get("project");
+    const initial = items.find(item => item.id === requested || item.name === requested);
+    if (initial) setSelectedId(initial.id);
     setDepth(ancestorDepth());
     setParentOrigin(window.location.origin);
     setOrigin(personalPreviewOrigin(window.location.hostname, window.location.origin));
@@ -101,7 +106,7 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
   return (
     <div className="mt-8 grid min-w-0 gap-8 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-10">
       <nav aria-label={copy.work.selectorLabel} className="max-h-64 overflow-y-auto lg:max-h-[760px]">
-        {items.map(item => <button key={item.id} type="button" onClick={() => setSelectedId(item.id)}
+        {items.map(item => <button key={item.id} type="button" onClick={() => { setSelectedId(item.id); setDocumentKind("paper"); }}
           aria-label={copy.websites.selectSite(item.name)} aria-current={item.id === selected.id ? "true" : undefined}
           className={`block w-full border-b border-black/10 px-4 py-4 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[hsl(var(--accent))] dark:border-white/10 ${item.id === selected.id ? "border-l-4 border-l-[hsl(var(--accent))] bg-[hsl(var(--accent)/0.05)]" : "hover:bg-black/[0.03] dark:hover:bg-white/5"}`}>
           <span className="block font-semibold">{item.name}</span>
@@ -145,11 +150,15 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
         {(selected.paperUrl || selected.slidesUrl || selected.publication) && <section aria-label={copy.work.research} className="mt-7 border-t border-black/10 pt-5 dark:border-white/10">
           <h3 className="text-sm font-semibold">{copy.work.research}</h3>
           {selected.publication && <p className="mt-2 text-sm text-black/65 dark:text-white/65">{selected.publication}</p>}
-          <div className="mt-4 flex flex-wrap gap-3">
-            {([{ url: selected.paperUrl, label: copy.work.paper, Icon: BookOpen }, { url: selected.slidesUrl, label: copy.work.slides, Icon: Presentation }]).filter(resource => resource.url).map(resource => <a key={resource.label} href={resource.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-3 rounded-lg border border-black/10 px-4 py-3 text-sm font-medium hover:bg-black/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[hsl(var(--accent))] dark:border-white/15 dark:hover:bg-white/5">
-              <resource.Icon size={18} aria-hidden /><span>{resource.label}</span><ExternalLink size={14} aria-hidden className="text-black/40 dark:text-white/40" />
-            </a>)}
-          </div>
+          {(selected.paperUrl || selected.slidesUrl) && <>
+            <div role="group" aria-label={copy.work.research} className="mt-4 mb-4 inline-flex gap-1 rounded-lg border border-black/10 p-1 dark:border-white/15">
+              {([{ kind: "paper", url: selected.paperUrl, label: copy.work.paper, Icon: BookOpen }, { kind: "slides", url: selected.slidesUrl, label: copy.work.slides, Icon: Presentation }] as const).filter(resource => resource.url).map(resource => {
+                const active = (documentKind === "slides" && selected.slidesUrl ? "slides" : selected.paperUrl ? "paper" : "slides") === resource.kind;
+                return <button key={resource.kind} type="button" aria-pressed={active} onClick={() => setDocumentKind(resource.kind)} className={`inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-[hsl(var(--accent))] ${active ? "bg-[hsl(var(--accent))] text-white" : "hover:bg-black/5 dark:hover:bg-white/5"}`}><resource.Icon size={16} aria-hidden /><span>{resource.label}</span></button>;
+              })}
+            </div>
+            <DocumentPreview key={`${selected.id}-${documentKind}`} url={(documentKind === "slides" && selected.slidesUrl ? selected.slidesUrl : selected.paperUrl || selected.slidesUrl)!} title={selected.name} locale={locale} />
+          </>}
         </section>}
         {selected.preview && previewUrl && (depth === null || !parentOrigin ? <p role="status" className="mt-6 text-sm">{copy.websites.loading}</p>
           : canRenderWebsitePreview(depth) ? <div className="mt-7">

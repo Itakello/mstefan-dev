@@ -74,6 +74,8 @@ Notion database expected properties (create these columns):
 - `Year` (number)
 - `Status` (status: "To Add", "Added", "Removed")
 
+Paper and slides URLs are rendered as PDFs inside Work, with page navigation, zoom, and selectable text. Use public PDF sources that allow cross-origin reading (CORS), such as raw GitHub files or arXiv. GitHub blob links are converted to raw content for the reader. Hosts that require sign-in, block CORS, or serve a non-PDF retain an external Open PDF link when the inline preview is unavailable.
+
 An `Added` row requires both nonblank long summaries. The website never falls back between English and Italian summaries; each locale uses only its own long and optional short summary.
 
 The website renders only approved Notion entries when `NOTION_TOKEN` and `NOTION_DATABASE_ID` are present. GitHub can enrich matching approved entries with creation timestamps and detected language, but cannot publish additional repositories, replace approved summaries, or block publication when its optional data is unavailable or malformed. Stack coverage is checked against Notion-owned project labels; a missing Stack entry for optional GitHub language is not a publication gate. If Notion is unconfigured or unavailable, the Projects page renders zero cards with an explicit unavailable state; an empty approved result renders zero cards with an explicit no-approved-projects state.

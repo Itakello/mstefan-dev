@@ -29,17 +29,18 @@
     "classnames": "^2.5.1",
     "clsx": "^2.1.1",
     "graphql": "^16.14.2",
+    "libsql": "0.4.7",
     "lucide-react": "^0.453.0",
     "motion": "^13.1.0",
     "next": "16.3.3",
     "openai": "^4.57.0",
     "payload": "3.89.0",
+    "pdfjs-dist": "^6.3.289",
     "posthog-js": "^1.434.15",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-icons": "^5.5.0",
-    "server-only": "^0.0.1",
-    "libsql": "0.4.7"
+    "server-only": "^0.0.1"
   },
   "devDependencies": {
     "@mdx-js/loader": "^2.3.0",

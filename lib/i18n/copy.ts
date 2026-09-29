@@ -158,7 +158,7 @@ export const copy = {
       toolkitDescription: "Tools and technologies I use across my work.",
     },
     projects: { title: "My work", description: "Explore the projects, websites and tools I build." },
-    work: { previewSize: "Preview size", selectorLabel: "Choose a project", desktop: "Desktop", mobile: "Mobile", source: "Source code", visit: "Visit website", research: "Research & materials", paper: "Read paper", slides: "View slides" },
+    work: { previewSize: "Preview size", selectorLabel: "Choose a project", desktop: "Desktop", mobile: "Mobile", source: "Source code", visit: "Visit website", research: "Research & materials", paper: "Paper", slides: "Slides" },
     websites: {
       selectSite: (title) => `Select ${title}`,
       previewTitle: (title) => `Interactive preview of ${title}`,
@@ -257,7 +257,7 @@ export const copy = {
       toolkitDescription: "Strumenti e tecnologie che uso nel mio lavoro.",
     },
     projects: { title: "I miei lavori", description: "Esplora i progetti, i siti web e gli strumenti che realizzo." },
-    work: { previewSize: "Dimensione anteprima", selectorLabel: "Scegli un progetto", desktop: "Desktop", mobile: "Mobile", source: "Codice sorgente", visit: "Visita il sito", research: "Ricerca e materiali", paper: "Leggi il paper", slides: "Guarda le slide" },
+    work: { previewSize: "Dimensione anteprima", selectorLabel: "Scegli un progetto", desktop: "Desktop", mobile: "Mobile", source: "Codice sorgente", visit: "Visita il sito", research: "Ricerca e materiali", paper: "Paper", slides: "Slide" },
     websites: {
       selectSite: (title) => `Seleziona ${title}`,
       previewTitle: (title) => `Anteprima interattiva di ${title}`,
