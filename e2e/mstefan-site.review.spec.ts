@@ -122,11 +122,17 @@ test.describe("Public website review", () => {
     await expect(reader.getByRole("status")).toHaveCount(0);
     await reader.getByRole("button", { name: "Zoom in" }).click();
     await expect(reader.getByText("125%", { exact: true })).toBeVisible();
+    const paperStageHeight = await reader.locator("[data-document-stage]").evaluate(node => node.clientHeight);
     await page.getByRole("button", { name: "Slides", exact: true }).click();
     await expect(reader.getByRole("link", { name: "Open PDF", exact: true })).toHaveAttribute("href", "https://example.com/research-slides.pdf");
     await expect(reader.getByText("1 / 2", { exact: true })).toBeVisible();
     await expect(reader.getByRole("status")).toHaveCount(0);
+    const slideStage = reader.locator("[data-document-stage]");
+    expect(await slideStage.evaluate(node => node.clientHeight)).toBeLessThan(paperStageHeight);
+    await expect.poll(() => slideStage.evaluate(node => node.scrollHeight <= node.clientHeight + 1 && node.scrollWidth <= node.clientWidth + 1)).toBeTruthy();
     await page.setViewportSize({ width: 360, height: 800 });
+    await expect(reader.getByRole("status")).toHaveCount(0);
+    await expect.poll(() => slideStage.evaluate(node => node.scrollHeight <= node.clientHeight + 1 && node.scrollWidth <= node.clientWidth + 1)).toBeTruthy();
     expect(await reader.evaluate(node => node.getBoundingClientRect().right <= window.innerWidth)).toBeTruthy();
     await page.screenshot({ path: ".artifacts/playwright/work-research-mobile.png", fullPage: true });
     await page.setViewportSize({ width: 1440, height: 1000 });
