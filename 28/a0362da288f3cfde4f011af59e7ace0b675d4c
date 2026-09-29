@@ -1,0 +1,59 @@
+specs/mstefan-site-review.md
+  s_7027b947e4761d::t_3aaa9304bc124c 21
+scripts/baseline-payload-preview.mjs
+  s_7027b947e4761d::t_ab0b1cf6f90612 38,41,50,54,58,62-65,77
+e2e/mstefan-site.review.spec.ts
+  s_7027b947e4761d::t_3aaa9304bc124c 224
+tests/cms/migration.test.mts
+  s_7027b947e4761d::t_ccaca10d7e0263 75-114,183,186,398,409-457
+components/DocumentPreview.tsx
+  s_7027b947e4761d::t_f19e558a3f707b 2,8,13,28-31,39-41,90,101-102
+components/PdfPreview.module.css
+  s_7027b947e4761d::t_3f4921d18e2a0c 1-6
+components/PdfPreview.tsx
+  s_7027b947e4761d::t_725eecb4fc7a2a 1-23
+components/cms/AboutContent.tsx
+  s_7027b947e4761d::t_c2afa22bbc4f1a 7,20-21,48,52
+deploy/payload-production/BACKUP.md
+  s_7027b947e4761d::t_c2f488e84e5767 3,15
+deploy/payload-production/README.md
+  s_7027b947e4761d::t_5e76b7e514e2d1 5,9
+deploy/payload-production/backup.py
+  s_7027b947e4761d::t_bcc72b623cdfa9 19,50,52-61,74,99,158,167
+deploy/payload-production/test_backup.py
+  s_7027b947e4761d::t_a39f88ac84dd37 21-41,53-56,80,83,146-155,168,175,238,241-242
+lib/documentMedia.ts
+  s_7027b947e4761d::t_dec981b400da00 1-4
+migrations/20260929_220029_career_documents.json
+  s_7027b947e4761d::t_c7ad36d54b88f0 1-2595
+migrations/20260929_220029_career_documents.ts
+  s_7027b947e4761d::t_194f62994180e2 1-83
+migrations/index.ts
+  s_7027b947e4761d::t_c55a9fac72db94 6,34-38
+payload.config.ts
+  s_7027b947e4761d::t_ef5b237671b91f 46-63,156-159,208-216
+proxy.ts
+  s_7027b947e4761d::t_4a1a0fe37e762b 30,32,35
+tests/cms/career.test.mts
+  s_7027b947e4761d::t_571e4eba10ca5c 171-199
+tests/cms/lifecycle.test.mts
+  s_7027b947e4761d::t_d0f6ad306e74c8 23,26,30,40-64,220-254,431-438,452-453,463-465,482,490-516,529-530,572,579-582
+tests/document-media.test.ts
+  s_7027b947e4761d::t_007fed7f146e1e 9-19
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "28a0362da288f3cfde4f011af59e7ace0b675d4c",
+  "prompts": {},
+  "sessions": {
+    "s_7027b947e4761d": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a08c68-dd71-7f93-85f1-556209f25a3a",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
