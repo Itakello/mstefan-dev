@@ -17,14 +17,15 @@ const fixtureRows = [
   Summary: { rich_text: [{ plain_text: en }] }, 'Summary IT': { rich_text: [{ plain_text: it }] },
   URL: { url: index === 1 ? null : `https://github.com/fixture/project-${index}` }, 'Website URL': { type: 'url', url: website },
 } }));
-const stackRows = [['TypeScript', 'Language', 'logos:typescript-icon'], ['Python', 'Language', 'logos:python'], ['Next.js', 'Framework', 'logos:nextjs-icon'], ['React', 'Library', 'logos:react']].map(([name, category, iconKey], index) => ({ id: `visual-stack-${index}`, properties: {
+const stackRows = [['TypeScript', 'Language', 'logos:typescript-icon'], ['Python', 'Language', 'logos:python'], ['Next.js', 'Framework', 'logos:nextjs-icon'], ['React', 'Library', 'logos:react'], ['Node.js', 'Runtime', 'logos:nodejs-icon'], ['GitHub Actions', 'Infrastructure', 'logos:github-actions'], ['Notion', 'Integration', 'logos:notion-icon'], ['pnpm', 'CLI', 'logos:pnpm'], ['Tailwind CSS', 'Framework', 'logos:tailwindcss-icon'], ['MongoDB', 'Database', 'logos:mongodb-icon'], ['AWS', 'Cloud', 'logos:aws'], ['Docker', 'Infrastructure', 'logos:docker-icon']].map(([name, category, iconKey], index) => ({ id: `visual-stack-${index}`, properties: {
   Name: { title: [{ plain_text: name }] }, Category: { select: { name: category } }, 'Icon key': { rich_text: [{ plain_text: iconKey }] },
 } }));
 function fixturePayload() {
   const mode = readFileSync(process.env.VISUAL_NOTION_FIXTURE_STATE, 'utf8').trim();
   if (mode === 'error') return { status: 503, body: { object: 'error', code: 'service_unavailable', message: 'Synthetic publication outage' } };
-  if (!['multiple', 'one', 'empty'].includes(mode)) throw new Error('Unexpected publication fixture state');
-  const rows = mode === 'empty' ? [] : mode === 'one' ? fixtureRows.slice(0, 1) : fixtureRows;
+  if (!['multiple', 'one', 'empty', 'dense'].includes(mode)) throw new Error('Unexpected publication fixture state');
+  const denseRow = { ...fixtureRows[0], properties: { ...fixtureRows[0].properties, Tags: { multi_select: stackRows.map(row => ({ name: row.properties.Name.title[0].plain_text })) } } };
+  const rows = mode === 'dense' ? [denseRow] : mode === 'empty' ? [] : mode === 'one' ? fixtureRows.slice(0, 1) : fixtureRows;
   return { status: 200, body: { object: 'list', results: rows, has_more: false, next_cursor: null } };
 }
 const provider = http.createServer((request, response) => {

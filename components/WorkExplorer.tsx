@@ -1,7 +1,8 @@
 "use client";
 
-import { ExternalLink, Github, Monitor, Smartphone } from "lucide-react";
+import { ChevronDown, ExternalLink, Github, Monitor, Smartphone } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { StackBadge } from "@/components/StackBadge";
 import { displayStackCategory, groupStackEntries, projectStackLabels, resolveProjectStack } from "@/lib/stack";
 import type { WebsiteStackState } from "@/lib/websiteStack";
@@ -50,6 +51,26 @@ function ResponsivePreview({ url, title, mobile, sandbox }: { url: string; title
 export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; items: ShowcaseWebsite[]; stackCatalog: WebsiteStackState }) {
   const copy = getCopy(locale);
   const [mobile, setMobile] = useState(false);
+  const stackScroll = useRef<HTMLDivElement>(null);
+  const [moreStack, setMoreStack] = useState(false);
+  const [stackLabel, setStackLabel] = useState<{ name: string; category: string; right: number; top: number } | null>(null);
+  useEffect(() => {
+    const dismiss = () => setStackLabel(null);
+    window.addEventListener("scroll", dismiss, true);
+    window.addEventListener("resize", dismiss);
+    return () => {
+      window.removeEventListener("scroll", dismiss, true);
+      window.removeEventListener("resize", dismiss);
+    };
+  }, []);
+  const showStackLabel = (element: HTMLElement, name: string, category: string) => {
+    const rect = element.getBoundingClientRect();
+    setStackLabel({ name, category, right: Math.max(8, window.innerWidth - rect.right), top: Math.min(rect.bottom + 6, window.innerHeight - 60) });
+  };
+  const updateStackOverflow = () => {
+    const element = stackScroll.current;
+    setMoreStack(Boolean(element && element.scrollHeight > element.clientHeight + element.scrollTop + 1));
+  };
   const [selectedId, setSelectedId] = useState(items[0]?.id);
   const selected = items.find(item => item.id === selectedId) || items[0];
   const [parentOrigin, setParentOrigin] = useState("");
@@ -60,6 +81,17 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
     setParentOrigin(window.location.origin);
     setOrigin(personalPreviewOrigin(window.location.hostname, window.location.origin));
   }, []);
+  useEffect(() => {
+    const element = stackScroll.current;
+    if (!element) return;
+    element.scrollTop = 0;
+    setStackLabel(null);
+    const observer = new ResizeObserver(updateStackOverflow);
+    observer.observe(element);
+    if (element.firstElementChild) observer.observe(element.firstElementChild);
+    updateStackOverflow();
+    return () => observer.disconnect();
+  }, [selected?.id, stackCatalog]);
   if (!selected) return null;
   const previewUrl = websitePreviewUrl(selected, locale, origin);
   const visitUrl = websitePreviewUrl(selected, locale);
@@ -87,21 +119,27 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
               {selected.sourceUrl && <a className={linkClass} href={selected.sourceUrl} target="_blank" rel="noreferrer"><Github size={16} aria-hidden="true" />{copy.work.source}</a>}
             </div>
           </div>
-          {groups.length > 0 ? <aside aria-label={copy.projectCard.technologiesByCategory(selected.name)} className="min-w-0 border-l border-black/10 pl-3 dark:border-white/10">
+          {groups.length > 0 ? <aside aria-label={copy.projectCard.technologiesByCategory(selected.name)} className="relative min-h-0 min-w-0 border-l border-black/10 dark:border-white/10">
+            <div className="absolute inset-0 flex min-h-0 flex-col pl-3">
             <h3 className="text-xs font-semibold uppercase tracking-wider text-black/50 dark:text-white/50">Stack</h3>
-            <ul className="mt-3 flex flex-wrap gap-2">
+            <div ref={stackScroll} data-work-stack-scroll tabIndex={0} className="mt-3 min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1 [scrollbar-width:thin]" onScroll={() => { updateStackOverflow(); setStackLabel(null); }}>
+            <ul className="flex flex-wrap gap-2 pb-6">
               {groups.flatMap(group => group.entries.map(entry => <li key={entry.name}>
-                <details className="group relative">
-                  <summary aria-label={`${entry.name} · ${displayStackCategory(group.category, locale)}`} className="flex cursor-pointer list-none rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-[hsl(var(--accent))] [&::-webkit-details-marker]:hidden">
+                <details className="group relative" onToggle={event => {
+                  if (event.currentTarget.open) showStackLabel(event.currentTarget, entry.name, displayStackCategory(group.category, locale));
+                  else setStackLabel(null);
+                }} onMouseLeave={event => { if (!event.currentTarget.open) setStackLabel(null); }}>
+                  <summary aria-label={`${entry.name} · ${displayStackCategory(group.category, locale)}`} onMouseEnter={event => showStackLabel(event.currentTarget, entry.name, displayStackCategory(group.category, locale))}
+                    onFocus={event => showStackLabel(event.currentTarget, entry.name, displayStackCategory(group.category, locale))}
+                    onBlur={() => setStackLabel(null)} className="flex cursor-pointer list-none rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-[hsl(var(--accent))] [&::-webkit-details-marker]:hidden">
                     <StackBadge item={entry} label={false} compact />
-                  <span aria-hidden="true" className="absolute right-0 top-full z-20 mt-1 hidden w-max max-w-40 rounded-md border border-black/10 bg-white px-2 py-1 text-xs shadow-md group-open:block group-hover:block group-focus-within:block dark:border-white/15 dark:bg-zinc-900">
-                    <span className="block font-medium">{entry.name}</span>
-                    <span className="block text-black/55 dark:text-white/55">{displayStackCategory(group.category, locale)}</span>
-                  </span>
                   </summary>
                 </details>
               </li>))}
             </ul>
+            </div>
+            {moreStack && <div aria-hidden className="pointer-events-none absolute bottom-0 left-3 right-0 flex h-6 items-end justify-center bg-gradient-to-t from-white to-transparent dark:from-black"><ChevronDown size={14} /></div>}
+            </div>
           </aside> : stackCatalog.message && <p role="status" className="text-xs leading-5 text-black/55 dark:text-white/55">{copy.publication.stack[stackCatalog.message]}</p>}
         </div>
         {selected.preview && previewUrl && (depth === null || !parentOrigin ? <p role="status" className="mt-6 text-sm">{copy.websites.loading}</p>
@@ -118,6 +156,10 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
           </div> : <p className="mt-6 text-sm text-black/60 dark:text-white/60">{copy.websites.depthLimit}</p>)}
         {selected.url && !selected.preview && <p className="mt-6 text-sm text-black/60 dark:text-white/60">{copy.websites.linkOnly}</p>}
       </section>
+      {stackLabel && createPortal(<span data-work-stack-label aria-hidden className="fixed z-50 max-w-40 rounded-md border border-black/10 bg-white px-2 py-1 text-xs shadow-md dark:border-white/15 dark:bg-zinc-900" style={{ right: stackLabel.right, top: stackLabel.top }}>
+        <span className="block font-medium">{stackLabel.name}</span>
+        <span className="block text-black/55 dark:text-white/55">{stackLabel.category}</span>
+      </span>, document.body)}
     </div>
   );
 }
