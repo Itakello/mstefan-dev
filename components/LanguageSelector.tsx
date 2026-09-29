@@ -142,7 +142,7 @@ export function LanguageSelector({ locale, compact = false }: { locale: Locale; 
         <div
           role="menu"
           aria-label={copy.language.label}
-          className="absolute right-0 top-full z-30 mt-2 min-w-36 rounded-lg border border-black/10 bg-white p-1 shadow-soft dark:border-white/10 dark:bg-black dark:shadow-softDark"
+          className="absolute right-0 top-full z-30 mt-2 min-w-36 rounded-lg border border-black/10 bg-[var(--page-bg)] p-1 shadow-soft dark:border-white/10 dark:shadow-softDark"
         >
           {localeOptions.map((optionLocale, index) => (
             <button

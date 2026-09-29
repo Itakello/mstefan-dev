@@ -95,7 +95,7 @@ export function Header({ locale }: { locale: Locale }) {
         </button>
       </div>
       {menuOpen && (
-        <nav className="absolute right-0 top-[4.75rem] z-20 grid min-w-44 gap-1 rounded-xl border border-black/10 bg-white p-2 text-sm shadow-soft dark:border-white/10 dark:bg-black dark:shadow-softDark sm:hidden">
+        <nav className="absolute right-0 top-[4.75rem] z-20 grid min-w-44 gap-1 rounded-xl border border-black/10 bg-[var(--page-bg)] p-2 text-sm shadow-soft dark:border-white/10 dark:shadow-softDark sm:hidden">
           {links.map((link) => (
             <Link
               key={link.href}

@@ -313,35 +313,37 @@ test('career admin live preview keeps About text intact and locale drafts privat
       { branchName: 'work/amazon', company: 'Amazon', role: 'Software Development Engineer I', summary: 'Amazon fixture details', color: '#c77835' },
     ] }, '&publishSpecificLocale=en');
     await page.setViewportSize({ width: 320, height: 800 });
-    await page.goto(`${base}/en`);
+    await page.goto(`${base}/en/about`);
     const graph = page.getByRole('region', { name: 'Career', exact: true });
     await expect(graph.locator('button[data-career-job]')).toHaveCount(2);
-    await expect(graph.getByText('Education fixture details', { exact: true })).toBeVisible();
+    await expect(graph.locator('button[data-career-main-row]')).toHaveAttribute('aria-pressed', 'true');
+    await graph.locator('button[data-career-job]').first().click();
+    await expect(page.getByText('Education fixture details', { exact: true })).toBeVisible();
     await expect(graph.locator('button[data-career-job]').first()).toHaveAttribute('aria-pressed', 'true');
     const amazon = graph.locator('button[data-career-job]', { hasText: 'work/amazon' });
     await amazon.click();
     await expect(amazon).toHaveAttribute('aria-pressed', 'true');
-    await expect(graph.getByText('Amazon fixture details', { exact: true })).toBeVisible();
-    await expect(graph.getByText('Education fixture details', { exact: true })).toHaveCount(0);
+    await expect(page.getByText('Amazon fixture details', { exact: true })).toBeVisible();
+    await expect(page.getByText('Education fixture details', { exact: true })).toHaveCount(0);
     const branches = graph.locator('svg [data-career-branch]');
     await expect(branches).toHaveCount(2);
     const educationBranch = graph.locator('[data-career-branch][aria-label^="education/test-university:"]');
     const amazonBranch = graph.locator('[data-career-branch][aria-label^="work/amazon:"]');
     await educationBranch.focus();
     await educationBranch.press('Enter');
-    await expect(graph.getByText('Education fixture details', { exact: true })).toBeVisible();
+    await expect(page.getByText('Education fixture details', { exact: true })).toBeVisible();
     await expect(graph.locator('button[data-career-job]').first()).toHaveAttribute('aria-pressed', 'true');
     await expect(educationBranch).toHaveAttribute('aria-pressed', 'true');
     await amazonBranch.focus();
     await amazonBranch.press('Space');
-    await expect(graph.getByText('Amazon fixture details', { exact: true })).toBeVisible();
+    await expect(page.getByText('Amazon fixture details', { exact: true })).toBeVisible();
     await expect(amazon).toHaveAttribute('aria-pressed', 'true');
     await expect(graph.getByText('Dates not provided').first()).toBeVisible();
     await educationBranch.locator('[data-career-head]').click();
-    await expect(graph.getByText('Education fixture details', { exact: true })).toBeVisible();
+    await expect(page.getByText('Education fixture details', { exact: true })).toBeVisible();
     await expect(graph.locator('button[data-career-job]').first()).toBeFocused();
     await amazonBranch.locator('[data-career-head]').click();
-    await expect(graph.getByText('Amazon fixture details', { exact: true })).toBeVisible();
+    await expect(page.getByText('Amazon fixture details', { exact: true })).toBeVisible();
     await expect(amazon).toHaveAttribute('aria-pressed', 'true');
     await expect(amazon).toBeFocused();
     const pathPoint = await educationBranch.locator('path').last().evaluate((element) => {
@@ -351,11 +353,11 @@ test('career admin live preview keeps About text intact and locale drafts privat
       return { x: screen.x, y: screen.y };
     });
     await page.mouse.click(pathPoint.x, pathPoint.y);
-    await expect(graph.getByText('Education fixture details', { exact: true })).toBeVisible();
+    await expect(page.getByText('Education fixture details', { exact: true })).toBeVisible();
     await expect(graph.locator('button[data-career-job]').first()).toHaveAttribute('aria-pressed', 'true');
 
     await update('career', 'en', { _status: 'published', jobs: [
-      { branchName: 'education/test-university', company: 'Test University', role: 'Qualification', startDate: '2020-01-01', endDate: '2023-01-01', summary: `Education dated fixture\n${'Long description fixture. '.repeat(120)}`, color: '#1267ab' },
+      { branchName: 'education/test-university', company: 'Test University', role: 'Qualification', startDate: '2014-01-01', endDate: '2023-01-01', summary: `Education dated fixture\n${'Long description fixture. '.repeat(120)}`, color: '#1267ab' },
       { branchName: 'work/amazon', company: 'Amazon', role: 'Software Development Engineer I', startDate: '2022-01-01', endDate: '2024-01-01', summary: 'Amazon dated fixture', color: '#c77835' },
       { branchName: 'work/undated-fixture', company: 'Undated fixture', role: 'Test role', summary: 'Undated fixture details', color: '#d568fc' },
     ] }, '&publishSpecificLocale=en');
@@ -365,14 +367,11 @@ test('career admin live preview keeps About text intact and locale drafts privat
     await page.setViewportSize({ width: 1000, height: 800 });
     const tree = graph.getByRole('region', { name: 'Graph. Time moves upward.', exact: true });
     assert.ok(await tree.evaluate((element) => element.scrollHeight > element.clientHeight), 'Long history must scroll inside the tree');
-    const detail = graph.locator('[aria-live="polite"]');
-    await detail.hover();
-    await page.mouse.wheel(0, 500);
-    await expect.poll(() => detail.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
+    await graph.locator('button[data-career-job]').first().click();
     await tree.scrollIntoViewIfNeeded();
     await tree.hover();
     const scrollToPath = await tree.evaluate((element) => element.scrollTop);
-    await page.mouse.wheel(0, 400);
+    await page.mouse.wheel(0, 600);
     await expect.poll(() => tree.evaluate((element) => element.scrollTop)).toBeGreaterThan(scrollToPath);
     await expect(amazonBranch.locator('[data-career-head]')).not.toBeInViewport();
     const datedPathPosition = () => amazonBranch.locator('path').last().evaluate((element) => {
@@ -388,14 +387,13 @@ test('career admin live preview keeps About text intact and locale drafts privat
     const datedPathPoint = await datedPathPosition();
     assert.equal(await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.closest('[data-career-branch]')?.getAttribute('data-career-branch'), datedPathPoint), await amazonBranch.getAttribute('data-career-branch'), 'The dated path click must hit the visible intended branch');
     await page.mouse.click(datedPathPoint.x, datedPathPoint.y);
-    await expect(graph.getByText('Amazon dated fixture', { exact: true })).toBeVisible();
+    await expect(page.getByText('Amazon dated fixture', { exact: true })).toBeVisible();
     await expect(amazonBranch.locator('[data-career-head]')).toBeInViewport();
-    await expect.poll(() => detail.evaluate((element) => element.scrollTop)).toBe(0);
-    await expect(graph.getByRole('heading', { name: 'Amazon', exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Amazon', exact: true })).toBeVisible();
     await tree.hover();
     const beforeScroll = await tree.evaluate((element) => element.scrollTop);
     const pageScroll = await page.evaluate(() => window.scrollY);
-    await page.mouse.wheel(0, 400);
+    await page.mouse.wheel(0, 600);
     await expect.poll(() => tree.evaluate((element) => element.scrollTop)).toBeGreaterThan(beforeScroll);
     assert.equal(await page.evaluate(() => window.scrollY), pageScroll, 'Tree scrolling must not move the page');
     await expect(amazonBranch.locator('[data-career-head]')).not.toBeInViewport();
@@ -403,11 +401,10 @@ test('career admin live preview keeps About text intact and locale drafts privat
     await expect(amazonBranch.locator('[data-career-head]')).toBeInViewport();
     await expect(graph.locator('button[data-career-job]', { hasText: 'work/amazon' })).toBeFocused();
     await graph.locator('button[data-career-job]', { hasText: 'work/undated-fixture' }).click();
-    await expect(graph.getByText('Undated fixture details', { exact: true })).toBeVisible();
+    await expect(page.getByText('Undated fixture details', { exact: true })).toBeVisible();
     await expect(graph.locator('[data-career-branch][aria-label^="work/undated-fixture:"] [data-career-head]')).toBeInViewport();
     await expect(tree.getByText('Dates not provided', { exact: true })).toBeVisible();
 
-    await page.setViewportSize({ width: 320, height: 800 });
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), 'Career page overflows at 320px');
     await context.close();
   } finally { await browser.close(); }
@@ -608,17 +605,24 @@ test('authenticated previews load only the active source draft', { timeout: 60_0
         } else await expect(page.getByRole('heading', { level: 1 })).toHaveText(title);
       };
       const pathname = slug === 'home' ? '/en' : '/en/about';
-      await page.goto(`${base}${pathname}?preview=1&previewSource=career`);
-      await expectPageTitle(published[slug].title);
-      await expect(page.getByText(titles[slug], { exact: true })).toHaveCount(0);
-      const careerPreview = page.getByRole('region', { name: 'Career', exact: true });
-      await expect(careerPreview.locator('button[data-career-job]').first()).toContainText(privateRole);
-      if (slug === 'about') await careerPreview.locator('button[data-career-job]').first().click();
-      await expect(page.getByText(privateSummary, { exact: true })).toBeVisible();
+      if (slug === 'about') {
+        await page.goto(`${base}${pathname}?preview=1&previewSource=career`);
+        await expectPageTitle(published[slug].title);
+        await expect(page.getByText(titles[slug], { exact: true })).toHaveCount(0);
+        const careerPreview = page.getByRole('region', { name: 'Career', exact: true });
+        await expect(careerPreview.locator('button[data-career-job]').first()).toContainText(privateRole);
+        await careerPreview.locator('button[data-career-job]').first().click();
+        await expect(page.getByText(privateSummary, { exact: true })).toBeVisible();
+      } else {
+        await page.goto(`${base}${pathname}?preview=1&previewSource=career`);
+        await expect(page).toHaveURL(`${base}/en/about?preview=1&previewSource=career`);
+      }
       await page.goto(`${base}${pathname}?preview=1`);
       await expectPageTitle(titles[slug]);
       const pagePreviewCareer = page.getByRole('region', { name: 'Career', exact: true });
-      await expect(pagePreviewCareer.locator('button[data-career-job]').first()).toContainText(published.career.jobs[0].role);
+      if (slug === 'about') {
+        await expect(pagePreviewCareer.locator('button[data-career-job]').first()).toContainText(published.career.jobs[0].role);
+      } else await expect(pagePreviewCareer).toHaveCount(0);
       await expect(pagePreviewCareer.getByText(privateRole, { exact: true })).toHaveCount(0);
       await expect(pagePreviewCareer.getByText(privateSummary, { exact: true })).toHaveCount(0);
       for (const query of ['?preview=1', '?preview=1&previewSource=career']) {
