@@ -1,3 +1,4 @@
+import { PROJECT_TYPES, type ProjectType } from "@/lib/projectPublication";
 import { Client } from "@notionhq/client";
 
 import type { Locale } from "@/lib/i18n/config";
@@ -11,6 +12,7 @@ export type LocalizedProjectCopy = {
 
 export type NotionProject = {
   title: string;
+  type?: ProjectType;
   copy: Record<Locale, LocalizedProjectCopy>;
   url?: string;
   websiteUrl?: string;
@@ -94,6 +96,16 @@ export function parseNotionProjectPage(page: any): NotionProject | null {
   const italianSummary = richText(properties["Summary IT"]?.rich_text);
   if (!title || !englishSummary || !italianSummary) return null;
 
+  const typeProperty = properties.Type;
+  let projectType: ProjectType | undefined;
+  if (typeProperty !== undefined) {
+    if (!typeProperty || typeProperty.type !== "select") return null;
+    if (typeProperty.select !== null) {
+      const name = typeProperty.select?.name;
+      if (!PROJECT_TYPES.includes(name)) return null;
+      projectType = name;
+    }
+  }
   const englishShortSummary = richText(properties["Short summary"]?.rich_text);
   const italianShortSummary = richText(properties["Short summary IT"]?.rich_text);
   const tags = (properties.Tags?.multi_select ?? [])
@@ -130,6 +142,7 @@ export function parseNotionProjectPage(page: any): NotionProject | null {
 
   return {
     title,
+    ...(projectType ? { type: projectType } : {}),
     copy: {
       en: { summary: englishSummary, ...(publication ? { publication } : {}), ...(englishShortSummary ? { shortSummary: englishShortSummary } : {}) },
       it: { summary: italianSummary, ...(italianPublication ? { publication: italianPublication } : {}), ...(italianShortSummary ? { shortSummary: italianShortSummary } : {}) },

@@ -61,6 +61,7 @@ These are optional unless you use the Notion and repository proposal scripts.
 
 Notion database expected properties (create these columns):
 - `Name` (title)
+- `Type` (select, optional: Website, App, Tool, Research; absent or unselected types are omitted, other values fail publication)
 - `URL` (url)
 - `Website URL` (url, optional public website; supplies Work visit links and previews for permitted website origins)
 - `Paper URL` / `Slides URL` (url, optional HTTPS research resources; blank values are omitted, nonblank invalid or credential-bearing URLs fail publication)

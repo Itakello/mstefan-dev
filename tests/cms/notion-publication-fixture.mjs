@@ -12,6 +12,7 @@ const fixtureRows = [
   ['The Karakal Times', 'https://www.thekarakaltimes.com', 'Client website fixture.', 'Sito cliente di prova.'],
   ['Automation tools', null, 'Repository-only fixture.', 'Progetto di prova senza sito web.'],
 ].map(([name, website, en, it], index) => ({ id: `visual-project-${index}`, properties: {
+  Type: { type: "select", select: { name: index === 2 ? "Tool" : "Website" } },
   Year: { number: 2026 }, Tags: { multi_select: (index === 2 ? ["Python"] : ["TypeScript", "Next.js", "React"]).map(name => ({ name })) },
   Name: { title: [{ plain_text: name }] }, Status: { status: { name: 'Added' } },
   Summary: { rich_text: [{ plain_text: en }] }, 'Summary IT': { rich_text: [{ plain_text: it }] },

@@ -61,6 +61,7 @@ test.describe("Public website review", () => {
     await expect(page.getByRole("heading", { level: 1, name: "My work" })).toBeVisible();
 
     await page.getByRole("button", { name: "Select mstefan.dev", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Select mstefan.dev", exact: true }).getByText("Website", { exact: true })).toBeVisible();
     const projectStack = page.getByRole("complementary", { name: "mstefan.dev technologies grouped by category" });
     const typeScript = projectStack.locator('summary[aria-label="TypeScript · Language"]');
     await typeScript.focus();
@@ -113,6 +114,7 @@ test.describe("Public website review", () => {
     await page.goto("/en/projects?project=Automation%20tools");
     await expect(page.getByRole("region", { name: "Research & materials", exact: true })).toBeVisible();
     await expect(page.getByText("Coauthor · Published in Example Journal", { exact: true })).toBeVisible();
+    await expect(page.getByText("Tool · 2026", { exact: true })).toBeVisible();
     const reader = page.getByRole("region", { name: "Automation tools: Document reader", exact: true });
     await expect(reader.getByText("1 / 2", { exact: true })).toBeVisible();
     await expect(reader.getByRole("status")).toHaveCount(0);

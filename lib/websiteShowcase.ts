@@ -1,17 +1,17 @@
 import type { Locale } from "./i18n/config";
 import { isGitHubRepositoryUrl } from "./projectPresentation";
-import type { Project } from "./projectPublication";
+import type { Project, ProjectType } from "./projectPublication";
 
 export const WEBSITE_PREVIEW_MAX_DEPTH = 3;
 
 const PERSONAL_SITE_ORIGIN = "https://www.mstefan.dev";
 const PRIVATE_PREVIEW_ORIGIN = "https://itakello-server.tailacf6a7.ts.net:10000";
-export type ShowcaseWebsite = { id: string; url?: string; sourceUrl?: string; preview: boolean; name: string; description: string; shortDescription?: string; year?: string; paperUrl?: string; slidesUrl?: string; publication?: string; language?: string; tags?: string[] };
+export type ShowcaseWebsite = { id: string; type?: ProjectType; url?: string; sourceUrl?: string; preview: boolean; name: string; description: string; shortDescription?: string; year?: string; paperUrl?: string; slidesUrl?: string; publication?: string; language?: string; tags?: string[] };
 
 export function workItemsFromProjects(projects: readonly Project[]): ShowcaseWebsite[] {
   const seen = new Set<string>();
   return projects.map((project, index) => {
-    const metadata = { name: project.title, description: project.summary, shortDescription: project.shortSummary,
+    const metadata = { type: project.type, name: project.title, description: project.summary, shortDescription: project.shortSummary,
       paperUrl: project.paperUrl, slidesUrl: project.slidesUrl, publication: project.publication,
       year: project.year, language: project.language, tags: project.tags,
       sourceUrl: isGitHubRepositoryUrl(project.url) ? project.url : undefined };

@@ -379,3 +379,18 @@ test("publication credits reject wrong property types while allowing blank rich 
     assert.ok(parseNotionProjectPage(blank));
   }
 });
+
+test("project types use the four authored values and remain optional", () => {
+  for (const type of ["Website", "App", "Tool", "Research"] as const) {
+    const project = parseNotionProjectPage(page({ properties: { ...page().properties, Type: { type: "select", select: { name: type } } } }));
+    assert.ok(project);
+    assert.equal(selectPublicProjectLocale(project, "en").type, type);
+
+  }
+  const blank = parseNotionProjectPage(page({ properties: { ...page().properties, Type: { type: "select", select: null } } }));
+  assert.ok(blank);
+  assert.equal(blank.type, undefined);
+  for (const value of [null, { type: "rich_text", rich_text: [] }, { type: "select", select: { name: "Other" } }, { type: "select", select: {} }, { select: { name: "Website" } }, { type: null, select: { name: "Website" } }]) {
+    assert.equal(parseNotionProjectPage(page({ properties: { ...page().properties, Type: value } })), null);
+  }
+});
