@@ -1,0 +1,21 @@
+deploy/event/controller.py
+  s_99649e26c921f2::t_1cb2804962dcb4 35-38,256,258,260,313-314,318
+deploy/event/test_controller.py
+  s_99649e26c921f2::t_6914fd2509791e 145-146,148,167-187
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4222c16cffcb460eaa62d555fdc5035e49b2a970",
+  "prompts": {},
+  "sessions": {
+    "s_99649e26c921f2": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0ec14-2355-7fd1-a6cb-ec2e94e09f5f",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
