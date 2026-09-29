@@ -1,0 +1,18 @@
+[Unit]
+Description=Fixed read-only mstefan.dev volume probe
+
+[Service]
+Type=exec
+User=root
+ExecStart=/usr/bin/python3 /opt/mstefan-event-deploy/volume_probe.py
+StandardInput=socket
+StandardOutput=socket
+StandardError=journal
+RuntimeMaxSec=10
+TimeoutStopSec=1
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+CapabilityBoundingSet=
+RestrictAddressFamilies=AF_UNIX

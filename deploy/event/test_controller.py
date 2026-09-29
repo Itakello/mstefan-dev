@@ -5,6 +5,24 @@ from pathlib import Path
 from unittest.mock import patch
 import controller as c
 
+
+def attestation():
+    return {'project_id': c.PROJECT, 'repository': c.REPO, 'expires_at': 100,
+            'installed_api_revision': 'verified-installed-revision',
+            'declared_mounts': c.DECLARED_MOUNTS.copy(), 'docker_volume': c.VOLUME, 'container_prefix': c.CONTAINER_PREFIX,
+            **{proof: True for proof in ('native_stop_first_verified', 'retained_image_verified', 'isolated_restore_verified', 'installed_api_verified')}}
+
+
+def project_fixture():
+    return {'data': {'id': c.PROJECT, 'gitOwner': 'Itakello', 'gitRepo': 'mstefan-dev', 'gitProvider': 'github',
+                     'gitBranch': 'master', 'autoDeploy': False, 'slug': 'mstefan-payload',
+                     'routeStrategy': 'loopback-port', 'volumes': ['data:/data']}}
+
+
+def writer_fixture(deployment_id='dep_new'):
+    return {'ok': True, 'volume': c.VOLUME, 'count': 1, 'users': [{'id': '1' * 64, 'name': c.CONTAINER_PREFIX + deployment_id,
+            'status': 'running', 'destination': '/data', 'rw': True, 'mount_type': 'volume'}]}
+
 OLD, NEW = 'a' * 40, 'b' * 40
 ID = 'dep_old'
 
@@ -50,7 +68,10 @@ class Fake:
             raise c.Blocked('build failed')
         return self.complete
 
-    def smoke(self, deployment_id, sha):
+    def volume_writer(self, deployment_id, attestation):
+        pass
+
+    def smoke(self, deployment_id, sha, attestation):
         if self.health_error or self.active != {'id': deployment_id, 'sha': sha}:
             raise c.Blocked('health or identity failed')
 
@@ -120,6 +141,17 @@ class FlowTests(unittest.TestCase):
                 self.assertEqual(self.client.posts, 0)
                 self.assertEqual(self.state['phase'], 'paused')
                 self.assertIn('schema, dependency or startup', self.state['reason'])
+
+    def test_invalid_live_writer_prevents_submission(self):
+        for result in ({'ok': False}, writer_fixture('dep_other'), dict(writer_fixture(), count=2)):
+            with self.subTest(result=result):
+                self.state = {'phase': 'idle', 'failed_shas': []}
+                self.client = Fake()
+                self.client.probe = lambda: result
+                self.client.volume_writer = lambda deployment_id, proof: c.Client.volume_writer(self.client, deployment_id, proof)
+                with self.assertRaises(c.Blocked):
+                    c.run(self.client, self.state, self.path, NEW, 5, attestation(), clock=lambda: 10)
+                self.assertEqual(self.client.posts, 0)
 
     def test_current_active_same_sha_checks_health_without_post(self):
         self.client.active = {'id': ID, 'sha': NEW}
@@ -207,6 +239,8 @@ class FlowTests(unittest.TestCase):
 class Contracts(unittest.TestCase):
     def setUp(self):
         self.client = c.Client({'GITHUB_TOKEN': 'fake', 'OPENSHIP_TOKEN': 'fake'})
+        self.client.ship = lambda *args: project_fixture()
+        self.client.probe = writer_fixture
         self.run = {'id': 5, 'head_sha': NEW, 'head_branch': 'master', 'event': 'push', 'status': 'completed', 'conclusion': 'success', 'path': '.github/workflows/ci.yml', 'repository': {'full_name': c.REPO}, 'head_repository': {'full_name': c.REPO}}
         self.jobs = [{'name': name, 'run_id': 5, 'head_sha': NEW, 'status': 'completed', 'conclusion': 'success' if name in {'verify', 'project-technologies'} else 'skipped'} for name in ('verify', 'project-technologies', 'policy-gate', 'docs-workflow-integrity')]
 
@@ -216,6 +250,12 @@ class Contracts(unittest.TestCase):
         if '/jobs?' in path:
             return {'total_count': len(self.jobs), 'jobs': self.jobs}
         return self.run
+
+    def test_public_github_metadata_does_not_require_a_token(self):
+        client = c.Client({'OPENSHIP_TOKEN': 'fake'})
+        with patch.object(client, 'request', return_value={}) as request:
+            client.gh('/git/ref/heads/master')
+        self.assertEqual(request.call_args.args, ('GET', 'https://api.github.com/repos/' + c.REPO + '/git/ref/heads/master', ''))
 
     def test_exact_ci_gate_and_identity_failures(self):
         self.client.gh = self.gh
@@ -247,27 +287,44 @@ class Contracts(unittest.TestCase):
         self.assertFalse(c.protected('deploy/payload-production/README.md'))
         self.assertFalse(c.protected('app/globals.css'))
 
-    def test_activation_exact_project_fields_and_expiry(self):
-        project = {'routing': 'loopback-port', 'volume': {'source': 'existing-volume', 'target': '/data'}, 'writers': 1}
+    def test_actual_installed_project_contract_and_changed_mounts(self):
+        project = project_fixture()
         self.client.ship = lambda *args: project
-        attestation = {'project_id': c.PROJECT, 'repository': c.REPO, 'expires_at': 100, 'installed_api_revision': 'verified-installed-revision',
-                       **{proof: True for proof in ('native_stop_first_verified', 'retained_image_verified', 'isolated_restore_verified', 'installed_api_verified')},
-                       'live_project_checks': {name: {'path': path, 'value': value} for name, path, value in [('routing', ['routing'], 'loopback-port'), ('volume_target', ['volume', 'target'], '/data'), ('volume_source', ['volume', 'source'], 'existing-volume'), ('writers', ['writers'], 1)]}}
-        self.client.activation(attestation, 10)
-        project['volume'] = [project['volume']]
-        attestation['live_project_checks']['volume_target']['path'] = ['volume', 0, 'target']
-        attestation['live_project_checks']['volume_source']['path'] = ['volume', 0, 'source']
-        self.client.activation(attestation, 10)
-        attestation['live_project_checks']['volume_target']['path'] = ['volume', False, 'target']
+        proof = attestation()
+        self.client.activation(proof, 10)
+        changes = {'id': 'other', 'gitOwner': 'other', 'gitRepo': 'other', 'gitProvider': 'other',
+                   'gitBranch': 'other', 'autoDeploy': True, 'slug': 'other', 'routeStrategy': 'container-ip'}
+        for key, wrong in changes.items():
+            with self.subTest(key=key):
+                original = project['data'][key]
+                project['data'][key] = wrong
+                with self.assertRaises(c.Blocked):
+                    self.client.activation(proof, 10)
+                project['data'][key] = original
+        for mounts in (None, [], ['other:/data'], ['data:/other'], ['data:/data', 'extra:/extra'], [{'target': '/data'}]):
+            with self.subTest(mounts=mounts):
+                project['data']['volumes'] = mounts
+                with self.assertRaises(c.Blocked):
+                    self.client.activation(proof, 10)
+        project['data']['volumes'] = ['data:/data']
         with self.assertRaises(c.Blocked):
-            self.client.activation(attestation, 10)
-        attestation['live_project_checks']['volume_target']['path'] = ['volume', 0, 'target']
-        project['routing'] = 'container-ip'
+            self.client.activation(proof, 100)
+        proof['docker_volume'] = 'other'
         with self.assertRaises(c.Blocked):
-            self.client.activation(attestation, 10)
-        project['routing'] = 'loopback-port'
-        with self.assertRaises(c.Blocked):
-            self.client.activation(attestation, 100)
+            self.client.activation(proof, 10)
+
+    def test_volume_probe_rejects_extra_read_only_wrong_deployment_and_error(self):
+        self.client.volume_writer('dep_new', attestation())
+        variants = [{'ok': False}, dict(writer_fixture(), count=0, users=[]), dict(writer_fixture(), count=2, users=writer_fixture()['users'] * 2), writer_fixture('dep_other')]
+        for key, wrong in (('rw', False), ('status', 'paused'), ('status', 'restarting'), ('destination', '/other'), ('mount_type', 'bind'), ('id', 'bad')):
+            variant = writer_fixture()
+            variant['users'][0][key] = wrong
+            variants.append(variant)
+        for result in variants:
+            with self.subTest(result=result):
+                self.client.probe = lambda: result
+                with self.assertRaises(c.Blocked):
+                    self.client.volume_writer('dep_new', attestation())
 
     def test_deployment_record_mismatch_and_build_failure(self):
         self.client.ship = lambda method, path: {'projectId': 'other', 'commitSha': NEW, 'status': 'ready'}
@@ -284,12 +341,12 @@ class Contracts(unittest.TestCase):
             urls.append(url)
             return 200 if url.removeprefix('https://www.mstefan.dev') in c.PUBLIC else 404
         self.client.request = request
-        self.client.smoke('dep_new', NEW)
+        self.client.smoke('dep_new', NEW, attestation())
         self.assertEqual(len([url for url in urls if url.removeprefix('https://www.mstefan.dev') in c.PUBLIC]), 6)
         self.assertTrue(all(url.startswith('https://www.mstefan.dev/') for url in urls))
         self.client.request = lambda *args, **kwargs: 200
         with self.assertRaises(c.Blocked):
-            self.client.smoke('dep_new', NEW)
+            self.client.smoke('dep_new', NEW, attestation())
         with self.assertRaises(c.Blocked):
             c.NoRedirect().redirect_request(None, None, 302, '', {}, 'https://other.example')
 
