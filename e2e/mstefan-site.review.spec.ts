@@ -16,8 +16,6 @@ test.describe("Public website review", () => {
       if (["www.mstefan.dev", "mstefan.dev"].includes(url.hostname)) {
         const response = await route.fetch({ url: `${base}${url.pathname}${url.search}`, maxRedirects: 0 });
         await route.fulfill({ response });
-      } else if (url.hostname === "www.thekarakaltimes.com") {
-        await route.fulfill({ contentType: "text/html", body: `<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1"></head><body><h1>${url.pathname === "/about" ? "Karakal about fixture" : "The Karakal Times fixture"}</h1><a href="/about">About</a></body></html>` });
       } else if (url.hostname === "api.iconify.design") {
         const prefix = url.pathname.split("/")[1].replace(/\.json$/, "");
         await route.fulfill({ json: { prefix, icons: {}, not_found: (url.searchParams.get("icons") || "").split(",") } });
@@ -105,12 +103,8 @@ test.describe("Public website review", () => {
     const clientSelection = page.getByRole("navigation", { name: "Choose a project" }).getByRole("button", { name: "Select The Karakal Times" });
     await clientSelection.focus();
     await page.keyboard.press("Enter");
-    await expect(page.locator("iframe")).toHaveCount(1);
-    await expect(page.locator("iframe")).toHaveAttribute("src", "https://www.thekarakaltimes.com/en");
-    await expect(page.locator("iframe")).toHaveAttribute("sandbox", "allow-scripts allow-same-origin allow-forms allow-popups");
-    await expect(page.frameLocator("iframe").getByRole("heading", { name: "The Karakal Times fixture" })).toBeVisible();
-    await page.frameLocator("iframe").getByRole("link", { name: "About", exact: true }).click();
-    await expect(page.frameLocator("iframe").getByRole("heading", { name: "Karakal about fixture" })).toBeVisible();
+    await expect(page.locator("iframe")).toHaveCount(0);
+    await expect(page.getByText("Explore the live website in a new tab.")).toBeVisible();
     await expect(page).toHaveURL(/\/en\/projects$/);
     await expect(page.getByRole("link", { name: "Visit website", exact: true })).toBeVisible();
     await expect(page.getByRole("link", { name: "Source code", exact: true })).toHaveCount(0);

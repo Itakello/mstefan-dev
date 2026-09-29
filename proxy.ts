@@ -15,10 +15,11 @@ function persistLocale(response: NextResponse, locale: string) {
 }
 
 export function proxy(request: NextRequest) {
-  // Only the loopback-bound application port and SSH tunnel serve the CMS.
-  // Openship always overwrites X-Real-IP. A spoofed loopback Host arriving
-  // through its TLS vhost must not acquire private access.
-  const privateHost = !request.headers.has("x-real-ip") && /^(?:localhost|127\.0\.0\.1|\[::1\])(?::\d+)?$/i.test(request.headers.get("host") ?? "");
+  // The preview CMS is reachable at its verified tailnet address. A public
+  // Host header must never acquire CMS access, even on the private deployment.
+  const host = request.headers.get("host") ?? "";
+  const privateHost = (process.env.SITE_DEPLOYMENT === "private" && host.toLowerCase() === "itakello-server.tailacf6a7.ts.net:10000")
+    || (!request.headers.has("x-real-ip") && /^(?:localhost|127\.0\.0\.1|\[::1\])(?::\d+)?$/i.test(host));
   if (!privateHost) {
     let pathname: string;
     try { pathname = decodeURIComponent(request.nextUrl.pathname).replace(/\/+$/, ""); }

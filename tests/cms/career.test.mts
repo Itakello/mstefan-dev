@@ -111,6 +111,18 @@ test('career seed, localized order, authenticated drafts, colors, and deletion s
     assert.equal((await payload.findGlobal({ slug: 'career', locale: 'en', draft: false })).laneSpacing, 24);
     assert.equal((await payload.findGlobal({ slug: 'career', locale: 'it', draft: false })).laneSpacing, 24);
     assert.equal((await payload.findGlobal({ slug: 'career', locale: 'it', draft: true })).laneSpacing, 64);
+    const current = { ...university, ongoing: true };
+    const currentChild = { ...internship, ongoing: true };
+    await assert.rejects(payload.updateGlobal({ slug: 'career', locale: 'en', data: { jobs: [university, currentChild] } }));
+    await payload.updateGlobal({ slug: 'career', locale: 'en', draft: true, data: { jobs: [currentChild, current] } });
+    await restart();
+    const currentDraft = await payload.findGlobal({ slug: 'career', locale: 'en', draft: true });
+    assert.ok(currentDraft.jobs!.every((job) => job.ongoing === true));
+    assert.equal(currentDraft.jobs![0].parentBranchName, university.branchName);
+    assert.equal((await payload.findGlobal({ slug: 'career', locale: 'en', draft: false })).jobs![0].ongoing, false);
+    await payload.updateGlobal({ slug: 'career', locale: 'en', publishSpecificLocale: 'en', data: { _status: 'published' } });
+    assert.ok((await payload.findGlobal({ slug: 'career', locale: 'en', draft: false })).jobs!.every((job) => job.ongoing === true));
+    assert.deepEqual((await payload.findGlobal({ slug: 'career', locale: 'it', draft: false })).jobs, publicItalian.jobs);
     await payload.updateGlobal({ slug: 'career', locale: 'en', publishSpecificLocale: 'en', data: { jobs: [], _status: 'published' } });
     await restart();
     const deleted = await payload.findGlobal({ slug: 'career', draft: true });

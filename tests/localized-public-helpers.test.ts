@@ -92,3 +92,24 @@ test("language menu focus wraps and supports Home and End", () => {
   assert.equal(getLanguageMenuFocusIndex(0, "End", 2), 1);
   assert.equal(getLanguageMenuFocusIndex(1, "Enter", 2), null);
 });
+
+
+test("private deployment serves CMS through its tailnet hostname while public rejects spoofed hosts", () => {
+  const previous = process.env.SITE_DEPLOYMENT;
+  try {
+    const request = (host: string, forwarded = false) => new NextRequest(`https://${host}/admin`, {
+      headers: { host, ...(forwarded ? { "x-real-ip": "127.0.0.1" } : {}) },
+    });
+    process.env.SITE_DEPLOYMENT = "private";
+    assert.equal(proxy(request("itakello-server.tailacf6a7.ts.net:10000")).status, 200);
+    assert.equal(proxy(request("mstefan.dev")).status, 404);
+    assert.equal(proxy(request("localhost:3000", true)).status, 404);
+    delete process.env.SITE_DEPLOYMENT;
+    assert.equal(proxy(request("itakello-server.tailacf6a7.ts.net:10000")).status, 404);
+    assert.equal(proxy(request("localhost:3000", true)).status, 404);
+    assert.equal(proxy(request("localhost:3000")).status, 200);
+  } finally {
+    if (previous === undefined) delete process.env.SITE_DEPLOYMENT;
+    else process.env.SITE_DEPLOYMENT = previous;
+  }
+});

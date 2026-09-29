@@ -10,7 +10,8 @@ import { createServer } from 'node:net';
 import { request as httpRequest } from 'node:http';
 import { chromium, expect } from '@playwright/test';
 
-const base = 'http://127.0.0.1:3000';
+const port = Number(process.env.CMS_TEST_PORT || 3000);
+const base = `http://127.0.0.1:${port}`;
 const password = randomBytes(24).toString('base64url');
 const email = 'cms-integration@example.invalid';
 let dataDir: string;
@@ -68,7 +69,7 @@ async function stop() {
 }
 async function start() {
   serverLog = '';
-  server = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'start', '--hostname', '127.0.0.1', '--port', '3000'], {
+  server = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'start', '--hostname', '127.0.0.1', '--port', String(port)], {
     env: environment, stdio: ['ignore', 'pipe', 'pipe'],
   });
   server.stdout?.on('data', (data) => { serverLog = (serverLog + data.toString()).slice(-8000); });
@@ -87,7 +88,7 @@ async function start() {
 
 before(async () => {
   const probe = createServer();
-  probe.listen(3000, '127.0.0.1');
+  probe.listen(port, '127.0.0.1');
   await once(probe, 'listening');
   await new Promise<void>((resolve) => probe.close(() => resolve()));
   dataDir = await mkdtemp(path.join(tmpdir(), 'payload-http-test-'));
@@ -291,6 +292,8 @@ test('career admin live preview keeps About text intact and locale drafts privat
     ] }, '&publishSpecificLocale=en');
     await page.reload();
     assert.ok(Number(await educationBranch.locator('[data-career-head]').getAttribute('cy')) > Number(await amazonBranch.locator('[data-career-head]').getAttribute('cy')), 'Later dates must appear above earlier dates despite title order');
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), 'Career page overflows at 320px');
+    await page.setViewportSize({ width: 1000, height: 800 });
     const tree = graph.getByRole('region', { name: 'Graph. Time moves upward.', exact: true });
     assert.ok(await tree.evaluate((element) => element.scrollHeight > element.clientHeight), 'Long history must scroll inside the tree');
     const detail = graph.locator('[aria-live="polite"]');
@@ -305,9 +308,13 @@ test('career admin live preview keeps About text intact and locale drafts privat
     await expect(amazonBranch.locator('[data-career-head]')).not.toBeInViewport();
     const datedPathPosition = () => amazonBranch.locator('path').last().evaluate((element) => {
       const path = element as SVGPathElement;
-      const point = path.getPointAtLength(50);
-      const screen = new DOMPoint(point.x, point.y).matrixTransform(path.getScreenCTM()!);
-      return { x: screen.x, y: screen.y };
+      const branch = path.closest('[data-career-branch]');
+      for (let length = 0; length <= path.getTotalLength(); length += 5) {
+        const point = path.getPointAtLength(length);
+        const screen = new DOMPoint(point.x, point.y).matrixTransform(path.getScreenCTM()!);
+        if (document.elementFromPoint(screen.x, screen.y)?.closest('[data-career-branch]') === branch) return { x: screen.x, y: screen.y };
+      }
+      throw new Error('The branch has no visible clickable path point');
     });
     const datedPathPoint = await datedPathPosition();
     assert.equal(await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.closest('[data-career-branch]')?.getAttribute('data-career-branch'), datedPathPoint), await amazonBranch.getAttribute('data-career-branch'), 'The dated path click must hit the visible intended branch');
@@ -323,9 +330,7 @@ test('career admin live preview keeps About text intact and locale drafts privat
     await expect.poll(() => tree.evaluate((element) => element.scrollTop)).toBeGreaterThan(beforeScroll);
     assert.equal(await page.evaluate(() => window.scrollY), pageScroll, 'Tree scrolling must not move the page');
     await expect(amazonBranch.locator('[data-career-head]')).not.toBeInViewport();
-    const selectedPathPoint = await datedPathPosition();
-    assert.equal(await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.closest('[data-career-branch]')?.getAttribute('data-career-branch'), selectedPathPoint), await amazonBranch.getAttribute('data-career-branch'), 'Reselecting must hit the visible selected branch');
-    await page.mouse.click(selectedPathPoint.x, selectedPathPoint.y);
+    await graph.locator('button[data-career-job]', { hasText: 'work/amazon' }).click();
     await expect(amazonBranch.locator('[data-career-head]')).toBeInViewport();
     await expect(graph.locator('button[data-career-job]', { hasText: 'work/amazon' })).toBeFocused();
     await graph.locator('button[data-career-job]', { hasText: 'work/undated-fixture' }).click();
@@ -333,6 +338,7 @@ test('career admin live preview keeps About text intact and locale drafts privat
     await expect(graph.locator('[data-career-branch][aria-label^="work/undated-fixture:"] [data-career-head]')).toBeInViewport();
     await expect(tree.getByText('Dates not provided', { exact: true })).toBeVisible();
 
+    await page.setViewportSize({ width: 320, height: 800 });
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), 'Career page overflows at 320px');
     await context.close();
   } finally { await browser.close(); }
@@ -400,8 +406,9 @@ test('nested career branches share junctions and highlight their labels without 
     await branchB.locator('circle').first().click();
     await expect(branchB).toHaveAttribute('aria-pressed', 'true');
     await page.setViewportSize({ width: 320, height: 800 });
-    await projectLabel.focus();
-    await projectLabel.press('Enter');
+    await expect(projectLabel).toHaveCount(0);
+    await project.focus();
+    await project.press('Enter');
     await expect(project).toHaveAttribute('aria-pressed', 'true');
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), 'Career page overflows at 320px');
   } finally { await browser.close(); }

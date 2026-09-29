@@ -60,8 +60,10 @@ const validateHexColor = (value: unknown) => typeof value === "string" && /^#[0-
 
 function validateCareerBranches(value: unknown) {
   if (!Array.isArray(value)) return true;
-  const jobs = value as { branchName?: string; parentBranchName?: string; startDate?: string; endDate?: string }[];
+  const jobs = value as { branchName?: string; parentBranchName?: string; startDate?: string; endDate?: string; ongoing?: boolean }[];
   const named = new Map(jobs.map((job) => [job.branchName, job]));
+  const now = Date.now();
+  const end = (job: typeof jobs[number]) => job.ongoing ? now : (job.endDate ? Date.parse(job.endDate) : null);
   if (named.size !== jobs.length) return "Each experience must have a unique branch name.";
   for (const job of jobs) {
     const seen = new Set([job.branchName]);
@@ -74,8 +76,8 @@ function validateCareerBranches(value: unknown) {
       parentName = parent.parentBranchName;
     }
     const parent = named.get(job.parentBranchName);
-    if (parent?.startDate && parent.endDate && job.startDate && job.endDate &&
-      (Date.parse(job.startDate) < Date.parse(parent.startDate) || Date.parse(job.endDate) > Date.parse(parent.endDate))) {
+    if (parent?.startDate && job.startDate && end(parent) !== null && end(job) !== null &&
+      (Date.parse(job.startDate) < Date.parse(parent.startDate) || end(job)! > end(parent)!)) {
       return `The dates of ${job.branchName} must fall within its parent branch.`;
     }
   }
@@ -117,7 +119,9 @@ const careerGlobal: GlobalConfig = {
       { name: "role", label: "Role or qualification", type: "text", required: true },
       { name: "summary", type: "textarea" },
       { name: "startDate", type: "date" },
-      { name: "endDate", type: "date" },
+      { name: "ongoing", label: "Currently ongoing", type: "checkbox", defaultValue: false,
+        admin: { description: "Keep this experience open through today. Any stored end date is ignored while enabled." } },
+      { name: "endDate", type: "date", admin: { condition: (_, siblingData) => !siblingData?.ongoing } },
       {
         name: "color", type: "text", required: true, defaultValue: "#c77835",
         admin: { description: "Branch color as a six-digit hex value, for example #c77835." },

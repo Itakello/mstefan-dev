@@ -5,6 +5,7 @@ import type { Project } from "./projectPublication";
 export const WEBSITE_PREVIEW_MAX_DEPTH = 3;
 
 const PERSONAL_SITE_ORIGIN = "https://www.mstefan.dev";
+const PRIVATE_PREVIEW_ORIGIN = "https://itakello-server.tailacf6a7.ts.net:10000";
 export type ShowcaseWebsite = { id: string; url?: string; sourceUrl?: string; preview: boolean; name: string; description: string; shortDescription?: string; year?: string; language?: string; tags?: string[] };
 
 export function workItemsFromProjects(projects: readonly Project[]): ShowcaseWebsite[] {
@@ -21,14 +22,14 @@ export function workItemsFromProjects(projects: readonly Project[]): ShowcaseWeb
       throw new Error("Invalid or duplicate approved website URL");
     }
     seen.add(url.href);
-    const preview = [PERSONAL_SITE_ORIGIN, "https://mstefan.dev", "https://www.thekarakaltimes.com"].includes(url.origin)
+    const preview = [PERSONAL_SITE_ORIGIN, "https://mstefan.dev"].includes(url.origin)
       && url.pathname === "/" && !url.search && !url.hash;
     return { ...metadata, id: url.href, url: url.href, preview };
   });
 }
 
 export function personalPreviewOrigin(hostname: string, currentOrigin: string) {
-  return hostname === "mstefan.dev" || hostname === "www.mstefan.dev"
+  return hostname === "mstefan.dev" || hostname === "www.mstefan.dev" || currentOrigin === PRIVATE_PREVIEW_ORIGIN
     ? currentOrigin
     : PERSONAL_SITE_ORIGIN;
 }
@@ -40,9 +41,6 @@ export function websitePreviewUrl(
 ) {
   if (!website.url) return undefined;
   if (!website.preview) return website.url;
-  if (new URL(website.url).origin === "https://www.thekarakaltimes.com") {
-    return new URL(locale === "en" ? "/en" : "/", website.url).href;
-  }
   return `${personalSiteOrigin.replace(/\/$/, "")}/${locale}`;
 }
 

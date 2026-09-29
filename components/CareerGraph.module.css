@@ -33,7 +33,6 @@
 .tick text, .undatedLabel text { fill: #a1a1aa; font-family: ui-monospace, monospace; font-size: 10px; }
 .undatedLabel line { stroke: #606066; stroke-dasharray: 3 4; }
 .mainPath { fill: none; stroke: var(--career-main); stroke-width: 2; stroke-linecap: round; opacity: .4; }
-.mainDot { fill: var(--career-main); stroke: #1e1e1e; stroke-width: 2; opacity: .4; }
 .branch { fill: none; stroke-width: 2; stroke-linecap: round; }
 .visualPaths { opacity: .38; pointer-events: none; }
 .highlightPaths { pointer-events: none; }
@@ -63,7 +62,14 @@
   .detailCompany { font-size: 21px; }
 }
 @media (max-width: 640px) {
+  .browser { --rail-width: minmax(240px, 1.1fr); }
+}
+@media (max-width: 480px) {
   .header { display: none; }
   .body { grid-template-columns: minmax(0, 1fr); }
-  .tree { border-left: 0; border-top: 1px solid #3b3b3e; }
+  .tree { height: auto; border-left: 0; border-top: 1px solid #3b3b3e; overflow: visible; }
+  .titleList { max-height: none; overflow: visible; }
+  .detail { max-height: none; overflow: visible; }
+  .badge { min-width: 0; max-width: 100%; }
+  .badge > span, .detailRef > span { min-width: 0; overflow-wrap: anywhere; }
 }

@@ -6,12 +6,12 @@ import { useLivePreview } from "@payloadcms/live-preview-react";
 import type { Career } from "@/payload-types";
 import type { Locale } from "@/lib/i18n/config";
 import { localizedPath } from "@/lib/i18n/routing";
-import { layoutCareerTimeline } from "@/lib/career-timeline";
+import { layoutCareerTimeline, nearestCareerJunction } from "@/lib/career-timeline";
 import styles from "./CareerGraph.module.css";
 
 const labels = {
-  en: { title: "Career", main: "Full-stack developer", details: "Explore my background", graph: "Graph", order: "Time moves upward", description: "Career mainline and job branches", role: "Experience", undated: "Dates not provided", incomplete: "Date range incomplete" },
-  it: { title: "Percorso", main: "Sviluppatore full-stack", details: "Scopri il mio percorso", graph: "Grafo", order: "Il tempo scorre verso l’alto", description: "Percorso professionale e rami delle esperienze", role: "Esperienza", undated: "Date non indicate", incomplete: "Intervallo di date incompleto" },
+  en: { title: "Career", main: "Full-stack developer", details: "Explore my background", graph: "Graph", order: "Time moves upward", description: "Career mainline and job branches", role: "Experience", undated: "Dates not provided", incomplete: "Date range incomplete", present: "Present" },
+  it: { title: "Percorso", main: "Sviluppatore full-stack", details: "Scopri il mio percorso", graph: "Grafo", order: "Il tempo scorre verso l’alto", description: "Percorso professionale e rami delle esperienze", role: "Esperienza", undated: "Date non indicate", incomplete: "Intervallo di date incompleto", present: "Presente" },
 };
 
 function BranchIcon() {
@@ -26,7 +26,8 @@ export function CareerGraph({ career, locale, expanded = false }: { career: Care
   const [focusedID, setFocusedID] = useState<string | null>(null);
   const [labelWidth, setLabelWidth] = useState(180);
   const [now] = useState(() => Date.now());
-  const timeline = layoutCareerTimeline(jobs, now, career.laneSpacing ?? 24);
+  const [graphViewport, setGraphViewport] = useState({ width: 0, compact: false });
+  const timeline = layoutCareerTimeline(jobs, now, career.laneSpacing ?? 24, graphViewport.compact ? graphViewport.width - 40 : undefined);
   const selectedIndex = timeline.entries.findIndex((entry) => entry.key === selectedID);
   const activeIndex = selectedIndex < 0 ? 0 : selectedIndex;
   const selected = jobs[activeIndex];
@@ -36,12 +37,12 @@ export function CareerGraph({ career, locale, expanded = false }: { career: Care
   const titles = useRef(new Map<string, HTMLButtonElement>());
   const titleList = useRef<HTMLDivElement>(null);
   const graph = useRef<SVGSVGElement>(null);
-  const graphOffset = labelWidth + 36;
-  const graphWidth = timeline.width + graphOffset;
+  const graphOffset = graphViewport.compact ? 0 : labelWidth + 36;
+  const graphWidth = timeline.width + graphOffset + 40;
   const highlighted = (key: string) => key === activeKey || key === hoveredID || key === focusedID;
   const paintOrder = [...timeline.entries].sort((a, b) => b.lane - a.lane);
   let previousLabelY = 0;
-  const branchLabels = [...timeline.entries].sort((a, b) => a.headY - b.headY || a.lane - b.lane).map((entry) => {
+  const branchLabels = (graphViewport.compact ? [] : [...timeline.entries]).sort((a, b) => a.headY - b.headY || a.lane - b.lane).map((entry) => {
     const y = Math.max(entry.headY, previousLabelY + 30);
     previousLabelY = y;
     return { ...entry, labelY: y };
@@ -51,7 +52,7 @@ export function CareerGraph({ career, locale, expanded = false }: { career: Care
   useEffect(() => {
     const widths = Array.from(graph.current?.querySelectorAll<SVGTextElement>("[data-career-ref-text]") ?? []).map((text) => text.getComputedTextLength());
     if (widths.length) setLabelWidth(Math.ceil(Math.max(...widths)) + 28);
-  }, [career.jobs]);
+  }, [career.jobs, graphViewport.compact]);
 
   function revealHead(key: string) {
     const viewport = tree.current;
@@ -67,9 +68,32 @@ export function CareerGraph({ career, locale, expanded = false }: { career: Care
   }
 
   useEffect(() => {
-    if (tree.current && selectedID === null) tree.current.scrollLeft = tree.current.scrollWidth - tree.current.clientWidth;
+    const viewport = tree.current;
+    if (!viewport) return;
+    const media = window.matchMedia("(max-width: 640px)");
+    const measure = () => {
+      const next = { width: viewport.clientWidth, compact: media.matches };
+      setGraphViewport((current) => current.width === next.width && current.compact === next.compact ? current : next);
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(viewport);
+    media.addEventListener("change", measure);
+    return () => { observer.disconnect(); media.removeEventListener("change", measure); };
+  }, [jobs.length]);
+  useEffect(() => {
+    const viewport = tree.current;
+    if (!viewport) return;
+    if (graphViewport.compact) viewport.scrollLeft = 0;
+    else if (selectedID === null) viewport.scrollLeft = viewport.scrollWidth - viewport.clientWidth;
     if (activeKey) revealHead(activeKey);
   }, [career.jobs, activeKey, graphOffset]);
+  useEffect(() => {
+    const viewport = tree.current;
+    if (!viewport) return;
+    viewport.scrollLeft = graphViewport.compact ? 0 : viewport.scrollWidth - viewport.clientWidth;
+    if (activeKey) revealHead(activeKey);
+  }, [graphViewport.width, graphViewport.compact]);
   useEffect(() => { if (detail.current) detail.current.scrollTop = 0; }, [activeKey]);
 
   function select(key: string, fromTree = false) {
@@ -107,7 +131,7 @@ export function CareerGraph({ career, locale, expanded = false }: { career: Care
   const dateFormat = new Intl.DateTimeFormat(locale, { month: "short", year: "numeric", timeZone: "UTC" });
   const period = (index: number) => {
     const entry = timeline.entries[index];
-    return entry.dated ? `${dateFormat.format(entry.start!)} – ${dateFormat.format(entry.end!)}` : (jobs[index].startDate || jobs[index].endDate ? content.incomplete : content.undated);
+    return entry.dated ? `${dateFormat.format(entry.start!)} – ${entry.ongoing ? content.present : dateFormat.format(entry.end!)}` : (jobs[index].startDate || jobs[index].endDate ? content.incomplete : content.undated);
   };
 
   return (
@@ -126,32 +150,41 @@ export function CareerGraph({ career, locale, expanded = false }: { career: Care
             {jobs.map((job, index) => {
               const key = timeline.entries[index].key;
               return <button key={key} ref={(element) => { if (element) titles.current.set(key, element); else titles.current.delete(key); }} data-career-job data-highlighted={highlighted(key)} {...interaction(key)} type="button" onClick={() => select(key)} aria-pressed={activeKey === key} className={styles.row} style={{ "--branch-color": job.color } as CSSProperties}>
-                <span className={styles.jobTitle}><span className={styles.badge}><BranchIcon />{job.branchName}</span><span>{job.company}</span></span>
+                <span className={styles.jobTitle}><span className={styles.badge}><BranchIcon /><span>{job.branchName}</span></span><span>{job.company}</span></span>
                 <span className={styles.jobRole}>{job.role}</span>
                 <span className={styles.period}>{period(index)}</span>
               </button>;
             })}
             </div>
             <div ref={detail} className={styles.detail} aria-live="polite" aria-atomic="true" style={{ "--branch-color": selected?.color } as CSSProperties}>
-              <span className={styles.detailRef}><BranchIcon />{selected?.branchName}</span>
+              <span className={styles.detailRef}><BranchIcon /><span>{selected?.branchName}</span></span>
               <h3 className={styles.detailCompany}>{selected?.company}</h3>
               <p className={styles.detailRole}>{selected?.role}</p>
               {selected?.summary && <p className={styles.summary}>{selected.summary}</p>}
             </div>
           </div>
           <div ref={tree} className={styles.tree} role="region" aria-label={`${content.graph}. ${content.order}.`} tabIndex={0}>
-            <svg ref={graph} className={styles.graph} viewBox={`0 0 ${graphWidth} ${graphHeight}`} width={graphWidth} height={graphHeight} role="group" aria-label={content.description}>
+            <svg ref={graph} className={styles.graph} viewBox={`0 0 ${graphWidth} ${graphHeight}`} width={graphWidth} height={graphHeight} role="group" aria-label={content.description} onClickCapture={(event) => {
+              if ((event.target as Element).closest("[data-career-label]")) return;
+              const bounds = event.currentTarget.getBoundingClientRect();
+              if (!bounds.width || !bounds.height) return;
+              const x = (event.clientX - bounds.left) * graphWidth / bounds.width - graphOffset;
+              const y = (event.clientY - bounds.top) * graphHeight / bounds.height;
+              const junction = nearestCareerJunction(timeline.entries, x, y);
+              if (!junction) return;
+              event.stopPropagation();
+              selectJunction(junction.x, junction.y);
+            }}>
               {timeline.ticks.map((tick) => <g key={tick.timestamp} className={styles.tick}>
                 <line x1="8" x2={graphWidth} y1={tick.y} y2={tick.y} />
-                <text x="8" y={tick.y - 7}>{tick.month ? dateFormat.format(tick.timestamp) : new Date(tick.timestamp).getUTCFullYear()}</text>
+                <text x={graphOffset + timeline.mainX + 12} y={tick.y - 7}>{tick.month ? dateFormat.format(tick.timestamp) : new Date(tick.timestamp).getUTCFullYear()}</text>
               </g>)}
               {timeline.hasUndated && <g className={styles.undatedLabel}>
                 {timeline.undatedTop > 0 && <line x1="0" x2={graphWidth} y1={timeline.undatedTop + 8} y2={timeline.undatedTop + 8} />}
                 <text x="8" y={timeline.undatedTop + 28}>{content.undated}</text>
               </g>}
               <g transform={`translate(${graphOffset} 0)`}>
-              <path d={`M${timeline.mainX} ${timeline.height} V14 M${timeline.mainX - 4} 19 L${timeline.mainX} 14 L${timeline.mainX + 4} 19`} className={styles.mainPath} />
-              <circle cx={timeline.mainX} cy={timeline.nowY} r="4.5" className={styles.mainDot} />
+              <path d={`M${timeline.mainX} ${timeline.height} V${timeline.topY}`} className={styles.mainPath} />
               <g aria-hidden="true" className={styles.visualPaths}>
                 {paintOrder.map((entry) => <path key={entry.key} data-career-path={entry.key} d={entry.path} stroke={jobs[entry.index].color} className={styles.branch} />)}
               </g>
