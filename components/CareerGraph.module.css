@@ -25,7 +25,7 @@
 .jobRole { font-size: 12px; color: #a1a1aa; overflow-wrap: anywhere; }
 .period { font-family: ui-monospace, monospace; font-size: 10px; color: #a1a1aa; }
 .graph { display: block; max-width: none; }
-.graphButton { cursor: pointer; }
+.graphButton { cursor: pointer; outline: none; }
 .graphButton:focus-visible .dot { stroke: white; stroke-width: 3; }
 .hitPath { fill: none; stroke: transparent; stroke-width: 18; pointer-events: stroke; }
 .hitDot { fill: transparent; }
@@ -40,7 +40,7 @@
 .dot { stroke: #1e1e1e; stroke-width: 2; opacity: .45; }
 .graphButton[data-highlighted="true"] .dot { opacity: 1; }
 .highlightDot { stroke: #1e1e1e; stroke-width: 1.5; }
-.branchLabel { cursor: pointer; }
+.branchLabel { cursor: pointer; outline: none; }
 .branchLabel rect { fill: #252526; stroke: #3b3b3e; }
 .branchLabel text { fill: #b7b7bf; font-family: ui-monospace, monospace; font-size: 11px; }
 .branchLabel[data-highlighted="true"] rect { stroke: var(--branch-color); stroke-width: 1.5; }
