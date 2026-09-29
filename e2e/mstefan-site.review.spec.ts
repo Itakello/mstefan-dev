@@ -165,14 +165,14 @@ test.describe("Public website review", () => {
       return main.left >= viewport.left && main.right <= viewport.right;
     })).toBe(true);
     await page.screenshot({ path: ".artifacts/playwright/career-home-mobile.png", fullPage: true });
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
     await page.setViewportSize({ width: 400, height: 800 });
     await expect(page.locator("footer > div")).toHaveCSS("flex-direction", "row");
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
     await page.goto("/it");
     await expect(page.getByRole("region", { name: "Percorso", exact: true })).toBeVisible();
     await expect(page.locator("footer > div")).toHaveCSS("flex-direction", "row");
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
     expect(browserErrors, browserErrors.join("\n")).toEqual([]);
   });
 
@@ -206,7 +206,7 @@ test.describe("Public website review", () => {
     await page.goto("/it/websites");
     await expect(page.getByRole("navigation", { name: "Scegli un progetto" }).getByRole("button")).toHaveCount(1);
     await page.setViewportSize({ width: 360, height: 800 });
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
     await page.screenshot({ path: ".artifacts/playwright/gallery-mobile.png", fullPage: true });
     await writeFile(state, "empty");
     await page.reload();

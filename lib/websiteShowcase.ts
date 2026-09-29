@@ -13,7 +13,8 @@ export function workItemsFromProjects(projects: readonly Project[]): ShowcaseWeb
     const metadata = { name: project.title, description: project.summary, shortDescription: project.shortSummary,
       year: project.year, language: project.language, tags: project.tags,
       sourceUrl: isGitHubRepositoryUrl(project.url) ? project.url : undefined };
-    if (!project.websiteUrl) return { ...metadata, id: `project-${index}`, preview: false };
+    if (!project.websiteUrl) return { ...metadata, id: `project-${index}`,
+      url: metadata.sourceUrl ? undefined : project.url, preview: false };
     let url: URL;
     try { url = new URL(project.websiteUrl!); } catch { throw new Error("Invalid approved website URL"); }
     if (url.protocol !== "https:" || url.username || url.password || seen.has(url.href)) {

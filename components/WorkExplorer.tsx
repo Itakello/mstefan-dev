@@ -85,7 +85,7 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
               {visitUrl && <a className={linkClass} href={visitUrl} target="_blank" rel="noreferrer"><ExternalLink size={16} aria-hidden="true" />{copy.work.visit}</a>}
               {selected.sourceUrl && <a className={linkClass} href={selected.sourceUrl} target="_blank" rel="noreferrer"><Github size={16} aria-hidden="true" />{copy.work.source}</a>}
             </div>
-            </div>
+          </div>
           {groups.length > 0 ? <aside aria-label={copy.projectCard.technologiesByCategory(selected.name)} className="min-w-0 border-t border-black/10 pt-4 xl:border-l xl:border-t-0 xl:pl-5 xl:pt-0 dark:border-white/10">
             <h3 className="text-xs font-semibold uppercase tracking-wider text-black/50 dark:text-white/50">Stack</h3>
             <div className="mt-3 space-y-4">

@@ -91,3 +91,14 @@ test("work entries cover website-only, repository-only and combined projects", (
   assert.equal(combined.preview, true);
   assert.equal(combined.sourceUrl, project.url);
 });
+
+test("legacy non-GitHub project URLs remain visit links without enabling embedding", () => {
+  for (const url of ["https://example.com/project", "https://www.mstefan.dev", "http://example.com/project"]) {
+    const item = workItemsFromProjects([{ ...project, url }])[0];
+    assert.equal(websitePreviewUrl(item, "en"), url);
+    assert.equal(item.sourceUrl, undefined);
+    assert.equal(item.preview, false);
+  }
+  const item = workItemsFromProjects([{ ...project, url: "https://legacy.example.com", websiteUrl: "https://current.example.com" }])[0];
+  assert.equal(item.url, "https://current.example.com/");
+});
