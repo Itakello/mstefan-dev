@@ -27,12 +27,12 @@ export function proxy(request: NextRequest) {
     try { pathname = decodeURIComponent(request.nextUrl.pathname).replace(/\/+$/, ""); }
     catch { return new NextResponse(null, { status: 404 }); }
     const api = pathname === "/api" || pathname.startsWith("/api/");
-    const media = pathname.startsWith("/api/media/file/") && ["GET", "HEAD"].includes(request.method);
+    const publishedFile = (pathname.startsWith("/api/media/file/") || pathname.startsWith("/api/documents/file/")) && ["GET", "HEAD"].includes(request.method);
     const webhook = ["/api/webhooks/github", "/api/webhooks/notion"].includes(pathname) && request.method === "POST";
-    if (pathname === "/admin" || pathname.startsWith("/admin/") || request.nextUrl.searchParams.has("preview") || (api && !media && !webhook)) {
+    if (pathname === "/admin" || pathname.startsWith("/admin/") || request.nextUrl.searchParams.has("preview") || (api && !publishedFile && !webhook)) {
       return new NextResponse(null, { status: 404, headers: { "Cache-Control": "no-store" } });
     }
-    if (media) {
+    if (publishedFile) {
       const headers = new Headers(request.headers);
       headers.delete("cookie");
       headers.delete("authorization");

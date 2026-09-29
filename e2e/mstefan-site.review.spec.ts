@@ -235,7 +235,7 @@ test.describe("Public website review", () => {
     expect(mobileStoryBox && mobileExplorerBox && mobileStoryBox.y + mobileStoryBox.height <= mobileExplorerBox.y).toBeTruthy();
     await mobileExplorer.locator("button[data-career-job]", { hasText: "Amazon" }).click();
     await expect(mobileStory.getByRole("heading", { level: 1, name: "main" })).toBeVisible();
-    await expect(page.getByRole("link", { name: /Profile · Read story/ })).toBeVisible();
+    await expect(page.getByRole("link", { name: /Read story/ })).toHaveCount(0);
     await page.screenshot({ path: ".artifacts/playwright/career-about-mobile.png", fullPage: true });
     await page.setViewportSize({ width: 400, height: 800 });
     await expect(page.locator("footer > div")).toHaveCSS("flex-direction", "row");

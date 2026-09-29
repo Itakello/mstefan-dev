@@ -1,15 +1,16 @@
 "use client";
-import { ChevronLeft, ChevronRight, ExternalLink, Minus, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download, ExternalLink, Minus, Plus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { PDFDocumentProxy } from "pdfjs-dist";
 import type { Locale } from "@/lib/i18n/config";
 import { documentMediaUrl } from "@/lib/documentMedia";
 
-export function DocumentPreview({ url, title, locale, presentation = false }: { url: string; title: string; locale: Locale; presentation?: boolean }) {
+export function DocumentPreview({ url, title, locale, filename, presentation = false }: { url: string; title: string; locale: Locale; filename?: string | null; presentation?: boolean }) {
   const host = useRef<HTMLDivElement>(null);
   const text = useRef<HTMLDivElement>(null);
   const pageHost = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
+  const [resolvedUrl, setResolvedUrl] = useState(url);
   const [document, setDocument] = useState<PDFDocumentProxy | null>(null);
   const [page, setPage] = useState(1);
   const [zoom, setZoom] = useState(1);
@@ -28,6 +29,10 @@ export function DocumentPreview({ url, title, locale, presentation = false }: { 
     return () => { observer.disconnect(); window.removeEventListener("resize", updateViewport); };
   }, []);
   useEffect(() => {
+    setDocument(null);
+    setPage(1);
+    setZoom(1);
+    setStatus("loading");
     let disposed = false;
     let task: ReturnType<typeof import("pdfjs-dist").getDocument> | undefined;
     async function load() {
@@ -35,7 +40,9 @@ export function DocumentPreview({ url, title, locale, presentation = false }: { 
         const pdf = await import("pdfjs-dist");
         if (disposed) return;
         pdf.GlobalWorkerOptions.workerSrc = new URL("pdfjs-dist/build/pdf.worker.min.mjs", import.meta.url).toString();
-        task = pdf.getDocument({ url: documentMediaUrl(url) });
+        const source = documentMediaUrl(url, window.location.origin);
+        setResolvedUrl(source);
+        task = pdf.getDocument({ url: source });
         const loaded = await task.promise;
         if (!disposed) setDocument(loaded);
       } catch { if (!disposed) setStatus("error"); }
@@ -86,7 +93,7 @@ export function DocumentPreview({ url, title, locale, presentation = false }: { 
     return () => { disposed = true; render?.cancel(); textLayer?.cancel(); };
   }, [document, page, width, zoom, presentation, viewportHeight]);
   const control = "inline-flex items-center justify-center rounded-md p-2 hover:bg-black/5 disabled:opacity-30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[hsl(var(--accent))] dark:hover:bg-white/10";
-  return <section aria-label={`${title}: ${italian ? "Lettore documenti" : "Document reader"}`} className="overflow-hidden rounded-xl border border-black/10 dark:border-white/15">
+  return <section data-pdf-preview aria-label={`${title}: ${italian ? "Lettore documenti" : "Document reader"}`} className="overflow-hidden rounded-xl border border-black/10 dark:border-white/15">
     <div className="flex flex-wrap items-center justify-between gap-2 border-b border-black/10 px-2 py-2 text-xs dark:border-white/15">
       <div className="flex items-center gap-1">
         <button type="button" className={control} disabled={!document || page === 1} aria-label={italian ? "Pagina precedente" : "Previous page"} onClick={() => setPage(page - 1)}><ChevronLeft size={16} /></button>
@@ -97,7 +104,8 @@ export function DocumentPreview({ url, title, locale, presentation = false }: { 
         <button type="button" className={control} disabled={zoom <= 1} aria-label={italian ? "Riduci" : "Zoom out"} onClick={() => setZoom(value => Math.max(1, value - 0.25))}><Minus size={16} /></button>
         <span>{Math.round(zoom * 100)}%</span>
         <button type="button" className={control} disabled={zoom >= 2} aria-label={italian ? "Ingrandisci" : "Zoom in"} onClick={() => setZoom(value => Math.min(2, value + 0.25))}><Plus size={16} /></button>
-        <a href={url} target="_blank" rel="noreferrer" className={`${control} gap-1`}>{italian ? "Apri PDF" : "Open PDF"}<ExternalLink size={14} /></a>
+        <a href={resolvedUrl} download={filename || true} className={`${control} gap-1`}>{italian ? "Scarica PDF" : "Download PDF"}<Download size={14} /></a>
+        <a href={resolvedUrl} target="_blank" rel="noreferrer" className={`${control} gap-1`}>{italian ? "Apri PDF" : "Open PDF"}<ExternalLink size={14} /></a>
       </div>
     </div>
     <div ref={host} data-document-stage className={`relative ${presentation ? "max-h-[min(480px,55svh)]" : "max-h-[min(680px,75svh)]"} overflow-auto overscroll-contain bg-zinc-100 p-3 dark:bg-zinc-900`}>

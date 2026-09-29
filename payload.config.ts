@@ -43,6 +43,24 @@ const publishedMedia: Access = async ({ req }) => {
   return ids.size ? { id: { in: [...ids] } } : false;
 };
 
+const publishedDocuments: Access = async ({ req }) => {
+  if (req.user) return true;
+  const careers = await Promise.all(supportedLocales.map((locale) => req.payload.findGlobal({
+    slug: "career", locale, fallbackLocale: false, draft: false, depth: 0, overrideAccess: true,
+  })));
+  const ids = new Set<number>();
+  for (const career of careers) {
+    if (career._status !== "published") continue;
+    for (const job of career.jobs ?? []) {
+      for (const document of job.documents ?? []) {
+        const id = mediaID(document.file);
+        if (id !== null) ids.add(id);
+      }
+    }
+  }
+  return ids.size ? { id: { in: [...ids] } } : false;
+};
+
 function pageGlobal(slug: "home" | "about"): GlobalConfig {
   return {
     slug,
@@ -135,6 +153,10 @@ const careerGlobal: GlobalConfig = {
       { name: "role", label: "Role or qualification", type: "text", required: true },
       { name: "summary", type: "textarea", admin: { description: "Write this experience's story to show it in About when selected." } },
       { name: "photo", type: "upload", relationTo: "media", admin: { description: "Shown with this experience in About only when its summary has content." } },
+      { name: "documents", type: "array", fields: [
+        { name: "title", type: "text", required: true },
+        { name: "file", type: "upload", relationTo: "documents", required: true },
+      ] },
       { name: "startDate", type: "date" },
       { name: "ongoing", label: "Currently ongoing", type: "checkbox", defaultValue: false,
         admin: { description: "Keep this experience open through today. Any stored end date is ignored while enabled." } },
@@ -183,6 +205,15 @@ export default buildConfig({
     },
     access: { read: publishedMedia, create: authenticated, update: authenticated, delete: authenticated },
     fields: [{ name: "alt", type: "text" }],
+  }, {
+    slug: "documents",
+    labels: { singular: "Document", plural: "Documents" },
+    upload: {
+      staticDir: path.resolve(dataDir, ".payload-documents"),
+      mimeTypes: ["application/pdf"],
+    },
+    access: { read: publishedDocuments, create: authenticated, update: authenticated, delete: authenticated },
+    fields: [],
   }],
   globals: [pageGlobal("home"), pageGlobal("about"), careerGlobal],
   typescript: { outputFile: path.resolve(dirname, "payload-types.ts") },

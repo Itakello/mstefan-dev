@@ -72,6 +72,46 @@ test(`preview ${schemaVersion} baseline preserves drafts and rejects unexpected 
 });
 }
 
+test('documents preview baseline preserves uploaded PDF metadata and records its migration', async () => {
+  const dataDir = await mkdtemp(path.join(tmpdir(), 'payload-baseline-documents-'));
+  const environment = { ...process.env, NODE_ENV: 'production', PAYLOAD_DATA_DIR: dataDir, PAYLOAD_SECRET: 'disposable-local-documents-baseline-only', PAYLOAD_DISABLE_DEPENDENCY_CHECKER: 'true' };
+  const filename = path.join(dataDir, '.payload-local.db');
+  const { SQLiteSyncDialect } = await import('@payloadcms/db-sqlite/drizzle/sqlite-core');
+  const migrationPaths = [
+    '../../migrations/20260917_195926_initial',
+    '../../migrations/20260928_212105_career',
+    '../../migrations/20260929_081759_career_branch_graph',
+    '../../migrations/20260929_160549_career_ongoing',
+    '../../migrations/20260929_205504_career_photo',
+    '../../migrations/20260929_220029_career_documents',
+  ];
+  const dialect = new SQLiteSyncDialect();
+  let db = new DatabaseSync(filename);
+  try {
+    for (const migrationPath of migrationPaths) {
+      const { up } = await import(migrationPath);
+      await up({ db: { run: (query: Parameters<typeof dialect.sqlToQuery>[0]) => db.exec(dialect.sqlToQuery(query).sql) } } as unknown as Parameters<typeof up>[0]);
+    }
+    db.exec(`
+      INSERT INTO documents (id, filename, mime_type) VALUES (1, 'degree.pdf', 'application/pdf');
+      INSERT INTO career (id, _status) VALUES (1, 'published');
+      INSERT INTO career_jobs (_order, _parent_id, _locale, id, branch_name, company, role, start_date) VALUES (1, 1, 'en', 'degree', 'education/degree', 'University', 'Student', '2020-01-01');
+      INSERT INTO career_jobs_documents (_order, _parent_id, _locale, id, title, file_id) VALUES (1, 'degree', 'en', 'transcript', 'Transcript', 1);
+      INSERT INTO payload_migrations (name, batch) VALUES ('development', -1);
+    `);
+    const before = db.prepare('SELECT * FROM career_jobs_documents').all();
+    db.close();
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const baseline = spawnSync(process.execPath, ['scripts/baseline-payload-preview.mjs'], { env: environment, encoding: 'utf8' });
+      assert.equal(baseline.status, 0, baseline.stderr);
+    }
+    db = new DatabaseSync(filename);
+    assert.deepEqual(db.prepare('SELECT * FROM career_jobs_documents').all(), before);
+    assert.equal(db.prepare("SELECT COUNT(*) AS count FROM payload_migrations WHERE name = '20260929_220029_career_documents'").get()!.count, 1);
+    assert.equal(db.prepare('SELECT COUNT(*) AS count FROM payload_migrations WHERE batch = -1').get()!.count, 0);
+  } finally { if (db.isOpen) db.close(); await rm(dataDir, { recursive: true, force: true }); }
+});
+
 test('branch graph preview baseline preserves populated published and draft fields and rolls back only its own batch', async () => {
   const dataDir = await mkdtemp(path.join(tmpdir(), 'payload-baseline-branch-graph-'));
   const environment = { ...process.env, NODE_ENV: 'production', PAYLOAD_DATA_DIR: dataDir, PAYLOAD_SECRET: 'disposable-local-branch-baseline-only', PAYLOAD_DISABLE_DEPENDENCY_CHECKER: 'true' };
@@ -140,9 +180,10 @@ test('branch graph preview baseline preserves populated published and draft fiel
     const migrate = spawnSync(process.execPath, ['node_modules/payload/bin.js', 'migrate'], { env: environment, encoding: 'utf8', timeout: 30_000 });
     assert.equal(migrate.status, 0, `${migrate.stderr}\n${migrate.stdout}`);
     db = new DatabaseSync(filename);
-    assert.deepEqual(content().map((table) => ({ ...table, rows: table.rows.map((row) => {
+    assert.deepEqual(content().filter((table) => !['documents', 'career_jobs_documents', '_career_v_version_jobs_documents'].includes(table.name)).map((table) => ({ ...table, rows: table.rows.map((row) => {
       if (table.name === 'career_jobs' || table.name === '_career_v_version_jobs') { delete row.ongoing; delete row.photo_id; }
       if (table.name === 'media') delete row.alt;
+      if (table.name === 'payload_locked_documents_rels') delete row.documents_id;
       return row;
     }) })), currentContent, 'Migration after baseline changed existing branch fields');
     assert.deepEqual(db.prepare('SELECT * FROM payload_migrations ORDER BY id').all().slice(0, 3), baselineHistory);
@@ -354,7 +395,7 @@ test('Payload migration runner can remove and recreate the initial migration his
       assert.equal(result.status, 0, `${command}: ${result.stderr}\n${result.stdout}`);
       const database = new DatabaseSync(path.join(dataDir, '.payload-local.db'));
       try {
-        remainingMigrations = command === 'migrate' ? 5 : 0;
+        remainingMigrations = command === 'migrate' ? 6 : 0;
         if (remainingMigrations === 0) {
           assert.deepEqual(database.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").all(), []);
         } else {
@@ -364,4 +405,53 @@ test('Payload migration runner can remove and recreate the initial migration his
       } finally { database.close(); }
     }
   } finally { await rm(dataDir, { recursive: true, force: true }); }
+});
+
+test('documents migration preserves existing content and rolls back populated PDF relations', async () => {
+  const { SQLiteSyncDialect } = await import('@payloadcms/db-sqlite/drizzle/sqlite-core');
+  const { up: initialUp } = await import('../../migrations/20260917_195926_initial');
+  const { up: careerUp } = await import('../../migrations/20260928_212105_career');
+  const { up: branchUp } = await import('../../migrations/20260929_081759_career_branch_graph');
+  const { up: ongoingUp } = await import('../../migrations/20260929_160549_career_ongoing');
+  const { up: photoUp } = await import('../../migrations/20260929_205504_career_photo');
+  const { up: documentsUp, down: documentsDown } = await import('../../migrations/20260929_220029_career_documents');
+  const database = new DatabaseSync(':memory:');
+  const dialect = new SQLiteSyncDialect();
+  const args = { db: { run: (query: Parameters<typeof dialect.sqlToQuery>[0]) => database.exec(dialect.sqlToQuery(query).sql) } } as unknown as Parameters<typeof documentsUp>[0];
+  try {
+    database.exec('PRAGMA foreign_keys = ON');
+    for (const up of [initialUp, careerUp, branchUp, ongoingUp, photoUp]) await up(args);
+    database.exec(`
+      INSERT INTO users (id, email) VALUES (1, 'preserved@example.invalid');
+      INSERT INTO media (id, filename, alt) VALUES (1, 'portrait.png', 'Kept portrait');
+      INSERT INTO about (id, _status, photo_id) VALUES (1, 'published', 1);
+      INSERT INTO home (id, _status) VALUES (1, 'published');
+      INSERT INTO career (id, _status) VALUES (1, 'published');
+      INSERT INTO career_jobs (_order, _parent_id, _locale, id, branch_name, company, role, photo_id) VALUES (1, 1, 'en', 'job-one', 'work/amazon', 'Amazon', 'SDE I', 1);
+      INSERT INTO _career_v (id, version__status) VALUES (1, 'draft');
+      INSERT INTO _career_v_version_jobs (_order, _parent_id, _locale, id, branch_name, company, role) VALUES (1, 1, 'en', 1, 'work/amazon', 'Amazon', 'Private role');
+      INSERT INTO payload_locked_documents (id) VALUES (1);
+      INSERT INTO payload_locked_documents_rels (id, parent_id, path, media_id) VALUES (1, 1, 'document', 1);
+    `);
+    const preservedTables = ['users', 'media', 'about', 'home', 'career', 'career_jobs', '_career_v', '_career_v_version_jobs', 'payload_locked_documents', 'payload_locked_documents_rels'];
+    const content = () => preservedTables.map((table) => database.prepare(`SELECT * FROM ${table} ORDER BY id`).all());
+    const before = content();
+    await documentsUp(args);
+    assert.equal(database.prepare('SELECT COUNT(*) AS count FROM documents').get()!.count, 0);
+    assert.equal(database.prepare('SELECT COUNT(*) AS count FROM career_jobs_documents').get()!.count, 0);
+    assert.equal(database.prepare('SELECT company FROM career_jobs').get()!.company, 'Amazon');
+    database.exec(`
+      INSERT INTO documents (id, filename, mime_type) VALUES (1, 'story.pdf', 'application/pdf');
+      INSERT INTO career_jobs_documents (_order, _parent_id, _locale, id, title, file_id) VALUES (1, 'job-one', 'en', 'doc-one', 'Published story', 1);
+      INSERT INTO _career_v_version_jobs_documents (_order, _parent_id, _locale, id, title, file_id) VALUES (1, 1, 'en', 1, 'Private story', 1);
+      UPDATE payload_locked_documents_rels SET documents_id = 1 WHERE id = 1;
+    `);
+    assert.deepEqual(database.prepare('PRAGMA foreign_key_check').all(), []);
+    await documentsDown(args);
+    assert.deepEqual(content(), before);
+    assert.equal(database.prepare("SELECT COUNT(*) AS count FROM sqlite_master WHERE type='table' AND name IN ('documents', 'career_jobs_documents', '_career_v_version_jobs_documents')").get()!.count, 0);
+    assert.equal(database.prepare('PRAGMA foreign_keys').get()!.foreign_keys, 1);
+    assert.deepEqual(database.prepare('PRAGMA foreign_key_check').all(), []);
+    assert.equal(database.prepare('PRAGMA integrity_check').get()!.integrity_check, 'ok');
+  } finally { database.close(); }
 });
