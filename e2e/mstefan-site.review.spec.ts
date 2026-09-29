@@ -62,9 +62,6 @@ test.describe("Public website review", () => {
 
     await page.getByRole("button", { name: "Select mstefan.dev", exact: true }).click();
     const projectStack = page.getByRole("complementary", { name: "mstefan.dev technologies grouped by category" });
-    await expect(projectStack.getByRole("heading", { name: "Language", exact: true })).toBeVisible();
-    await expect(projectStack.getByRole("heading", { name: "Framework", exact: true })).toBeVisible();
-    await expect(projectStack.getByRole("heading", { name: "Library", exact: true })).toBeVisible();
     const typeScript = projectStack.locator('summary[aria-label="TypeScript · Language"]');
     await typeScript.focus();
     await expect(projectStack.getByText("TypeScript", { exact: true }).last()).toBeVisible();

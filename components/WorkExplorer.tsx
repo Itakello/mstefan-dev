@@ -89,24 +89,19 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
           </div>
           {groups.length > 0 ? <aside aria-label={copy.projectCard.technologiesByCategory(selected.name)} className="min-w-0 border-l border-black/10 pl-3 dark:border-white/10">
             <h3 className="text-xs font-semibold uppercase tracking-wider text-black/50 dark:text-white/50">Stack</h3>
-            <div className="mt-3 space-y-3">
-              {groups.map(group => <div key={group.category}>
-                <h4 className="mb-1.5 text-[10px] leading-4 text-black/55 dark:text-white/55">{displayStackCategory(group.category, locale)}</h4>
-                <ul className="flex flex-wrap gap-2">
-                  {group.entries.map(entry => <li key={entry.name}>
-                    <details className="group relative">
-                      <summary aria-label={`${entry.name} · ${displayStackCategory(group.category, locale)}`} className="flex cursor-pointer list-none rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-[hsl(var(--accent))] [&::-webkit-details-marker]:hidden">
-                        <StackBadge item={entry} label={false} compact />
-                        <span aria-hidden="true" className="absolute right-0 top-full z-20 mt-1 hidden w-max max-w-40 rounded-md border border-black/10 bg-white px-2 py-1 text-xs shadow-md group-open:block group-hover:block group-focus-within:block dark:border-white/15 dark:bg-zinc-900">
-                          <span className="block font-medium">{entry.name}</span>
-                          <span className="block text-black/55 dark:text-white/55">{displayStackCategory(group.category, locale)}</span>
-                        </span>
-                      </summary>
-                    </details>
-                  </li>)}
-                </ul>
-              </div>)}
-            </div>
+            <ul className="mt-3 flex flex-wrap gap-2">
+              {groups.flatMap(group => group.entries.map(entry => <li key={entry.name}>
+                <details className="group relative">
+                  <summary aria-label={`${entry.name} · ${displayStackCategory(group.category, locale)}`} className="flex cursor-pointer list-none rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-[hsl(var(--accent))] [&::-webkit-details-marker]:hidden">
+                    <StackBadge item={entry} label={false} compact />
+                  <span aria-hidden="true" className="absolute right-0 top-full z-20 mt-1 hidden w-max max-w-40 rounded-md border border-black/10 bg-white px-2 py-1 text-xs shadow-md group-open:block group-hover:block group-focus-within:block dark:border-white/15 dark:bg-zinc-900">
+                    <span className="block font-medium">{entry.name}</span>
+                    <span className="block text-black/55 dark:text-white/55">{displayStackCategory(group.category, locale)}</span>
+                  </span>
+                  </summary>
+                </details>
+              </li>))}
+            </ul>
           </aside> : stackCatalog.message && <p role="status" className="text-xs leading-5 text-black/55 dark:text-white/55">{copy.publication.stack[stackCatalog.message]}</p>}
         </div>
         {selected.preview && previewUrl && (depth === null || !parentOrigin ? <p role="status" className="mt-6 text-sm">{copy.websites.loading}</p>
