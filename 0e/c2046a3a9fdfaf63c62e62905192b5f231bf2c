@@ -1,0 +1,35 @@
+deploy/event/volume_probe.py
+  s_99649e26c921f2::t_d0440ff7e2eb28 3,53,86,95,121,193-211,213-227,234,243-249,254-255,260-265,277-284,291-292,296,302,308,310
+  s_99649e26c921f2::t_ab1cbada5e5e0e 285-290
+  s_99649e26c921f2::t_bc99c5664efc42 49,76-78,212
+deploy/event/test_volume_probe.py
+  s_99649e26c921f2::t_1af6f8f69ca6be 19,58-59
+  s_99649e26c921f2::t_bf18da6a08b9b9 50,52
+  s_99649e26c921f2::t_1efaa96db6c993 197-207
+  s_99649e26c921f2::t_6de497f679ee4d 248-260
+  s_99649e26c921f2::t_b484f61b23ad3b 31,55,174-196,208-211,218
+  s_99649e26c921f2::t_5577fbdd910769 135-173
+  s_99649e26c921f2::t_0f5ea6dac832f4 213-217,219
+  s_99649e26c921f2::t_f399777ce819ef 212
+  s_99649e26c921f2::t_65f736ad44c9ba 2,30,44-49,51,53-54,56-57,60-62
+  s_99649e26c921f2::t_eaec42ae3b2427 63
+  s_99649e26c921f2::t_84f413d0d8093e 220
+deploy/event/README.md
+  s_99649e26c921f2::t_37dbac5a9fe0fb 27
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0ec2046a3a9fdfaf63c62e62905192b5f231bf2c",
+  "prompts": {},
+  "sessions": {
+    "s_99649e26c921f2": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0ec14-2355-7fd1-a6cb-ec2e94e09f5f",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
