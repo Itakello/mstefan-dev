@@ -116,6 +116,11 @@ export function parseNotionProjectPage(page: any): NotionProject | null {
       resources[key] = parsed.href;
     } catch { return null; }
   }
+  for (const property of ["Publication", "Publication IT"]) {
+    const value = properties[property];
+    if (value === undefined) continue;
+    if (!value || typeof value !== "object" || (value.type && value.type !== "rich_text") || !Array.isArray(value.rich_text)) return null;
+  }
   const publication = richText(properties.Publication?.rich_text);
   const italianPublication = richText(properties["Publication IT"]?.rich_text);
   const language = typeof properties.Language?.multi_select?.[0]?.name === "string"
