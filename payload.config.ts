@@ -35,6 +35,7 @@ const publishedMedia: Access = async ({ req }) => {
   for (const career of careers) {
     if (career._status !== "published") continue;
     for (const job of career.jobs ?? []) {
+      if (!job.summary?.trim()) continue;
       const id = mediaID(job.photo);
       if (id !== null) ids.add(id);
     }
@@ -132,8 +133,8 @@ const careerGlobal: GlobalConfig = {
       },
       { name: "company", label: "Organization", type: "text", required: true },
       { name: "role", label: "Role or qualification", type: "text", required: true },
-      { name: "summary", type: "textarea" },
-      { name: "photo", type: "upload", relationTo: "media" },
+      { name: "summary", type: "textarea", admin: { description: "Write this experience's story to show it in About when selected." } },
+      { name: "photo", type: "upload", relationTo: "media", admin: { description: "Shown with this experience in About only when its summary has content." } },
       { name: "startDate", type: "date" },
       { name: "ongoing", label: "Currently ongoing", type: "checkbox", defaultValue: false,
         admin: { description: "Keep this experience open through today. Any stored end date is ignored while enabled." } },

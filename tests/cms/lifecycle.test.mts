@@ -217,9 +217,11 @@ test('career admin live preview keeps About text intact and locale drafts privat
     const iframe = page.locator('iframe');
     await expect(iframe).toHaveAttribute('src', /previewSource=career/);
     const preview = page.frameLocator('iframe');
-    await expect(preview.getByRole('heading', { level: 1 })).toHaveText('en-published-from-ui');
-    await page.locator('#field-jobs__0__summary').fill('Unsaved career live preview');
+    await expect(preview.locator('#career-story')).toHaveAttribute('aria-label', 'en-published-from-ui');
+    await expect(preview.getByRole('heading', { level: 1 })).toHaveText('main');
     await preview.getByRole('region', { name: 'Career', exact: true }).locator('button[data-career-job]').first().click();
+    await expect(preview.getByRole('heading', { level: 1 })).toHaveText('main');
+    await page.locator('#field-jobs__0__summary').fill('Unsaved career live preview');
     await expect(preview.getByText('Unsaved career live preview', { exact: true })).toBeVisible();
     await expect(preview.getByRole('heading', { level: 1 })).toHaveText('Amazon');
     const publicPage = await request('/en/about');
@@ -360,6 +362,12 @@ test('nested career branches share junctions and synchronize graph and Experienc
   assert.equal(upload.status, 201);
   const photo = (await upload.json()).doc;
   assert.ok([401, 403, 404].includes((await fetch(new URL(photo.url, base))).status), 'Unpublished experience photo must be private');
+  const hiddenForm = new FormData();
+  hiddenForm.set('file', new Blob([photoBytes], { type: 'image/png' }), 'hidden-experience.png');
+  hiddenForm.set('_payload', JSON.stringify({ alt: 'Hidden experience portrait' }));
+  const hiddenUpload = await fetch(`${base}/api/media`, { method: 'POST', headers: { Cookie: cookie }, body: hiddenForm });
+  assert.equal(hiddenUpload.status, 201);
+  const hiddenPhoto = (await hiddenUpload.json()).doc;
   const fixtures = [
     ['B', 'education/university', 1, 9, null, '#ffaa66'],
     ['C', 'work/independent', 1, 6, null, '#66dd88'],
@@ -372,13 +380,17 @@ test('nested career branches share junctions and synchronize graph and Experienc
   ] as const;
   const jobs = fixtures.map(([company, branchName, start, end, parentBranchName, color]) => ({
     company, branchName, role: 'Synthetic test experience', parentBranchName, color,
-    ...(company === 'F' ? { photo: photo.id } : {}),
+    ...(['B', 'C', 'F'].includes(company) ? { summary: `Synthetic story for ${company}` } : {}),
+    ...(company === 'F' ? { photo: photo.id } : company === 'E' ? { photo: hiddenPhoto.id } : {}),
     startDate: new Date(Date.UTC(2024, start, 1)).toISOString(), endDate: new Date(Date.UTC(2024, end, 1)).toISOString(),
   }));
   await update('career', 'en', { jobs, laneSpacing: 24, _status: 'published' }, '&publishSpecificLocale=en');
   const publishedPhoto = await fetch(new URL(photo.url, base));
   assert.equal(publishedPhoto.status, 200);
   assert.deepEqual(Buffer.from(await publishedPhoto.arrayBuffer()), photoBytes);
+  assert.ok([401, 403, 404].includes((await fetch(new URL(hiddenPhoto.url, base))).status), 'Photo without a published story must remain private');
+  const publicAbout = await (await request('/en/about')).text();
+  assert.ok(!publicAbout.includes('hidden-experience.png') && !publicAbout.includes('Hidden experience portrait'), 'Hidden photo metadata leaked into the public About page');
   const browser = await chromium.launch({ headless: true });
   try {
     const page = await browser.newPage({ viewport: { width: 1000, height: 900 } });
@@ -387,6 +399,13 @@ test('nested career branches share junctions and synchronize graph and Experienc
     const project = graph.locator('[data-career-branch][aria-label^="work/company/project:"]');
     const firstTitle = graph.locator('button[data-career-job]').first();
     const projectTitle = graph.locator('button[data-career-job]', { hasText: 'work/company/project' });
+    const centeredPhotoOffset = () => page.locator('#career-story').evaluate((story) => {
+      const container = story.getBoundingClientRect();
+      const photo = story.querySelector('figure')!.getBoundingClientRect();
+      return Math.abs((container.left + container.right - photo.left - photo.right) / 2);
+    });
+    await expect(page.locator('#career-story')).toHaveAttribute('aria-label', 'en-published-from-ui');
+    await expect(page.locator('#career-story h1')).toHaveText('main');
     await expect(page.locator('#career-story img')).toHaveAttribute('src', '/profile-photo.jpg');
     await expect(graph.locator('[data-career-label]')).toHaveCount(0);
     await projectTitle.hover();
@@ -396,6 +415,9 @@ test('nested career branches share junctions and synchronize graph and Experienc
     await expect(page.locator('#career-story img')).toHaveAttribute('src', photo.url);
     await expect(page.locator('#career-story img')).toHaveAttribute('alt', 'Synthetic experience portrait');
     assert.ok(await page.locator('#career-story img').evaluate((image) => (image as HTMLImageElement).complete && (image as HTMLImageElement).naturalWidth > 0));
+    await page.setViewportSize({ width: 1440, height: 900 });
+    assert.ok(await page.locator('#career-story').evaluate((story) => story.querySelector('figure')!.getBoundingClientRect().width < story.getBoundingClientRect().width));
+    assert.ok((await centeredPhotoOffset()) < 2, 'Experience photo should be centered on desktop');
     await expect(project).toHaveAttribute('aria-pressed', 'true');
     await project.focus();
     await project.press('Enter');
@@ -404,8 +426,9 @@ test('nested career branches share junctions and synchronize graph and Experienc
     const mainline = graph.locator('[data-career-main-branch]');
     await mainRow.click();
     await expect(page.locator('#career-story img')).toHaveAttribute('src', '/profile-photo.jpg');
+    assert.ok((await centeredPhotoOffset()) < 2, 'Profile photo should be centered on desktop');
     await expect(mainline).toHaveAttribute('aria-pressed', 'true');
-    await expect(page.locator('#career-story').getByRole('heading', { level: 1 })).toHaveText('en-published-from-ui');
+    await expect(page.locator('#career-story').getByRole('heading', { level: 1 })).toHaveText('main');
     await projectTitle.click();
     await mainline.focus();
     await mainline.press('Enter');
@@ -439,11 +462,17 @@ test('nested career branches share junctions and synchronize graph and Experienc
     await expect(branchC).toHaveAttribute('aria-pressed', 'true');
     await branchB.locator('circle').first().click();
     await expect(branchB).toHaveAttribute('aria-pressed', 'true');
+    const emptyStory = graph.locator('button[data-career-job]', { hasText: 'work/company' }).filter({ hasNotText: 'work/company/project' });
+    await emptyStory.click();
+    await expect(emptyStory).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('#career-story h1')).toHaveText('main');
+    await expect(page.locator('#career-story img')).toHaveAttribute('src', '/profile-photo.jpg');
     await page.setViewportSize({ width: 320, height: 800 });
     await expect(graph.locator('[data-career-label]')).toHaveCount(0);
     await project.focus();
     await project.press('Enter');
     await expect(project).toHaveAttribute('aria-pressed', 'true');
+    assert.ok((await centeredPhotoOffset()) < 2, 'Experience photo should be centered on mobile');
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), 'Career page overflows at 320px');
   } finally { await browser.close(); }
 });
@@ -464,16 +493,22 @@ test('authenticated previews load only the active source draft', { timeout: 60_0
     await context.addCookies([{ name: cookie.split('=')[0], value: cookie.slice(cookie.indexOf('=') + 1), url: base }]);
     const page = await context.newPage();
     for (const slug of ['home', 'about'] as const) {
+      const expectPageTitle = async (title: string) => {
+        if (slug === 'about') {
+          await expect(page.locator('#career-story')).toHaveAttribute('aria-label', title);
+          await expect(page.locator('#career-story h1')).toHaveText('main');
+        } else await expect(page.getByRole('heading', { level: 1 })).toHaveText(title);
+      };
       const pathname = slug === 'home' ? '/en' : '/en/about';
       await page.goto(`${base}${pathname}?preview=1&previewSource=career`);
-      await expect(page.getByRole('heading', { level: 1 })).toHaveText(published[slug].title);
+      await expectPageTitle(published[slug].title);
       await expect(page.getByText(titles[slug], { exact: true })).toHaveCount(0);
       const careerPreview = page.getByRole('region', { name: 'Career', exact: true });
       await expect(careerPreview.locator('button[data-career-job]').first()).toContainText(privateRole);
       if (slug === 'about') await careerPreview.locator('button[data-career-job]').first().click();
       await expect(page.getByText(privateSummary, { exact: true })).toBeVisible();
       await page.goto(`${base}${pathname}?preview=1`);
-      await expect(page.getByRole('heading', { level: 1 })).toHaveText(titles[slug]);
+      await expectPageTitle(titles[slug]);
       const pagePreviewCareer = page.getByRole('region', { name: 'Career', exact: true });
       await expect(pagePreviewCareer.locator('button[data-career-job]').first()).toContainText(published.career.jobs[0].role);
       await expect(pagePreviewCareer.getByText(privateRole, { exact: true })).toHaveCount(0);
@@ -483,7 +518,7 @@ test('authenticated previews load only the active source draft', { timeout: 60_0
         assert.ok([401, 403, 404].includes(anonymous.status), `Anonymous preview succeeded: ${pathname}${query}`);
       }
       await page.goto(`${base}${pathname}`);
-      await expect(page.getByRole('heading', { level: 1 })).toHaveText(published[slug].title);
+      await expectPageTitle(published[slug].title);
       await expect(page.getByText(privateSummary, { exact: true })).toHaveCount(0);
     }
     await context.close();

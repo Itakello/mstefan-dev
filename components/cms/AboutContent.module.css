@@ -2,7 +2,7 @@
 .story { min-width: 0; scroll-margin-top: 2rem; }
 .branch { font-family: ui-monospace, monospace; font-size: .8rem; overflow-wrap: anywhere; }
 .summary { white-space: pre-line; }
-.photo { margin-top: 2rem; width: 100%; max-width: 24rem; overflow: hidden; border-radius: 1rem; border: 1px solid #71717a33; }
+.photo { margin: 2rem auto 0; width: 100%; max-width: 24rem; overflow: hidden; border-radius: 1rem; border: 1px solid #71717a33; }
 .explorer { min-width: 0; }
 .readStory { display: inline-block; margin-top: 1rem; font-size: .8rem; text-decoration: underline; text-underline-offset: 3px; }
 @media (min-width: 960px) {

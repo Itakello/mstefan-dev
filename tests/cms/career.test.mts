@@ -139,19 +139,27 @@ test('career seed, localized order, authenticated drafts, colors, and deletion s
     assert.deepEqual(await visibleMedia(), []);
     const italianJobs = (await payload.findGlobal({ slug: 'career', locale: 'it', draft: false, fallbackLocale: false })).jobs!;
     await payload.updateGlobal({ slug: 'career', locale: 'it', publishSpecificLocale: 'it', data: {
-      _status: 'published', jobs: italianJobs.map((job, index) => ({ ...job, photo: index === 0 ? 2 : null })),
+      _status: 'published', jobs: italianJobs.map((job, index) => ({ ...job, summary: index === 0 ? 'Italian story' : job.summary, photo: index === 0 ? 2 : null })),
     } });
     assert.deepEqual(await visibleMedia(), [2], 'Published Italian career photo should be public');
     await payload.updateGlobal({ slug: 'career', locale: 'en', draft: true, data: {
-      jobs: [{ branchName: 'work/draft', company: 'Draft', role: 'Draft role', color: '#123456', photo: 3 }],
+      jobs: [{ branchName: 'work/draft', company: 'Draft', role: 'Draft role', summary: 'English story', color: '#123456', photo: 3 }],
     } });
     assert.deepEqual(await visibleMedia(), [2], 'Draft-only career photo should remain private');
     const draftPhoto = (await payload.findGlobal({ slug: 'career', locale: 'en', draft: true, depth: 1 })).jobs![0].photo;
     assert.equal(typeof draftPhoto === 'object' && draftPhoto?.alt, 'Photo 3');
     await payload.updateGlobal({ slug: 'career', locale: 'en', publishSpecificLocale: 'en', data: { _status: 'published' } });
     assert.deepEqual(await visibleMedia(), [2, 3]);
+    await payload.updateGlobal({ slug: 'career', locale: 'en', publishSpecificLocale: 'en', data: {
+      _status: 'published', jobs: [{ branchName: 'work/photo-only', company: 'Photo only', role: 'Draft role', color: '#123456', photo: 4 }],
+    } });
+    assert.deepEqual(await visibleMedia(), [2], 'Photo-only experience keeps the main profile and its image private');
+    await payload.updateGlobal({ slug: 'career', locale: 'en', publishSpecificLocale: 'en', data: {
+      _status: 'published', jobs: [{ branchName: 'work/draft', company: 'Draft', role: 'Draft role', summary: 'English story', color: '#123456', photo: 3 }],
+    } });
+    assert.deepEqual(await visibleMedia(), [2, 3]);
     await payload.updateGlobal({ slug: 'career', locale: 'en', draft: true, data: {
-      jobs: [{ branchName: 'work/draft', company: 'Draft', role: 'Draft role', color: '#123456', photo: 4 }],
+      jobs: [{ branchName: 'work/draft', company: 'Draft', role: 'Draft role', summary: 'English story', color: '#123456', photo: 4 }],
     } });
     assert.deepEqual(await visibleMedia(), [2, 3], 'Replacing a photo in a draft must not expose it');
     await payload.updateGlobal({ slug: 'about', locale: 'en', publishSpecificLocale: 'en', data: { _status: 'published', photo: 1 } });
