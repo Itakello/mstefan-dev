@@ -205,6 +205,15 @@ test.describe("Public website review", () => {
     await writeFile(state, "one");
     await page.goto("/it/websites");
     await expect(page.getByRole("navigation", { name: "Scegli un progetto" }).getByRole("button")).toHaveCount(1);
+    const stack = page.getByRole("complementary", { name: "Tecnologie di mstefan.dev raggruppate per categoria" });
+    for (const width of [900, 640]) {
+      await page.setViewportSize({ width, height: 800 });
+      const details = await page.locator("#selected-work-title").boundingBox();
+      const panel = await stack.boundingBox();
+      expect(details && panel && panel.x >= details.x + details.width && Math.abs(panel.y - details.y) < 2).toBeTruthy();
+      await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+      if (width === 900) await page.screenshot({ path: ".artifacts/playwright/work-stack-medium.png", fullPage: true });
+    }
     await page.setViewportSize({ width: 360, height: 800 });
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
     await page.screenshot({ path: ".artifacts/playwright/gallery-mobile.png", fullPage: true });

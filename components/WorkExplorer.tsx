@@ -76,7 +76,7 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
         </button>)}
       </nav>
       <section aria-labelledby="selected-work-title" className="min-w-0 lg:border-l lg:border-black/10 lg:pl-8 dark:lg:border-white/10">
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_260px] xl:gap-8">
+        <div className="grid gap-6 sm:grid-cols-[minmax(0,1fr)_200px] xl:grid-cols-[minmax(0,1fr)_260px] xl:gap-8">
           <div className="min-w-0">
             <h2 id="selected-work-title" className="text-2xl font-semibold tracking-tight">{selected.name}</h2>
             {metadata.length > 0 && <p className="mt-2 text-xs text-black/55 dark:text-white/55">{metadata.join(" · ")}</p>}
@@ -86,7 +86,7 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
               {selected.sourceUrl && <a className={linkClass} href={selected.sourceUrl} target="_blank" rel="noreferrer"><Github size={16} aria-hidden="true" />{copy.work.source}</a>}
             </div>
           </div>
-          {groups.length > 0 ? <aside aria-label={copy.projectCard.technologiesByCategory(selected.name)} className="min-w-0 border-t border-black/10 pt-4 xl:border-l xl:border-t-0 xl:pl-5 xl:pt-0 dark:border-white/10">
+          {groups.length > 0 ? <aside aria-label={copy.projectCard.technologiesByCategory(selected.name)} className="min-w-0 border-t border-black/10 pt-4 sm:border-l sm:border-t-0 sm:pl-5 sm:pt-0 dark:border-white/10">
             <h3 className="text-xs font-semibold uppercase tracking-wider text-black/50 dark:text-white/50">Stack</h3>
             <div className="mt-3 space-y-4">
               {groups.map(group => <div key={group.category}>
