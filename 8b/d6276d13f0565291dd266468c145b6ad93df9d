@@ -1,0 +1,60 @@
+components/CareerGraph.tsx
+  s_7027b947e4761d::t_09500f75942d66 23,26,77,138,143,210
+tests/cms/migration.test.mts
+  s_7027b947e4761d::t_5be2b8cc1929ff 9,29,33,36-40,42,44,46,48,61,143-147,357
+deploy/payload-production/README.md
+  s_7027b947e4761d::t_53bb5253e8919f 15
+scripts/baseline-payload-preview.mjs
+  s_7027b947e4761d::t_53bb5253e8919f 37,40,49,53,57-60,72
+e2e/mstefan-site.review.spec.ts
+  s_7027b947e4761d::t_ca0eead6ebdb38 191-200
+  s_7027b947e4761d::t_1bbd8570028a99 127-139
+migrations/index.ts
+  s_7027b947e4761d::t_88e61a756e0db1 5,26-31
+tests/cms/lifecycle.test.mts
+  s_7027b947e4761d::t_df19d90758cd9e 222,224,381,391,456-457
+  s_7027b947e4761d::t_d9de07d5644fd7 98,197-202
+tests/cms/career.test.mts
+  s_7027b947e4761d::t_909b1816bcaca3 131-162,169-199
+  s_4d20f040228e16::t_a4aecdf9523e35 200-201
+app/[locale]/about/page.tsx
+  s_7027b947e4761d::t_a12ab00911c0f4 1,23-24
+components/CareerGraph.module.css
+  s_7027b947e4761d::t_f89e37f23f9859 70-73
+components/cms/AboutContent.module.css
+  s_7027b947e4761d::t_3401315bdca674 1-11
+components/cms/AboutContent.tsx
+  s_7027b947e4761d::t_6c47e6386d596d 4,7-9,11,13-14,16-24,26-44,46-49,55,58-62
+lib/cms/career.ts
+  s_7027b947e4761d::t_8ca62a2206ac85 14
+migrations/20260929_205504_career_photo.json
+  s_7027b947e4761d::t_04c423371b577a 1-2227
+migrations/20260929_205504_career_photo.ts
+  s_7027b947e4761d::t_81f772980bf720 1-62
+payload.config.ts
+  s_7027b947e4761d::t_12698ac9ec8f02 20-21,24-42,136,184
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8bd6276d13f0565291dd266468c145b6ad93df9d",
+  "prompts": {},
+  "sessions": {
+    "s_4d20f040228e16": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0eece-a69d-7181-8052-1b64ee73e7f2",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    },
+    "s_7027b947e4761d": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a08c68-dd71-7f93-85f1-556209f25a3a",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
