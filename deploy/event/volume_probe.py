@@ -48,6 +48,8 @@ class MountTopology:
         self.stat_path = stat_path or os.stat
         self.canonical = canonical or (lambda path: os.path.realpath(path, strict=True))
         self.entries = {}
+        self.unresolved_points = set()
+        groups = {}
         lines = text.splitlines()
         self.lines = tuple(lines)
         if not lines or len(lines) > 8192:
@@ -69,10 +71,29 @@ class MountTopology:
                     raise Blocked('host mount topology path invalid')
                 paths.append(posixpath.normpath(decoded))
             root, mountpoint = paths
-            if mountpoint in self.entries:
-                raise Blocked('stacked host mount topology unresolved')
-            self.entries[mountpoint] = (device, root)
-        if '/' not in self.entries:
+            groups.setdefault(mountpoint, []).append((values[0], values[1], device, root))
+        for mountpoint, group in groups.items():
+            if len(group) == 1:
+                self.entries[mountpoint] = (group[0][2], group[0][3])
+                continue
+            parents = {row[1] for row in group}
+            visible = [row for row in group if row[0] not in parents]
+            by_id = {row[0]: row for row in group}
+            if len(visible) != 1:
+                self.unresolved_points.add(mountpoint)
+                continue
+            chain = set()
+            current = visible[0]
+            while current[0] not in chain:
+                chain.add(current[0])
+                current = by_id.get(current[1])
+                if current is None:
+                    break
+            if len(chain) != len(group):
+                self.unresolved_points.add(mountpoint)
+                continue
+            self.entries[mountpoint] = (visible[0][2], visible[0][3])
+        if '/' not in self.entries and '/' not in self.unresolved_points:
             raise Blocked('host mount topology root missing')
 
     @classmethod
@@ -91,6 +112,8 @@ class MountTopology:
         canonical = self.canonical(path)
         if not posixpath.isabs(canonical):
             raise Blocked('host path unresolved')
+        if any(posixpath.commonpath([point, canonical]) == point for point in self.unresolved_points):
+            raise Blocked('host mount stack unresolved for checked path')
         candidates = [point for point in self.entries if posixpath.commonpath([point, canonical]) == point]
         point = max(candidates, key=len)
         device, root = self.entries[point]
@@ -104,6 +127,8 @@ class MountTopology:
     def overlaps(self, source, approved):
         actual = self.identity(source)
         target = self.identity(approved)
+        if any(posixpath.commonpath([point, actual[0]]) == actual[0] for point in self.unresolved_points):
+            raise Blocked('host mount stack unresolved under bind source')
         regions = [actual]
         # A parent bind recursively exposes child mounts, including aliases.
         for point in self.entries:

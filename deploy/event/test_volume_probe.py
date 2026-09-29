@@ -136,6 +136,40 @@ class KernelTopologyTests(unittest.TestCase):
         volume_root = os.path.realpath(MOUNTPOINT)
         return topology_fixture('11 10 8:1 ' + volume_root + ' /srv/payload-data rw - ext4 /dev/test rw\n')
 
+    def test_visible_stacked_mount_unrelated_to_volume_allows_probe(self):
+        binfmt = ('20 10 0:40 / /proc/sys/fs/binfmt_misc rw - autofs none rw\n'
+                  '21 20 0:41 / /proc/sys/fs/binfmt_misc rw - binfmt_misc none rw\n')
+        factory = lambda: topology_fixture(binfmt)
+        self.assertEqual(factory().entries['/proc/sys/fs/binfmt_misc'], ((0, 41), '/'))
+        self.assertEqual(p.probe(DockerFake(), topology_factory=factory), writer_fixture())
+
+    def test_stacked_alias_visible_mount_controls_overlap(self):
+        volume_root = os.path.realpath(MOUNTPOINT)
+        alias = '/srv/payload-data'
+        fixture = ('20 10 8:2 / ' + alias + ' rw - ext4 /dev/hidden rw\n'
+                   '21 20 8:1 ' + volume_root + ' ' + alias + ' rw - ext4 /dev/visible rw\n')
+        def metadata(path):
+            return SimpleNamespace(st_dev=os.makedev(8, 1), st_ino=abs(hash(path)))
+        factory = lambda: topology_fixture(fixture, metadata=metadata)
+        extra = record(B, 'alias')
+        extra['Mounts'][0].update(Type='bind', Name=None, Source=alias, Destination='/other')
+        result = p.probe(DockerFake({A: record(), B: extra}), topology_factory=factory)
+        self.assertEqual(result['count'], 2)
+        client = c.Client({'OPENSHIP_TOKEN': 'fake'})
+        client.probe = lambda: result
+        with self.assertRaises(c.Blocked):
+            client.volume_writer('dep_new', attestation())
+
+    def test_ambiguous_unrelated_stack_is_allowed_but_affected_source_blocks(self):
+        ambiguous = ('20 10 0:40 / /proc/sys/fs/binfmt_misc rw - autofs none rw\n'
+                     '21 10 0:41 / /proc/sys/fs/binfmt_misc rw - binfmt_misc none rw\n')
+        factory = lambda: topology_fixture(ambiguous)
+        self.assertEqual(p.probe(DockerFake(), topology_factory=factory), writer_fixture())
+        extra = record(B, 'uncertain')
+        extra['Mounts'][0].update(Type='bind', Name=None, Source='/proc', Destination='/other')
+        with self.assertRaises(c.Blocked):
+            p.probe(DockerFake({A: record(), B: extra}), topology_factory=factory)
+
     def test_non_symlink_bind_alias_root_descendant_and_parent_block(self):
         for source in ('/srv/payload-data', '/srv/payload-data/nested', '/srv'):
             with self.subTest(source=source):
@@ -180,7 +214,6 @@ class KernelTopologyTests(unittest.TestCase):
             with self.assertRaises(c.Blocked):
                 p.MountTopology.read()
         for text in ('', 'invalid', '10 1 invalid / / rw - ext4 /dev/test rw',
-                     '10 1 8:1 / / rw - ext4 /dev/test rw\n11 10 8:1 / / rw - ext4 /dev/test rw',
                      'bad 1 8:1 / / rw - ext4 /dev/test rw',
                      '10 parent 8:1 / / rw - ext4 /dev/test rw',
                      r'10 1 8:1 /\777 / rw - ext4 /dev/test rw',
@@ -189,6 +222,14 @@ class KernelTopologyTests(unittest.TestCase):
                      '10 1 8:1 / / invalid - ext4 /dev/test rw'):
             with self.subTest(text=text), self.assertRaises(c.Blocked):
                 p.MountTopology(text)
+
+    def test_ambiguous_root_stack_blocks_checked_volume(self):
+        fixture = ('10 1 8:1 / / rw - ext4 /dev/test rw\n'
+                   '11 10 8:1 / / rw - ext4 /dev/test rw\n'
+                   '12 10 8:1 / / rw - ext4 /dev/test rw\n')
+        topology = p.MountTopology(fixture, stat_path=lambda path: SimpleNamespace(st_dev=os.makedev(8, 1), st_ino=1), canonical=os.path.realpath)
+        with self.assertRaises(c.Blocked):
+            topology.identity(MOUNTPOINT)
 
     def test_exact_inode_identity_also_detects_alias_root(self):
         target = os.path.realpath(MOUNTPOINT)
