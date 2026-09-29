@@ -38,7 +38,8 @@ function WebsiteGallery({ locale, sites }: { locale: Locale; sites: ShowcaseWebs
   const previewUrl = websitePreviewUrl(selected, locale, origin);
   const visitUrl = websitePreviewUrl(selected, locale);
   const hasNeighbors = sites.length > 1;
-  return <section aria-label={copy.work.websitesTab} className="mt-8 min-w-0">
+  return <section aria-labelledby="work-websites-heading" className="mt-10 min-w-0">
+    <h2 id="work-websites-heading" className="mb-5 text-xl font-semibold">{copy.work.websitesHeading}</h2>
     <div className={`grid min-w-0 items-center gap-4 ${hasNeighbors ? "lg:grid-cols-[minmax(0,1fr)_minmax(0,3fr)_minmax(0,1fr)]" : ""}`}>
       {hasNeighbors && <SitePeek item={sites[(index - 1 + sites.length) % sites.length]} locale={locale} origin={origin} depth={depth}
         onSelect={() => setSelectedId(sites[(index - 1 + sites.length) % sites.length].id)} />}
@@ -60,7 +61,7 @@ function WebsiteGallery({ locale, sites }: { locale: Locale; sites: ShowcaseWebs
         className={`size-3 rounded-full border border-[hsl(var(--accent))] transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[hsl(var(--accent))] ${site.id === selected.id ? "scale-110 bg-[hsl(var(--accent))]" : "bg-transparent hover:bg-[hsl(var(--accent)/0.25)]"}`} />)}
     </div>
     <div className="mx-auto mt-5 flex max-w-4xl flex-wrap items-start justify-between gap-4">
-      <div><h2 className="text-2xl font-semibold">{selected.name}</h2>
+      <div><h3 className="text-2xl font-semibold">{selected.name}</h3>
         <p className="mt-2 max-w-xl text-sm leading-6 text-black/65 dark:text-white/65">{selected.shortDescription || selected.description}</p></div>
       <div className="flex flex-wrap items-center gap-4">
         {selected.preview && <div role="group" aria-label={copy.work.previewSize} className="inline-flex rounded-lg border border-black/10 p-1 dark:border-white/15">
@@ -80,27 +81,11 @@ export function WorkShowcase({ locale, items, stackCatalog }: {
 }) {
   const copy = getCopy(locale);
   const sites = items.filter(item => item.url);
-  const repositories = items.filter(item => item.sourceUrl);
-  const [tab, setTab] = useState<"websites" | "repositories">(sites.length ? "websites" : "repositories");
-  useEffect(() => {
-    const requested = new URLSearchParams(window.location.search).get("project");
-    if (requested && items.some(item => (item.id === requested || item.name === requested) && !item.url))
-      setTab("repositories");
-  }, [items]);
   return <>
-    {sites.length > 0 && <div role="tablist" aria-label={copy.projects.title}
-      className="mt-8 inline-flex rounded-full border border-black/10 bg-black/[0.04] p-1 dark:border-white/15 dark:bg-white/5">
-      {([{ value: "websites", label: copy.work.websitesTab }, { value: "repositories", label: copy.work.repositoriesTab }] as const).map(option =>
-        <button key={option.value} type="button" role="tab" id={`work-tab-${option.value}`}
-          aria-controls={`work-panel-${option.value}`} aria-selected={tab === option.value}
-          onClick={() => setTab(option.value)}
-          className={`min-w-32 rounded-full px-5 py-2 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[hsl(var(--accent))] ${tab === option.value ? "bg-white shadow-sm dark:bg-zinc-800" : "text-black/65 hover:text-black dark:text-white/65 dark:hover:text-white"}`}>
-          {option.label}</button>)}
-    </div>}
-    {tab === "websites" && sites.length > 0
-      ? <div role="tabpanel" id="work-panel-websites" aria-labelledby="work-tab-websites"><WebsiteGallery locale={locale} sites={sites} /></div>
-      : <div role="tabpanel" id="work-panel-repositories" aria-labelledby={sites.length ? "work-tab-repositories" : undefined}>
-          <WorkExplorer locale={locale} items={repositories} stackCatalog={stackCatalog} embedWebsites={false} />
-        </div>}
+    {sites.length > 0 && <WebsiteGallery locale={locale} sites={sites} />}
+    <section aria-labelledby="work-projects-heading" className="mt-14 border-t border-black/10 pt-8 dark:border-white/10">
+      <h2 id="work-projects-heading" className="text-xl font-semibold">{copy.work.projectsHeading}</h2>
+      <WorkExplorer locale={locale} items={items} stackCatalog={stackCatalog} embedWebsites={false} selectedHeadingLevel="h3" />
+    </section>
   </>;
 }

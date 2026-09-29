@@ -49,7 +49,7 @@ export function ResponsivePreview({ url, title, mobile, sandbox }: { url: string
   );
 }
 
-export function WorkExplorer({ locale, items, stackCatalog, embedWebsites = true }: { locale: Locale; items: ShowcaseWebsite[]; stackCatalog: WebsiteStackState; embedWebsites?: boolean }) {
+export function WorkExplorer({ locale, items, stackCatalog, embedWebsites = true, selectedHeadingLevel: SelectedHeading = "h2" }: { locale: Locale; items: ShowcaseWebsite[]; stackCatalog: WebsiteStackState; embedWebsites?: boolean; selectedHeadingLevel?: "h2" | "h3" }) {
   const copy = getCopy(locale);
   const [documentKind, setDocumentKind] = useState<"paper" | "slides">("paper");
   const [mobile, setMobile] = useState(false);
@@ -120,7 +120,7 @@ export function WorkExplorer({ locale, items, stackCatalog, embedWebsites = true
       <section aria-labelledby="selected-work-title" className="min-w-0 lg:border-l lg:border-black/10 lg:pl-6 dark:lg:border-white/10">
         <div className={`grid ${hasStackColumn ? "grid-cols-[minmax(0,1fr)_112px] gap-4 sm:gap-6" : "grid-cols-1"}`}>
           <div className="min-w-0">
-            <h2 id="selected-work-title" className="text-2xl font-semibold tracking-tight [overflow-wrap:anywhere]">{selected.name}</h2>
+            <SelectedHeading id="selected-work-title" className="text-2xl font-semibold tracking-tight [overflow-wrap:anywhere]">{selected.name}</SelectedHeading>
             {metadata.length > 0 && <p className="mt-2 text-xs text-black/55 dark:text-white/55">{metadata.join(" · ")}</p>}
             <p className="mt-3 max-w-2xl whitespace-pre-line text-sm leading-6 text-black/70 dark:text-white/70">{selected.description}</p>
             <div className="mt-4 flex flex-wrap gap-5">
