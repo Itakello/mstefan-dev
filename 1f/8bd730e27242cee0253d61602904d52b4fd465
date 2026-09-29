@@ -1,0 +1,27 @@
+deploy/event/README.md
+  s_99649e26c921f2::t_1b0e82d3798bb4 22,27
+deploy/event/controller.py
+  s_99649e26c921f2::t_2cd01828061b8d 262-263
+deploy/event/test_controller.py
+  s_99649e26c921f2::t_d563db8016224c 11
+deploy/event/test_volume_probe.py
+  s_99649e26c921f2::t_ac56d694026c34 173-199,283,285-289,352-354
+deploy/event/volume_probe.py
+  s_99649e26c921f2::t_9feaaa15567135 53,87,97,108,112,120,122,150-158,162,165-166,175,180-181,218-221,260-262
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1f8bd730e27242cee0253d61602904d52b4fd465",
+  "prompts": {},
+  "sessions": {
+    "s_99649e26c921f2": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0ec14-2355-7fd1-a6cb-ec2e94e09f5f",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
