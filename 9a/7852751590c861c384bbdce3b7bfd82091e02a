@@ -1,0 +1,39 @@
+app/[locale]/page.tsx
+  s_fc646ba2f41cef::t_6b3185fdce4981 2,31-32,50
+app/globals.css
+  s_fc646ba2f41cef::t_e7f9cf54820de9 8-14,73-75,87-98,105-107,111-118,124
+components/CareerGraph.module.css
+  s_fc646ba2f41cef::t_60da9e406848e7 2-4,6-8,10,13-14,17,20-21,26-27,30,33-35,41,43-44,48-49,65-66,68,72
+components/Header.tsx
+  s_fc646ba2f41cef::t_4a3ac59b459d4b 98
+components/LanguageSelector.tsx
+  s_fc646ba2f41cef::t_a91c20a069ac2f 145
+components/cms/HomeContent.tsx
+  s_fc646ba2f41cef::t_622e2ab5e409b9 16
+tests/cms/lifecycle.test.mts
+  s_eb3bf4e1b099ba::t_d9925d33d27be1 316,319-321,326-327,334,339,343,346,356,360,370,374,390,392,396,404,608-619,623-625
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9a7852751590c861c384bbdce3b7bfd82091e02a",
+  "prompts": {},
+  "sessions": {
+    "s_eb3bf4e1b099ba": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0ef82-44ce-78c0-8862-3e9b58cce344",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    },
+    "s_fc646ba2f41cef": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0e9a5-4cb9-7890-88b5-1b5cca1ba8c4",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
