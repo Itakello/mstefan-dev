@@ -1,0 +1,49 @@
+name: Deploy mstefan.dev
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [master]
+
+permissions: {}
+
+jobs:
+  deploy:
+    if: >-
+      vars.MSTEFAN_EVENT_DEPLOY_ENABLED == 'true' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'master' &&
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    concurrency:
+      group: mstefan-native-production
+      cancel-in-progress: false
+    steps:
+      - name: Deploy exact CI event through restricted host entrypoint
+        env:
+          SSH_KEY: ${{ secrets.MSTEFAN_DEPLOY_TRIGGER_SSH_KEY }}
+          DEPLOY_HOST: ${{ vars.MSTEFAN_DEPLOY_HOST }}
+          HOST_KEY: ${{ vars.MSTEFAN_DEPLOY_HOST_KEY }}
+          EVENT_SHA: ${{ github.event.workflow_run.head_sha }}
+          EVENT_RUN: ${{ github.event.workflow_run.id }}
+        shell: bash
+        run: |
+          set -eu
+          umask 077
+          [[ "$EVENT_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$EVENT_RUN" =~ ^[1-9][0-9]*$ ]]
+          [[ "$DEPLOY_HOST" =~ ^[a-zA-Z0-9][a-zA-Z0-9.-]*$ ]]
+          [[ "$HOST_KEY" =~ ^ssh-ed25519\ [A-Za-z0-9+/=]+$ ]]
+          test -n "$SSH_KEY"
+          key_file="$(mktemp)"
+          hosts_file="$(mktemp)"
+          trap 'rm -f "$key_file" "$hosts_file"' EXIT
+          printf '%s\n' "$SSH_KEY" > "$key_file"
+          printf '%s %s\n' "$DEPLOY_HOST" "$HOST_KEY" > "$hosts_file"
+          timeout 47m ssh -i "$key_file" -o IdentitiesOnly=yes -o BatchMode=yes \
+            -o ConnectTimeout=15 -o ServerAliveInterval=30 -o ServerAliveCountMax=3 \
+            -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$hosts_file" \
+            "mstefan-event-deploy-trigger@$DEPLOY_HOST" "deploy $EVENT_SHA $EVENT_RUN"

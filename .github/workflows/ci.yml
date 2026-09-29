@@ -146,6 +146,8 @@ jobs:
       - run: pnpm test
       - name: Verify Payload backup and replay
         run: python3 -m unittest discover -s deploy/payload-production -p 'test_backup.py'
+      - name: Verify guarded event deployment
+        run: python3 -m unittest discover -s deploy/event -p 'test_controller.py'
       - run: pnpm build
         env:
           PAYLOAD_SECRET: build-only-placeholder-not-a-runtime-secret
