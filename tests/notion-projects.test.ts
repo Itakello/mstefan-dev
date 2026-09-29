@@ -372,12 +372,10 @@ test("research resources remain optional, secure and localized through publicati
 test("publication credits reject wrong property types while allowing blank rich text", () => {
   for (const property of ["Publication", "Publication IT"]) {
     for (const value of [{ type: "url", url: "https://example.com" }, { type: "rich_text", rich_text: null }, null]) {
-      const invalid = page();
-      invalid.properties[property] = value;
+      const invalid = page({ properties: { ...page().properties, [property]: value } });
       assert.equal(parseNotionProjectPage(invalid), null);
     }
-    const blank = page();
-    blank.properties[property] = { type: "rich_text", rich_text: [] };
+    const blank = page({ properties: { ...page().properties, [property]: { type: "rich_text", rich_text: [] } } });
     assert.ok(parseNotionProjectPage(blank));
   }
 });
