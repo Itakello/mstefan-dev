@@ -1,0 +1,31 @@
+tests/website-showcase.test.ts
+  s_378fc10f812003::t_25c0b1f43e4d16 83-107
+components/WorkExplorer.tsx
+  s_378fc10f812003::t_106e9f0ae5d9fa 59-62,64-65,67-68,107,121,134
+lib/publicProjects.ts
+  s_378fc10f812003::t_55a270b0e5abb4 9,66-69
+lib/websiteShowcase.ts
+  s_378fc10f812003::t_0f082063925395 11,13-26,32-33,35
+migrations/20260929_205504_career_photo.ts
+  s_378fc10f812003::t_d8854945b91bf8 5,7
+tests/cms/lifecycle.test.mts
+  s_378fc10f812003::t_bcdea72438167a 13,500,582
+tests/cms/migration.test.mts
+  s_378fc10f812003::t_64d5c8c88d01fb 458-485
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "fb801a928296fea3f09faf998f7fe2a0284da935",
+  "prompts": {},
+  "sessions": {
+    "s_378fc10f812003": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0e6e9-85f7-70e3-aded-c9af1613e5f2",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
