@@ -1,0 +1,21 @@
+lib/notion.ts
+  s_378fc10f812003::t_e89e888ac770a7 119-123
+tests/notion-projects.test.ts
+  s_378fc10f812003::t_69f186428dc3c2 371-383
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b00519f172fc94988ee9a40843f1cd3aa47f652d",
+  "prompts": {},
+  "sessions": {
+    "s_378fc10f812003": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0e6e9-85f7-70e3-aded-c9af1613e5f2",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
