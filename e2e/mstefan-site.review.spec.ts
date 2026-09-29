@@ -1,7 +1,7 @@
 // spec: specs/mstefan-site-review.md
 // seed: e2e/seed.ts
 
-import { writeFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 
 import { expect, showReviewStep, test } from "./seed";
 
@@ -13,7 +13,9 @@ test.describe("Public website review", () => {
     await writeFile(state, "multiple");
     await context.route("**/*", async route => {
       const url = new URL(route.request().url());
-      if (["www.mstefan.dev", "mstefan.dev"].includes(url.hostname)) {
+      if (url.hostname === "example.com" && url.pathname.endsWith(".pdf")) {
+        await route.fulfill({ body: await readFile("tests/fixtures/research.pdf"), contentType: "application/pdf", headers: { "access-control-allow-origin": "*" } });
+      } else if (["www.mstefan.dev", "mstefan.dev"].includes(url.hostname)) {
         const response = await route.fetch({ url: `${base}${url.pathname}${url.search}`, maxRedirects: 0 });
         await route.fulfill({ response });
       } else if (url.hostname === "api.iconify.design") {
@@ -108,11 +110,27 @@ test.describe("Public website review", () => {
     await expect(page).toHaveURL(/\/en\/projects$/);
     await expect(page.getByRole("link", { name: "Visit website", exact: true })).toBeVisible();
     await expect(page.getByRole("link", { name: "Source code", exact: true })).toHaveCount(0);
-    await page.getByRole("button", { name: "Select Automation tools", exact: true }).click();
+    await page.goto("/en/projects?project=Automation%20tools");
     await expect(page.getByRole("region", { name: "Research & materials", exact: true })).toBeVisible();
     await expect(page.getByText("Coauthor · Published in Example Journal", { exact: true })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Read paper", exact: true })).toHaveAttribute("href", "https://example.com/research-paper.pdf");
-    await expect(page.getByRole("link", { name: "View slides", exact: true })).toHaveAttribute("href", "https://example.com/research-slides.pdf");
+    const reader = page.getByRole("region", { name: "Automation tools: Document reader", exact: true });
+    await expect(reader.getByText("1 / 2", { exact: true })).toBeVisible();
+    await expect(reader.getByRole("status")).toHaveCount(0);
+    await expect(reader.getByText("Research paper first page", { exact: true })).toBeVisible();
+    await expect(reader.getByRole("link", { name: "Open PDF", exact: true })).toHaveAttribute("href", "https://example.com/research-paper.pdf");
+    await reader.getByRole("button", { name: "Next page" }).click();
+    await expect(reader.getByRole("img", { name: "Automation tools · page 2", exact: true })).toBeVisible();
+    await expect(reader.getByRole("status")).toHaveCount(0);
+    await reader.getByRole("button", { name: "Zoom in" }).click();
+    await expect(reader.getByText("125%", { exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Slides", exact: true }).click();
+    await expect(reader.getByRole("link", { name: "Open PDF", exact: true })).toHaveAttribute("href", "https://example.com/research-slides.pdf");
+    await expect(reader.getByText("1 / 2", { exact: true })).toBeVisible();
+    await expect(reader.getByRole("status")).toHaveCount(0);
+    await page.setViewportSize({ width: 360, height: 800 });
+    expect(await reader.evaluate(node => node.getBoundingClientRect().right <= window.innerWidth)).toBeTruthy();
+    await page.screenshot({ path: ".artifacts/playwright/work-research-mobile.png", fullPage: true });
+    await page.setViewportSize({ width: 1440, height: 1000 });
     const repositoryStack = page.getByRole("complementary", { name: "Automation tools technologies grouped by category" });
     await expect(repositoryStack.locator('summary[aria-label="Python · Language"]')).toBeVisible();
     await expect(repositoryStack.getByText("TypeScript", { exact: true })).toHaveCount(0);
