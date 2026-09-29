@@ -20,7 +20,7 @@ export function AboutContent({ content, career, locale }: Props) {
   const documents = (selectedJob?.documents ?? []).filter((document) => document.file && typeof document.file === "object" && document.file.url);
   const selected = selectedJob && (selectedJob.summary?.trim() || documents.length) ? selectedJob : null;
   const profilePhoto = content.photo && typeof content.photo === "object" ? content.photo : null;
-  const experiencePhoto = selected?.photo && typeof selected.photo === "object" ? selected.photo : null;
+  const experiencePhoto = selected?.summary?.trim() && selected.photo && typeof selected.photo === "object" ? selected.photo : null;
   const photo = selected ? experiencePhoto : profilePhoto;
   const photoURL = selected ? photo?.url : photo?.url || "/profile-photo.jpg";
   const imageAlt = selected ? experiencePhoto?.alt || `${selected.company} · ${selected.role}` : content.imageAlt;

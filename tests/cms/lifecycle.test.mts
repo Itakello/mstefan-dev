@@ -450,7 +450,7 @@ test('nested career branches share junctions and synchronize graph and Experienc
     company, branchName, role: 'Synthetic test experience', parentBranchName, color,
     ...(['B', 'C', 'F'].includes(company) ? { summary: `Synthetic story for ${company}` } : {}),
     ...(company === 'F' ? { photo: photo.id, documents: [{ title: 'Synthetic project PDF', file: pdfFile.id }] } : company === 'E' ? { photo: hiddenPhoto.id } : {}),
-    ...(company === 'H' ? { documents: [{ title: 'Synthetic document-only PDF', file: pdfFile.id }] } : {}),
+    ...(company === 'H' ? { photo: hiddenPhoto.id, documents: [{ title: 'Synthetic document-only PDF', file: pdfFile.id }] } : {}),
     startDate: new Date(Date.UTC(2024, start, 1)).toISOString(), endDate: new Date(Date.UTC(2024, end, 1)).toISOString(),
   }));
   await update('career', 'en', { jobs, laneSpacing: 24, _status: 'published' }, '&publishSpecificLocale=en');
@@ -509,6 +509,7 @@ test('nested career branches share junctions and synchronize graph and Experienc
     await expect(pdfPreview.locator('[data-pdf-preview]')).toHaveCount(0);
     await graph.locator('button[data-career-job]', { hasText: 'work/next' }).click();
     await expect(page.locator('#career-story h1')).toHaveText('H');
+    await expect(page.locator('#career-story img')).toHaveCount(0);
     await expect(page.locator('#career-story [data-pdf-document]')).toBeVisible();
     await expect(page.getByRole('link', { name: /H · View documents/i })).toHaveAttribute('href', '#career-story');
     await expect(page.getByRole('link', { name: /Read story/i })).toHaveCount(0);
