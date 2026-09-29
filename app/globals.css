@@ -96,10 +96,6 @@ a {
   @apply border-white/10 bg-white/5 shadow-softDark;
 }
 
-.project-layout {
-  overflow-anchor: none;
-}
-
 .project-panel {
   min-width: 0;
   overflow: hidden;

@@ -455,3 +455,31 @@ test('documents migration preserves existing content and rolls back populated PD
     assert.equal(database.prepare('PRAGMA integrity_check').get()!.integrity_check, 'ok');
   } finally { database.close(); }
 });
+
+test('deleting career photos clears published and draft references', async () => {
+  const db = new DatabaseSync(':memory:');
+  try {
+    const { SQLiteSyncDialect } = await import('@payloadcms/db-sqlite/drizzle/sqlite-core');
+    const dialect = new SQLiteSyncDialect();
+    const args = { db: { run: (query: Parameters<typeof dialect.sqlToQuery>[0]) => db.exec(dialect.sqlToQuery(query).sql) } };
+    for (const migrationPath of [
+      '../../migrations/20260917_195926_initial',
+      '../../migrations/20260928_212105_career',
+      '../../migrations/20260929_081759_career_branch_graph',
+      '../../migrations/20260929_160549_career_ongoing',
+      '../../migrations/20260929_205504_career_photo',
+    ]) {
+      const { up } = await import(migrationPath);
+      await up(args as unknown as Parameters<typeof up>[0]);
+    }
+    db.exec(`PRAGMA foreign_keys=ON;
+      INSERT INTO media (id, filename) VALUES (1, 'photo.png');
+      INSERT INTO career (id, _status) VALUES (1, 'published');
+      INSERT INTO _career_v (id, latest, version__status) VALUES (1, 1, 'draft');
+      INSERT INTO career_jobs (id, _order, _parent_id, _locale, photo_id) VALUES ('job', 1, 1, 'en', 1);
+      INSERT INTO _career_v_version_jobs (id, _order, _parent_id, _locale, photo_id) VALUES (1, 1, 1, 'en', 1);
+      DELETE FROM media WHERE id=1;`);
+    assert.equal(db.prepare('SELECT photo_id FROM career_jobs').get()?.photo_id, null);
+    assert.equal(db.prepare('SELECT photo_id FROM _career_v_version_jobs').get()?.photo_id, null);
+  } finally { db.close(); }
+});

@@ -10,7 +10,7 @@ import { createServer } from 'node:net';
 import { request as httpRequest } from 'node:http';
 import { chromium, expect } from '@playwright/test';
 
-const port = Number(process.env.CMS_TEST_PORT || 3000);
+const port = 3000;
 const base = `http://127.0.0.1:${port}`;
 const password = randomBytes(24).toString('base64url');
 const email = 'cms-integration@example.invalid';
@@ -497,7 +497,7 @@ test('nested career branches share junctions and synchronize graph and Experienc
     await expect(reader.getByRole('status', { name: /preview unavailable/i })).toHaveCount(0);
     await expect.poll(() => reader.locator('canvas').evaluate((canvas) => (canvas as HTMLCanvasElement).width)).toBeGreaterThan(0);
     await expect(reader.locator('[data-document-text]')).toContainText('Synthetic career PDF');
-    await page.screenshot({ path: '/private/tmp/career-pdf-reader-desktop.png', fullPage: true });
+    await page.screenshot({ path: path.join(dataDir, 'career-pdf-reader-desktop.png'), fullPage: true });
     await reader.getByRole('button', { name: 'Next page' }).click();
     await expect(reader.locator('[data-document-text]')).toContainText('PDF page two');
     await reader.getByRole('button', { name: 'Previous page' }).click();
@@ -579,7 +579,7 @@ test('nested career branches share junctions and synchronize graph and Experienc
     await expect(page.getByRole('link', { name: /F · Read story/i })).toHaveAttribute('href', '#career-story');
     await page.locator('#career-story [data-pdf-document]').getByRole('button', { name: 'View PDF' }).click();
     await expect(page.locator('#career-story [data-document-text]')).toContainText('Synthetic career PDF');
-    await page.screenshot({ path: '/private/tmp/career-pdf-reader-gallery-mobile.png', fullPage: true });
+    await page.screenshot({ path: path.join(dataDir, 'career-pdf-reader-gallery-mobile.png'), fullPage: true });
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), 'Career page overflows at 320px');
   } finally { await browser.close(); }
 });

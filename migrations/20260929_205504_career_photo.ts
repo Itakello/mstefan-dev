@@ -2,9 +2,9 @@ import { MigrateUpArgs, MigrateDownArgs, sql } from '@payloadcms/db-sqlite'
 
 export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   await db.run(sql`ALTER TABLE \`media\` ADD \`alt\` text;`)
-  await db.run(sql`ALTER TABLE \`career_jobs\` ADD \`photo_id\` integer REFERENCES media(id);`)
+  await db.run(sql`ALTER TABLE \`career_jobs\` ADD \`photo_id\` integer REFERENCES media(id) ON DELETE SET NULL;`)
   await db.run(sql`CREATE INDEX \`career_jobs_photo_idx\` ON \`career_jobs\` (\`photo_id\`);`)
-  await db.run(sql`ALTER TABLE \`_career_v_version_jobs\` ADD \`photo_id\` integer REFERENCES media(id);`)
+  await db.run(sql`ALTER TABLE \`_career_v_version_jobs\` ADD \`photo_id\` integer REFERENCES media(id) ON DELETE SET NULL;`)
   await db.run(sql`CREATE INDEX \`_career_v_version_jobs_photo_idx\` ON \`_career_v_version_jobs\` (\`photo_id\`);`)
 }
 

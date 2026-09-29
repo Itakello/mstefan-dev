@@ -80,6 +80,31 @@ test("website metadata preserves repository identity and selected Notion locale"
   await assert.rejects(loadPublicProjects("en", { fetchProjects: async () => null, fetchRepos: async () => [], vercelEnv: "production" }));
 });
 
+test("invalid approved website URLs fail the whole publication source", async () => {
+  for (const [caseName, websiteUrls] of [
+    ["malformed", ["bad-url"]],
+    ["non-HTTPS", ["http://example.com"]],
+    ["credentialed", ["https://user:password@example.com"]],
+    ["duplicate normalized URL", ["https://example.com", "https://example.com/"]],
+  ] as const) {
+    const fetchProjects = async () => websiteUrls.map((websiteUrl) => parseNotionProjectPage({ properties: {
+      Name: { title: [{ plain_text: project.title }] }, Status: { status: { name: "Added" } },
+      Summary: { rich_text: [{ plain_text: project.summary }] },
+      "Summary IT": { rich_text: [{ plain_text: project.summary }] },
+      "Website URL": { type: "url", url: websiteUrl },
+    } })!);
+    const local = await loadPublicProjects("en", { fetchProjects, fetchRepos: async () => [], vercelEnv: "development" });
+    assert.equal(local.publication.status, "error", caseName);
+    assert.deepEqual(local.projects, [], caseName);
+    assert.deepEqual(workItemsFromProjects(local.projects), [], caseName);
+    await assert.rejects(
+      loadPublicProjects("en", { fetchProjects, fetchRepos: async () => [], vercelEnv: "production" }),
+      /Cannot publish without valid Notion Projects data/,
+      caseName,
+    );
+  }
+});
+
 
 test("work entries cover website-only, repository-only and combined projects", () => {
   const [websiteOnly, repositoryOnly, combined] = workItemsFromProjects([

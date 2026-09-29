@@ -56,13 +56,16 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
   const stackScroll = useRef<HTMLDivElement>(null);
   const [moreStack, setMoreStack] = useState(false);
   const [stackLabel, setStackLabel] = useState<{ name: string; category: string; right: number; top: number } | null>(null);
+  const dismissStackLabel = () => {
+    setStackLabel(null);
+    stackScroll.current?.querySelectorAll<HTMLDetailsElement>("details[open]").forEach(detail => { detail.open = false; });
+  };
   useEffect(() => {
-    const dismiss = () => setStackLabel(null);
-    window.addEventListener("scroll", dismiss, true);
-    window.addEventListener("resize", dismiss);
+    window.addEventListener("scroll", dismissStackLabel, true);
+    window.addEventListener("resize", dismissStackLabel);
     return () => {
-      window.removeEventListener("scroll", dismiss, true);
-      window.removeEventListener("resize", dismiss);
+      window.removeEventListener("scroll", dismissStackLabel, true);
+      window.removeEventListener("resize", dismissStackLabel);
     };
   }, []);
   const showStackLabel = (element: HTMLElement, name: string, category: string) => {
@@ -101,6 +104,7 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
   const previewUrl = websitePreviewUrl(selected, locale, origin);
   const visitUrl = websitePreviewUrl(selected, locale);
   const groups = groupStackEntries(resolveProjectStack(projectStackLabels(selected), stackCatalog.entries));
+  const hasStackColumn = groups.length > 0 || Boolean(stackCatalog.message);
   const metadata = [selected.type ? copy.work.types[selected.type] : undefined, selected.year, groups.length ? undefined : selected.language].filter(Boolean);
   const linkClass = "inline-flex items-center gap-2 text-sm font-medium";
   return (
@@ -114,7 +118,7 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
         </button>)}
       </nav>
       <section aria-labelledby="selected-work-title" className="min-w-0 lg:border-l lg:border-black/10 lg:pl-6 dark:lg:border-white/10">
-        <div className="grid grid-cols-[minmax(0,1fr)_112px] gap-4 sm:gap-6">
+        <div className={`grid ${hasStackColumn ? "grid-cols-[minmax(0,1fr)_112px] gap-4 sm:gap-6" : "grid-cols-1"}`}>
           <div className="min-w-0">
             <h2 id="selected-work-title" className="text-2xl font-semibold tracking-tight [overflow-wrap:anywhere]">{selected.name}</h2>
             {metadata.length > 0 && <p className="mt-2 text-xs text-black/55 dark:text-white/55">{metadata.join(" · ")}</p>}
@@ -127,7 +131,7 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
           {groups.length > 0 ? <aside aria-label={copy.projectCard.technologiesByCategory(selected.name)} className="relative self-start min-h-0 min-w-0 border-l border-black/10 dark:border-white/10">
             <div className="flex flex-col pl-3">
             <h3 className="text-xs font-semibold uppercase tracking-wider text-black/50 dark:text-white/50">Stack</h3>
-            <div ref={stackScroll} data-work-stack-scroll tabIndex={0} className="mt-3 h-[158px] overflow-y-auto overscroll-contain pr-1" onScroll={() => { updateStackOverflow(); setStackLabel(null); }}>
+            <div ref={stackScroll} data-work-stack-scroll tabIndex={0} className="mt-3 h-[158px] overflow-y-auto overscroll-contain pr-1" onScroll={() => { updateStackOverflow(); dismissStackLabel(); }}>
             <ul className="flex flex-wrap gap-2">
               {groups.flatMap(group => group.entries.map(entry => <li key={entry.name}>
                 <details className="group relative" onToggle={event => {

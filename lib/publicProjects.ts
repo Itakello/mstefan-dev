@@ -6,6 +6,7 @@ import {
   mergeAndEnrichProjects,
   resolveProjectPublicationState,
 } from "@/lib/projectPublication";
+import { approvedWebsiteUrls } from "@/lib/websiteShowcase";
 
 type PublicProjectsLoaderOptions = {
   fetchProjects?: typeof fetchProjectsFromNotion;
@@ -62,7 +63,10 @@ export async function loadPublicProjects(
       return null;
     }),
     fetchProjects()
-      .then((projects) => ({ projects, failed: false }))
+      .then((projects) => {
+        if (projects) approvedWebsiteUrls(projects);
+        return { projects, failed: false };
+      })
       .catch((error) => {
         console.error("Failed to load the Notion project publication source.", error);
         return { projects: null, failed: true };
