@@ -16,7 +16,7 @@ const labels = {
 
 const MAIN_KEY = "__career_main__";
 
-function BranchIcon() {
+export function BranchIcon() {
   return <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M4 5v6m0-3c0-3 8-1 8-5M4 2a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Zm0 9a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Zm8-11a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Z" /></svg>;
 }
 
@@ -124,7 +124,7 @@ export function CareerGraph({ career, locale, expanded = false, onSelectionChang
         <div className={styles.header}><span>{content.role}</span><span>{content.graph} ↑</span></div>
         <div className={styles.body}>
           <div className={styles.list}>
-            <button ref={(element) => { if (element) titles.current.set(MAIN_KEY, element); else titles.current.delete(MAIN_KEY); }} data-career-main-row data-highlighted={highlighted(MAIN_KEY)} {...interaction(MAIN_KEY)} type="button" onClick={() => select(MAIN_KEY)} aria-pressed={mainSelected} className={styles.mainRow}><span className={styles.mainBadge}><BranchIcon />main</span><span>{content.main}</span></button>
+            <button ref={(element) => { if (element) titles.current.set(MAIN_KEY, element); else titles.current.delete(MAIN_KEY); }} data-career-main-row data-highlighted={highlighted(MAIN_KEY)} {...interaction(MAIN_KEY)} type="button" onClick={() => select(MAIN_KEY)} aria-pressed={mainSelected} className={styles.mainRow}><span className={styles.mainBadge}><BranchIcon />master</span><span>{content.main}</span></button>
             <div ref={titleList} className={styles.titleList}>
             {jobs.map((job, index) => {
               const key = timeline.entries[index].key;
@@ -136,7 +136,7 @@ export function CareerGraph({ career, locale, expanded = false, onSelectionChang
             })}
             </div>
             {showDetails && <div ref={detail} className={styles.detail} aria-live="polite" aria-atomic="true" style={{ "--branch-color": mainSelected ? "var(--career-main)" : selected?.color } as CSSProperties}>
-              <span className={styles.detailRef}><BranchIcon /><span>{mainSelected ? "main" : selected?.branchName}</span></span>
+              <span className={styles.detailRef}><BranchIcon /><span>{mainSelected ? "master" : selected?.branchName}</span></span>
               <h3 className={styles.detailCompany}>{mainSelected ? content.main : selected?.company}</h3>
               {selected && <p className={styles.detailRole}>{selected.role}</p>}
               {selected?.summary && <p className={styles.summary}>{selected.summary}</p>}
@@ -163,7 +163,7 @@ export function CareerGraph({ career, locale, expanded = false, onSelectionChang
                 <text x="8" y={timeline.undatedTop + 28}>{content.undated}</text>
               </g>}
               <g>
-              <g data-career-main-branch data-highlighted={highlighted(MAIN_KEY)} {...interaction(MAIN_KEY)} role="button" tabIndex={0} aria-label={`main: ${content.main}`} aria-pressed={mainSelected} className={styles.graphButton} onClick={() => select(MAIN_KEY, true)} onKeyDown={(event) => {
+              <g data-career-main-branch data-highlighted={highlighted(MAIN_KEY)} {...interaction(MAIN_KEY)} role="button" tabIndex={0} aria-label={`master: ${content.main}`} aria-pressed={mainSelected} className={styles.graphButton} onClick={() => select(MAIN_KEY, true)} onKeyDown={(event) => {
                 if (event.key === "Enter" || event.key === " ") { event.preventDefault(); select(MAIN_KEY, true); }
               }}>
                 <path d={`M${timeline.mainX} ${timeline.height} V${timeline.topY}`} className={styles.hitPath} />

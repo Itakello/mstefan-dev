@@ -1,5 +1,5 @@
 import { HomeContent, HomeLivePreview } from "@/components/cms/HomeContent";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { ProjectCard } from "@/components/ProjectCard";
 import { StackCatalog } from "@/components/StackCatalog";
@@ -25,12 +25,11 @@ export default async function Home({ params, searchParams }: { params: Promise<{
   const { locale } = await params;
   if (!isSupportedLocale(locale)) notFound();
   const { getPageContent } = await import("@/lib/cms/pageContent");
-  const { CareerGraph, CareerLivePreview } = await import("@/components/CareerGraph");
   const query = await searchParams;
   const preview = query.preview === "1";
   const careerPreview = preview && query.previewSource === "career";
-  const { getCareerContent } = await import("@/lib/cms/career");
-  const [content, career] = await Promise.all([getPageContent("home", locale, preview && !careerPreview), getCareerContent(locale, careerPreview)]);
+  if (careerPreview) redirect(`/${locale}/about?preview=1&previewSource=career`);
+  const content = await getPageContent("home", locale, preview);
   const [{ projects, publication }, stackCatalog] = await Promise.all([loadPublicProjects(locale), loadWebsiteStack()]);
   if (stackCatalog.status === "ready") {
     assertProjectStackCoverage(publication.projects, stackCatalog.entries);
@@ -48,13 +47,11 @@ export default async function Home({ params, searchParams }: { params: Promise<{
     ? getCopy(locale).publication.stack[stackCatalog.message]
     : (toolkitEntries.length === 0 ? getCopy(locale).publication.toolkitEmpty : null);
 
-  const Content = preview && !careerPreview ? HomeLivePreview : HomeContent;
-  const CareerContent = careerPreview ? CareerLivePreview : CareerGraph;
+  const Content = preview ? HomeLivePreview : HomeContent;
   return (
     <Content
       content={content}
       locale={locale}
-      career={<CareerContent career={career} locale={locale} />}
       selectedWork={selectedProjects.length > 0 ? (
         <div className="mt-4 border-t border-black/10 dark:border-white/10">
           {selectedProjects.map((project) => (
