@@ -1,0 +1,35 @@
+.github/workflows/ci.yml
+  s_99649e26c921f2::t_2d78ba018dd601 149-150
+.github/workflows/deploy-mstefan.yml
+  s_99649e26c921f2::t_d038c4dfb1d364 1-49
+deploy/event/README.md
+  s_99649e26c921f2::t_f19dba253d93e1 1-35
+deploy/event/controller.py
+  s_99649e26c921f2::t_18a2a24a4010f7 1-346
+deploy/event/launch.py
+  s_99649e26c921f2::t_1bbb15efa8dfdc 1-9
+deploy/event/mstefan-event-deploy@.service
+  s_99649e26c921f2::t_a02c3ee765fac0 1-18
+deploy/event/test_controller.py
+  s_99649e26c921f2::t_996ce2c20f3bff 1-281
+deploy/event/trigger.py
+  s_99649e26c921f2::t_4414ce37d7582b 1-33
+deploy/event/trigger.sudoers
+  s_99649e26c921f2::t_d093a2ed3e167b 1-2
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "7847d0f1a2fdd93e3c04e54a36053d69ee1fdd4a",
+  "prompts": {},
+  "sessions": {
+    "s_99649e26c921f2": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0ec14-2355-7fd1-a6cb-ec2e94e09f5f",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
