@@ -20,14 +20,14 @@ let serverLog = '';
 let cookie = '';
 let environment: NodeJS.ProcessEnv;
 
-function publicRequest(url: string, headers: Record<string, string>) {
+function publicRequest(url: string, headers: Record<string, string>, method: 'GET' | 'HEAD' = 'GET') {
   // Raw HTTP preserves the Host override; newer fetch implementations discard it.
   return new Promise<Response>((resolve, reject) => {
-    const req = httpRequest(new URL(url, base), { headers, timeout: 5000 }, (res) => {
+    const req = httpRequest(new URL(url, base), { headers, method, timeout: 5000 }, (res) => {
       const chunks: Buffer[] = [];
       res.on('data', (chunk) => chunks.push(chunk));
       res.on('end', () => resolve(new Response(Buffer.concat(chunks), {
-        status: res.statusCode, headers: { 'cache-control': res.headers['cache-control'] ?? '' },
+        status: res.statusCode, headers: { 'cache-control': res.headers['cache-control'] ?? '', 'content-type': res.headers['content-type'] ?? '' },
       })));
       res.on('error', reject);
     });
@@ -35,6 +35,31 @@ function publicRequest(url: string, headers: Record<string, string>) {
     req.on('timeout', () => req.destroy(new Error('Public request timed out')));
     req.end();
   });
+}
+
+function syntheticPDF() {
+  const stream = 'BT /F1 18 Tf 40 100 Td (Synthetic career PDF) Tj ET';
+  const secondStream = 'BT /F1 18 Tf 40 100 Td (PDF page two) Tj ET';
+  const objects = [
+    '<< /Type /Catalog /Pages 2 0 R >>',
+    '<< /Type /Pages /Count 2 /Kids [3 0 R 6 0 R] >>',
+    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 200] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>',
+    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
+    `<< /Length ${Buffer.byteLength(stream)} >>\nstream\n${stream}\nendstream`,
+    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 200] /Resources << /Font << /F1 4 0 R >> >> /Contents 7 0 R >>',
+    `<< /Length ${Buffer.byteLength(secondStream)} >>\nstream\n${secondStream}\nendstream`,
+  ];
+  let source = '%PDF-1.4\n';
+  const offsets: number[] = [];
+  for (const [index, object] of objects.entries()) {
+    offsets.push(Buffer.byteLength(source));
+    source += `${index + 1} 0 obj\n${object}\nendobj\n`;
+  }
+  const startxref = Buffer.byteLength(source);
+  source += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+  for (const offset of offsets) source += `${String(offset).padStart(10, '0')} 00000 n \n`;
+  source += `trailer\n<< /Root 1 0 R /Size ${objects.length + 1} >>\nstartxref\n${startxref}\n%%EOF\n`;
+  return Buffer.from(source);
 }
 
 async function request(url: string, data?: unknown, authenticated = false) {
@@ -192,6 +217,41 @@ test('production drafts, active-locale UI publishing, media privacy, and restart
   assert.equal((await publicRequest(optimizedURL, publicHeaders)).status, 404);
   const privateFile = await fetch(new URL(media.url, base), { headers: { Cookie: cookie } });
   assert.equal(privateFile.status, 200);
+  const invalidDocument = new FormData();
+  invalidDocument.set('file', new Blob([bytes], { type: 'image/png' }), 'not-a-pdf.png');
+  invalidDocument.set('_payload', '{}');
+  const rejectedImage = await fetch(`${base}/api/documents`, { method: 'POST', headers: { Cookie: cookie }, body: invalidDocument });
+  assert.ok([400, 415].includes(rejectedImage.status), `Documents accepted an image upload (${rejectedImage.status})`);
+  const pdfBytes = syntheticPDF();
+  const documentForm = new FormData();
+  documentForm.set('file', new Blob([pdfBytes], { type: 'application/pdf' }), 'synthetic-career.pdf');
+  documentForm.set('_payload', '{}');
+  const documentUpload = await fetch(`${base}/api/documents`, { method: 'POST', headers: { Cookie: cookie }, body: documentForm });
+  assert.equal(documentUpload.status, 201);
+  const document = (await documentUpload.json()).doc;
+  assert.equal(document.mimeType, 'application/pdf');
+  assert.ok([401, 403, 404].includes((await fetch(new URL(document.url, base))).status), 'Unreferenced PDF became public');
+  assert.ok([401, 403, 404].includes((await publicRequest(document.url, publicHeaders)).status), 'Public host accepted private PDF authentication');
+  const careerBeforeDocument = await (await request('/api/globals/career?locale=en&draft=false', undefined, true)).json();
+  const withDocument = careerBeforeDocument.jobs.map((job: { branchName: string }) => ({ ...job, documents: job.branchName === 'work/amazon' ? [{ title: 'Synthetic career PDF', file: document.id }] : [] }));
+  await update('career', 'en', { jobs: withDocument }, '&draft=true');
+  assert.ok([401, 403, 404].includes((await fetch(new URL(document.url, base))).status), 'Draft-only PDF became public');
+  await update('career', 'en', { jobs: withDocument, _status: 'published' }, '&publishSpecificLocale=en');
+  const publishedDocument = await fetch(new URL(document.url, base));
+  assert.equal(publishedDocument.status, 200);
+  assert.match(publishedDocument.headers.get('content-type') ?? '', /^application\/pdf/);
+  assert.deepEqual(Buffer.from(await publishedDocument.arrayBuffer()), pdfBytes);
+  const publicPDF = await publicRequest(document.url, publicHeaders);
+  assert.equal(publicPDF.status, 200);
+  assert.equal(publicPDF.headers.get('cache-control'), 'no-store');
+  assert.deepEqual(Buffer.from(await publicPDF.arrayBuffer()), pdfBytes);
+  const publicPDFHead = await publicRequest(document.url, publicHeaders, 'HEAD');
+  const localPDFHead = await fetch(new URL(document.url, base), { method: 'HEAD' });
+  assert.equal(publicPDFHead.status, localPDFHead.status, 'Public proxy must pass document HEAD through like loopback');
+  assert.equal((await publicRequest(`/api/documents/${document.id}`, publicHeaders)).status, 404, 'Public document API must remain private');
+  await update('career', 'en', { jobs: careerBeforeDocument.jobs.map((job: unknown) => ({ ...(job as object), documents: [] })), _status: 'published' }, '&publishSpecificLocale=en');
+  assert.ok([401, 403, 404].includes((await fetch(new URL(document.url, base))).status), 'Removed PDF remained public');
+  assert.equal((await fetch(new URL(document.url, base), { headers: { Cookie: cookie } })).status, 200);
   const secondRegistration = await request('/api/users/first-register', { email: 'another@example.invalid', password });
   assert.notEqual(secondRegistration.status, 200);
   await stop();
@@ -368,6 +428,14 @@ test('nested career branches share junctions and synchronize graph and Experienc
   const hiddenUpload = await fetch(`${base}/api/media`, { method: 'POST', headers: { Cookie: cookie }, body: hiddenForm });
   assert.equal(hiddenUpload.status, 201);
   const hiddenPhoto = (await hiddenUpload.json()).doc;
+  const pdfBytes = syntheticPDF();
+  const documentForm = new FormData();
+  documentForm.set('file', new Blob([pdfBytes], { type: 'application/pdf' }), 'synthetic-project.pdf');
+  documentForm.set('_payload', '{}');
+  const documentUpload = await fetch(`${base}/api/documents`, { method: 'POST', headers: { Cookie: cookie }, body: documentForm });
+  assert.equal(documentUpload.status, 201);
+  const pdfFile = (await documentUpload.json()).doc;
+  assert.ok([401, 403, 404].includes((await fetch(new URL(pdfFile.url, base))).status), 'Unpublished experience PDF must be private');
   const fixtures = [
     ['B', 'education/university', 1, 9, null, '#ffaa66'],
     ['C', 'work/independent', 1, 6, null, '#66dd88'],
@@ -381,7 +449,8 @@ test('nested career branches share junctions and synchronize graph and Experienc
   const jobs = fixtures.map(([company, branchName, start, end, parentBranchName, color]) => ({
     company, branchName, role: 'Synthetic test experience', parentBranchName, color,
     ...(['B', 'C', 'F'].includes(company) ? { summary: `Synthetic story for ${company}` } : {}),
-    ...(company === 'F' ? { photo: photo.id } : company === 'E' ? { photo: hiddenPhoto.id } : {}),
+    ...(company === 'F' ? { photo: photo.id, documents: [{ title: 'Synthetic project PDF', file: pdfFile.id }] } : company === 'E' ? { photo: hiddenPhoto.id } : {}),
+    ...(company === 'H' ? { documents: [{ title: 'Synthetic document-only PDF', file: pdfFile.id }] } : {}),
     startDate: new Date(Date.UTC(2024, start, 1)).toISOString(), endDate: new Date(Date.UTC(2024, end, 1)).toISOString(),
   }));
   await update('career', 'en', { jobs, laneSpacing: 24, _status: 'published' }, '&publishSpecificLocale=en');
@@ -391,6 +460,9 @@ test('nested career branches share junctions and synchronize graph and Experienc
   assert.ok([401, 403, 404].includes((await fetch(new URL(hiddenPhoto.url, base))).status), 'Photo without a published story must remain private');
   const publicAbout = await (await request('/en/about')).text();
   assert.ok(!publicAbout.includes('hidden-experience.png') && !publicAbout.includes('Hidden experience portrait'), 'Hidden photo metadata leaked into the public About page');
+  const publishedDocument = await fetch(new URL(pdfFile.url, base));
+  assert.equal(publishedDocument.status, 200);
+  assert.deepEqual(Buffer.from(await publishedDocument.arrayBuffer()), pdfBytes);
   const browser = await chromium.launch({ headless: true });
   try {
     const page = await browser.newPage({ viewport: { width: 1000, height: 900 } });
@@ -407,6 +479,7 @@ test('nested career branches share junctions and synchronize graph and Experienc
     await expect(page.locator('#career-story')).toHaveAttribute('aria-label', 'en-published-from-ui');
     await expect(page.locator('#career-story h1')).toHaveText('main');
     await expect(page.locator('#career-story img')).toHaveAttribute('src', '/profile-photo.jpg');
+    await expect(page.getByRole('link', { name: /Read story/i })).toHaveCount(0);
     await expect(graph.locator('[data-career-label]')).toHaveCount(0);
     await projectTitle.hover();
     await expect(project).toHaveAttribute('data-highlighted', 'true');
@@ -414,6 +487,33 @@ test('nested career branches share junctions and synchronize graph and Experienc
     await projectTitle.click();
     await expect(page.locator('#career-story img')).toHaveAttribute('src', photo.url);
     await expect(page.locator('#career-story img')).toHaveAttribute('alt', 'Synthetic experience portrait');
+    const pdfPreview = page.locator('#career-story [data-pdf-document]');
+    await expect(pdfPreview.getByRole('heading', { name: 'Synthetic project PDF' })).toBeVisible();
+    await expect(pdfPreview.getByRole('link', { name: 'Download PDF' }).first()).toHaveAttribute('href', pdfFile.url);
+    await expect(pdfPreview.locator('[data-pdf-preview]')).toHaveCount(0);
+    await pdfPreview.getByRole('button', { name: 'View PDF' }).click();
+    const reader = pdfPreview.locator('[data-pdf-preview]');
+    await expect(reader).toBeVisible();
+    await expect(reader.getByRole('status', { name: /preview unavailable/i })).toHaveCount(0);
+    await expect.poll(() => reader.locator('canvas').evaluate((canvas) => (canvas as HTMLCanvasElement).width)).toBeGreaterThan(0);
+    await expect(reader.locator('[data-document-text]')).toContainText('Synthetic career PDF');
+    await page.screenshot({ path: '/private/tmp/career-pdf-reader-desktop.png', fullPage: true });
+    await reader.getByRole('button', { name: 'Next page' }).click();
+    await expect(reader.locator('[data-document-text]')).toContainText('PDF page two');
+    await reader.getByRole('button', { name: 'Previous page' }).click();
+    await expect(reader.locator('[data-document-text]')).toContainText('Synthetic career PDF');
+    await expect(reader.locator('[data-document-text]')).not.toContainText('page two');
+    await reader.getByRole('button', { name: 'Zoom in' }).click();
+    await expect(reader.getByText('125%')).toBeVisible();
+    await pdfPreview.getByRole('button', { name: 'Close preview' }).click();
+    await expect(pdfPreview.locator('[data-pdf-preview]')).toHaveCount(0);
+    await graph.locator('button[data-career-job]', { hasText: 'work/next' }).click();
+    await expect(page.locator('#career-story h1')).toHaveText('H');
+    await expect(page.locator('#career-story [data-pdf-document]')).toBeVisible();
+    await expect(page.getByRole('link', { name: /Read story/i })).toHaveCount(0);
+    await projectTitle.click();
+    await expect(page.locator('#career-story h1')).toHaveText('F');
+
     assert.ok(await page.locator('#career-story img').evaluate((image) => (image as HTMLImageElement).complete && (image as HTMLImageElement).naturalWidth > 0));
     await page.setViewportSize({ width: 1440, height: 900 });
     assert.ok(await page.locator('#career-story').evaluate((story) => story.querySelector('figure')!.getBoundingClientRect().width < story.getBoundingClientRect().width));
@@ -426,6 +526,8 @@ test('nested career branches share junctions and synchronize graph and Experienc
     const mainline = graph.locator('[data-career-main-branch]');
     await mainRow.click();
     await expect(page.locator('#career-story img')).toHaveAttribute('src', '/profile-photo.jpg');
+    await expect(page.locator('#career-story [data-pdf-document]')).toHaveCount(0);
+    await expect(page.getByRole('link', { name: /Read story/i })).toHaveCount(0);
     assert.ok((await centeredPhotoOffset()) < 2, 'Profile photo should be centered on desktop');
     await expect(mainline).toHaveAttribute('aria-pressed', 'true');
     await expect(page.locator('#career-story').getByRole('heading', { level: 1 })).toHaveText('main');
@@ -467,12 +569,17 @@ test('nested career branches share junctions and synchronize graph and Experienc
     await expect(emptyStory).toHaveAttribute('aria-pressed', 'true');
     await expect(page.locator('#career-story h1')).toHaveText('main');
     await expect(page.locator('#career-story img')).toHaveAttribute('src', '/profile-photo.jpg');
+    await expect(page.getByRole('link', { name: /Read story/i })).toHaveCount(0);
     await page.setViewportSize({ width: 320, height: 800 });
     await expect(graph.locator('[data-career-label]')).toHaveCount(0);
     await project.focus();
     await project.press('Enter');
     await expect(project).toHaveAttribute('aria-pressed', 'true');
     assert.ok((await centeredPhotoOffset()) < 2, 'Experience photo should be centered on mobile');
+    await expect(page.getByRole('link', { name: /F · Read story/i })).toHaveAttribute('href', '#career-story');
+    await page.locator('#career-story [data-pdf-document]').getByRole('button', { name: 'View PDF' }).click();
+    await expect(page.locator('#career-story [data-document-text]')).toContainText('Synthetic career PDF');
+    await page.screenshot({ path: '/private/tmp/career-pdf-reader-gallery-mobile.png', fullPage: true });
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), 'Career page overflows at 320px');
   } finally { await browser.close(); }
 });

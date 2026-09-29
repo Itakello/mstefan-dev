@@ -1,6 +1,7 @@
-export function documentMediaUrl(value: string): string {
-  const url = new URL(value);
-  if (url.protocol !== "https:" || url.username || url.password) throw new Error("Invalid document URL");
+export function documentMediaUrl(value: string, origin?: string): string {
+  const url = new URL(value, origin);
+  const localDocument = origin && url.origin === new URL(origin).origin && url.pathname.startsWith("/api/documents/file/");
+  if ((url.protocol !== "https:" && !localDocument) || url.username || url.password) throw new Error("Invalid document URL");
   const parts = url.pathname.split("/");
   if (url.hostname === "github.com" && parts[3] === "blob" && parts.length >= 6) {
     url.hostname = "raw.githubusercontent.com";

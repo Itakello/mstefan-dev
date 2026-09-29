@@ -18,6 +18,27 @@ backup = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(backup)
 
 
+def synthetic_pdf():
+    stream = b'BT /F1 18 Tf 40 100 Td (Backup PDF) Tj ET'
+    objects = [
+        b'<< /Type /Catalog /Pages 2 0 R >>',
+        b'<< /Type /Pages /Count 1 /Kids [3 0 R] >>',
+        b'<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 200] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>',
+        b'<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
+        b'<< /Length ' + str(len(stream)).encode() + b' >>\nstream\n' + stream + b'\nendstream',
+    ]
+    result = b'%PDF-1.4\n'
+    offsets = []
+    for number, content in enumerate(objects, 1):
+        offsets.append(len(result))
+        result += str(number).encode() + b' 0 obj\n' + content + b'\nendobj\n'
+    xref = len(result)
+    result += b'xref\n0 6\n0000000000 65535 f \n'
+    for offset in offsets:
+        result += f'{offset:010d} 00000 n \n'.encode()
+    return result + b'trailer\n<< /Root 1 0 R /Size 6 >>\nstartxref\n' + str(xref).encode() + b'\n%%EOF\n'
+
+
 class BackupTests(unittest.TestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
@@ -29,6 +50,10 @@ class BackupTests(unittest.TestCase):
         self.media = self.source / backup.MEDIA
         self.media.mkdir()
         (self.media / 'photo.png').write_bytes(b'synthetic-media-bytes')
+        self.documents = self.source / backup.DOCUMENTS
+        self.documents.mkdir()
+        self.pdf = synthetic_pdf()
+        (self.documents / 'career.pdf').write_bytes(self.pdf)
         (self.source / '.env').write_text('DO_NOT_BACK_UP_THIS_ENVIRONMENT_FILE')
         with sqlite3.connect(self.source / backup.DB) as db:
             db.execute('CREATE TABLE content (title TEXT)')
@@ -52,9 +77,10 @@ class BackupTests(unittest.TestCase):
         self.assertEqual(report['status'], 'created')
         self.assertEqual(stat.S_IMODE(archive.stat().st_mode), 0o600)
         with tarfile.open(archive) as bundle:
-            self.assertEqual(set(bundle.getnames()), {backup.DB, '.payload-media/photo.png', backup.MANIFEST})
+            self.assertEqual(set(bundle.getnames()), {backup.DB, '.payload-media/photo.png', '.payload-documents/career.pdf', backup.MANIFEST})
             self.assertTrue(all(member.isfile() and member.mode == 0o600 for member in bundle.getmembers()))
             self.assertEqual(bundle.extractfile('.payload-media/photo.png').read(), b'synthetic-media-bytes')
+            self.assertEqual(bundle.extractfile('.payload-documents/career.pdf').read(), self.pdf)
             restored = self.root / 'restored.db'
             restored.write_bytes(bundle.extractfile(backup.DB).read())
             with sqlite3.connect(restored) as db:
@@ -117,6 +143,16 @@ class BackupTests(unittest.TestCase):
                 self.run_backup()
         self.assert_clean()
 
+    def test_document_change_during_snapshot_refuses_and_cleans_staging(self):
+        original = backup.shutil.copyfileobj
+        def changing_copy(source, dest):
+            original(source, dest)
+            (self.documents / 'career.pdf').write_bytes(b'concurrent writer')
+        with patch.object(backup.shutil, 'copyfileobj', changing_copy):
+            with self.assertRaisesRegex(ValueError, 'changed'):
+                self.run_backup()
+        self.assert_clean()
+
     def test_no_overwrite_if_destination_appears_during_publication(self):
         archive = self.output / 'payload-run-001.tar'
         original = backup.os.link
@@ -129,13 +165,14 @@ class BackupTests(unittest.TestCase):
         self.assertEqual(archive.read_bytes(), b'other process output')
         self.assertEqual(list(self.output.iterdir()), [archive])
 
-    def test_rejects_symlinks_in_source_output_and_media(self):
+    def test_rejects_symlinks_in_source_output_and_uploads(self):
         link = self.root / 'source-link'
         link.symlink_to(self.source, target_is_directory=True)
         with self.assertRaisesRegex(ValueError, 'Symlinks'):
             backup.backup(link, self.output, 'run', True)
         for location, target in [(self.media / 'link', self.source / '.env'),
                                   (self.media / 'directory-link', self.root),
+                                  (self.documents / 'link', self.source / '.env'),
                                   (self.source / (backup.DB + '-wal'), self.source / '.env'),
                                   (self.output / 'payload-run-001.tar', self.source / '.env')]:
             location.symlink_to(target)
@@ -198,9 +235,11 @@ class BackupTests(unittest.TestCase):
             self.run_backup()
         self.assertEqual(list(self.output.iterdir()), [archive])
 
-    def test_empty_media_directory_is_optional(self):
+    def test_empty_upload_directories_are_optional(self):
         (self.media / 'photo.png').unlink()
         self.media.rmdir()
+        (self.documents / 'career.pdf').unlink()
+        self.documents.rmdir()
         self.assertEqual(self.run_backup()['status'], 'created')
 
 

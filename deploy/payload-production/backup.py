@@ -16,6 +16,7 @@ import time
 
 DB = '.payload-local.db'
 MEDIA = '.payload-media'
+DOCUMENTS = '.payload-documents'
 MANIFEST = 'manifest.json'
 
 
@@ -46,17 +47,18 @@ def digest(path):
         return {'sha256': result, 'size': after.st_size}
 
 
-def media_files(source):
-    root = source / MEDIA
-    if not root.exists() and not root.is_symlink():
-        return []
-    regular_path(root, directory=True)
+def upload_files(source):
     files = []
-    for directory, dirs, names in os.walk(root, followlinks=False):
-        for name in dirs:
-            regular_path(Path(directory) / name, directory=True)
-        for name in names:
-            files.append(regular_path(Path(directory) / name))
+    for name in (MEDIA, DOCUMENTS):
+        root = source / name
+        if not root.exists() and not root.is_symlink():
+            continue
+        regular_path(root, directory=True)
+        for directory, dirs, names in os.walk(root, followlinks=False):
+            for child in dirs:
+                regular_path(Path(directory) / child, directory=True)
+            for child in names:
+                files.append(regular_path(Path(directory) / child))
     return sorted(files)
 
 
@@ -69,7 +71,7 @@ def source_fingerprint(source):
             # SQLite may create empty WAL/SHM files itself on a read-only connection.
             if suffix != '-shm' and sidecar.stat().st_size:
                 result[DB + suffix] = digest(sidecar)
-    for path in media_files(source):
+    for path in upload_files(source):
         result[path.relative_to(source).as_posix()] = digest(path)
     return result
 
@@ -94,7 +96,7 @@ def verify_archive(archive, run_id, source_id, scratch):
             path = Path(member.name)
             if not member.isfile() or path.is_absolute() or '..' in path.parts:
                 raise ValueError('Archive contains an unsafe entry')
-            if member.name not in (DB, MANIFEST) and not member.name.startswith(MEDIA + '/'):
+            if member.name not in (DB, MANIFEST) and not any(member.name.startswith(name + '/') for name in (MEDIA, DOCUMENTS)):
                 raise ValueError('Archive contains an unexpected entry')
         manifest_member = bundle.getmember(MANIFEST)
         if manifest_member.size > 1024 * 1024:
@@ -153,7 +155,7 @@ def backup(source, output_dir, run_id, runtime_stopped=False):
                     src.backup(dest, pages=128, progress=progress, sleep=0.1)
             check_database(database)
             files = {DB: digest(database)}
-            for original in media_files(source):
+            for original in upload_files(source):
                 relative = original.relative_to(source)
                 target = stage / relative
                 target.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -162,7 +164,7 @@ def backup(source, output_dir, run_id, runtime_stopped=False):
                     shutil.copyfileobj(stream, dest)
                 files[relative.as_posix()] = digest(target)
                 if files[relative.as_posix()] != before.get(relative.as_posix()):
-                    raise ValueError('Media changed during backup')
+                    raise ValueError('Upload changed during backup')
             if source_fingerprint(source) != before:
                 raise ValueError('Source changed during backup; output was not published')
             manifest = {'format': 1, 'run_id': run_id, 'source_id': source_id, 'files': files}

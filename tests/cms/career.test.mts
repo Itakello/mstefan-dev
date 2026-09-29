@@ -168,6 +168,35 @@ test('career seed, localized order, authenticated drafts, colors, and deletion s
     assert.deepEqual(await visibleMedia(), [1, 2, 3], 'Draft About photo remains private');
     await payload.updateGlobal({ slug: 'career', locale: 'en', publishSpecificLocale: 'en', data: { _status: 'published', jobs: [] } });
     assert.deepEqual(await visibleMedia(), [1, 2], 'Removed career photo should become private');
+    const documentsDB = new DatabaseSync(path.join(dataDir, '.payload-local.db'));
+    try {
+      for (const id of [1, 2, 3]) documentsDB.prepare('INSERT INTO documents (id, filename, mime_type) VALUES (?, ?, ?)').run(id, `document-${id}.pdf`, 'application/pdf');
+    } finally { documentsDB.close(); }
+    const visibleDocuments = async () => {
+      try { return (await payload.find({ collection: 'documents', overrideAccess: false, limit: 20 })).docs.map(({ id }) => id).sort(); }
+      catch (error) { if ((error as { status?: number }).status === 403) return []; throw error; }
+    };
+    assert.deepEqual(await visibleDocuments(), []);
+    const italianWithDocuments = (await payload.findGlobal({ slug: 'career', locale: 'it', draft: false, fallbackLocale: false })).jobs!;
+    await payload.updateGlobal({ slug: 'career', locale: 'it', publishSpecificLocale: 'it', data: {
+      _status: 'published', jobs: italianWithDocuments.map((job, index) => ({ ...job, documents: index === 0 ? [{ title: 'Documento italiano', file: 1 }] : [] })),
+    } });
+    assert.deepEqual(await visibleDocuments(), [1], 'Published Italian document should be public');
+    await payload.updateGlobal({ slug: 'career', locale: 'en', draft: true, data: {
+      jobs: [{ branchName: 'work/draft', company: 'Draft', role: 'Draft role', color: '#123456', documents: [{ title: 'Private PDF', file: 2 }] }],
+    } });
+    assert.deepEqual(await visibleDocuments(), [1], 'Draft-only document should remain private');
+    const draftDocument = (await payload.findGlobal({ slug: 'career', locale: 'en', draft: true, depth: 1 })).jobs![0].documents![0];
+    assert.equal(draftDocument.title, 'Private PDF');
+    assert.equal(typeof draftDocument.file === 'object' && draftDocument.file?.mimeType, 'application/pdf');
+    await payload.updateGlobal({ slug: 'career', locale: 'en', publishSpecificLocale: 'en', data: { _status: 'published' } });
+    assert.deepEqual(await visibleDocuments(), [1, 2]);
+    await payload.updateGlobal({ slug: 'career', locale: 'en', draft: true, data: {
+      jobs: [{ branchName: 'work/draft', company: 'Draft', role: 'Draft role', color: '#123456', documents: [{ title: 'Replacement draft', file: 3 }] }],
+    } });
+    assert.deepEqual(await visibleDocuments(), [1, 2], 'Replacing a document in a draft must not expose it');
+    await payload.updateGlobal({ slug: 'career', locale: 'en', publishSpecificLocale: 'en', data: { _status: 'published', jobs: [] } });
+    assert.deepEqual(await visibleDocuments(), [1], 'Removed published document should become private');
   } finally {
     await payload.destroy();
     await rm(dataDir, { recursive: true, force: true });
