@@ -6,6 +6,7 @@ import os
 import posixpath
 import re
 import socket
+import stat
 import sys
 import time
 import urllib.parse
@@ -49,6 +50,7 @@ class MountTopology:
         self.canonical = canonical or (lambda path: os.path.realpath(path, strict=True))
         self.entries = {}
         self.unresolved_points = set()
+        self.opaque_points = set()
         groups = {}
         lines = text.splitlines()
         self.lines = tuple(lines)
@@ -63,18 +65,27 @@ class MountTopology:
             seen_ids.add(values[0])
             device = tuple(int(part) for part in values[2].split(':'))
             paths = []
-            for encoded in values[3:5]:
+            for index, encoded in enumerate(values[3:5]):
                 if not re.fullmatch(r'(?:[^\\]|\\(?:040|011|012|134))*', encoded):
                     raise Blocked('host mount topology escape invalid')
                 decoded = re.sub(r'\\(040|011|012|134)', lambda match: chr(int(match[1], 8)), encoded)
-                if not posixpath.isabs(decoded) or posixpath.normpath(decoded) != decoded:
+                if index == 0 and re.fullmatch(r'net:\[[0-9]+\]', decoded):
+                    if filesystem.split()[0] != 'nsfs' or not re.fullmatch(r'/run/docker/netns/[A-Za-z0-9][A-Za-z0-9_.-]{0,127}', values[4]):
+                        raise Blocked('host network namespace mount invalid')
+                    paths.append(None)
+                elif not posixpath.isabs(decoded) or posixpath.normpath(decoded) != decoded:
                     raise Blocked('host mount topology path invalid')
-                paths.append(posixpath.normpath(decoded))
+                else:
+                    paths.append(decoded)
             root, mountpoint = paths
             groups.setdefault(mountpoint, []).append((values[0], values[1], device, root))
         for mountpoint, group in groups.items():
             if len(group) == 1:
-                self.entries[mountpoint] = (group[0][2], group[0][3])
+                if group[0][3] is None:
+                    self.unresolved_points.add(mountpoint)
+                    self.opaque_points.add(mountpoint)
+                else:
+                    self.entries[mountpoint] = (group[0][2], group[0][3])
                 continue
             parents = {row[1] for row in group}
             visible = [row for row in group if row[0] not in parents]
@@ -92,7 +103,11 @@ class MountTopology:
             if len(chain) != len(group):
                 self.unresolved_points.add(mountpoint)
                 continue
-            self.entries[mountpoint] = (visible[0][2], visible[0][3])
+            if visible[0][3] is None:
+                self.unresolved_points.add(mountpoint)
+                self.opaque_points.add(mountpoint)
+            else:
+                self.entries[mountpoint] = (visible[0][2], visible[0][3])
         if '/' not in self.entries and '/' not in self.unresolved_points:
             raise Blocked('host mount topology root missing')
 
@@ -123,6 +138,22 @@ class MountTopology:
         relative = posixpath.relpath(canonical, point)
         location = root if relative == '.' else posixpath.normpath(posixpath.join(root, relative))
         return canonical, device, location, metadata.st_ino
+
+    def readonly_namespace_file(self, source):
+        canonical = self.canonical(source)
+        return canonical in self.opaque_points and stat.S_ISREG(self.stat_path(canonical).st_mode)
+
+    def recursive_overlap(self, source, approved):
+        actual = self.identity(source)
+        target = self.identity(approved)
+        if any(posixpath.commonpath([point, actual[0]]) == actual[0] for point in self.unresolved_points):
+            raise Blocked('host mount stack unresolved under bind source')
+        for point in self.entries:
+            if point != actual[0] and posixpath.commonpath([point, actual[0]]) == actual[0]:
+                child = self.identity(point)
+                if child[1] == target[1] and (child[3] == target[3] or path_overlap(child[2], target[2])):
+                    return True
+        return False
 
     def overlaps(self, source, approved):
         actual = self.identity(source)
@@ -166,7 +197,11 @@ def snapshot(docker, mountpoint, topology):
             if mount.get('Type') in {'volume', 'bind'}:
                 if not os.path.isabs(source):
                     raise Blocked('Docker host mount source invalid')
+                if mount.get('Type') == 'bind' and mount['RW'] is False and topology.readonly_namespace_file(source):
+                    continue
                 source_path = topology.identity(source)[0]
+                if mount['RW'] is False and topology.recursive_overlap(source_path, mountpoint):
+                    raise Blocked('read-only parent bind may expose writable child')
             same_storage = mount.get('Name') == VOLUME or (source_path is not None and topology.overlaps(source_path, mountpoint))
             if same_storage and mount['RW']:
                 destination = mount.get('Destination')

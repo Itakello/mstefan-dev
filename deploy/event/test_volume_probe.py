@@ -170,6 +170,49 @@ class KernelTopologyTests(unittest.TestCase):
         with self.assertRaises(c.Blocked):
             p.probe(DockerFake({A: record(), B: extra}), topology_factory=factory)
 
+    def test_read_only_parent_with_child_volume_alias_blocks(self):
+        parent = record(B, 'read-only-parent', rw=False)
+        parent['Mounts'][0].update(Type='bind', Name=None, Source='/srv', Destination='/other')
+        with self.assertRaises(c.Blocked):
+            p.probe(DockerFake({A: record(), B: parent}), topology_factory=self.alias_topology)
+        direct = record(B, 'read-only-exact', rw=False)
+        direct['Mounts'][0].update(Type='bind', Name=None, Source='/srv/payload-data', Destination='/other')
+        result = p.probe(DockerFake({A: record(), B: direct}), topology_factory=self.alias_topology)
+        self.assertEqual(result['count'], 1)
+
+    def test_host_namespace_file_mounts_are_opaque_but_unrelated(self):
+        namespace_mounts = ''.join(
+            f'{number + 20} 10 0:45 net:[4026532{number:04d}] /run/docker/netns/ns{number} rw - nsfs nsfs rw\n'
+            for number in range(30)
+        )
+        factory = lambda: topology_fixture(namespace_mounts)
+        topology = factory()
+        self.assertEqual(len(topology.unresolved_points), 30)
+        self.assertEqual(p.probe(DockerFake(), topology_factory=factory), writer_fixture())
+        with self.assertRaises(c.Blocked):
+            topology.identity('/run/docker/netns/ns3')
+        safe = record(B, 'read-only-ns-file', rw=False)
+        safe['Mounts'][0].update(Type='bind', Name=None, Source='/run/docker/netns/ns3', Destination='/other')
+        def ns_metadata(path):
+            return SimpleNamespace(st_dev=os.makedev(8, 1), st_ino=abs(hash(path)), st_mode=0o100444)
+        safe_factory = lambda: topology_fixture(namespace_mounts, metadata=ns_metadata)
+        self.assertEqual(p.probe(DockerFake({A: record(), B: safe}), topology_factory=safe_factory)['count'], 1)
+        safe['Mounts'][0]['RW'] = True
+        with self.assertRaises(c.Blocked):
+            p.probe(DockerFake({A: record(), B: safe}), topology_factory=safe_factory)
+        extra = record(B, 'namespace-parent')
+        extra['Mounts'][0].update(Type='bind', Name=None, Source='/run/docker/netns', Destination='/other')
+        with self.assertRaises(c.Blocked):
+            p.probe(DockerFake({A: record(), B: extra}), topology_factory=factory)
+
+    def test_only_exact_net_namespace_roots_are_opaque(self):
+        for root in ('relative', 'net:[]', 'net:[abc]', 'mnt:[4026532000]', 'net:[4026532000]/child'):
+            with self.subTest(root=root), self.assertRaises(c.Blocked):
+                topology_fixture(f'20 10 0:45 {root} /run/docker/netns/ns1 rw - nsfs nsfs rw\n')
+        for point, filesystem in (('/srv/alias', 'nsfs'), ('/run/docker/netns/sub/child', 'nsfs'), ('/run/docker/netns/ns1', 'ext4')):
+            with self.subTest(point=point, filesystem=filesystem), self.assertRaises(c.Blocked):
+                topology_fixture(f'20 10 0:45 net:[4026532000] {point} rw - {filesystem} none rw\n')
+
     def test_non_symlink_bind_alias_root_descendant_and_parent_block(self):
         for source in ('/srv/payload-data', '/srv/payload-data/nested', '/srv'):
             with self.subTest(source=source):
