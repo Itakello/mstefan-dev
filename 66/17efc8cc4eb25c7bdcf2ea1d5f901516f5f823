@@ -1,0 +1,21 @@
+components/Footer.tsx
+  s_99649e26c921f2::t_8ef56d89ac9678 20
+components/cms/HomeContent.tsx
+  s_99649e26c921f2::t_8ef56d89ac9678 32
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6617efc8cc4eb25c7bdcf2ea1d5f901516f5f823",
+  "prompts": {},
+  "sessions": {
+    "s_99649e26c921f2": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0ec14-2355-7fd1-a6cb-ec2e94e09f5f",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
