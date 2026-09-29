@@ -1,5 +1,6 @@
 import io
 import json
+import os
 import tempfile
 from pathlib import Path
 from types import SimpleNamespace
@@ -38,7 +39,17 @@ class DockerFake:
         return self.records[path.split('/')[2]]
 
 
+def topology_fixture(extra='', metadata=None):
+    text = '10 1 8:1 / / rw - ext4 /dev/test rw\n' + extra
+    return p.MountTopology(text, stat_path=metadata or (lambda path: SimpleNamespace(st_dev=os.makedev(8, 1), st_ino=abs(hash(path)))), canonical=os.path.realpath)
+
+
 class ProbeTests(unittest.TestCase):
+    def setUp(self):
+        self.topology_patch = patch.object(p.MountTopology, 'read', side_effect=topology_fixture)
+        self.topology_patch.start()
+        self.addCleanup(self.topology_patch.stop)
+
     def test_reports_only_approved_metadata_using_fixed_get_paths(self):
         docker = DockerFake()
         self.assertEqual(p.probe(docker), writer_fixture())
@@ -118,6 +129,71 @@ class ProbeTests(unittest.TestCase):
         for path in ('/containers/x/json', '/containers/prune', '/volumes/other', '/version'):
             with self.assertRaises(c.Blocked):
                 p.Docker().get(path)
+
+
+class KernelTopologyTests(unittest.TestCase):
+    def alias_topology(self):
+        volume_root = os.path.realpath(MOUNTPOINT)
+        return topology_fixture('11 10 8:1 ' + volume_root + ' /srv/payload-data rw - ext4 /dev/test rw\n')
+
+    def test_non_symlink_bind_alias_root_descendant_and_parent_block(self):
+        for source in ('/srv/payload-data', '/srv/payload-data/nested', '/srv'):
+            with self.subTest(source=source):
+                extra = record(B, 'bind-mounted-alias')
+                extra['Mounts'][0].update(Type='bind', Name=None, Source=source, Destination='/other')
+                result = p.probe(DockerFake({A: record(), B: extra}), topology_factory=self.alias_topology)
+                self.assertEqual(result['count'], 2)
+                client = c.Client({'OPENSHIP_TOKEN': 'fake'})
+                client.probe = lambda: result
+                with self.assertRaises(c.Blocked):
+                    client.volume_writer('dep_new', attestation())
+
+    def test_unrelated_bind_filesystem_and_sibling_are_not_overlap(self):
+        topology = self.alias_topology()
+        self.assertFalse(topology.overlaps('/srv/other', MOUNTPOINT))
+        self.assertFalse(topology.overlaps('/srv/payload-data-sibling', MOUNTPOINT))
+        other = topology_fixture('11 10 8:2 ' + os.path.realpath(MOUNTPOINT) + ' /srv/unrelated rw - ext4 /dev/other rw\n',
+            metadata=lambda path: SimpleNamespace(st_dev=os.makedev(8, 2 if path.startswith('/srv/unrelated') else 1), st_ino=100))
+        self.assertFalse(other.overlaps('/srv/unrelated', MOUNTPOINT))
+
+    def test_topology_changes_and_unresolvable_sources_fail_closed(self):
+        extra = record(B, 'alias')
+        extra['Mounts'][0].update(Type='bind', Name=None, Source='/srv/payload-data', Destination='/other')
+        topologies = iter((self.alias_topology(), topology_fixture()))
+        with self.assertRaises(c.Blocked):
+            p.probe(DockerFake({A: record(), B: extra}), topology_factory=lambda: next(topologies))
+        def missing(path):
+            raise FileNotFoundError(path)
+        with self.assertRaises(OSError):
+            p.probe(DockerFake(), topology_factory=lambda: topology_fixture(metadata=missing))
+        with self.assertRaises(c.Blocked):
+            p.probe(DockerFake(), topology_factory=lambda: topology_fixture(metadata=lambda path: SimpleNamespace(st_dev=os.makedev(8, 2), st_ino=100)))
+
+    def test_mount_topology_generation_change_blocks_even_same_mapping(self):
+        topologies = iter((topology_fixture(), p.MountTopology('12 1 8:1 / / rw - ext4 /dev/test rw\n',
+            stat_path=lambda path: SimpleNamespace(st_dev=os.makedev(8, 1), st_ino=abs(hash(path))), canonical=os.path.realpath)))
+        with self.assertRaises(c.Blocked):
+            p.probe(DockerFake(), topology_factory=lambda: next(topologies))
+
+    def test_namespace_mismatch_and_malformed_topology_refused(self):
+        with patch.object(p.os, 'readlink', side_effect=('mnt:[1]', 'mnt:[2]')):
+            with self.assertRaises(c.Blocked):
+                p.MountTopology.read()
+        for text in ('', 'invalid', '10 1 invalid / / rw - ext4 /dev/test rw',
+                     '10 1 8:1 / / rw - ext4 /dev/test rw\n11 10 8:1 / / rw - ext4 /dev/test rw',
+                     'bad 1 8:1 / / rw - ext4 /dev/test rw',
+                     '10 parent 8:1 / / rw - ext4 /dev/test rw',
+                     r'10 1 8:1 /\777 / rw - ext4 /dev/test rw',
+                     r'10 1 8:1 / /\000 rw - ext4 /dev/test rw',
+                     '10 1 8:1 /srv/../alias / rw - ext4 /dev/test rw',
+                     '10 1 8:1 / / invalid - ext4 /dev/test rw'):
+            with self.subTest(text=text), self.assertRaises(c.Blocked):
+                p.MountTopology(text)
+
+    def test_exact_inode_identity_also_detects_alias_root(self):
+        target = os.path.realpath(MOUNTPOINT)
+        topology = topology_fixture(metadata=lambda path: SimpleNamespace(st_dev=os.makedev(8, 1), st_ino=1 if path in {target, '/srv/unusual-alias'} else abs(hash(path))))
+        self.assertTrue(topology.overlaps('/srv/unusual-alias', MOUNTPOINT))
 
 
 class SocketClientTests(unittest.TestCase):

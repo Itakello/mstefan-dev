@@ -3,6 +3,7 @@
 import http.client
 import json
 import os
+import posixpath
 import re
 import socket
 import sys
@@ -37,7 +38,82 @@ class Docker:
             connection.close()
 
 
-def snapshot(docker, mountpoint):
+def path_overlap(left, right):
+    return posixpath.commonpath([left, right]) in {left, right}
+
+
+class MountTopology:
+    """Map visible host paths to kernel filesystem roots; never read data files."""
+    def __init__(self, text, stat_path=None, canonical=None):
+        self.stat_path = stat_path or os.stat
+        self.canonical = canonical or (lambda path: os.path.realpath(path, strict=True))
+        self.entries = {}
+        lines = text.splitlines()
+        self.lines = tuple(lines)
+        if not lines or len(lines) > 8192:
+            raise Blocked('host mount topology incomplete')
+        seen_ids = set()
+        for line in lines:
+            fields, separator, filesystem = line.partition(' - ')
+            values = fields.split()
+            if not separator or len(values) < 6 or len(filesystem.split()) < 3 or not re.fullmatch('[1-9][0-9]*', values[0]) or not re.fullmatch('[0-9]+', values[1]) or values[0] in seen_ids or not re.fullmatch('[0-9]+:[0-9]+', values[2]) or not re.fullmatch(r'(?:ro|rw)(?:,[A-Za-z0-9_=.-]+)*', values[5]):
+                raise Blocked('host mount topology invalid')
+            seen_ids.add(values[0])
+            device = tuple(int(part) for part in values[2].split(':'))
+            paths = []
+            for encoded in values[3:5]:
+                if not re.fullmatch(r'(?:[^\\]|\\(?:040|011|012|134))*', encoded):
+                    raise Blocked('host mount topology escape invalid')
+                decoded = re.sub(r'\\(040|011|012|134)', lambda match: chr(int(match[1], 8)), encoded)
+                if not posixpath.isabs(decoded) or posixpath.normpath(decoded) != decoded:
+                    raise Blocked('host mount topology path invalid')
+                paths.append(posixpath.normpath(decoded))
+            root, mountpoint = paths
+            if mountpoint in self.entries:
+                raise Blocked('stacked host mount topology unresolved')
+            self.entries[mountpoint] = (device, root)
+        if '/' not in self.entries:
+            raise Blocked('host mount topology root missing')
+
+    @classmethod
+    def read(cls):
+        own = os.readlink('/proc/self/ns/mnt')
+        host = os.readlink('/proc/1/ns/mnt')
+        if not re.fullmatch(r'mnt:\[[0-9]+\]', own) or own != host:
+            raise Blocked('probe must observe the host mount namespace')
+        with open('/proc/self/mountinfo') as stream:
+            text = stream.read(1024 * 1024 + 1)
+        if len(text.encode()) > 1024 * 1024:
+            raise Blocked('host mount topology too large')
+        return cls(text)
+
+    def identity(self, path):
+        canonical = self.canonical(path)
+        if not posixpath.isabs(canonical):
+            raise Blocked('host path unresolved')
+        candidates = [point for point in self.entries if posixpath.commonpath([point, canonical]) == point]
+        point = max(candidates, key=len)
+        device, root = self.entries[point]
+        metadata = self.stat_path(canonical)
+        if (os.major(metadata.st_dev), os.minor(metadata.st_dev)) != device:
+            raise Blocked('host path device changed')
+        relative = posixpath.relpath(canonical, point)
+        location = root if relative == '.' else posixpath.normpath(posixpath.join(root, relative))
+        return canonical, device, location, metadata.st_ino
+
+    def overlaps(self, source, approved):
+        actual = self.identity(source)
+        target = self.identity(approved)
+        regions = [actual]
+        # A parent bind recursively exposes child mounts, including aliases.
+        for point in self.entries:
+            if point != actual[0] and posixpath.commonpath([point, actual[0]]) == actual[0]:
+                regions.append(self.identity(point))
+        return any(region[1] == target[1] and (region[3] == target[3] or path_overlap(region[2], target[2])) for region in regions)
+
+
+
+def snapshot(docker, mountpoint, topology):
     listed = docker.get(LIST_PATH)
     if not isinstance(listed, list) or len(listed) > 128:
         raise Blocked('Docker active container listing invalid')
@@ -65,8 +141,8 @@ def snapshot(docker, mountpoint):
             if mount.get('Type') in {'volume', 'bind'}:
                 if not os.path.isabs(source):
                     raise Blocked('Docker host mount source invalid')
-                source_path = os.path.realpath(source)
-            same_storage = mount.get('Name') == VOLUME or (source_path is not None and os.path.commonpath([source_path, mountpoint]) in {source_path, mountpoint})
+                source_path = topology.identity(source)[0]
+            same_storage = mount.get('Name') == VOLUME or (source_path is not None and topology.overlaps(source_path, mountpoint))
             if same_storage and mount['RW']:
                 destination = mount.get('Destination')
                 if mount.get('Type') not in {'volume', 'bind'} or not isinstance(destination, str) or not re.fullmatch('/[A-Za-z0-9_./-]*', destination):
@@ -78,17 +154,21 @@ def snapshot(docker, mountpoint):
     return sorted(identities), sorted(users, key=lambda user: (user['id'], user['destination'], user['mount_type']))
 
 
-def probe(docker):
+def probe(docker, topology_factory=None):
     volume = docker.get('/volumes/' + VOLUME)
     mountpoint = volume.get('Mountpoint') if isinstance(volume, dict) else None
     if not isinstance(volume, dict) or volume.get('Name') != VOLUME or not isinstance(mountpoint, str) or not mountpoint.startswith('/') or mountpoint == '/' or mountpoint.endswith('/'):
         raise Blocked('approved Docker volume unavailable')
-    mountpoint = os.path.realpath(mountpoint)
+    topology_factory = topology_factory or MountTopology.read
+    topology = topology_factory()
+    mountpoint = topology.identity(mountpoint)[0]
     if mountpoint == '/':
         raise Blocked('approved Docker volume mountpoint invalid')
-    before = snapshot(docker, mountpoint)
-    after = snapshot(docker, mountpoint)
-    if before != after:
+    before_identity = topology.identity(mountpoint)
+    before = snapshot(docker, mountpoint, topology)
+    after_topology = topology_factory()
+    after = snapshot(docker, mountpoint, after_topology)
+    if topology.lines != after_topology.lines or before_identity != after_topology.identity(mountpoint) or before != after:
         raise Blocked('volume users changed during probe')
     result = {'ok': True, 'volume': VOLUME, 'count': len(after[1]), 'users': after[1]}
     if len(json.dumps(result).encode()) > PROBE_LIMIT:

@@ -11,8 +11,6 @@ StandardError=journal
 RuntimeMaxSec=10
 TimeoutStopSec=1
 NoNewPrivileges=true
-PrivateTmp=true
-ProtectSystem=strict
-ProtectHome=true
+# Host mount topology and paths must remain in PID 1's mount namespace.
 CapabilityBoundingSet=
 RestrictAddressFamilies=AF_UNIX
