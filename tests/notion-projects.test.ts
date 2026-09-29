@@ -341,3 +341,23 @@ test("website URLs are optional and malformed property shapes fail closed", () =
     assert.equal(parseNotionProjectPage(page({ properties: { ...page().properties, "Website URL": value } })), null);
   }
 });
+
+
+test("research resources remain optional, secure and localized through publication", () => {
+  const properties = { ...page().properties,
+    "Paper URL": { type: "url", url: "https://example.com/paper.pdf" },
+    "Slides URL": { type: "url", url: "https://example.com/slides.pdf" },
+    Publication: { rich_text: [{ plain_text: "Coauthor · Published in TMLR" }] },
+    "Publication IT": { rich_text: [{ plain_text: "Coautore · Pubblicato su TMLR" }] },
+  };
+  const project = parseNotionProjectPage(page({ properties }));
+  assert.ok(project);
+  const english = selectPublicProjectLocale(project, "en");
+  assert.equal(english.paperUrl, "https://example.com/paper.pdf");
+  assert.equal(english.slidesUrl, "https://example.com/slides.pdf");
+  assert.equal(english.publication, "Coauthor · Published in TMLR");
+  assert.equal(selectPublicProjectLocale(project, "it").publication, "Coautore · Pubblicato su TMLR");
+  for (const url of ["javascript:alert(1)", "http://example.com/paper", "https://user:password@example.com/paper", "invalid"]) {
+    assert.equal(parseNotionProjectPage(page({ properties: { ...properties, "Paper URL": { type: "url", url } } })), null);
+  }
+});

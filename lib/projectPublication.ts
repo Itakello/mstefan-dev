@@ -5,6 +5,9 @@ export type Project = {
   year?: string;
   url?: string;
   websiteUrl?: string;
+  paperUrl?: string;
+  slidesUrl?: string;
+  publication?: string;
   tags?: string[];
   language?: string;
   featured?: boolean;
