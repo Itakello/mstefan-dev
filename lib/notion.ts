@@ -109,6 +109,7 @@ export function parseNotionProjectPage(page: any): NotionProject | null {
     const value = properties[property];
     if (!value || value.url === null) continue;
     if ((value.type && value.type !== "url") || typeof value.url !== "string") return null;
+    if (!value.url.trim()) continue;
     try {
       const parsed = new URL(value.url.trim());
       if (parsed.protocol !== "https:" || parsed.username || parsed.password) return null;

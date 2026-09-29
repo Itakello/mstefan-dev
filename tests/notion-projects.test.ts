@@ -357,6 +357,13 @@ test("research resources remain optional, secure and localized through publicati
   assert.equal(english.slidesUrl, "https://example.com/slides.pdf");
   assert.equal(english.publication, "Coauthor · Published in TMLR");
   assert.equal(selectPublicProjectLocale(project, "it").publication, "Coautore · Pubblicato su TMLR");
+  for (const property of ["Paper URL", "Slides URL"]) {
+    for (const url of ["", "   ", null]) {
+      const blank = parseNotionProjectPage(page({ properties: { ...properties, [property]: { type: "url", url } } }));
+      assert.ok(blank);
+      assert.equal(property === "Paper URL" ? blank.paperUrl : blank.slidesUrl, undefined);
+    }
+  }
   for (const url of ["javascript:alert(1)", "http://example.com/paper", "https://user:password@example.com/paper", "invalid"]) {
     assert.equal(parseNotionProjectPage(page({ properties: { ...properties, "Paper URL": { type: "url", url } } })), null);
   }
