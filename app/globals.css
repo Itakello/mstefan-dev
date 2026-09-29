@@ -5,6 +5,53 @@
 :root {
   /* Accent in HSL. Change this to tweak the vibe. */
   --accent: 270 89% 56%;
+  --scrollbar-track: #f4f4f5;
+  --scrollbar-thumb: #a1a1aa;
+}
+
+.dark {
+  --scrollbar-track: #111114;
+  --scrollbar-thumb: #71717a;
+}
+
+@media (forced-colors: none) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+  }
+
+  @supports selector(::-webkit-scrollbar) {
+    * {
+      scrollbar-width: auto;
+      scrollbar-color: auto;
+    }
+
+    ::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
+
+    ::-webkit-scrollbar-track,
+    ::-webkit-scrollbar-corner {
+      background: var(--scrollbar-track);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      min-height: 32px;
+      border: 2px solid var(--scrollbar-track);
+      border-radius: 999px;
+      background: var(--scrollbar-thumb);
+    }
+
+    ::-webkit-scrollbar-thumb:hover,
+    ::-webkit-scrollbar-thumb:active {
+      background: hsl(var(--accent));
+    }
+
+    ::-webkit-scrollbar-button {
+      display: none;
+    }
+  }
 }
 
 html, body {
@@ -47,10 +94,6 @@ a {
 }
 .dark .card {
   @apply border-white/10 bg-white/5 shadow-softDark;
-}
-
-.project-layout {
-  overflow-anchor: none;
 }
 
 .project-panel {
@@ -323,3 +366,34 @@ a {
   outline: none;
   box-shadow: 0 0 0 2px hsl(var(--accent));
 }
+
+[data-document-text] {
+  position: absolute;
+  inset: 0;
+  overflow: clip;
+  line-height: 1;
+  text-align: initial;
+  text-size-adjust: none;
+  transform-origin: 0 0;
+  --min-font-size: 1;
+  --text-scale-factor: calc(var(--total-scale-factor) * var(--min-font-size));
+  --min-font-size-inv: calc(1 / var(--min-font-size));
+}
+[data-document-text] :is(span, br) {
+  color: transparent;
+  position: absolute;
+  white-space: pre;
+  cursor: text;
+  transform-origin: 0 0;
+  user-select: text;
+}
+[data-document-text] > :not(.markedContent),
+[data-document-text] .markedContent span:not(.markedContent) {
+  --font-height: 0;
+  --scale-x: 1;
+  --rotate: 0deg;
+  font-size: calc(var(--text-scale-factor) * var(--font-height));
+  transform: rotate(var(--rotate)) scaleX(var(--scale-x)) scale(var(--min-font-size-inv));
+}
+[data-document-text] .markedContent { display: contents; }
+[data-document-text] ::selection { background: rgb(124 58 237 / 30%); }

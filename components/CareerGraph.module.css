@@ -1,5 +1,5 @@
-.section { min-width: 0; }
-.browser { --rail-width: minmax(280px, 1.2fr); border: 1px solid #3b3b3e; border-radius: 8px; overflow: hidden; background: #1e1e1e; color: #e4e4e7; scroll-margin-top: 2rem; }
+.section { min-width: 0; container-type: inline-size; }
+.browser { --rail-width: clamp(128px, calc(55cqw - 60px), 55%); border: 1px solid #3b3b3e; border-radius: 8px; overflow: hidden; background: #1e1e1e; color: #e4e4e7; scroll-margin-top: 2rem; }
 .toolbar { display: flex; align-items: center; gap: 9px; padding: 13px 20px; border-bottom: 1px solid #3b3b3e; background: #252526; font-family: ui-monospace, monospace; font-size: 12px; }
 .toolbar > svg { color: var(--career-main); flex-shrink: 0; }
 .separator { color: #71717a; padding: 0 3px; }
@@ -15,7 +15,7 @@
 .row, .mainRow { display: flex; flex-direction: column; justify-content: center; gap: 7px; min-height: 76px; width: 100%; padding: 15px 20px; text-align: left; }
 .mainRow { flex-direction: row; align-items: center; justify-content: flex-start; flex-wrap: wrap; min-height: 64px; font-size: 13px; color: #b7b7bf; }
 .row { position: relative; border-left: 3px solid transparent; padding-left: 17px; }
-.row:focus-visible { outline: 2px solid var(--career-main); outline-offset: -2px; }
+.row:focus-visible, .mainRow:focus-visible { outline: 2px solid var(--career-main); outline-offset: -2px; }
 .row:hover, .row[data-highlighted="true"] { background: #29292d; border-left-color: var(--branch-color); }
 .row[aria-pressed="true"] { background: #323039; border-left-color: var(--branch-color); }
 .jobTitle { display: flex; align-items: center; flex-wrap: wrap; gap: 9px; font-size: 13px; overflow-wrap: anywhere; }
@@ -25,7 +25,7 @@
 .jobRole { font-size: 12px; color: #a1a1aa; overflow-wrap: anywhere; }
 .period { font-family: ui-monospace, monospace; font-size: 10px; color: #a1a1aa; }
 .graph { display: block; max-width: none; }
-.graphButton { cursor: pointer; }
+.graphButton { cursor: pointer; outline: none; }
 .graphButton:focus-visible .dot { stroke: white; stroke-width: 3; }
 .hitPath { fill: none; stroke: transparent; stroke-width: 18; pointer-events: stroke; }
 .hitDot { fill: transparent; }
@@ -33,7 +33,6 @@
 .tick text, .undatedLabel text { fill: #a1a1aa; font-family: ui-monospace, monospace; font-size: 10px; }
 .undatedLabel line { stroke: #606066; stroke-dasharray: 3 4; }
 .mainPath { fill: none; stroke: var(--career-main); stroke-width: 2; stroke-linecap: round; opacity: .4; }
-.mainDot { fill: var(--career-main); stroke: #1e1e1e; stroke-width: 2; opacity: .4; }
 .branch { fill: none; stroke-width: 2; stroke-linecap: round; }
 .visualPaths { opacity: .38; pointer-events: none; }
 .highlightPaths { pointer-events: none; }
@@ -41,12 +40,6 @@
 .dot { stroke: #1e1e1e; stroke-width: 2; opacity: .45; }
 .graphButton[data-highlighted="true"] .dot { opacity: 1; }
 .highlightDot { stroke: #1e1e1e; stroke-width: 1.5; }
-.branchLabel { cursor: pointer; }
-.branchLabel rect { fill: #252526; stroke: #3b3b3e; }
-.branchLabel text { fill: #b7b7bf; font-family: ui-monospace, monospace; font-size: 11px; }
-.branchLabel[data-highlighted="true"] rect { stroke: var(--branch-color); stroke-width: 1.5; }
-.branchLabel[data-highlighted="true"] text { fill: #f4f4f5; }
-.branchLabel:focus-visible rect { stroke: #fff; stroke-width: 2; }
 .detail { width: 100%; min-height: 150px; max-height: 200px; overflow: auto; overscroll-behavior: contain; padding: 28px 20px 34px; border-top: 1px solid #3b3b3e; }
 .detailRef { display: flex; align-items: center; gap: 7px; color: var(--branch-color); font-family: ui-monospace, monospace; font-size: 11px; overflow-wrap: anywhere; }
 .detailRef svg { flex-shrink: 0; }
@@ -62,8 +55,19 @@
   .detail { padding: 24px 12px 30px; }
   .detailCompany { font-size: 21px; }
 }
-@media (max-width: 640px) {
-  .header { display: none; }
-  .body { grid-template-columns: minmax(0, 1fr); }
-  .tree { border-left: 0; border-top: 1px solid #3b3b3e; }
+@media (max-width: 480px) {
+  .badge { min-width: 0; max-width: 100%; }
+  .badge > span, .detailRef > span { min-width: 0; overflow-wrap: anywhere; }
 }
+
+.mainRow { cursor: pointer; border-left: 3px solid transparent; padding-left: 17px; }
+.mainRow[data-highlighted="true"] { background: #29292d; border-left-color: var(--career-main); }
+.mainRow[aria-pressed="true"] { background: #323039; border-left-color: var(--career-main); }
+.graphButton[data-highlighted="true"] .mainPath { opacity: 1; stroke-width: 3; }
+.graphButton:focus-visible .mainPath { stroke: white; stroke-width: 3; }
+.mainPath { pointer-events: none; }
+@media (max-width: 480px) { .mainRow { padding-left: 9px; } }
+
+.list:not(:has(.detail)) { height: 400px; display: flex; flex-direction: column; }
+.list:not(:has(.detail)) .titleList { min-height: 0; max-height: none; flex: 1; }
+.list:not(:has(.detail)) .mainRow { flex-shrink: 0; }

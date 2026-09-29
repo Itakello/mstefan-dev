@@ -17,14 +17,48 @@ if (!process.env.PAYLOAD_SECRET || process.env.PAYLOAD_SECRET.length < 32) {
 const dirname = path.dirname(fileURLToPath(import.meta.url));
 const dataDir = process.env.PAYLOAD_DATA_DIR ? path.resolve(process.env.PAYLOAD_DATA_DIR) : dirname;
 const authenticated: Access = ({ req }) => Boolean(req.user);
+const mediaID = (value: number | { id: number } | null | undefined): number | null =>
+  typeof value === "number" ? value : value?.id ?? null;
 const publishedMedia: Access = async ({ req }) => {
   if (req.user) return true;
-  const about = await req.payload.findGlobal({
-    slug: "about", draft: false, depth: 0, overrideAccess: true,
-  });
-  return about._status === "published" && about.photo
-    ? { id: { equals: about.photo } }
-    : false;
+  const [about, ...careers] = await Promise.all([
+    req.payload.findGlobal({ slug: "about", draft: false, depth: 0, overrideAccess: true }),
+    ...supportedLocales.map((locale) => req.payload.findGlobal({
+      slug: "career", locale, fallbackLocale: false, draft: false, depth: 0, overrideAccess: true,
+    })),
+  ]);
+  const ids = new Set<number>();
+  if (about._status === "published") {
+    const id = mediaID(about.photo);
+    if (id !== null) ids.add(id);
+  }
+  for (const career of careers) {
+    if (career._status !== "published") continue;
+    for (const job of career.jobs ?? []) {
+      if (!job.summary?.trim()) continue;
+      const id = mediaID(job.photo);
+      if (id !== null) ids.add(id);
+    }
+  }
+  return ids.size ? { id: { in: [...ids] } } : false;
+};
+
+const publishedDocuments: Access = async ({ req }) => {
+  if (req.user) return true;
+  const careers = await Promise.all(supportedLocales.map((locale) => req.payload.findGlobal({
+    slug: "career", locale, fallbackLocale: false, draft: false, depth: 0, overrideAccess: true,
+  })));
+  const ids = new Set<number>();
+  for (const career of careers) {
+    if (career._status !== "published") continue;
+    for (const job of career.jobs ?? []) {
+      for (const document of job.documents ?? []) {
+        const id = mediaID(document.file);
+        if (id !== null) ids.add(id);
+      }
+    }
+  }
+  return ids.size ? { id: { in: [...ids] } } : false;
 };
 
 function pageGlobal(slug: "home" | "about"): GlobalConfig {
@@ -60,8 +94,10 @@ const validateHexColor = (value: unknown) => typeof value === "string" && /^#[0-
 
 function validateCareerBranches(value: unknown) {
   if (!Array.isArray(value)) return true;
-  const jobs = value as { branchName?: string; parentBranchName?: string; startDate?: string; endDate?: string }[];
+  const jobs = value as { branchName?: string; parentBranchName?: string; startDate?: string; endDate?: string; ongoing?: boolean }[];
   const named = new Map(jobs.map((job) => [job.branchName, job]));
+  const now = Date.now();
+  const end = (job: typeof jobs[number]) => job.ongoing ? now : (job.endDate ? Date.parse(job.endDate) : null);
   if (named.size !== jobs.length) return "Each experience must have a unique branch name.";
   for (const job of jobs) {
     const seen = new Set([job.branchName]);
@@ -74,8 +110,8 @@ function validateCareerBranches(value: unknown) {
       parentName = parent.parentBranchName;
     }
     const parent = named.get(job.parentBranchName);
-    if (parent?.startDate && parent.endDate && job.startDate && job.endDate &&
-      (Date.parse(job.startDate) < Date.parse(parent.startDate) || Date.parse(job.endDate) > Date.parse(parent.endDate))) {
+    if (parent?.startDate && job.startDate && end(parent) !== null && end(job) !== null &&
+      (Date.parse(job.startDate) < Date.parse(parent.startDate) || end(job)! > end(parent)!)) {
       return `The dates of ${job.branchName} must fall within its parent branch.`;
     }
   }
@@ -115,9 +151,16 @@ const careerGlobal: GlobalConfig = {
       },
       { name: "company", label: "Organization", type: "text", required: true },
       { name: "role", label: "Role or qualification", type: "text", required: true },
-      { name: "summary", type: "textarea" },
+      { name: "summary", type: "textarea", admin: { description: "Write this experience's story to show it in About when selected." } },
+      { name: "photo", type: "upload", relationTo: "media", admin: { description: "Shown with this experience in About only when its summary has content." } },
+      { name: "documents", type: "array", fields: [
+        { name: "title", type: "text", required: true },
+        { name: "file", type: "upload", relationTo: "documents", required: true },
+      ] },
       { name: "startDate", type: "date" },
-      { name: "endDate", type: "date" },
+      { name: "ongoing", label: "Currently ongoing", type: "checkbox", defaultValue: false,
+        admin: { description: "Keep this experience open through today. Any stored end date is ignored while enabled." } },
+      { name: "endDate", type: "date", admin: { condition: (_, siblingData) => !siblingData?.ongoing } },
       {
         name: "color", type: "text", required: true, defaultValue: "#c77835",
         admin: { description: "Branch color as a six-digit hex value, for example #c77835." },
@@ -161,6 +204,15 @@ export default buildConfig({
       mimeTypes: ["image/jpeg", "image/png", "image/webp", "image/gif"],
     },
     access: { read: publishedMedia, create: authenticated, update: authenticated, delete: authenticated },
+    fields: [{ name: "alt", type: "text" }],
+  }, {
+    slug: "documents",
+    labels: { singular: "Document", plural: "Documents" },
+    upload: {
+      staticDir: path.resolve(dataDir, ".payload-documents"),
+      mimeTypes: ["application/pdf"],
+    },
+    access: { read: publishedDocuments, create: authenticated, update: authenticated, delete: authenticated },
     fields: [],
   }],
   globals: [pageGlobal("home"), pageGlobal("about"), careerGlobal],

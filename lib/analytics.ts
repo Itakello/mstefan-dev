@@ -8,6 +8,10 @@ export function doNotTrackEnabled() {
     .some((value) => value === "1" || value === "yes");
 }
 
+export function isEmbeddedContext() {
+  return typeof window !== "undefined" && window.self !== window.top;
+}
+
 export function isAnalyticsPage(url: URL) {
   return (
     url.protocol === "https:" &&
@@ -18,7 +22,7 @@ export function isAnalyticsPage(url: URL) {
 }
 
 export function sanitizeAnalyticsEvent(event: CaptureResult | null) {
-  if (doNotTrackEnabled() || !event || !["$pageview", "$pageleave"].includes(event.event)) return null;
+  if (isEmbeddedContext() || doNotTrackEnabled() || !event || !["$pageview", "$pageleave"].includes(event.event)) return null;
 
   try {
     const url = new URL(event.properties.$current_url);

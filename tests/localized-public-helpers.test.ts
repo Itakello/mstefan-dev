@@ -13,7 +13,9 @@ import { proxy } from "../proxy";
 test("localized route helpers preserve the equivalent public route", () => {
   assert.equal(getPublicPathname("/it/projects"), "/projects");
   assert.equal(getPublicPathname("/en/about"), "/about");
+  assert.equal(getPublicPathname("/en/websites"), "/websites");
   assert.equal(localizedPath("it", "/projects"), "/it/projects");
+  assert.equal(localizedPath("it", "/websites"), "/it/websites");
   assert.equal(getPublicPathname("/it/unknown"), null);
 });
 
@@ -23,6 +25,10 @@ test("the proxy redirects unprefixed pages with a preferred locale and preserves
   }));
 
   assert.equal(response.headers.get("location"), "https://mstefan.dev/it/projects?tag=ai");
+  const websites = proxy(new NextRequest("https://mstefan.dev/websites?site=mstefan", {
+    headers: { cookie: "site-locale=it" },
+  }));
+  assert.equal(websites.headers.get("location"), "https://mstefan.dev/it/websites?site=mstefan");
 });
 
 test("the proxy persists explicit locales and leaves unsupported locale segments alone", () => {
@@ -50,8 +56,8 @@ test("localized copy and metadata expose the Italian page contract", () => {
   const italianCopy = getCopy("it");
 
   assert.equal(italianCopy.projectCard.viewRepository("Progetto"), "Apri il repository GitHub di Progetto");
-  assert.equal(italianCopy.projects.description, "Progetti approvati per la pubblicazione, raggruppati per anno.");
-  assert.equal(getCopy("en").projects.description, "Projects approved for publication, grouped by year.");
+  assert.equal(italianCopy.projects.description, "Esplora i progetti, i siti web e gli strumenti che realizzo.");
+  assert.equal(getCopy("en").projects.description, "Explore the projects, websites and tools I build.");
   assert.equal(italianCopy.projectCard.viewProject("Progetto"), "Visita il progetto Progetto");
   assert.equal(italianCopy.projectCard.technologiesByCategory("Progetto"), "Tecnologie di Progetto raggruppate per categoria");
   assert.equal(italianCopy.projectCard.started("mar 2024"), "Iniziato mar 2024");
@@ -85,4 +91,26 @@ test("language menu focus wraps and supports Home and End", () => {
   assert.equal(getLanguageMenuFocusIndex(1, "Home", 2), 0);
   assert.equal(getLanguageMenuFocusIndex(0, "End", 2), 1);
   assert.equal(getLanguageMenuFocusIndex(1, "Enter", 2), null);
+});
+
+
+test("private deployment serves CMS through its tailnet hostname while public rejects spoofed hosts", () => {
+  const previous = process.env.SITE_DEPLOYMENT;
+  try {
+    const request = (host: string, forwarded = false) => new NextRequest(`https://${host}/admin`, {
+      headers: { host, ...(forwarded ? { "x-real-ip": "127.0.0.1" } : {}) },
+    });
+    process.env.SITE_DEPLOYMENT = "private";
+    assert.equal(proxy(request("itakello-server.tailacf6a7.ts.net:10000")).status, 200);
+    assert.equal(proxy(request("itakello-server.tailacf6a7.ts.net:10000", true)).status, 404);
+    assert.equal(proxy(request("mstefan.dev")).status, 404);
+    assert.equal(proxy(request("localhost:3000", true)).status, 404);
+    delete process.env.SITE_DEPLOYMENT;
+    assert.equal(proxy(request("itakello-server.tailacf6a7.ts.net:10000")).status, 404);
+    assert.equal(proxy(request("localhost:3000", true)).status, 404);
+    assert.equal(proxy(request("localhost:3000")).status, 200);
+  } finally {
+    if (previous === undefined) delete process.env.SITE_DEPLOYMENT;
+    else process.env.SITE_DEPLOYMENT = previous;
+  }
 });

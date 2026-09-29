@@ -111,15 +111,129 @@ test('career seed, localized order, authenticated drafts, colors, and deletion s
     assert.equal((await payload.findGlobal({ slug: 'career', locale: 'en', draft: false })).laneSpacing, 24);
     assert.equal((await payload.findGlobal({ slug: 'career', locale: 'it', draft: false })).laneSpacing, 24);
     assert.equal((await payload.findGlobal({ slug: 'career', locale: 'it', draft: true })).laneSpacing, 64);
+    const current = { ...university, ongoing: true };
+    const currentChild = { ...internship, ongoing: true };
+    await assert.rejects(payload.updateGlobal({ slug: 'career', locale: 'en', data: { jobs: [university, currentChild] } }));
+    await payload.updateGlobal({ slug: 'career', locale: 'en', draft: true, data: { jobs: [currentChild, current] } });
+    await restart();
+    const currentDraft = await payload.findGlobal({ slug: 'career', locale: 'en', draft: true });
+    assert.ok(currentDraft.jobs!.every((job) => job.ongoing === true));
+    assert.equal(currentDraft.jobs![0].parentBranchName, university.branchName);
+    assert.equal((await payload.findGlobal({ slug: 'career', locale: 'en', draft: false })).jobs![0].ongoing, false);
+    await payload.updateGlobal({ slug: 'career', locale: 'en', publishSpecificLocale: 'en', data: { _status: 'published' } });
+    assert.ok((await payload.findGlobal({ slug: 'career', locale: 'en', draft: false })).jobs!.every((job) => job.ongoing === true));
+    assert.deepEqual((await payload.findGlobal({ slug: 'career', locale: 'it', draft: false })).jobs, publicItalian.jobs);
     await payload.updateGlobal({ slug: 'career', locale: 'en', publishSpecificLocale: 'en', data: { jobs: [], _status: 'published' } });
     await restart();
     const deleted = await payload.findGlobal({ slug: 'career', draft: true });
     assert.deepEqual(deleted.jobs ?? [], []);
     assert.deepEqual((await payload.findGlobal({ slug: 'career', locale: 'it', draft: false })).jobs, publicItalian.jobs);
+    const mediaDB = new DatabaseSync(path.join(dataDir, '.payload-local.db'));
+    try {
+      for (const id of [1, 2, 3, 4]) mediaDB.prepare('INSERT INTO media (id, filename, alt) VALUES (?, ?, ?)').run(id, `photo-${id}.png`, `Photo ${id}`);
+    } finally { mediaDB.close(); }
+    const visibleMedia = async () => {
+      try { return (await payload.find({ collection: 'media', overrideAccess: false, limit: 20 })).docs.map(({ id }) => id).sort(); }
+      catch (error) { if ((error as { status?: number }).status === 403) return []; throw error; }
+    };
+    assert.deepEqual(await visibleMedia(), []);
+    const italianJobs = (await payload.findGlobal({ slug: 'career', locale: 'it', draft: false, fallbackLocale: false })).jobs!;
+    await payload.updateGlobal({ slug: 'career', locale: 'it', publishSpecificLocale: 'it', data: {
+      _status: 'published', jobs: italianJobs.map((job, index) => ({ ...job, summary: index === 0 ? 'Italian story' : job.summary, photo: index === 0 ? 2 : null })),
+    } });
+    assert.deepEqual(await visibleMedia(), [2], 'Published Italian career photo should be public');
+    await payload.updateGlobal({ slug: 'career', locale: 'en', draft: true, data: {
+      jobs: [{ branchName: 'work/draft', company: 'Draft', role: 'Draft role', summary: 'English story', color: '#123456', photo: 3 }],
+    } });
+    assert.deepEqual(await visibleMedia(), [2], 'Draft-only career photo should remain private');
+    const draftPhoto = (await payload.findGlobal({ slug: 'career', locale: 'en', draft: true, depth: 1 })).jobs![0].photo;
+    assert.equal(typeof draftPhoto === 'object' && draftPhoto?.alt, 'Photo 3');
+    await payload.updateGlobal({ slug: 'career', locale: 'en', publishSpecificLocale: 'en', data: { _status: 'published' } });
+    assert.deepEqual(await visibleMedia(), [2, 3]);
+    await payload.updateGlobal({ slug: 'career', locale: 'en', publishSpecificLocale: 'en', data: {
+      _status: 'published', jobs: [{ branchName: 'work/photo-only', company: 'Photo only', role: 'Draft role', color: '#123456', photo: 4 }],
+    } });
+    assert.deepEqual(await visibleMedia(), [2], 'Photo-only experience keeps the main profile and its image private');
+    await payload.updateGlobal({ slug: 'career', locale: 'en', publishSpecificLocale: 'en', data: {
+      _status: 'published', jobs: [{ branchName: 'work/draft', company: 'Draft', role: 'Draft role', summary: 'English story', color: '#123456', photo: 3 }],
+    } });
+    assert.deepEqual(await visibleMedia(), [2, 3]);
+    await payload.updateGlobal({ slug: 'career', locale: 'en', draft: true, data: {
+      jobs: [{ branchName: 'work/draft', company: 'Draft', role: 'Draft role', summary: 'English story', color: '#123456', photo: 4 }],
+    } });
+    assert.deepEqual(await visibleMedia(), [2, 3], 'Replacing a photo in a draft must not expose it');
+    await payload.updateGlobal({ slug: 'about', locale: 'en', publishSpecificLocale: 'en', data: { _status: 'published', photo: 1 } });
+    assert.deepEqual(await visibleMedia(), [1, 2, 3], 'Published About photo remains public');
+    await payload.updateGlobal({ slug: 'about', locale: 'en', draft: true, data: { photo: 4 } });
+    assert.deepEqual(await visibleMedia(), [1, 2, 3], 'Draft About photo remains private');
+    await payload.updateGlobal({ slug: 'career', locale: 'en', publishSpecificLocale: 'en', data: { _status: 'published', jobs: [] } });
+    assert.deepEqual(await visibleMedia(), [1, 2], 'Removed career photo should become private');
+    const documentsDB = new DatabaseSync(path.join(dataDir, '.payload-local.db'));
+    try {
+      for (const id of [1, 2, 3]) documentsDB.prepare('INSERT INTO documents (id, filename, mime_type) VALUES (?, ?, ?)').run(id, `document-${id}.pdf`, 'application/pdf');
+    } finally { documentsDB.close(); }
+    const visibleDocuments = async () => {
+      try { return (await payload.find({ collection: 'documents', overrideAccess: false, limit: 20 })).docs.map(({ id }) => id).sort(); }
+      catch (error) { if ((error as { status?: number }).status === 403) return []; throw error; }
+    };
+    assert.deepEqual(await visibleDocuments(), []);
+    const italianWithDocuments = (await payload.findGlobal({ slug: 'career', locale: 'it', draft: false, fallbackLocale: false })).jobs!;
+    await payload.updateGlobal({ slug: 'career', locale: 'it', publishSpecificLocale: 'it', data: {
+      _status: 'published', jobs: italianWithDocuments.map((job, index) => ({ ...job, documents: index === 0 ? [{ title: 'Documento italiano', file: 1 }] : [] })),
+    } });
+    assert.deepEqual(await visibleDocuments(), [1], 'Published Italian document should be public');
+    await payload.updateGlobal({ slug: 'career', locale: 'en', draft: true, data: {
+      jobs: [{ branchName: 'work/draft', company: 'Draft', role: 'Draft role', color: '#123456', documents: [{ title: 'Private PDF', file: 2 }] }],
+    } });
+    assert.deepEqual(await visibleDocuments(), [1], 'Draft-only document should remain private');
+    const draftDocument = (await payload.findGlobal({ slug: 'career', locale: 'en', draft: true, depth: 1 })).jobs![0].documents![0];
+    assert.equal(draftDocument.title, 'Private PDF');
+    assert.equal(typeof draftDocument.file === 'object' && draftDocument.file?.mimeType, 'application/pdf');
+    await payload.updateGlobal({ slug: 'career', locale: 'en', publishSpecificLocale: 'en', data: { _status: 'published' } });
+    assert.deepEqual(await visibleDocuments(), [1, 2]);
+    await payload.updateGlobal({ slug: 'career', locale: 'en', draft: true, data: {
+      jobs: [{ branchName: 'work/draft', company: 'Draft', role: 'Draft role', color: '#123456', documents: [{ title: 'Replacement draft', file: 3 }] }],
+    } });
+    assert.deepEqual(await visibleDocuments(), [1, 2], 'Replacing a document in a draft must not expose it');
+    await payload.updateGlobal({ slug: 'career', locale: 'en', publishSpecificLocale: 'en', data: { _status: 'published', jobs: [] } });
+    assert.deepEqual(await visibleDocuments(), [1], 'Removed published document should become private');
   } finally {
     await payload.destroy();
     await rm(dataDir, { recursive: true, force: true });
   }
+});
+
+test('career photo migration preserves populated jobs and reverses only photo fields', async () => {
+  const { SQLiteSyncDialect } = await import('@payloadcms/db-sqlite/drizzle/sqlite-core');
+  const { up: initialUp } = await import('../../migrations/20260917_195926_initial');
+  const { up: careerUp } = await import('../../migrations/20260928_212105_career');
+  const { up: branchUp } = await import('../../migrations/20260929_081759_career_branch_graph');
+  const { up: ongoingUp } = await import('../../migrations/20260929_160549_career_ongoing');
+  const { up: photoUp, down: photoDown } = await import('../../migrations/20260929_205504_career_photo');
+  const database = new DatabaseSync(':memory:');
+  const dialect = new SQLiteSyncDialect();
+  const args = { db: { run: (query: Parameters<typeof dialect.sqlToQuery>[0]) => database.exec(dialect.sqlToQuery(query).sql) } } as unknown as Parameters<typeof photoUp>[0];
+  try {
+    database.exec('PRAGMA foreign_keys = ON');
+    for (const up of [initialUp, careerUp, branchUp, ongoingUp]) await up(args);
+    database.exec(`
+      INSERT INTO media (id, filename) VALUES (1, 'kept.png');
+      INSERT INTO career (id, _status) VALUES (1, 'published');
+      INSERT INTO career_jobs (_order, _parent_id, _locale, id, branch_name, company, role) VALUES (1, 1, 'en', 'one', 'work/amazon', 'Amazon', 'SDE I');
+      INSERT INTO _career_v (id) VALUES (1);
+      INSERT INTO _career_v_version_jobs (_order, _parent_id, _locale, id, branch_name, company, role) VALUES (1, 1, 'en', 1, 'work/amazon', 'Amazon', 'Private role');
+    `);
+    const before = ['media', 'career_jobs', '_career_v_version_jobs'].map((table) => database.prepare(`SELECT * FROM ${table} ORDER BY id`).all());
+    await photoUp(args);
+    assert.equal(database.prepare('SELECT photo_id FROM career_jobs').get()!.photo_id, null);
+    assert.equal(database.prepare('SELECT photo_id FROM _career_v_version_jobs').get()!.photo_id, null);
+    database.exec("UPDATE media SET alt = 'Portrait' WHERE id = 1; UPDATE career_jobs SET photo_id = 1; UPDATE _career_v_version_jobs SET photo_id = 1;");
+    assert.deepEqual(database.prepare('PRAGMA foreign_key_check').all(), []);
+    await photoDown(args);
+    assert.deepEqual(['media', 'career_jobs', '_career_v_version_jobs'].map((table) => database.prepare(`SELECT * FROM ${table} ORDER BY id`).all()), before);
+    assert.equal(database.prepare('PRAGMA foreign_keys').get()!.foreign_keys, 1);
+    assert.deepEqual(database.prepare('PRAGMA foreign_key_check').all(), []);
+  } finally { database.close(); }
 });
 
 test('career migration preserves existing Home/About records and rolls back populated jobs with foreign keys enabled', async () => {

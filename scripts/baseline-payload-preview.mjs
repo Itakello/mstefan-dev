@@ -33,9 +33,12 @@ try {
     import { up as initialUp } from './migrations/20260917_195926_initial.ts';
     import { up as careerUp } from './migrations/20260928_212105_career.ts';
     import { up as branchUp } from './migrations/20260929_081759_career_branch_graph.ts';
+    import { up as ongoingUp } from './migrations/20260929_160549_career_ongoing.ts';
+    import { up as photoUp } from './migrations/20260929_205504_career_photo.ts';
+    import { up as documentsUp } from './migrations/20260929_220029_career_documents.ts';
     import path from 'node:path';
     const dialect = new SQLiteSyncDialect();
-    for (const version of ['initial', 'career', 'branch_graph']) {
+    for (const version of ['initial', 'career', 'branch_graph', 'ongoing', 'photo', 'documents']) {
       const db = new DatabaseSync(path.join(process.env.BASELINE_REFERENCE_DIR, version + '.db'));
       const args = { db: { run: (query) => db.exec(dialect.sqlToQuery(query).sql) } };
       await initialUp(args);
@@ -44,9 +47,21 @@ try {
         await careerUp(args);
         db.prepare('INSERT INTO payload_migrations (name, batch) VALUES (?, ?)').run('20260928_212105_career', 1);
       }
-      if (version === 'branch_graph') {
+      if (['branch_graph', 'ongoing', 'photo', 'documents'].includes(version)) {
         await branchUp(args);
         db.prepare('INSERT INTO payload_migrations (name, batch) VALUES (?, ?)').run('20260929_081759_career_branch_graph', 1);
+      }
+      if (['ongoing', 'photo', 'documents'].includes(version)) {
+        await ongoingUp(args);
+        db.prepare('INSERT INTO payload_migrations (name, batch) VALUES (?, ?)').run('20260929_160549_career_ongoing', 1);
+      }
+      if (['photo', 'documents'].includes(version)) {
+        await photoUp(args);
+        db.prepare('INSERT INTO payload_migrations (name, batch) VALUES (?, ?)').run('20260929_205504_career_photo', 1);
+      }
+      if (version === 'documents') {
+        await documentsUp(args);
+        db.prepare('INSERT INTO payload_migrations (name, batch) VALUES (?, ?)').run('20260929_220029_career_documents', 1);
       }
       db.close();
     }
@@ -59,7 +74,7 @@ try {
   assert.equal(target.prepare('PRAGMA integrity_check').get().integrity_check, 'ok');
   const targetSchema = schema(target);
   let migrations;
-  for (const version of ['initial', 'career', 'branch_graph']) {
+  for (const version of ['initial', 'career', 'branch_graph', 'ongoing', 'photo', 'documents']) {
     reference = new DatabaseSync(path.join(referenceDir, `${version}.db`), { readOnly: true });
     if (isDeepStrictEqual(targetSchema, schema(reference))) {
       migrations = reference.prepare('SELECT name, batch FROM payload_migrations ORDER BY id').all();
@@ -70,7 +85,7 @@ try {
   }
   assert.ok(migrations, 'Preview schema differs from the committed production migrations; refusing to baseline.');
   const existing = target.prepare('SELECT name, batch FROM payload_migrations ORDER BY id').all();
-  const recorded = existing.filter(({ name, batch }) => name !== 'development' || batch !== -1);
+  const recorded = existing.filter(({ name, batch }) => !(['dev', 'development'].includes(name) && batch === -1));
   assert.deepEqual(recorded.map(({ name }) => name), migrations.slice(0, recorded.length).map(({ name }) => name),
     'Unexpected migration history; refusing to replace it.');
   assert.ok(recorded.every(({ batch }, index) => Number.isInteger(batch) && batch > 0 &&
@@ -80,7 +95,7 @@ try {
   for (const { name } of migrations.slice(recorded.length)) {
     target.prepare('INSERT INTO payload_migrations (name, batch) VALUES (?, ?)').run(name, nextBatch);
   }
-  target.prepare("DELETE FROM payload_migrations WHERE name = 'development' AND batch = -1").run();
+  target.prepare("DELETE FROM payload_migrations WHERE name IN ('dev', 'development') AND batch = -1").run();
   target.exec('COMMIT');
   console.log('Preview schema matches; matching production migrations recorded. Content and uploads are unchanged.');
 } finally {

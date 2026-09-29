@@ -61,7 +61,11 @@ These are optional unless you use the Notion and repository proposal scripts.
 
 Notion database expected properties (create these columns):
 - `Name` (title)
+- `Type` (select, optional: Website, App, Tool, Research; absent or unselected types are omitted, other values fail publication)
 - `URL` (url)
+- `Website URL` (url, optional public website; supplies Work visit links and previews for permitted website origins)
+- `Paper URL` / `Slides URL` (url, optional HTTPS research resources; blank values are omitted, nonblank invalid or credential-bearing URLs fail publication)
+- `Publication` / `Publication IT` (rich_text, optional publication credit in each locale; no translation fallback)
 - `Summary` (rich_text, required English long summary)
 - `Summary IT` (rich_text, required Italian long summary)
 - `Short summary` (rich_text, optional English short summary)
@@ -70,6 +74,8 @@ Notion database expected properties (create these columns):
 - `Language` (multi_select)
 - `Year` (number)
 - `Status` (status: "To Add", "Added", "Removed")
+
+Paper and slides URLs are rendered as PDFs inside Work, with page navigation, zoom, and selectable text. Use public PDF sources that allow cross-origin reading (CORS), such as raw GitHub files or arXiv. GitHub blob links are converted to raw content for the reader. Hosts that require sign-in, block CORS, or serve a non-PDF retain an external Open PDF link when the inline preview is unavailable.
 
 An `Added` row requires both nonblank long summaries. The website never falls back between English and Italian summaries; each locale uses only its own long and optional short summary.
 
