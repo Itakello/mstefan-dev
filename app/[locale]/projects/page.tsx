@@ -44,7 +44,7 @@ export default async function ProjectsPage({ params }: { params: Promise<{ local
         </p>
       )}
 
-      <WorkExplorer locale={locale} items={items} />
+      <WorkExplorer locale={locale} items={items} stackCatalog={stackCatalog} />
     </section>
   );
 }

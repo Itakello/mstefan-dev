@@ -12,10 +12,13 @@ const fixtureRows = [
   ['The Karakal Times', 'https://www.thekarakaltimes.com', 'Client website fixture.', 'Sito cliente di prova.'],
   ['Automation tools', null, 'Repository-only fixture.', 'Progetto di prova senza sito web.'],
 ].map(([name, website, en, it], index) => ({ id: `visual-project-${index}`, properties: {
-  Year: { number: 2026 }, Tags: { multi_select: [{ name: index === 2 ? "Tools" : "Web" }] },
+  Year: { number: 2026 }, Tags: { multi_select: (index === 2 ? ["Python"] : ["TypeScript", "Next.js", "React"]).map(name => ({ name })) },
   Name: { title: [{ plain_text: name }] }, Status: { status: { name: 'Added' } },
   Summary: { rich_text: [{ plain_text: en }] }, 'Summary IT': { rich_text: [{ plain_text: it }] },
   URL: { url: index === 1 ? null : `https://github.com/fixture/project-${index}` }, 'Website URL': { type: 'url', url: website },
+} }));
+const stackRows = [['TypeScript', 'Language', 'logos:typescript-icon'], ['Python', 'Language', 'logos:python'], ['Next.js', 'Framework', 'logos:nextjs-icon'], ['React', 'Library', 'logos:react']].map(([name, category, iconKey], index) => ({ id: `visual-stack-${index}`, properties: {
+  Name: { title: [{ plain_text: name }] }, Category: { select: { name: category } }, 'Icon key': { rich_text: [{ plain_text: iconKey }] },
 } }));
 function fixturePayload() {
   const mode = readFileSync(process.env.VISUAL_NOTION_FIXTURE_STATE, 'utf8').trim();
@@ -26,7 +29,7 @@ function fixturePayload() {
 }
 const provider = http.createServer((request, response) => {
   if (request.headers.authorization !== 'Bearer visual-review-fixture'
-      || request.method !== 'POST' || request.url !== '/v1/databases/visual-review-fixture/query') {
+      || request.method !== 'POST' || !['/v1/databases/visual-review-fixture/query', '/v1/databases/visual-stack-fixture/query'].includes(request.url)) {
     response.writeHead(400).end('Unexpected fixture request');
     return;
   }
@@ -34,6 +37,11 @@ const provider = http.createServer((request, response) => {
   request.on('data', chunk => { query += chunk; });
   request.on('end', () => {
     const parsed = JSON.parse(query);
+    if (request.url === '/v1/databases/visual-stack-fixture/query') {
+      if (parsed.filter || parsed.start_cursor) { response.writeHead(400).end('Unexpected Stack query'); return; }
+      response.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify({ object: 'list', results: stackRows, has_more: false, next_cursor: null }));
+      return;
+    }
     if (parsed.filter?.property !== 'Status' || parsed.filter?.status?.equals !== 'Added' || parsed.start_cursor) {
       response.writeHead(400).end('Unexpected publication query');
       return;

@@ -2,6 +2,10 @@
 
 import { ExternalLink, Github, Monitor, Smartphone } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { StackBadge } from "@/components/StackBadge";
+import { StackCategoryIcon } from "@/components/StackCatalog";
+import { displayStackCategory, groupStackEntries, projectStackLabels, resolveProjectStack } from "@/lib/stack";
+import type { WebsiteStackState } from "@/lib/websiteStack";
 import { getCopy } from "@/lib/i18n/copy";
 import type { Locale } from "@/lib/i18n/config";
 import { canRenderWebsitePreview, personalPreviewOrigin, type ShowcaseWebsite, websitePreviewUrl } from "@/lib/websiteShowcase";
@@ -44,7 +48,7 @@ function ResponsivePreview({ url, title, mobile }: { url: string; title: string;
   );
 }
 
-export function WorkExplorer({ locale, items }: { locale: Locale; items: ShowcaseWebsite[] }) {
+export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; items: ShowcaseWebsite[]; stackCatalog: WebsiteStackState }) {
   const copy = getCopy(locale);
   const [mobile, setMobile] = useState(false);
   const [selectedId, setSelectedId] = useState(items[0]?.id);
@@ -58,7 +62,8 @@ export function WorkExplorer({ locale, items }: { locale: Locale; items: Showcas
   if (!selected) return null;
   const previewUrl = websitePreviewUrl(selected, locale, origin);
   const visitUrl = websitePreviewUrl(selected, locale);
-  const metadata = [selected.year, selected.language, ...(selected.tags || [])].filter(Boolean);
+  const groups = groupStackEntries(resolveProjectStack(projectStackLabels(selected), stackCatalog.entries));
+  const metadata = [selected.year, groups.length ? undefined : selected.language].filter(Boolean);
   const linkClass = "inline-flex items-center gap-2 text-sm font-medium";
   return (
     <div className="mt-8 grid min-w-0 gap-8 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-10">
@@ -71,12 +76,29 @@ export function WorkExplorer({ locale, items }: { locale: Locale; items: Showcas
         </button>)}
       </nav>
       <section aria-labelledby="selected-work-title" className="min-w-0 lg:border-l lg:border-black/10 lg:pl-8 dark:lg:border-white/10">
-        <h2 id="selected-work-title" className="text-2xl font-semibold tracking-tight">{selected.name}</h2>
-        {metadata.length > 0 && <p className="mt-2 text-xs text-black/55 dark:text-white/55">{metadata.join(" · ")}</p>}
-        <p className="mt-3 max-w-2xl whitespace-pre-line text-sm leading-6 text-black/70 dark:text-white/70">{selected.description}</p>
-        <div className="mt-4 flex flex-wrap gap-5">
-          {visitUrl && <a className={linkClass} href={visitUrl} target="_blank" rel="noreferrer"><ExternalLink size={16} aria-hidden="true" />{copy.work.visit}</a>}
-          {selected.sourceUrl && <a className={linkClass} href={selected.sourceUrl} target="_blank" rel="noreferrer"><Github size={16} aria-hidden="true" />{copy.work.source}</a>}
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_260px] xl:gap-8">
+          <div className="min-w-0">
+            <h2 id="selected-work-title" className="text-2xl font-semibold tracking-tight">{selected.name}</h2>
+            {metadata.length > 0 && <p className="mt-2 text-xs text-black/55 dark:text-white/55">{metadata.join(" · ")}</p>}
+            <p className="mt-3 max-w-2xl whitespace-pre-line text-sm leading-6 text-black/70 dark:text-white/70">{selected.description}</p>
+            <div className="mt-4 flex flex-wrap gap-5">
+              {visitUrl && <a className={linkClass} href={visitUrl} target="_blank" rel="noreferrer"><ExternalLink size={16} aria-hidden="true" />{copy.work.visit}</a>}
+              {selected.sourceUrl && <a className={linkClass} href={selected.sourceUrl} target="_blank" rel="noreferrer"><Github size={16} aria-hidden="true" />{copy.work.source}</a>}
+            </div>
+            </div>
+          {groups.length > 0 ? <aside aria-label={copy.projectCard.technologiesByCategory(selected.name)} className="min-w-0 border-t border-black/10 pt-4 xl:border-l xl:border-t-0 xl:pl-5 xl:pt-0 dark:border-white/10">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-black/50 dark:text-white/50">Stack</h3>
+            <div className="mt-3 space-y-4">
+              {groups.map(group => <div key={group.category}>
+                <div className="mb-2 flex items-center gap-1.5 text-xs text-black/55 dark:text-white/55">
+                  <StackCategoryIcon category={group.category} />{displayStackCategory(group.category, locale)}
+                </div>
+                <ul className="flex flex-wrap gap-x-4 gap-y-2">
+                  {group.entries.map(entry => <li key={entry.name}><StackBadge item={entry} compact /></li>)}
+                </ul>
+              </div>)}
+            </div>
+          </aside> : stackCatalog.message && <p role="status" className="text-xs leading-5 text-black/55 dark:text-white/55">{copy.publication.stack[stackCatalog.message]}</p>}
         </div>
         {selected.preview && previewUrl && (depth === null ? <p role="status" className="mt-6 text-sm">{copy.websites.loading}</p>
           : canRenderWebsitePreview(depth) ? <div className="mt-7">

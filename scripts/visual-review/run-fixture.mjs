@@ -11,7 +11,7 @@ const environment = {
   ...process.env, NODE_ENV: 'production', PAYLOAD_DATA_DIR: dataDir,
   VISUAL_NOTION_FIXTURE_STATE: path.join(dataDir, 'notion-state'),
   PAYLOAD_SECRET: randomBytes(32).toString('hex'), NEXT_TELEMETRY_DISABLED: '1',
-  NOTION_TOKEN: 'visual-review-fixture', NOTION_DATABASE_ID: 'visual-review-fixture', NOTION_STACK_DATABASE_ID: '', GITHUB_TOKEN: '',
+  NOTION_TOKEN: 'visual-review-fixture', NOTION_DATABASE_ID: 'visual-review-fixture', NOTION_STACK_DATABASE_ID: 'visual-stack-fixture', GITHUB_TOKEN: '',
   VERCEL: '', VERCEL_ENV: '', VERCEL_GITHUB_OIDC_TOKEN: '', SITE_DEPLOYMENT: 'private',
   NODE_OPTIONS: `--import=${path.resolve('tests/cms/notion-publication-fixture.mjs')}`,
 };

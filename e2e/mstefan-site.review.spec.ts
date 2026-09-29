@@ -61,6 +61,9 @@ test.describe("Public website review", () => {
     await expect(page.getByRole("heading", { level: 1, name: "My work" })).toBeVisible();
 
     await page.getByRole("button", { name: "Select mstefan.dev", exact: true }).click();
+    const projectStack = page.getByRole("complementary", { name: "mstefan.dev technologies grouped by category" });
+    await expect(projectStack.getByText("TypeScript", { exact: true })).toBeVisible();
+    await expect(projectStack.getByText("Python", { exact: true })).toHaveCount(0);
     const desktop = page.frameLocator('iframe[title="Desktop: Interactive preview of mstefan.dev"]');
     const mobile = page.frameLocator('iframe[title="Mobile: Interactive preview of mstefan.dev"]');
     const modes = page.getByRole("group", { name: "Preview size" });
@@ -96,6 +99,9 @@ test.describe("Public website review", () => {
     await expect(page.getByRole("link", { name: "Visit website", exact: true })).toBeVisible();
     await expect(page.getByRole("link", { name: "Source code", exact: true })).toHaveCount(0);
     await page.getByRole("button", { name: "Select Automation tools", exact: true }).click();
+    const repositoryStack = page.getByRole("complementary", { name: "Automation tools technologies grouped by category" });
+    await expect(repositoryStack.getByText("Python", { exact: true })).toBeVisible();
+    await expect(repositoryStack.getByText("TypeScript", { exact: true })).toHaveCount(0);
     await expect(page.locator("iframe")).toHaveCount(0);
     await expect(page.getByRole("group", { name: "Preview size" })).toHaveCount(0);
     await expect(page.getByRole("link", { name: "Source code", exact: true })).toBeVisible();
