@@ -124,6 +124,19 @@ test.describe("Public website review", () => {
     await expect(page).toHaveURL(/\/en\/about$/);
     await expect(page.getByRole("heading", { level: 1, name: "About" })).toBeVisible();
     await expect(page.getByRole("img", { name: "Massimo Stefan standing in an elevator, holding a laptop" })).toBeVisible();
+    const story = page.locator("#career-story");
+    const aboutCareer = page.getByRole("region", { name: "Career", exact: true });
+    await expect(aboutCareer.locator("[data-career-main-row]")).toHaveAttribute("aria-pressed", "true");
+    const storyBox = await story.boundingBox();
+    const careerBox = await aboutCareer.boundingBox();
+    expect(storyBox && careerBox && storyBox.x + storyBox.width <= careerBox.x).toBeTruthy();
+    await aboutCareer.locator("button[data-career-job]", { hasText: "Amazon" }).click();
+    await expect(story.getByRole("heading", { level: 1, name: "Amazon" })).toBeVisible();
+    await expect(story.getByText("Software Development Engineer I")).toBeVisible();
+    await expect(aboutCareer.locator("[aria-live='polite']")).toHaveCount(0);
+    await aboutCareer.locator("[data-career-main-row]").click();
+    await expect(story.getByRole("heading", { level: 1, name: "About" })).toBeVisible();
+    await expect(story.getByRole("img", { name: "Massimo Stefan standing in an elevator, holding a laptop" })).toBeVisible();
     await showReviewStep(page, "3 · About and portrait");
 
     // 4. Toggle dark mode and verify the rendered theme state.
@@ -175,6 +188,16 @@ test.describe("Public website review", () => {
     })).toBe(true);
     await page.screenshot({ path: ".artifacts/playwright/career-home-mobile.png", fullPage: true });
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+    await page.goto("/en/about");
+    const mobileStory = page.locator("#career-story");
+    const mobileExplorer = page.getByRole("region", { name: "Career", exact: true });
+    const mobileStoryBox = await mobileStory.boundingBox();
+    const mobileExplorerBox = await mobileExplorer.boundingBox();
+    expect(mobileStoryBox && mobileExplorerBox && mobileStoryBox.y + mobileStoryBox.height <= mobileExplorerBox.y).toBeTruthy();
+    await mobileExplorer.locator("button[data-career-job]", { hasText: "Amazon" }).click();
+    await expect(mobileStory.getByRole("heading", { level: 1, name: "Amazon" })).toBeVisible();
+    await expect(page.getByRole("link", { name: /Amazon · Read story/ })).toBeVisible();
+    await page.screenshot({ path: ".artifacts/playwright/career-about-mobile.png", fullPage: true });
     await page.setViewportSize({ width: 400, height: 800 });
     await expect(page.locator("footer > div")).toHaveCSS("flex-direction", "row");
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);

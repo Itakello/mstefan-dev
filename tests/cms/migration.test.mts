@@ -6,7 +6,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { DatabaseSync } from 'node:sqlite';
 
-for (const schemaVersion of ['initial', 'career', 'branch_graph', 'ongoing']) {
+for (const schemaVersion of ['initial', 'career', 'branch_graph', 'ongoing', 'photo']) {
 test(`preview ${schemaVersion} baseline preserves drafts and rejects unexpected schema`, async () => {
   const dataDir = await mkdtemp(path.join(tmpdir(), 'payload-baseline-test-'));
   const environment = { ...process.env, NODE_ENV: 'production', PAYLOAD_DATA_DIR: dataDir, PAYLOAD_SECRET: 'disposable-local-integration-test-only', PAYLOAD_DISABLE_DEPENDENCY_CHECKER: 'true' };
@@ -26,20 +26,26 @@ test(`preview ${schemaVersion} baseline preserves drafts and rejects unexpected 
     const { up: careerUp } = await import('../../migrations/20260928_212105_career');
     await careerUp({ db: { run: (query) => db.exec(dialect.sqlToQuery(query).sql) } } as unknown as Parameters<typeof careerUp>[0]);
   }
-  if (schemaVersion === 'branch_graph' || schemaVersion === 'ongoing') {
+  if (['branch_graph', 'ongoing', 'photo'].includes(schemaVersion)) {
     const { up: branchUp } = await import('../../migrations/20260929_081759_career_branch_graph');
     await branchUp({ db: { run: (query) => db.exec(dialect.sqlToQuery(query).sql) } } as unknown as Parameters<typeof branchUp>[0]);
   }
-  if (schemaVersion === 'ongoing') {
+  if (schemaVersion === 'ongoing' || schemaVersion === 'photo') {
     const { up: ongoingUp } = await import('../../migrations/20260929_160549_career_ongoing');
     await ongoingUp({ db: { run: (query) => db.exec(dialect.sqlToQuery(query).sql) } } as unknown as Parameters<typeof ongoingUp>[0]);
+    if (schemaVersion === 'photo') {
+      const { up: photoUp } = await import('../../migrations/20260929_205504_career_photo');
+      await photoUp({ db: { run: (query) => db.exec(dialect.sqlToQuery(query).sql) } } as unknown as Parameters<typeof photoUp>[0]);
+      db.exec("INSERT INTO media (id, filename, alt) VALUES (1, 'career.png', 'Career portrait')");
+    }
     db.exec(`INSERT INTO career (id, _status) VALUES (1, 'published');
-      INSERT INTO career_jobs (_order, _parent_id, _locale, id, branch_name, company, role, start_date, ongoing) VALUES (1, 1, 'en', 'current', 'work/current', 'Current company', 'Engineer', '2024-01-01', 1);
+      INSERT INTO career_jobs (_order, _parent_id, _locale, id, branch_name, company, role, start_date, ongoing${schemaVersion === 'photo' ? ', photo_id' : ''}) VALUES (1, 1, 'en', 'current', 'work/current', 'Current company', 'Engineer', '2024-01-01', 1${schemaVersion === 'photo' ? ', 1' : ''});
       INSERT INTO _career_v (id, version__status, latest) VALUES (1, 'draft', 1);
-      INSERT INTO _career_v_version_jobs (_order, _parent_id, _locale, id, branch_name, company, role, start_date, ongoing) VALUES (1, 1, 'en', 1, 'work/current', 'Draft company', 'Engineer', '2024-01-01', 1);`);
+      INSERT INTO _career_v_version_jobs (_order, _parent_id, _locale, id, branch_name, company, role, start_date, ongoing${schemaVersion === 'photo' ? ', photo_id' : ''}) VALUES (1, 1, 'en', 1, 'work/current', 'Draft company', 'Engineer', '2024-01-01', 1${schemaVersion === 'photo' ? ', 1' : ''});`);
   }
-  const careerRows = () => schemaVersion === 'ongoing' ? ['career_jobs', '_career_v_version_jobs'].map((table) => db.prepare(`SELECT * FROM ${table} ORDER BY id`).all()) : [];
+  const careerRows = () => ['ongoing', 'photo'].includes(schemaVersion) ? ['career_jobs', '_career_v_version_jobs'].map((table) => db.prepare(`SELECT * FROM ${table} ORDER BY id`).all().map((row) => { if (schemaVersion === 'ongoing') delete row.photo_id; return row; })) : [];
   const currentBefore = careerRows();
+  const mediaBefore = schemaVersion === 'photo' ? db.prepare('SELECT * FROM media ORDER BY id').all() : [];
   const before = db.prepare('SELECT * FROM _about_v_locales ORDER BY id').all();
   db.close();
   try {
@@ -52,6 +58,7 @@ test(`preview ${schemaVersion} baseline preserves drafts and rejects unexpected 
     db = new DatabaseSync(filename);
     assert.deepEqual(db.prepare('SELECT * FROM _about_v_locales ORDER BY id').all(), before);
     assert.deepEqual(careerRows(), currentBefore);
+    if (schemaVersion === 'photo') assert.deepEqual(db.prepare('SELECT * FROM media ORDER BY id').all(), mediaBefore);
     assert.equal(db.prepare('SELECT COUNT(*) AS count FROM payload_migrations WHERE batch = -1').get()!.count, 0);
     db.exec('ALTER TABLE about ADD COLUMN unexpected_schema TEXT');
     const migrationHistory = db.prepare('SELECT * FROM payload_migrations ORDER BY id').all();
@@ -133,7 +140,11 @@ test('branch graph preview baseline preserves populated published and draft fiel
     const migrate = spawnSync(process.execPath, ['node_modules/payload/bin.js', 'migrate'], { env: environment, encoding: 'utf8', timeout: 30_000 });
     assert.equal(migrate.status, 0, `${migrate.stderr}\n${migrate.stdout}`);
     db = new DatabaseSync(filename);
-    assert.deepEqual(content().map((table) => ({ ...table, rows: table.rows.map((row) => { delete row.ongoing; return row; }) })), currentContent, 'Migration after baseline changed existing branch fields');
+    assert.deepEqual(content().map((table) => ({ ...table, rows: table.rows.map((row) => {
+      if (table.name === 'career_jobs' || table.name === '_career_v_version_jobs') { delete row.ongoing; delete row.photo_id; }
+      if (table.name === 'media') delete row.alt;
+      return row;
+    }) })), currentContent, 'Migration after baseline changed existing branch fields');
     assert.deepEqual(db.prepare('SELECT * FROM payload_migrations ORDER BY id').all().slice(0, 3), baselineHistory);
     db.close();
     const ongoingRollback = spawnSync(process.execPath, ['node_modules/payload/bin.js', 'migrate:down'], { env: environment, encoding: 'utf8', timeout: 30_000 });
@@ -343,7 +354,7 @@ test('Payload migration runner can remove and recreate the initial migration his
       assert.equal(result.status, 0, `${command}: ${result.stderr}\n${result.stdout}`);
       const database = new DatabaseSync(path.join(dataDir, '.payload-local.db'));
       try {
-        remainingMigrations = command === 'migrate' ? 4 : 0;
+        remainingMigrations = command === 'migrate' ? 5 : 0;
         if (remainingMigrations === 0) {
           assert.deepEqual(database.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").all(), []);
         } else {

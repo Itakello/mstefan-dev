@@ -17,14 +17,29 @@ if (!process.env.PAYLOAD_SECRET || process.env.PAYLOAD_SECRET.length < 32) {
 const dirname = path.dirname(fileURLToPath(import.meta.url));
 const dataDir = process.env.PAYLOAD_DATA_DIR ? path.resolve(process.env.PAYLOAD_DATA_DIR) : dirname;
 const authenticated: Access = ({ req }) => Boolean(req.user);
+const mediaID = (value: number | { id: number } | null | undefined): number | null =>
+  typeof value === "number" ? value : value?.id ?? null;
 const publishedMedia: Access = async ({ req }) => {
   if (req.user) return true;
-  const about = await req.payload.findGlobal({
-    slug: "about", draft: false, depth: 0, overrideAccess: true,
-  });
-  return about._status === "published" && about.photo
-    ? { id: { equals: about.photo } }
-    : false;
+  const [about, ...careers] = await Promise.all([
+    req.payload.findGlobal({ slug: "about", draft: false, depth: 0, overrideAccess: true }),
+    ...supportedLocales.map((locale) => req.payload.findGlobal({
+      slug: "career", locale, fallbackLocale: false, draft: false, depth: 0, overrideAccess: true,
+    })),
+  ]);
+  const ids = new Set<number>();
+  if (about._status === "published") {
+    const id = mediaID(about.photo);
+    if (id !== null) ids.add(id);
+  }
+  for (const career of careers) {
+    if (career._status !== "published") continue;
+    for (const job of career.jobs ?? []) {
+      const id = mediaID(job.photo);
+      if (id !== null) ids.add(id);
+    }
+  }
+  return ids.size ? { id: { in: [...ids] } } : false;
 };
 
 function pageGlobal(slug: "home" | "about"): GlobalConfig {
@@ -118,6 +133,7 @@ const careerGlobal: GlobalConfig = {
       { name: "company", label: "Organization", type: "text", required: true },
       { name: "role", label: "Role or qualification", type: "text", required: true },
       { name: "summary", type: "textarea" },
+      { name: "photo", type: "upload", relationTo: "media" },
       { name: "startDate", type: "date" },
       { name: "ongoing", label: "Currently ongoing", type: "checkbox", defaultValue: false,
         admin: { description: "Keep this experience open through today. Any stored end date is ignored while enabled." } },
@@ -165,7 +181,7 @@ export default buildConfig({
       mimeTypes: ["image/jpeg", "image/png", "image/webp", "image/gif"],
     },
     access: { read: publishedMedia, create: authenticated, update: authenticated, delete: authenticated },
-    fields: [],
+    fields: [{ name: "alt", type: "text" }],
   }],
   globals: [pageGlobal("home"), pageGlobal("about"), careerGlobal],
   typescript: { outputFile: path.resolve(dirname, "payload-types.ts") },

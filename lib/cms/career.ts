@@ -11,7 +11,7 @@ export async function getCareerContent(locale: Locale, preview: boolean): Promis
   const user = preview ? (await payload.auth({ headers: await headers() })).user : null;
   if (preview && !user) notFound();
   const career = await payload.findGlobal({
-    slug: "career", locale, fallbackLocale: false, draft: preview,
+    slug: "career", locale, fallbackLocale: false, draft: preview, depth: 1,
     overrideAccess: !preview, user,
   });
   return career._status === "published" || preview ? career : { ...career, jobs: [] };

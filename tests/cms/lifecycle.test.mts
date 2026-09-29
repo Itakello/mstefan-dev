@@ -95,7 +95,7 @@ before(async () => {
   environment = {
     ...process.env, NODE_ENV: 'production', PAYLOAD_DATA_DIR: dataDir,
     PAYLOAD_SECRET: randomBytes(32).toString('hex'), NEXT_TELEMETRY_DISABLED: '1',
-    NOTION_TOKEN: '', NOTION_DATABASE_ID: '', NOTION_STACK_DATABASE_ID: '', GITHUB_TOKEN: '', VERCEL: '', VERCEL_ENV: '', SITE_DEPLOYMENT: 'private',
+    NOTION_TOKEN: '', NOTION_DATABASE_ID: '', NOTION_STACK_DATABASE_ID: '', GITHUB_TOKEN: '', VERCEL: '', VERCEL_ENV: '', SITE_DEPLOYMENT: 'public',
     NODE_OPTIONS: `--import=${path.resolve('tests/cms/offline-fetch.mjs')}`,
   };
   const migration = spawnSync(process.execPath, ['node_modules/payload/bin.js', 'migrate'], { env: environment, encoding: 'utf8' });
@@ -194,6 +194,12 @@ test('production drafts, active-locale UI publishing, media privacy, and restart
   assert.equal(privateFile.status, 200);
   const secondRegistration = await request('/api/users/first-register', { email: 'another@example.invalid', password });
   assert.notEqual(secondRegistration.status, 200);
+  await stop();
+  environment.SITE_DEPLOYMENT = 'private';
+  await start();
+  const loginAgain = await request('/api/users/login', { email, password });
+  assert.equal(loginAgain.status, 200);
+  cookie = loginAgain.headers.get('set-cookie')!.split(';')[0];
 });
 
 
@@ -213,8 +219,9 @@ test('career admin live preview keeps About text intact and locale drafts privat
     const preview = page.frameLocator('iframe');
     await expect(preview.getByRole('heading', { level: 1 })).toHaveText('en-published-from-ui');
     await page.locator('#field-jobs__0__summary').fill('Unsaved career live preview');
+    await preview.getByRole('region', { name: 'Career', exact: true }).locator('button[data-career-job]').first().click();
     await expect(preview.getByText('Unsaved career live preview', { exact: true })).toBeVisible();
-    await expect(preview.getByRole('heading', { level: 1 })).toHaveText('en-published-from-ui');
+    await expect(preview.getByRole('heading', { level: 1 })).toHaveText('Amazon');
     const publicPage = await request('/en/about');
     assert.ok(!(await publicPage.text()).includes('Unsaved career live preview'));
     const saveDraft = page.waitForResponse((response) => response.request().method() === 'POST' && response.url().includes('/api/globals/career') && response.url().includes('draft=true'));
@@ -371,7 +378,7 @@ test('nested career branches share junctions and synchronize graph and Experienc
     await expect(graph.locator('[data-career-label]')).toHaveCount(0);
     await projectTitle.hover();
     await expect(project).toHaveAttribute('data-highlighted', 'true');
-    await expect(firstTitle).toHaveAttribute('aria-pressed', 'true');
+    await expect(graph.locator('[data-career-main-row]')).toHaveAttribute('aria-pressed', 'true');
     await projectTitle.click();
     await expect(project).toHaveAttribute('aria-pressed', 'true');
     await project.focus();
@@ -381,7 +388,7 @@ test('nested career branches share junctions and synchronize graph and Experienc
     const mainline = graph.locator('[data-career-main-branch]');
     await mainRow.click();
     await expect(mainline).toHaveAttribute('aria-pressed', 'true');
-    await expect(graph.locator('[aria-live="polite"] h3')).toHaveText('Full-stack developer');
+    await expect(page.locator('#career-story').getByRole('heading', { level: 1 })).toHaveText('en-published-from-ui');
     await projectTitle.click();
     await mainline.focus();
     await mainline.press('Enter');
@@ -446,7 +453,8 @@ test('authenticated previews load only the active source draft', { timeout: 60_0
       await expect(page.getByText(titles[slug], { exact: true })).toHaveCount(0);
       const careerPreview = page.getByRole('region', { name: 'Career', exact: true });
       await expect(careerPreview.locator('button[data-career-job]').first()).toContainText(privateRole);
-      await expect(careerPreview.getByText(privateSummary, { exact: true })).toBeVisible();
+      if (slug === 'about') await careerPreview.locator('button[data-career-job]').first().click();
+      await expect(page.getByText(privateSummary, { exact: true })).toBeVisible();
       await page.goto(`${base}${pathname}?preview=1`);
       await expect(page.getByRole('heading', { level: 1 })).toHaveText(titles[slug]);
       const pagePreviewCareer = page.getByRole('region', { name: 'Career', exact: true });

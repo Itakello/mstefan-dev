@@ -67,3 +67,7 @@
 .graphButton:focus-visible .mainPath { stroke: white; stroke-width: 3; }
 .mainPath { pointer-events: none; }
 @media (max-width: 480px) { .mainRow { padding-left: 9px; } }
+
+.list:not(:has(.detail)) { height: 400px; display: flex; flex-direction: column; }
+.list:not(:has(.detail)) .titleList { min-height: 0; max-height: none; flex: 1; }
+.list:not(:has(.detail)) .mainRow { flex-shrink: 0; }

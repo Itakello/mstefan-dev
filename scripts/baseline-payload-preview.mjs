@@ -34,9 +34,10 @@ try {
     import { up as careerUp } from './migrations/20260928_212105_career.ts';
     import { up as branchUp } from './migrations/20260929_081759_career_branch_graph.ts';
     import { up as ongoingUp } from './migrations/20260929_160549_career_ongoing.ts';
+    import { up as photoUp } from './migrations/20260929_205504_career_photo.ts';
     import path from 'node:path';
     const dialect = new SQLiteSyncDialect();
-    for (const version of ['initial', 'career', 'branch_graph', 'ongoing']) {
+    for (const version of ['initial', 'career', 'branch_graph', 'ongoing', 'photo']) {
       const db = new DatabaseSync(path.join(process.env.BASELINE_REFERENCE_DIR, version + '.db'));
       const args = { db: { run: (query) => db.exec(dialect.sqlToQuery(query).sql) } };
       await initialUp(args);
@@ -45,13 +46,17 @@ try {
         await careerUp(args);
         db.prepare('INSERT INTO payload_migrations (name, batch) VALUES (?, ?)').run('20260928_212105_career', 1);
       }
-      if (version === 'branch_graph' || version === 'ongoing') {
+      if (['branch_graph', 'ongoing', 'photo'].includes(version)) {
         await branchUp(args);
         db.prepare('INSERT INTO payload_migrations (name, batch) VALUES (?, ?)').run('20260929_081759_career_branch_graph', 1);
       }
-      if (version === 'ongoing') {
+      if (version === 'ongoing' || version === 'photo') {
         await ongoingUp(args);
         db.prepare('INSERT INTO payload_migrations (name, batch) VALUES (?, ?)').run('20260929_160549_career_ongoing', 1);
+      }
+      if (version === 'photo') {
+        await photoUp(args);
+        db.prepare('INSERT INTO payload_migrations (name, batch) VALUES (?, ?)').run('20260929_205504_career_photo', 1);
       }
       db.close();
     }
@@ -64,7 +69,7 @@ try {
   assert.equal(target.prepare('PRAGMA integrity_check').get().integrity_check, 'ok');
   const targetSchema = schema(target);
   let migrations;
-  for (const version of ['initial', 'career', 'branch_graph', 'ongoing']) {
+  for (const version of ['initial', 'career', 'branch_graph', 'ongoing', 'photo']) {
     reference = new DatabaseSync(path.join(referenceDir, `${version}.db`), { readOnly: true });
     if (isDeepStrictEqual(targetSchema, schema(reference))) {
       migrations = reference.prepare('SELECT name, batch FROM payload_migrations ORDER BY id').all();

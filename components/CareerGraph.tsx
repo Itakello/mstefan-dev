@@ -20,10 +20,10 @@ function BranchIcon() {
   return <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M4 5v6m0-3c0-3 8-1 8-5M4 2a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Zm0 9a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Zm8-11a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Z" /></svg>;
 }
 
-export function CareerGraph({ career, locale, expanded = false }: { career: Career; locale: Locale; expanded?: boolean }) {
+export function CareerGraph({ career, locale, expanded = false, onSelectionChange, showDetails = true }: { career: Career; locale: Locale; expanded?: boolean; onSelectionChange?: (job: NonNullable<Career["jobs"]>[number] | null) => void; showDetails?: boolean }) {
   const content = labels[locale];
   const jobs = career.jobs ?? [];
-  const [selectedID, setSelectedID] = useState<string | null>(null);
+  const [selectedID, setSelectedID] = useState<string | null>(expanded ? MAIN_KEY : null);
   const [hoveredID, setHoveredID] = useState<string | null>(null);
   const [focusedID, setFocusedID] = useState<string | null>(null);
   const [now] = useState(() => Date.now());
@@ -74,6 +74,7 @@ export function CareerGraph({ career, locale, expanded = false }: { career: Care
     if (activeKey) revealHead(activeKey);
   }, [career.jobs, activeKey, graphViewportWidth]);
   useEffect(() => { if (detail.current) detail.current.scrollTop = 0; }, [activeKey]);
+  useEffect(() => { onSelectionChange?.(selected ?? null); }, [selected, onSelectionChange]);
 
   function select(key: string, fromTree = false) {
     setSelectedID(key);
@@ -134,12 +135,12 @@ export function CareerGraph({ career, locale, expanded = false }: { career: Care
               </button>;
             })}
             </div>
-            <div ref={detail} className={styles.detail} aria-live="polite" aria-atomic="true" style={{ "--branch-color": mainSelected ? "var(--career-main)" : selected?.color } as CSSProperties}>
+            {showDetails && <div ref={detail} className={styles.detail} aria-live="polite" aria-atomic="true" style={{ "--branch-color": mainSelected ? "var(--career-main)" : selected?.color } as CSSProperties}>
               <span className={styles.detailRef}><BranchIcon /><span>{mainSelected ? "main" : selected?.branchName}</span></span>
               <h3 className={styles.detailCompany}>{mainSelected ? content.main : selected?.company}</h3>
               {selected && <p className={styles.detailRole}>{selected.role}</p>}
               {selected?.summary && <p className={styles.summary}>{selected.summary}</p>}
-            </div>
+            </div>}
           </div>
           <div ref={tree} className={styles.tree} role="region" aria-label={`${content.graph}. ${content.order}.`} tabIndex={0}>
             <svg className={styles.graph} viewBox={`0 0 ${graphWidth} ${graphHeight}`} width={graphWidth} height={graphHeight} role="group" aria-label={content.description} onClickCapture={(event) => {
@@ -206,6 +207,6 @@ export function CareerGraph({ career, locale, expanded = false }: { career: Care
 }
 
 export function CareerLivePreview(props: Parameters<typeof CareerGraph>[0]) {
-  const { data } = useLivePreview<Career>({ initialData: props.career, serverURL: typeof window === "undefined" ? "" : window.location.origin, depth: 0 });
+  const { data } = useLivePreview<Career>({ initialData: props.career, serverURL: typeof window === "undefined" ? "" : window.location.origin, depth: 1 });
   return <CareerGraph {...props} career={data} />;
 }
