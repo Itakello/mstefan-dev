@@ -344,7 +344,7 @@ test('career admin live preview keeps About text intact and locale drafts privat
   } finally { await browser.close(); }
 });
 
-test('nested career branches share junctions and highlight their labels without connector lines', { timeout: 60_000 }, async () => {
+test('nested career branches share junctions and synchronize graph and Experience selection', { timeout: 60_000 }, async () => {
   const fixtures = [
     ['B', 'education/university', 1, 9, null, '#ffaa66'],
     ['C', 'work/independent', 1, 6, null, '#66dd88'],
@@ -366,26 +366,36 @@ test('nested career branches share junctions and highlight their labels without 
     await page.goto(`${base}/en/about#career`);
     const graph = page.getByRole('region', { name: 'Career', exact: true });
     const project = graph.locator('[data-career-branch][aria-label^="work/company/project:"]');
-    const projectLabel = graph.locator('[data-career-label][aria-label^="work/company/project:"]');
     const firstTitle = graph.locator('button[data-career-job]').first();
-    await projectLabel.hover();
+    const projectTitle = graph.locator('button[data-career-job]', { hasText: 'work/company/project' });
+    await expect(graph.locator('[data-career-label]')).toHaveCount(0);
+    await projectTitle.hover();
     await expect(project).toHaveAttribute('data-highlighted', 'true');
-    await expect(projectLabel).toHaveAttribute('data-highlighted', 'true');
     await expect(firstTitle).toHaveAttribute('aria-pressed', 'true');
-    await projectLabel.click();
+    await projectTitle.click();
     await expect(project).toHaveAttribute('aria-pressed', 'true');
-    await expect(graph.locator('button[data-career-job]', { hasText: 'work/company/project' })).toBeFocused();
-    await expect(graph.locator('[data-career-label] path, [data-label-anchor]')).toHaveCount(0);
-    const labelBounds = await graph.locator('[data-career-label] rect').evaluateAll((rects) => rects.map((rect) => {
-      const box = rect.getBoundingClientRect(); return { top: box.top, bottom: box.bottom };
-    }));
-    for (let i = 1; i < labelBounds.length; i++) assert.ok(labelBounds[i].top >= labelBounds[i - 1].bottom, 'Branch labels overlap');
+    await project.focus();
+    await project.press('Enter');
+    await expect(projectTitle).toBeFocused();
+    const mainRow = graph.locator('[data-career-main-row]');
+    const mainline = graph.locator('[data-career-main-branch]');
+    await mainRow.click();
+    await expect(mainline).toHaveAttribute('aria-pressed', 'true');
+    await expect(graph.locator('[aria-live="polite"] h3')).toHaveText('Full-stack developer');
+    await projectTitle.click();
+    await mainline.focus();
+    await mainline.press('Enter');
+    await expect(mainRow).toHaveAttribute('aria-pressed', 'true');
+    await expect(mainRow).toBeFocused();
+    await projectTitle.click();
     const before = await graph.locator('[data-career-head]').evaluateAll((points) => points.map((point) => Number(point.getAttribute('cy'))));
+    const beforeX = await graph.locator('[data-career-head]').evaluateAll((points) => points.map((point) => Number(point.getAttribute('cx'))));
     const beforeWidth = Number(await graph.locator('svg[role="group"]').getAttribute('width'));
     await update('career', 'en', { laneSpacing: 18, _status: 'published' }, '&publishSpecificLocale=en');
     await page.reload();
-    await expect.poll(async () => Number(await graph.locator('svg[role="group"]').getAttribute('width'))).toBeLessThan(beforeWidth);
+    await expect.poll(async () => Number(await graph.locator('svg[role="group"]').getAttribute('width'))).toBe(beforeWidth);
     assert.deepEqual(await graph.locator('[data-career-head]').evaluateAll((points) => points.map((point) => Number(point.getAttribute('cy')))), before);
+    assert.notDeepEqual(await graph.locator('[data-career-head]').evaluateAll((points) => points.map((point) => Number(point.getAttribute('cx')))), beforeX, 'Lane spacing must change graph positions');
     const branchB = graph.locator('[data-career-branch][aria-label^="education/university:"]');
     const branchC = graph.locator('[data-career-branch][aria-label^="work/independent:"]');
     await graph.locator('button[data-career-job]', { hasText: 'work/later' }).click();
@@ -406,7 +416,7 @@ test('nested career branches share junctions and highlight their labels without 
     await branchB.locator('circle').first().click();
     await expect(branchB).toHaveAttribute('aria-pressed', 'true');
     await page.setViewportSize({ width: 320, height: 800 });
-    await expect(projectLabel).toHaveCount(0);
+    await expect(graph.locator('[data-career-label]')).toHaveCount(0);
     await project.focus();
     await project.press('Enter');
     await expect(project).toHaveAttribute('aria-pressed', 'true');

@@ -14,6 +14,8 @@ const labels = {
   it: { title: "Percorso", main: "Sviluppatore full-stack", details: "Scopri il mio percorso", graph: "Grafo", order: "Il tempo scorre verso l’alto", description: "Percorso professionale e rami delle esperienze", role: "Esperienza", undated: "Date non indicate", incomplete: "Intervallo di date incompleto", present: "Presente" },
 };
 
+const MAIN_KEY = "__career_main__";
+
 function BranchIcon() {
   return <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M4 5v6m0-3c0-3 8-1 8-5M4 2a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Zm0 9a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Zm8-11a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Z" /></svg>;
 }
@@ -24,42 +26,29 @@ export function CareerGraph({ career, locale, expanded = false }: { career: Care
   const [selectedID, setSelectedID] = useState<string | null>(null);
   const [hoveredID, setHoveredID] = useState<string | null>(null);
   const [focusedID, setFocusedID] = useState<string | null>(null);
-  const [labelWidth, setLabelWidth] = useState(180);
   const [now] = useState(() => Date.now());
-  const [graphViewport, setGraphViewport] = useState({ width: 0, compact: false });
-  const timeline = layoutCareerTimeline(jobs, now, career.laneSpacing ?? 24, graphViewport.compact ? graphViewport.width - 40 : undefined);
+  const [graphViewportWidth, setGraphViewportWidth] = useState(0);
+  const timeline = layoutCareerTimeline(jobs, now, career.laneSpacing ?? 24, graphViewportWidth ? graphViewportWidth - 40 : undefined);
   const selectedIndex = timeline.entries.findIndex((entry) => entry.key === selectedID);
   const activeIndex = selectedIndex < 0 ? 0 : selectedIndex;
-  const selected = jobs[activeIndex];
-  const activeKey = timeline.entries[activeIndex]?.key;
+  const mainSelected = selectedID === MAIN_KEY;
+  const selected = mainSelected ? undefined : jobs[activeIndex];
+  const activeKey = mainSelected ? MAIN_KEY : timeline.entries[activeIndex]?.key;
   const tree = useRef<HTMLDivElement>(null);
   const detail = useRef<HTMLDivElement>(null);
   const titles = useRef(new Map<string, HTMLButtonElement>());
   const titleList = useRef<HTMLDivElement>(null);
-  const graph = useRef<SVGSVGElement>(null);
-  const graphOffset = graphViewport.compact ? 0 : labelWidth + 36;
-  const graphWidth = timeline.width + graphOffset + 40;
+  const graphWidth = timeline.width + 40;
   const highlighted = (key: string) => key === activeKey || key === hoveredID || key === focusedID;
   const paintOrder = [...timeline.entries].sort((a, b) => b.lane - a.lane);
-  let previousLabelY = 0;
-  const branchLabels = (graphViewport.compact ? [] : [...timeline.entries]).sort((a, b) => a.headY - b.headY || a.lane - b.lane).map((entry) => {
-    const y = Math.max(entry.headY, previousLabelY + 30);
-    previousLabelY = y;
-    return { ...entry, labelY: y };
-  });
-  const graphHeight = Math.max(timeline.height, previousLabelY + 24);
-
-  useEffect(() => {
-    const widths = Array.from(graph.current?.querySelectorAll<SVGTextElement>("[data-career-ref-text]") ?? []).map((text) => text.getComputedTextLength());
-    if (widths.length) setLabelWidth(Math.ceil(Math.max(...widths)) + 28);
-  }, [career.jobs, graphViewport.compact]);
+  const graphHeight = timeline.height;
 
   function revealHead(key: string) {
     const viewport = tree.current;
     const entry = timeline.entries.find((entry) => entry.key === key);
     if (!viewport || !entry) return;
     const margin = 24;
-    const headX = (entry.dated ? entry.mergeX : entry.x) + graphOffset;
+    const headX = entry.dated ? entry.mergeX : entry.x;
     const left = headX < viewport.scrollLeft + margin ? headX - margin
       : headX > viewport.scrollLeft + viewport.clientWidth - margin ? headX - viewport.clientWidth + margin : viewport.scrollLeft;
     const top = entry.headY < viewport.scrollTop + margin ? entry.headY - margin
@@ -71,8 +60,7 @@ export function CareerGraph({ career, locale, expanded = false }: { career: Care
     const viewport = tree.current;
     if (!viewport) return;
     const measure = () => {
-      const next = { width: viewport.clientWidth, compact: viewport.clientWidth < 320 };
-      setGraphViewport((current) => current.width === next.width && current.compact === next.compact ? current : next);
+      setGraphViewportWidth(viewport.clientWidth);
     };
     measure();
     const observer = new ResizeObserver(measure);
@@ -82,16 +70,9 @@ export function CareerGraph({ career, locale, expanded = false }: { career: Care
   useEffect(() => {
     const viewport = tree.current;
     if (!viewport) return;
-    if (graphViewport.compact) viewport.scrollLeft = 0;
-    else if (selectedID === null) viewport.scrollLeft = viewport.scrollWidth - viewport.clientWidth;
+    viewport.scrollLeft = 0;
     if (activeKey) revealHead(activeKey);
-  }, [career.jobs, activeKey, graphOffset]);
-  useEffect(() => {
-    const viewport = tree.current;
-    if (!viewport) return;
-    viewport.scrollLeft = graphViewport.compact ? 0 : viewport.scrollWidth - viewport.clientWidth;
-    if (activeKey) revealHead(activeKey);
-  }, [graphViewport.width, graphViewport.compact]);
+  }, [career.jobs, activeKey, graphViewportWidth]);
   useEffect(() => { if (detail.current) detail.current.scrollTop = 0; }, [activeKey]);
 
   function select(key: string, fromTree = false) {
@@ -99,7 +80,7 @@ export function CareerGraph({ career, locale, expanded = false }: { career: Care
     if (fromTree) {
       const title = titles.current.get(key);
       title?.focus({ preventScroll: true });
-      if (title && titleList.current) {
+      if (key !== MAIN_KEY && title && titleList.current) {
         const row = title.getBoundingClientRect();
         const viewport = titleList.current.getBoundingClientRect();
         if (row.top < viewport.top) titleList.current.scrollTop += row.top - viewport.top;
@@ -107,7 +88,6 @@ export function CareerGraph({ career, locale, expanded = false }: { career: Care
       }
     }
     revealHead(key);
-    if (window.matchMedia("(max-width: 640px)").matches) tree.current?.scrollIntoView({ block: "nearest" });
   }
 
   function selectJunction(x: number, y: number) {
@@ -143,7 +123,7 @@ export function CareerGraph({ career, locale, expanded = false }: { career: Care
         <div className={styles.header}><span>{content.role}</span><span>{content.graph} ↑</span></div>
         <div className={styles.body}>
           <div className={styles.list}>
-            <div className={styles.mainRow}><span className={styles.mainBadge}><BranchIcon />main</span><span>{content.main}</span></div>
+            <button ref={(element) => { if (element) titles.current.set(MAIN_KEY, element); else titles.current.delete(MAIN_KEY); }} data-career-main-row data-highlighted={highlighted(MAIN_KEY)} {...interaction(MAIN_KEY)} type="button" onClick={() => select(MAIN_KEY)} aria-pressed={mainSelected} className={styles.mainRow}><span className={styles.mainBadge}><BranchIcon />main</span><span>{content.main}</span></button>
             <div ref={titleList} className={styles.titleList}>
             {jobs.map((job, index) => {
               const key = timeline.entries[index].key;
@@ -154,19 +134,19 @@ export function CareerGraph({ career, locale, expanded = false }: { career: Care
               </button>;
             })}
             </div>
-            <div ref={detail} className={styles.detail} aria-live="polite" aria-atomic="true" style={{ "--branch-color": selected?.color } as CSSProperties}>
-              <span className={styles.detailRef}><BranchIcon /><span>{selected?.branchName}</span></span>
-              <h3 className={styles.detailCompany}>{selected?.company}</h3>
-              <p className={styles.detailRole}>{selected?.role}</p>
+            <div ref={detail} className={styles.detail} aria-live="polite" aria-atomic="true" style={{ "--branch-color": mainSelected ? "var(--career-main)" : selected?.color } as CSSProperties}>
+              <span className={styles.detailRef}><BranchIcon /><span>{mainSelected ? "main" : selected?.branchName}</span></span>
+              <h3 className={styles.detailCompany}>{mainSelected ? content.main : selected?.company}</h3>
+              {selected && <p className={styles.detailRole}>{selected.role}</p>}
               {selected?.summary && <p className={styles.summary}>{selected.summary}</p>}
             </div>
           </div>
           <div ref={tree} className={styles.tree} role="region" aria-label={`${content.graph}. ${content.order}.`} tabIndex={0}>
-            <svg ref={graph} className={styles.graph} viewBox={`0 0 ${graphWidth} ${graphHeight}`} width={graphWidth} height={graphHeight} role="group" aria-label={content.description} onClickCapture={(event) => {
-              if ((event.target as Element).closest("[data-career-label]")) return;
+            <svg className={styles.graph} viewBox={`0 0 ${graphWidth} ${graphHeight}`} width={graphWidth} height={graphHeight} role="group" aria-label={content.description} onClickCapture={(event) => {
+              if ((event.target as Element).closest("[data-career-main-branch]")) return;
               const bounds = event.currentTarget.getBoundingClientRect();
               if (!bounds.width || !bounds.height) return;
-              const x = (event.clientX - bounds.left) * graphWidth / bounds.width - graphOffset;
+              const x = (event.clientX - bounds.left) * graphWidth / bounds.width;
               const y = (event.clientY - bounds.top) * graphHeight / bounds.height;
               const junction = nearestCareerJunction(timeline.entries, x, y);
               if (!junction) return;
@@ -175,14 +155,19 @@ export function CareerGraph({ career, locale, expanded = false }: { career: Care
             }}>
               {timeline.ticks.map((tick) => <g key={tick.timestamp} className={styles.tick}>
                 <line x1="8" x2={graphWidth} y1={tick.y} y2={tick.y} />
-                <text x={graphOffset + timeline.mainX + 12} y={tick.y - 7}>{tick.month ? dateFormat.format(tick.timestamp) : new Date(tick.timestamp).getUTCFullYear()}</text>
+                <text x={timeline.mainX + 12} y={tick.y - 7}>{tick.month ? dateFormat.format(tick.timestamp) : new Date(tick.timestamp).getUTCFullYear()}</text>
               </g>)}
               {timeline.hasUndated && <g className={styles.undatedLabel}>
                 {timeline.undatedTop > 0 && <line x1="0" x2={graphWidth} y1={timeline.undatedTop + 8} y2={timeline.undatedTop + 8} />}
                 <text x="8" y={timeline.undatedTop + 28}>{content.undated}</text>
               </g>}
-              <g transform={`translate(${graphOffset} 0)`}>
-              <path d={`M${timeline.mainX} ${timeline.height} V${timeline.topY}`} className={styles.mainPath} />
+              <g>
+              <g data-career-main-branch data-highlighted={highlighted(MAIN_KEY)} {...interaction(MAIN_KEY)} role="button" tabIndex={0} aria-label={`main: ${content.main}`} aria-pressed={mainSelected} className={styles.graphButton} onClick={() => select(MAIN_KEY, true)} onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") { event.preventDefault(); select(MAIN_KEY, true); }
+              }}>
+                <path d={`M${timeline.mainX} ${timeline.height} V${timeline.topY}`} className={styles.hitPath} />
+                <path d={`M${timeline.mainX} ${timeline.height} V${timeline.topY}`} className={styles.mainPath} />
+              </g>
               <g aria-hidden="true" className={styles.visualPaths}>
                 {paintOrder.map((entry) => <path key={entry.key} data-career-path={entry.key} d={entry.path} stroke={jobs[entry.index].color} className={styles.branch} />)}
               </g>
@@ -212,13 +197,6 @@ export function CareerGraph({ career, locale, expanded = false }: { career: Care
                 <circle cx={entry.dated ? entry.mergeX : entry.x} cy={entry.headY} r="8.5" fill="none" stroke={jobs[entry.index].color} strokeWidth="1.5" />
               </g>)}
               </g>
-              {branchLabels.map((entry) => <g key={entry.key} data-career-label={entry.key} data-highlighted={highlighted(entry.key)} {...interaction(entry.key)} className={styles.branchLabel} role="button" tabIndex={0} aria-label={`${jobs[entry.index].branchName}: ${jobs[entry.index].company}`} aria-pressed={activeKey === entry.key} style={{ "--branch-color": jobs[entry.index].color } as CSSProperties} onClick={() => select(entry.key, true)} onKeyDown={(event) => {
-                if (event.key === "Enter" || event.key === " ") { event.preventDefault(); select(entry.key, true); }
-              }}>
-                <rect x="82" y={entry.labelY - 13} width={labelWidth} height="26" rx="4" />
-                <circle cx="94" cy={entry.labelY} r="3.5" fill={jobs[entry.index].color} />
-                <text data-career-ref-text x="104" y={entry.labelY} dominantBaseline="middle">{jobs[entry.index].branchName}</text>
-              </g>)}
             </svg>
           </div>
         </div>
