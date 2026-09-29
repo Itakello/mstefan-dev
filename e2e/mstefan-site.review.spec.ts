@@ -131,9 +131,15 @@ test.describe("Public website review", () => {
     const slideStage = reader.locator("[data-document-stage]");
     expect(await slideStage.evaluate(node => node.clientHeight)).toBeLessThan(paperStageHeight);
     await expect.poll(() => slideStage.evaluate(node => node.scrollHeight <= node.clientHeight + 1 && node.scrollWidth <= node.clientWidth + 1)).toBeTruthy();
+    await page.setViewportSize({ width: 1440, height: 600 });
+    await expect.poll(() => slideStage.evaluate(node => node.clientHeight)).toBeLessThan(335);
+    const shortSlideHeight = await slideStage.evaluate(node => node.clientHeight);
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await expect.poll(() => slideStage.evaluate(node => node.clientHeight)).toBeGreaterThan(shortSlideHeight + 100);
     await page.setViewportSize({ width: 360, height: 800 });
     await expect(reader.getByRole("status")).toHaveCount(0);
     await expect.poll(() => slideStage.evaluate(node => node.scrollHeight <= node.clientHeight + 1 && node.scrollWidth <= node.clientWidth + 1)).toBeTruthy();
+    expect(await slideStage.evaluate(node => Math.abs(node.clientHeight - (node.querySelector("canvas")?.getBoundingClientRect().height ?? 0) - 24))).toBeLessThan(2);
     expect(await reader.evaluate(node => node.getBoundingClientRect().right <= window.innerWidth)).toBeTruthy();
     await page.screenshot({ path: ".artifacts/playwright/work-research-mobile.png", fullPage: true });
     await page.setViewportSize({ width: 1440, height: 1000 });
