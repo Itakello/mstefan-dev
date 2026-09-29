@@ -255,24 +255,26 @@ test('career admin live preview keeps About text intact and locale drafts privat
     await expect(graph.getByText('Education fixture details', { exact: true })).toHaveCount(0);
     const branches = graph.locator('svg [data-career-branch]');
     await expect(branches).toHaveCount(2);
-    await branches.first().focus();
-    await branches.first().press('Enter');
+    const educationBranch = graph.locator('[data-career-branch][aria-label^="education/test-university:"]');
+    const amazonBranch = graph.locator('[data-career-branch][aria-label^="work/amazon:"]');
+    await educationBranch.focus();
+    await educationBranch.press('Enter');
     await expect(graph.getByText('Education fixture details', { exact: true })).toBeVisible();
     await expect(graph.locator('button[data-career-job]').first()).toHaveAttribute('aria-pressed', 'true');
-    await expect(branches.first()).toHaveAttribute('aria-pressed', 'true');
-    await branches.last().focus();
-    await branches.last().press('Space');
+    await expect(educationBranch).toHaveAttribute('aria-pressed', 'true');
+    await amazonBranch.focus();
+    await amazonBranch.press('Space');
     await expect(graph.getByText('Amazon fixture details', { exact: true })).toBeVisible();
     await expect(amazon).toHaveAttribute('aria-pressed', 'true');
     await expect(graph.getByText('Dates not provided').first()).toBeVisible();
-    await branches.first().locator('[data-career-head]').click();
+    await educationBranch.locator('[data-career-head]').click();
     await expect(graph.getByText('Education fixture details', { exact: true })).toBeVisible();
     await expect(graph.locator('button[data-career-job]').first()).toBeFocused();
-    await branches.last().locator('[data-career-head]').click();
+    await amazonBranch.locator('[data-career-head]').click();
     await expect(graph.getByText('Amazon fixture details', { exact: true })).toBeVisible();
     await expect(amazon).toHaveAttribute('aria-pressed', 'true');
     await expect(amazon).toBeFocused();
-    const pathPoint = await branches.first().locator('path').last().evaluate((element) => {
+    const pathPoint = await educationBranch.locator('path').last().evaluate((element) => {
       const path = element as SVGPathElement;
       const point = path.getPointAtLength(path.getTotalLength() * 0.85);
       const screen = new DOMPoint(point.x, point.y).matrixTransform(path.getScreenCTM()!);
@@ -288,8 +290,7 @@ test('career admin live preview keeps About text intact and locale drafts privat
       { branchName: 'work/undated-fixture', company: 'Undated fixture', role: 'Test role', summary: 'Undated fixture details', color: '#d568fc' },
     ] }, '&publishSpecificLocale=en');
     await page.reload();
-    const heads = graph.locator('[data-career-head]');
-    assert.ok(Number(await heads.nth(0).getAttribute('cy')) > Number(await heads.nth(1).getAttribute('cy')), 'Later dates must appear above earlier dates despite title order');
+    assert.ok(Number(await educationBranch.locator('[data-career-head]').getAttribute('cy')) > Number(await amazonBranch.locator('[data-career-head]').getAttribute('cy')), 'Later dates must appear above earlier dates despite title order');
     const tree = graph.getByRole('region', { name: 'Graph. Time moves upward.', exact: true });
     assert.ok(await tree.evaluate((element) => element.scrollHeight > element.clientHeight), 'Long history must scroll inside the tree');
     const detail = graph.locator('[aria-live="polite"]');
@@ -301,18 +302,18 @@ test('career admin live preview keeps About text intact and locale drafts privat
     const scrollToPath = await tree.evaluate((element) => element.scrollTop);
     await page.mouse.wheel(0, 400);
     await expect.poll(() => tree.evaluate((element) => element.scrollTop)).toBeGreaterThan(scrollToPath);
-    await expect(heads.nth(1)).not.toBeInViewport();
-    const datedPathPosition = () => graph.locator('[data-career-branch]').nth(1).locator('path').last().evaluate((element) => {
+    await expect(amazonBranch.locator('[data-career-head]')).not.toBeInViewport();
+    const datedPathPosition = () => amazonBranch.locator('path').last().evaluate((element) => {
       const path = element as SVGPathElement;
       const point = path.getPointAtLength(50);
       const screen = new DOMPoint(point.x, point.y).matrixTransform(path.getScreenCTM()!);
       return { x: screen.x, y: screen.y };
     });
     const datedPathPoint = await datedPathPosition();
-    assert.equal(await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.closest('[data-career-branch]')?.getAttribute('data-career-branch'), datedPathPoint), await graph.locator('[data-career-branch]').nth(1).getAttribute('data-career-branch'), 'The dated path click must hit the visible intended branch');
+    assert.equal(await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.closest('[data-career-branch]')?.getAttribute('data-career-branch'), datedPathPoint), await amazonBranch.getAttribute('data-career-branch'), 'The dated path click must hit the visible intended branch');
     await page.mouse.click(datedPathPoint.x, datedPathPoint.y);
     await expect(graph.getByText('Amazon dated fixture', { exact: true })).toBeVisible();
-    await expect(heads.nth(1)).toBeInViewport();
+    await expect(amazonBranch.locator('[data-career-head]')).toBeInViewport();
     await expect.poll(() => detail.evaluate((element) => element.scrollTop)).toBe(0);
     await expect(graph.getByRole('heading', { name: 'Amazon', exact: true })).toBeVisible();
     await tree.hover();
@@ -321,19 +322,88 @@ test('career admin live preview keeps About text intact and locale drafts privat
     await page.mouse.wheel(0, 400);
     await expect.poll(() => tree.evaluate((element) => element.scrollTop)).toBeGreaterThan(beforeScroll);
     assert.equal(await page.evaluate(() => window.scrollY), pageScroll, 'Tree scrolling must not move the page');
-    await expect(heads.nth(1)).not.toBeInViewport();
+    await expect(amazonBranch.locator('[data-career-head]')).not.toBeInViewport();
     const selectedPathPoint = await datedPathPosition();
-    assert.equal(await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.closest('[data-career-branch]')?.getAttribute('data-career-branch'), selectedPathPoint), await graph.locator('[data-career-branch]').nth(1).getAttribute('data-career-branch'), 'Reselecting must hit the visible selected branch');
+    assert.equal(await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.closest('[data-career-branch]')?.getAttribute('data-career-branch'), selectedPathPoint), await amazonBranch.getAttribute('data-career-branch'), 'Reselecting must hit the visible selected branch');
     await page.mouse.click(selectedPathPoint.x, selectedPathPoint.y);
-    await expect(heads.nth(1)).toBeInViewport();
+    await expect(amazonBranch.locator('[data-career-head]')).toBeInViewport();
     await expect(graph.locator('button[data-career-job]', { hasText: 'work/amazon' })).toBeFocused();
     await graph.locator('button[data-career-job]', { hasText: 'work/undated-fixture' }).click();
     await expect(graph.getByText('Undated fixture details', { exact: true })).toBeVisible();
-    await expect(heads.nth(2)).toBeInViewport();
+    await expect(graph.locator('[data-career-branch][aria-label^="work/undated-fixture:"] [data-career-head]')).toBeInViewport();
     await expect(tree.getByText('Dates not provided', { exact: true })).toBeVisible();
 
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), 'Career page overflows at 320px');
     await context.close();
+  } finally { await browser.close(); }
+});
+
+test('nested career branches share junctions and highlight their labels without connector lines', { timeout: 60_000 }, async () => {
+  const fixtures = [
+    ['B', 'education/university', 1, 9, null, '#ffaa66'],
+    ['C', 'work/independent', 1, 6, null, '#66dd88'],
+    ['D', 'education/university/internship', 2, 4, 'education/university', '#ff55cc'],
+    ['E', 'work/company', 3, 8, null, '#aa88ff'],
+    ['F', 'work/company/project', 5, 8, 'work/company', '#55dddd'],
+    ['G', 'work/parallel', 3, 8, null, '#ffbb55'],
+    ['H', 'work/next', 6, 10, null, '#55bbff'],
+    ['I', 'work/later', 9, 11, null, '#ffaa99'],
+  ] as const;
+  const jobs = fixtures.map(([company, branchName, start, end, parentBranchName, color]) => ({
+    company, branchName, role: 'Synthetic test experience', parentBranchName, color,
+    startDate: new Date(Date.UTC(2024, start, 1)).toISOString(), endDate: new Date(Date.UTC(2024, end, 1)).toISOString(),
+  }));
+  await update('career', 'en', { jobs, laneSpacing: 24, _status: 'published' }, '&publishSpecificLocale=en');
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const page = await browser.newPage({ viewport: { width: 1000, height: 900 } });
+    await page.goto(`${base}/en/about#career`);
+    const graph = page.getByRole('region', { name: 'Career', exact: true });
+    const project = graph.locator('[data-career-branch][aria-label^="work/company/project:"]');
+    const projectLabel = graph.locator('[data-career-label][aria-label^="work/company/project:"]');
+    const firstTitle = graph.locator('button[data-career-job]').first();
+    await projectLabel.hover();
+    await expect(project).toHaveAttribute('data-highlighted', 'true');
+    await expect(projectLabel).toHaveAttribute('data-highlighted', 'true');
+    await expect(firstTitle).toHaveAttribute('aria-pressed', 'true');
+    await projectLabel.click();
+    await expect(project).toHaveAttribute('aria-pressed', 'true');
+    await expect(graph.locator('button[data-career-job]', { hasText: 'work/company/project' })).toBeFocused();
+    await expect(graph.locator('[data-career-label] path, [data-label-anchor]')).toHaveCount(0);
+    const labelBounds = await graph.locator('[data-career-label] rect').evaluateAll((rects) => rects.map((rect) => {
+      const box = rect.getBoundingClientRect(); return { top: box.top, bottom: box.bottom };
+    }));
+    for (let i = 1; i < labelBounds.length; i++) assert.ok(labelBounds[i].top >= labelBounds[i - 1].bottom, 'Branch labels overlap');
+    const before = await graph.locator('[data-career-head]').evaluateAll((points) => points.map((point) => Number(point.getAttribute('cy'))));
+    const beforeWidth = Number(await graph.locator('svg[role="group"]').getAttribute('width'));
+    await update('career', 'en', { laneSpacing: 18, _status: 'published' }, '&publishSpecificLocale=en');
+    await page.reload();
+    await expect.poll(async () => Number(await graph.locator('svg[role="group"]').getAttribute('width'))).toBeLessThan(beforeWidth);
+    assert.deepEqual(await graph.locator('[data-career-head]').evaluateAll((points) => points.map((point) => Number(point.getAttribute('cy')))), before);
+    const branchB = graph.locator('[data-career-branch][aria-label^="education/university:"]');
+    const branchC = graph.locator('[data-career-branch][aria-label^="work/independent:"]');
+    await graph.locator('button[data-career-job]', { hasText: 'work/later' }).click();
+    await branchB.locator('circle').first().scrollIntoViewIfNeeded();
+    const sharedStart = await branchB.locator('circle').first().evaluate((circle) => {
+      const box = circle.getBoundingClientRect(); return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+    });
+    assert.equal(await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.closest('[data-career-branch]')?.getAttribute('data-career-branch'), sharedStart), await branchB.getAttribute('data-career-branch'), 'Closest lane must own the shared junction hit area');
+    await page.mouse.move(sharedStart.x, sharedStart.y);
+    await expect(branchB).toHaveAttribute('data-highlighted', 'true');
+    await expect(branchC).toHaveAttribute('data-highlighted', 'false');
+    const junction = await branchB.locator('circle').first().evaluate((dot) => ({ x: dot.getAttribute('cx'), y: dot.getAttribute('cy') }));
+    const baseDots = await graph.locator('[data-career-branch] circle[r="4.5"]').evaluateAll((dots, { x, y }) => dots.filter((dot) => dot.getAttribute('cx') === x && dot.getAttribute('cy') === y).map((dot) => dot.getAttribute('fill')), junction);
+    assert.equal(baseDots.at(-1), '#ffaa66', 'Closest lane must paint the shared base dot');
+    await graph.locator('button[data-career-job]').first().click();
+    await branchB.locator('circle').first().click();
+    await expect(branchC).toHaveAttribute('aria-pressed', 'true');
+    await branchB.locator('circle').first().click();
+    await expect(branchB).toHaveAttribute('aria-pressed', 'true');
+    await page.setViewportSize({ width: 320, height: 800 });
+    await projectLabel.focus();
+    await projectLabel.press('Enter');
+    await expect(project).toHaveAttribute('aria-pressed', 'true');
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), 'Career page overflows at 320px');
   } finally { await browser.close(); }
 });
 

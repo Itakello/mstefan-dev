@@ -28,6 +28,7 @@ test('career seed, localized order, authenticated drafts, colors, and deletion s
       const seed = await payload.findGlobal({ slug: 'career', locale, fallbackLocale: false });
       assert.equal(seed._status, 'published');
       assert.equal(seed.mainlineColor, '#25b8f3');
+      assert.equal(seed.laneSpacing, 24);
       assert.equal(seed.jobs?.length, 1);
       assert.equal(seed.jobs![0].company, 'Amazon');
       assert.equal(seed.jobs![0].branchName, 'work/amazon');
@@ -72,6 +73,7 @@ test('career seed, localized order, authenticated drafts, colors, and deletion s
     assert.equal(draft.jobs![0].role, 'Private draft role');
     await payload.updateGlobal({ slug: 'career', locale: 'it', draft: true, data: {
       mainlineColor: '#fedcba',
+      laneSpacing: 64,
       jobs: [...publicItalian.jobs!].reverse().map((job) => ({ ...job, color: '#112233', startDate: '2020-01-01T00:00:00.000Z' })),
     } });
     const reorderedItalian = await payload.findGlobal({ slug: 'career', locale: 'it', draft: true });
@@ -92,6 +94,23 @@ test('career seed, localized order, authenticated drafts, colors, and deletion s
     for (const data of [{ mainlineColor: 'red' }, { jobs: [{ branchName: 'invalid branch', company: 'Test', role: 'Test', color: '#abcdef' }] }, { jobs: [{ branchName: 'work/test', company: 'Test', role: 'Test', color: '#fff' }] }]) {
       await assert.rejects(payload.updateGlobal({ slug: 'career', locale: 'en', data }));
     }
+    const university = { branchName: 'education/university', company: 'University', role: 'Student', color: '#12abcd', startDate: '2020-01-01', endDate: '2024-01-01' };
+    const internship = { branchName: 'education/university/internship', parentBranchName: university.branchName, company: 'University', role: 'Intern', color: '#abcdef', startDate: '2022-01-01', endDate: '2023-01-01' };
+    for (const jobs of [
+      [university, university],
+      [internship],
+      [{ ...university, parentBranchName: internship.branchName }, internship],
+      [university, { ...internship, endDate: '2025-01-01' }],
+    ]) await assert.rejects(payload.updateGlobal({ slug: 'career', locale: 'en', data: { jobs } }));
+    for (const laneSpacing of [17, 65, 24.5]) await assert.rejects(payload.updateGlobal({ slug: 'career', locale: 'en', data: { laneSpacing } }));
+    await payload.updateGlobal({ slug: 'career', locale: 'en', draft: true, data: { laneSpacing: 18, jobs: [internship, university] } });
+    await restart();
+    const nestedDraft = await payload.findGlobal({ slug: 'career', locale: 'en', draft: true });
+    assert.equal(nestedDraft.jobs![0].parentBranchName, university.branchName);
+    assert.equal(nestedDraft.laneSpacing, 18);
+    assert.equal((await payload.findGlobal({ slug: 'career', locale: 'en', draft: false })).laneSpacing, 24);
+    assert.equal((await payload.findGlobal({ slug: 'career', locale: 'it', draft: false })).laneSpacing, 24);
+    assert.equal((await payload.findGlobal({ slug: 'career', locale: 'it', draft: true })).laneSpacing, 64);
     await payload.updateGlobal({ slug: 'career', locale: 'en', publishSpecificLocale: 'en', data: { jobs: [], _status: 'published' } });
     await restart();
     const deleted = await payload.findGlobal({ slug: 'career', draft: true });
@@ -107,6 +126,7 @@ test('career migration preserves existing Home/About records and rolls back popu
   const { SQLiteSyncDialect } = await import('@payloadcms/db-sqlite/drizzle/sqlite-core');
   const { up: initialUp } = await import('../../migrations/20260917_195926_initial');
   const { up, down } = await import('../../migrations/20260928_212105_career');
+  const { up: branchUp, down: branchDown } = await import('../../migrations/20260929_081759_career_branch_graph');
   const database = new DatabaseSync(':memory:');
   const dialect = new SQLiteSyncDialect();
   const args = { db: { run: (query: Parameters<typeof dialect.sqlToQuery>[0]) => database.exec(dialect.sqlToQuery(query).sql) } } as unknown as Parameters<typeof up>[0];
@@ -133,6 +153,15 @@ test('career migration preserves existing Home/About records and rolls back popu
       INSERT INTO _career_v_version_jobs (_order, _parent_id, id, _locale, company, role) VALUES (1, 1, 1, 'en', 'Amazon', 'Private role');
       INSERT INTO _career_v_locales (version_mainline_color, _locale, _parent_id) VALUES ('#25b8f3', 'en', 1);
     `);
+    assert.deepEqual(database.prepare('PRAGMA foreign_key_check').all(), []);
+    const beforeBranchMigration = database.prepare('SELECT * FROM career_jobs').all();
+    await branchUp(args);
+    assert.equal(database.prepare('SELECT lane_spacing FROM career_locales').get()!.lane_spacing, 24);
+    database.exec("UPDATE career_jobs SET parent_branch_name = 'education/university'; UPDATE _career_v_version_jobs SET parent_branch_name = 'education/university';");
+    assert.equal(database.prepare('SELECT company FROM career_jobs').get()!.company, 'Amazon');
+    assert.equal(database.prepare('SELECT role FROM _career_v_version_jobs').get()!.role, 'Private role');
+    await branchDown(args);
+    assert.deepEqual(database.prepare('SELECT * FROM career_jobs').all(), beforeBranchMigration);
     assert.deepEqual(database.prepare('PRAGMA foreign_key_check').all(), []);
     await down(args);
     assert.deepEqual(rows(), before);
