@@ -1,11 +1,4 @@
-const localizedPaths = [
-  "/en",
-  "/en/projects",
-  "/en/about",
-  "/it",
-  "/it/projects",
-  "/it/about",
-];
+const localizedPaths = ["/en", "/en/projects", "/en/about", "/it", "/it/projects", "/it/about"];
 
 export default {
   siteUrl: "https://mstefan.dev",

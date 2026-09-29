@@ -10,8 +10,7 @@ import { createServer } from 'node:net';
 import { request as httpRequest } from 'node:http';
 import { chromium, expect } from '@playwright/test';
 
-let base: string;
-let port: number;
+const base = 'http://127.0.0.1:3000';
 const password = randomBytes(24).toString('base64url');
 const email = 'cms-integration@example.invalid';
 let dataDir: string;
@@ -69,7 +68,7 @@ async function stop() {
 }
 async function start() {
   serverLog = '';
-  server = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'start', '--hostname', '127.0.0.1', '--port', String(port)], {
+  server = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'start', '--hostname', '127.0.0.1', '--port', '3000'], {
     env: environment, stdio: ['ignore', 'pipe', 'pipe'],
   });
   server.stdout?.on('data', (data) => { serverLog = (serverLog + data.toString()).slice(-8000); });
@@ -88,10 +87,8 @@ async function start() {
 
 before(async () => {
   const probe = createServer();
-  probe.listen(0, '127.0.0.1');
+  probe.listen(3000, '127.0.0.1');
   await once(probe, 'listening');
-  port = (probe.address() as { port: number }).port;
-  base = `http://127.0.0.1:${port}`;
   await new Promise<void>((resolve) => probe.close(() => resolve()));
   dataDir = await mkdtemp(path.join(tmpdir(), 'payload-http-test-'));
   environment = {

@@ -31,7 +31,10 @@ const metadata = {
 writeFileSync(join(evidenceDirectory, "metadata.json"), `${JSON.stringify(metadata, null, 2)}\n`);
 
 const videos = findFiles(resultsDirectory, ".webm").sort();
-if (!videos.length) throw new Error("Playwright produced no review videos.");
+const expectedRecordings = 3;
+if (videos.length !== expectedRecordings) {
+  throw new Error(`Expected ${expectedRecordings} review videos, received ${videos.length}.`);
+}
 metadata.recordings = videos.map((video, index) => ({
   test: basename(dirname(video)),
   file: videos.length === 1 ? "mstefan-site-review.mp4" : `mstefan-site-review-${index + 1}.mp4`,
