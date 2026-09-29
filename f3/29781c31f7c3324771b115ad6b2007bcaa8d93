@@ -1,0 +1,23 @@
+app/[locale]/projects/page.tsx
+  s_378fc10f812003::t_48548b8e8be75a 47
+e2e/mstefan-site.review.spec.ts
+  s_378fc10f812003::t_518aef259e4a55 64-66,102-104
+scripts/visual-review/run-fixture.mjs
+  s_378fc10f812003::t_59cf2cb8fa5902 14
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f329781c31f7c3324771b115ad6b2007bcaa8d93",
+  "prompts": {},
+  "sessions": {
+    "s_378fc10f812003": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0e6e9-85f7-70e3-aded-c9af1613e5f2",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
