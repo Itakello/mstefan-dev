@@ -37,7 +37,7 @@ if (videos.length !== expectedRecordings) {
 }
 metadata.recordings = videos.map((video, index) => ({
   test: basename(dirname(video)),
-  file: videos.length === 1 ? "mstefan-site-review.mp4" : `mstefan-site-review-${index + 1}.mp4`,
+  file: `mstefan-site-review-${index + 1}.mp4`,
 }));
 writeFileSync(join(evidenceDirectory, "metadata.json"), `${JSON.stringify(metadata, null, 2)}\n`);
 for (const [index, video] of videos.entries()) {

@@ -188,6 +188,7 @@ test.describe("Public website review", () => {
     let frame = page.mainFrame();
     for (let depth = 1; depth <= 3; depth++) {
       await expect(frame.locator("iframe")).toHaveCount(1);
+      await expect(frame.locator("iframe")).not.toHaveAttribute("sandbox");
       const child = frame.locator('iframe[title="Desktop: Interactive preview of mstefan.dev"]').contentFrame();
       await expect(child.getByRole("heading", { level: 1 })).toBeVisible();
       const menu = child.getByRole("button", { name: "Open navigation", exact: true });

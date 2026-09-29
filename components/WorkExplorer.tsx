@@ -102,7 +102,7 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
             </div>
           </aside> : stackCatalog.message && <p role="status" className="text-xs leading-5 text-black/55 dark:text-white/55">{copy.publication.stack[stackCatalog.message]}</p>}
         </div>
-        {selected.preview && previewUrl && (depth === null ? <p role="status" className="mt-6 text-sm">{copy.websites.loading}</p>
+        {selected.preview && previewUrl && (depth === null || !parentOrigin ? <p role="status" className="mt-6 text-sm">{copy.websites.loading}</p>
           : canRenderWebsitePreview(depth) ? <div className="mt-7">
             <div role="group" aria-label={copy.work.previewSize} className="mb-4 inline-flex gap-1 rounded-lg border border-black/10 p-1 dark:border-white/15">
               {([{ mobile: false, label: copy.work.desktop, Icon: Monitor }, { mobile: true, label: copy.work.mobile, Icon: Smartphone }]).map(mode => (
