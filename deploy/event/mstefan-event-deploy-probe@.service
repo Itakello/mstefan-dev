@@ -1,0 +1,16 @@
+[Unit]
+Description=Fixed read-only mstefan.dev volume probe
+
+[Service]
+Type=exec
+User=root
+ExecStart=/usr/bin/python3 /opt/mstefan-event-deploy/volume_probe.py
+StandardInput=socket
+StandardOutput=socket
+StandardError=journal
+RuntimeMaxSec=10
+TimeoutStopSec=1
+NoNewPrivileges=true
+# Host mount topology and paths must remain in PID 1's mount namespace.
+CapabilityBoundingSet=
+RestrictAddressFamilies=AF_UNIX

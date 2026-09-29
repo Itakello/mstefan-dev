@@ -1,7 +1,8 @@
 [Unit]
 Description=Guarded mstefan.dev deployment (%i)
-After=network-online.target
+After=network-online.target mstefan-event-deploy-probe.socket
 Wants=network-online.target
+Requires=mstefan-event-deploy-probe.socket
 
 [Service]
 Type=oneshot
