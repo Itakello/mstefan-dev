@@ -1,4 +1,5 @@
 import io
+import hashlib
 import json
 import os
 import tempfile
@@ -15,7 +16,7 @@ MOUNTPOINT = '/var/lib/docker/volumes/' + c.VOLUME + '/_data'
 
 
 def record(container_id=A, name=c.CONTAINER_PREFIX + 'dep_new', status='running', rw=True):
-    return {'Id': container_id, 'Name': '/' + name, 'State': {'Status': status},
+    return {'Id': container_id, 'Name': '/' + name, 'State': {'Status': status, 'Pid': int(container_id[-8:], 16)},
             'Mounts': [{'Type': 'volume', 'Name': c.VOLUME, 'Source': MOUNTPOINT, 'Destination': '/data', 'RW': rw}],
             'Config': {'Env': ['DO_NOT_EMIT=fake-private-content']}}
 
@@ -26,6 +27,8 @@ class DockerFake:
         self.calls = []
         self.lists = 0
         self.race = False
+        self.process_rows = {}
+        self.held_roots = {}
 
     def get(self, path):
         self.calls.append(path)
@@ -37,6 +40,26 @@ class DockerFake:
                 return []
             return [{'Id': container_id, 'State': value['State']['Status']} for container_id, value in self.records.items()]
         return self.records[path.split('/')[2]]
+
+    def process_mountinfo(self, pid, container_id):
+        assert self.records[container_id]['State']['Pid'] == pid
+        rows = ['10 1 8:2 / / rw - overlay overlay rw']
+        for number, mount in enumerate(self.records[container_id]['Mounts'], 11):
+            source = os.path.realpath(mount['Source'])
+            if mount.get('Type') == 'volume':
+                root = os.path.realpath(MOUNTPOINT)
+            elif source == '/srv/payload-data' or source.startswith('/srv/payload-data/'):
+                root = os.path.realpath(MOUNTPOINT) + source[len('/srv/payload-data'):]
+            else:
+                root = source
+            root = self.held_roots.get((container_id, mount['Destination']), root)
+            options = 'rw' if mount['RW'] else 'ro'
+            rows.append(f'{number} 10 8:1 {root} {mount["Destination"]} {options} - ext4 /dev/test {options}')
+            if source == '/srv':
+                rows.append(f'{number + 100} {number} 8:1 {os.path.realpath(MOUNTPOINT)} {mount["Destination"]}/payload-data {options} - ext4 /dev/test {options}')
+        rows.extend(self.process_rows.get(container_id, []))
+        raw = '\n'.join(rows) + '\n'
+        return p.MountTopology(raw), hashlib.sha256(raw.encode()).hexdigest()
 
 
 def topology_fixture(extra='', metadata=None):
@@ -109,6 +132,92 @@ class ProbeTests(unittest.TestCase):
         with self.assertRaises(c.Blocked):
             p.probe(DockerFake({A: bad}))
 
+    def test_container_mountinfo_requires_exact_cgroup_and_bounded_read(self):
+        pid = 12345
+        original_open = os.open
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'cgroup').write_text('0::/docker/' + A + '\n')
+            (root / 'mountinfo').write_text('10 1 8:2 / / rw - overlay overlay rw\n')
+
+            def open_proc(path, flags, *args, **kwargs):
+                if path == f'/proc/{pid}':
+                    path = directory
+                return original_open(path, flags, *args, **kwargs)
+
+            with patch.object(p.os, 'open', side_effect=open_proc):
+                topology, digest = p.read_process_mountinfo(pid, A)
+                self.assertEqual(topology.entries['/'][0], (8, 2))
+                self.assertEqual(len(digest), 64)
+                (root / 'cgroup').write_text('0::/docker/' + B + '\n')
+                with self.assertRaisesRegex(c.Blocked, 'PID/cgroup mismatch'):
+                    p.read_process_mountinfo(pid, A)
+                (root / 'cgroup').write_text('0::/docker/' + A + '\n')
+                (root / 'mountinfo').write_text('x' * (1024 * 1024 + 1))
+                with self.assertRaisesRegex(c.Blocked, 'too large'):
+                    p.read_process_mountinfo(pid, A)
+
+    def test_container_mount_change_between_snapshots_blocks(self):
+        class ChangedMounts(DockerFake):
+            def __init__(self):
+                super().__init__()
+                self.reads = 0
+
+            def process_mountinfo(self, pid, container_id):
+                self.reads += 1
+                topology, digest = super().process_mountinfo(pid, container_id)
+                return topology, digest + str(self.reads)
+
+        with self.assertRaisesRegex(c.Blocked, 'changed during probe'):
+            p.probe(ChangedMounts())
+
+    def test_retained_bind_after_host_source_retarget_blocks_submission(self):
+        stale = record(B, 'stale-host-source')
+        stale['Mounts'][0].update(Type='bind', Name=None, Source='/srv/now-unrelated', Destination='/other')
+        docker = DockerFake({A: record(), B: stale})
+        docker.held_roots[B, '/other'] = os.path.realpath(MOUNTPOINT)
+        result = p.probe(docker)
+        self.assertEqual(result['count'], 2)
+        client = c.Client({'OPENSHIP_TOKEN': 'fake'})
+        client.probe = lambda: result
+        with self.assertRaises(c.Blocked):
+            client.volume_writer('dep_new', attestation())
+
+    def test_process_created_writer_outside_docker_mounts_blocks(self):
+        docker = DockerFake({A: record(), B: {'Id': B, 'Name': '/other', 'State': {'Status': 'running', 'Pid': 202}, 'Mounts': []}})
+        docker.process_rows[B] = [f'11 10 8:1 {os.path.realpath(MOUNTPOINT)} /unexpected rw - ext4 /dev/test rw']
+        result = p.probe(docker)
+        self.assertEqual(result['count'], 2)
+        self.assertEqual(result['users'][1]['mount_type'], 'unknown')
+        client = c.Client({'OPENSHIP_TOKEN': 'fake'})
+        client.probe = lambda: result
+        with self.assertRaises(c.Blocked):
+            client.volume_writer('dep_new', attestation())
+
+    def test_wrong_named_volume_held_on_approved_storage_blocks(self):
+        wrong = record()
+        wrong['Mounts'][0]['Name'] = 'other-volume'
+        result = p.probe(DockerFake({A: wrong}))
+        self.assertEqual(result['count'], 1)
+        self.assertEqual(result['users'][0]['mount_type'], 'unknown')
+        client = c.Client({'OPENSHIP_TOKEN': 'fake'})
+        client.probe = lambda: result
+        with self.assertRaises(c.Blocked):
+            client.volume_writer('dep_new', attestation())
+
+    def test_read_only_parent_with_writable_recursive_child_blocks(self):
+        parent = record(B, 'read-only-parent', rw=False)
+        parent['Mounts'][0].update(Type='bind', Name=None, Source='/srv', Destination='/other')
+        docker = DockerFake({A: record(), B: parent})
+        docker.process_rows[B] = [f'112 111 8:1 {os.path.realpath(MOUNTPOINT)} /other/payload-data/live rw - ext4 /dev/test rw']
+        result = p.probe(docker)
+        self.assertEqual(result['count'], 2)
+        self.assertIn('/other/payload-data/live', [user['destination'] for user in result['users']])
+        client = c.Client({'OPENSHIP_TOKEN': 'fake'})
+        client.probe = lambda: result
+        with self.assertRaises(c.Blocked):
+            client.volume_writer('dep_new', attestation())
+
     def test_oversized_selected_output_fails_closed(self):
         records = {}
         for number in range(100):
@@ -135,6 +244,19 @@ class KernelTopologyTests(unittest.TestCase):
     def alias_topology(self):
         volume_root = os.path.realpath(MOUNTPOINT)
         return topology_fixture('11 10 8:1 ' + volume_root + ' /srv/payload-data rw - ext4 /dev/test rw\n')
+
+    def test_container_view_accepts_only_observed_mirrored_netns_files(self):
+        base = '10 1 8:2 / / rw - overlay overlay rw\n'
+        mirrored = '11 10 0:4 net:[4026532591] /host/root/run/docker/netns/ns1 ro - nsfs nsfs rw\n'
+        viewed = p.MountTopology(base + mirrored, container_view=True)
+        self.assertIn('/host/root/run/docker/netns/ns1', viewed.unresolved_points)
+        with self.assertRaises(c.Blocked):
+            p.MountTopology(base + mirrored)
+        for point, filesystem in (('/other/run/docker/netns/ns1', 'nsfs'),
+                                  ('/host/root/run/docker/netns/deep/ns1', 'nsfs'),
+                                  ('/host/root/run/docker/netns/ns1', 'ext4')):
+            with self.subTest(point=point, filesystem=filesystem), self.assertRaises(c.Blocked):
+                p.MountTopology(base + f'11 10 0:4 net:[4026532591] {point} ro - {filesystem} none rw\n', container_view=True)
 
     def test_visible_stacked_mount_unrelated_to_volume_allows_probe(self):
         binfmt = ('20 10 0:40 / /proc/sys/fs/binfmt_misc rw - autofs none rw\n'
