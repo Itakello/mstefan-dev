@@ -220,8 +220,7 @@ test.describe("Public website review", () => {
       await page.setViewportSize({ width, height: 800 });
       const details = await page.locator("#selected-work-title").boundingBox();
       const panel = await stack.boundingBox();
-      const left = await page.locator("#selected-work-title").evaluate(node => node.parentElement?.getBoundingClientRect().height);
-      expect(panel && left && Math.abs(panel.height - left) < 2).toBeTruthy();
+      expect(await stack.locator("[data-work-stack-scroll]").evaluate(node => node.clientHeight)).toBe(158);
       expect(details && panel && panel.x >= details.x + details.width && Math.abs(panel.y - details.y) < 2).toBeTruthy();
       await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
       if (width === 900) await page.screenshot({ path: ".artifacts/playwright/work-stack-medium.png", fullPage: true });
@@ -234,8 +233,12 @@ test.describe("Public website review", () => {
     await page.reload();
     const scroller = stack.locator("[data-work-stack-scroll]");
     await expect.poll(() => scroller.evaluate(node => node.scrollHeight > node.clientHeight)).toBe(true);
-    const leftHeight = await page.locator("#selected-work-title").evaluate(node => node.parentElement?.getBoundingClientRect().height);
-    expect(Math.abs((await stack.boundingBox())!.height - (leftHeight ?? 0))).toBeLessThan(2);
+    const visibleFifthRow = await stack.locator("summary").nth(8).evaluate(node => {
+      const viewport = node.closest("[data-work-stack-scroll]")!.getBoundingClientRect();
+      const icon = node.getBoundingClientRect();
+      return Math.max(0, Math.min(icon.bottom, viewport.bottom) - Math.max(icon.top, viewport.top));
+    });
+    expect(visibleFifthRow).toBeCloseTo(14, 0);
     await scroller.evaluate(node => { node.scrollTop = node.scrollHeight; });
     const lastIcon = stack.locator("summary").last();
     await lastIcon.focus();
