@@ -50,6 +50,7 @@ class MountTopology:
         self.canonical = canonical or (lambda path: os.path.realpath(path, strict=True))
         self.entries = {}
         self.unresolved_points = set()
+        self.unresolved_devices = {}
         self.opaque_points = set()
         groups = {}
         lines = text.splitlines()
@@ -83,6 +84,7 @@ class MountTopology:
             if len(group) == 1:
                 if group[0][3] is None:
                     self.unresolved_points.add(mountpoint)
+                    self.unresolved_devices[mountpoint] = {row[2] for row in group}
                     self.opaque_points.add(mountpoint)
                 else:
                     self.entries[mountpoint] = (group[0][2], group[0][3])
@@ -92,6 +94,7 @@ class MountTopology:
             by_id = {row[0]: row for row in group}
             if len(visible) != 1:
                 self.unresolved_points.add(mountpoint)
+                self.unresolved_devices[mountpoint] = {row[2] for row in group}
                 continue
             chain = set()
             current = visible[0]
@@ -102,9 +105,11 @@ class MountTopology:
                     break
             if len(chain) != len(group):
                 self.unresolved_points.add(mountpoint)
+                self.unresolved_devices[mountpoint] = {row[2] for row in group}
                 continue
             if visible[0][3] is None:
                 self.unresolved_points.add(mountpoint)
+                self.unresolved_devices[mountpoint] = {row[2] for row in group}
                 self.opaque_points.add(mountpoint)
             else:
                 self.entries[mountpoint] = (visible[0][2], visible[0][3])
@@ -112,10 +117,9 @@ class MountTopology:
             raise Blocked('host mount topology root missing')
 
     @classmethod
-    def read(cls):
+    def read(cls, expected_namespace=None):
         own = os.readlink('/proc/self/ns/mnt')
-        host = os.readlink('/proc/1/ns/mnt')
-        if not re.fullmatch(r'mnt:\[[0-9]+\]', own) or own != host:
+        if not isinstance(expected_namespace, str) or not re.fullmatch(r'mnt:\[[1-9][0-9]*\]', expected_namespace) or own != expected_namespace:
             raise Blocked('probe must observe the host mount namespace')
         with open('/proc/self/mountinfo') as stream:
             text = stream.read(1024 * 1024 + 1)
@@ -143,13 +147,23 @@ class MountTopology:
         canonical = self.canonical(source)
         return canonical in self.opaque_points and stat.S_ISREG(self.stat_path(canonical).st_mode)
 
+    def check_unresolved_children(self, source, target_device, permit_foreign):
+        for point, devices in self.unresolved_devices.items():
+            if posixpath.commonpath([point, source]) != source:
+                continue
+            nested_target_mount = any(posixpath.commonpath([child, point]) == point and device == target_device
+                                      for child, (device, _) in self.entries.items())
+            if not permit_foreign or target_device in devices or nested_target_mount:
+                raise Blocked('host mount stack unresolved under bind source')
+
     def recursive_overlap(self, source, approved):
         actual = self.identity(source)
         target = self.identity(approved)
-        if any(posixpath.commonpath([point, actual[0]]) == actual[0] for point in self.unresolved_points):
-            raise Blocked('host mount stack unresolved under bind source')
+        self.check_unresolved_children(actual[0], target[1], permit_foreign=True)
         for point in self.entries:
             if point != actual[0] and posixpath.commonpath([point, actual[0]]) == actual[0]:
+                if any(posixpath.commonpath([point, opaque]) == opaque for opaque in self.unresolved_points):
+                    continue
                 child = self.identity(point)
                 if child[1] == target[1] and (child[3] == target[3] or path_overlap(child[2], target[2])):
                     return True
@@ -158,12 +172,13 @@ class MountTopology:
     def overlaps(self, source, approved):
         actual = self.identity(source)
         target = self.identity(approved)
-        if any(posixpath.commonpath([point, actual[0]]) == actual[0] for point in self.unresolved_points):
-            raise Blocked('host mount stack unresolved under bind source')
+        self.check_unresolved_children(actual[0], target[1], permit_foreign=False)
         regions = [actual]
         # A parent bind recursively exposes child mounts, including aliases.
         for point in self.entries:
             if point != actual[0] and posixpath.commonpath([point, actual[0]]) == actual[0]:
+                if any(posixpath.commonpath([point, opaque]) == opaque for opaque in self.unresolved_points):
+                    continue
                 regions.append(self.identity(point))
         return any(region[1] == target[1] and (region[3] == target[3] or path_overlap(region[2], target[2])) for region in regions)
 
@@ -200,8 +215,10 @@ def snapshot(docker, mountpoint, topology):
                 if mount.get('Type') == 'bind' and mount['RW'] is False and topology.readonly_namespace_file(source):
                     continue
                 source_path = topology.identity(source)[0]
-                if mount['RW'] is False and topology.recursive_overlap(source_path, mountpoint):
-                    raise Blocked('read-only parent bind may expose writable child')
+                if mount['RW'] is False:
+                    if topology.recursive_overlap(source_path, mountpoint):
+                        raise Blocked('read-only parent bind may expose writable child')
+                    continue
             same_storage = mount.get('Name') == VOLUME or (source_path is not None and topology.overlaps(source_path, mountpoint))
             if same_storage and mount['RW']:
                 destination = mount.get('Destination')
@@ -240,8 +257,9 @@ def main():
     try:
         if len(sys.argv) != 1 or os.geteuid() != 0:
             raise Blocked('probe invocation refused')
-        activation_config(read_activation(), time.time())
-        result = probe(Docker())
+        proof = read_activation()
+        activation_config(proof, time.time())
+        result = probe(Docker(), topology_factory=lambda: MountTopology.read(proof['host_mount_namespace']))
     except (Blocked, OSError, ValueError, TypeError, KeyError, http.client.HTTPException):
         result = {'ok': False}
     sys.stdout.write(json.dumps(result, separators=(',', ':')) + '\n')

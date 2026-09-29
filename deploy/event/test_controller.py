@@ -8,7 +8,7 @@ import controller as c
 
 def attestation():
     return {'project_id': c.PROJECT, 'repository': c.REPO, 'expires_at': 100,
-            'installed_api_revision': 'verified-installed-revision',
+            'installed_api_revision': 'verified-installed-revision', 'host_mount_namespace': 'mnt:[4026531840]',
             'declared_mounts': c.DECLARED_MOUNTS.copy(), 'docker_volume': c.VOLUME, 'container_prefix': c.CONTAINER_PREFIX,
             **{proof: True for proof in ('native_stop_first_verified', 'retained_image_verified', 'isolated_restore_verified', 'installed_api_verified')}}
 

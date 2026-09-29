@@ -170,6 +170,33 @@ class KernelTopologyTests(unittest.TestCase):
         with self.assertRaises(c.Blocked):
             p.probe(DockerFake({A: record(), B: extra}), topology_factory=factory)
 
+    def test_host_read_only_root_bind_ignores_foreign_unresolved_devices(self):
+        host_mounts = ('20 10 0:32 / /proc/sys/fs/binfmt_misc rw - autofs none rw\n'
+                       '21 20 0:35 / /proc/sys/fs/binfmt_misc rw - binfmt_misc none rw\n'
+                       + ''.join(f'{number + 30} 10 0:4 net:[4026532{number:04d}] /run/docker/netns/ns{number} rw - nsfs nsfs rw\n' for number in range(30)))
+        def metadata(path):
+            dev = (0, 35) if path == '/proc/sys/fs/binfmt_misc' else (8, 1)
+            return SimpleNamespace(st_dev=os.makedev(*dev), st_ino=abs(hash(path)))
+        factory = lambda: topology_fixture(host_mounts, metadata=metadata)
+        monitoring = record(B, 'mstefan-devops-node-1', rw=False)
+        monitoring['Mounts'][0].update(Type='bind', Name=None, Source='/', Destination='/host/root')
+        result = p.probe(DockerFake({A: record(), B: monitoring}), topology_factory=factory)
+        self.assertEqual(result['count'], 1)
+        client = c.Client({'OPENSHIP_TOKEN': 'fake'})
+        client.probe = lambda: result
+        client.volume_writer('dep_new', attestation())
+        monitoring['Mounts'][0]['RW'] = True
+        with self.assertRaises(c.Blocked):
+            p.probe(DockerFake({A: record(), B: monitoring}), topology_factory=factory)
+
+    def test_read_only_parent_with_ambiguous_same_device_child_blocks(self):
+        ambiguous = ('20 10 8:1 / /srv/alias rw - ext4 /dev/possible rw\n'
+                     '21 10 0:4 / /srv/alias rw - tmpfs none rw\n')
+        parent = record(B, 'read-only-parent', rw=False)
+        parent['Mounts'][0].update(Type='bind', Name=None, Source='/srv', Destination='/other')
+        with self.assertRaises(c.Blocked):
+            p.probe(DockerFake({A: record(), B: parent}), topology_factory=lambda: topology_fixture(ambiguous))
+
     def test_read_only_parent_with_child_volume_alias_blocks(self):
         parent = record(B, 'read-only-parent', rw=False)
         parent['Mounts'][0].update(Type='bind', Name=None, Source='/srv', Destination='/other')
@@ -253,9 +280,13 @@ class KernelTopologyTests(unittest.TestCase):
             p.probe(DockerFake(), topology_factory=lambda: next(topologies))
 
     def test_namespace_mismatch_and_malformed_topology_refused(self):
-        with patch.object(p.os, 'readlink', side_effect=('mnt:[1]', 'mnt:[2]')):
+        with patch.object(p.os, 'readlink', return_value='mnt:[1]') as readlink:
             with self.assertRaises(c.Blocked):
-                p.MountTopology.read()
+                p.MountTopology.read('mnt:[2]')
+            readlink.assert_called_once_with('/proc/self/ns/mnt')
+        with patch.object(p.os, 'readlink', return_value='mnt:[7]') as readlink, patch('builtins.open', return_value=io.StringIO('10 1 8:1 / / rw - ext4 /dev/test rw\n')):
+            self.assertIn('/', p.MountTopology.read('mnt:[7]').entries)
+            readlink.assert_called_once_with('/proc/self/ns/mnt')
         for text in ('', 'invalid', '10 1 invalid / / rw - ext4 /dev/test rw',
                      'bad 1 8:1 / / rw - ext4 /dev/test rw',
                      '10 parent 8:1 / / rw - ext4 /dev/test rw',
@@ -318,6 +349,9 @@ class SocketClientTests(unittest.TestCase):
             c.activation_config(dict(attestation(), container_prefix='unrelated-'), 10)
         with self.assertRaises(c.Blocked):
             c.activation_config(dict(attestation(), declared_mounts=['other:/data']), 10)
+        for value in (None, '', 'mnt:[abc]', 'mnt:[0]', 'mnt:[1] suffix'):
+            with self.subTest(value=value), self.assertRaises(c.Blocked):
+                c.activation_config(dict(attestation(), host_mount_namespace=value), 10)
 
 
 if __name__ == '__main__':

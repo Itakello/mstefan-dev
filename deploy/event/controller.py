@@ -259,6 +259,8 @@ def activation_config(attestation, now):
             raise Blocked('activation proof missing: ' + proof)
     if not isinstance(attestation.get('installed_api_revision'), str) or not attestation['installed_api_revision']:
         raise Blocked('installed API revision missing')
+    if not isinstance(attestation.get('host_mount_namespace'), str) or not re.fullmatch(r'mnt:\[[1-9][0-9]*\]', attestation['host_mount_namespace']):
+        raise Blocked('attested host mount namespace missing or invalid')
 
 
 def read_activation(path=ACTIVATION):
