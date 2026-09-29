@@ -62,6 +62,9 @@ test.describe("Public website review", () => {
 
     await page.getByRole("button", { name: "Select mstefan.dev", exact: true }).click();
     const projectStack = page.getByRole("complementary", { name: "mstefan.dev technologies grouped by category" });
+    await expect(projectStack.getByRole("heading", { name: "Language", exact: true })).toBeVisible();
+    await expect(projectStack.getByRole("heading", { name: "Framework", exact: true })).toBeVisible();
+    await expect(projectStack.getByRole("heading", { name: "Library", exact: true })).toBeVisible();
     const typeScript = projectStack.locator('summary[aria-label="TypeScript · Language"]');
     await typeScript.focus();
     await expect(projectStack.getByText("TypeScript", { exact: true }).last()).toBeVisible();
@@ -89,6 +92,11 @@ test.describe("Public website review", () => {
     await expect(mobile.getByRole("heading", { level: 1, name: "About", exact: true })).toBeVisible();
     await expect(modes.getByRole("button", { name: "Mobile", exact: true })).toHaveAttribute("aria-pressed", "true");
     expect(await frame?.evaluate(() => window.innerWidth)).toBe(390);
+    const mobileGeometry = await page.locator("iframe").evaluate(node => ({
+      width: node.getBoundingClientRect().width,
+      availableWidth: node.parentElement?.parentElement?.getBoundingClientRect().width,
+    }));
+    expect(Math.abs(mobileGeometry.width - (mobileGeometry.availableWidth ?? 0))).toBeLessThan(2);
     expect(await page.locator("iframe").evaluate(node => node.parentElement?.parentElement?.getBoundingClientRect().height)).toBe(stageHeight);
     await page.screenshot({ path: ".artifacts/playwright/work-phone.png", fullPage: true });
     await modes.getByRole("button", { name: "Desktop", exact: true }).click();
