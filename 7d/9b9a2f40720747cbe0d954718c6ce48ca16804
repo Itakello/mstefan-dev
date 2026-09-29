@@ -1,0 +1,19 @@
+components/WorkExplorer.tsx
+  s_4d20f040228e16::t_11b2802fbe80cc 92-104
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "7d9b9a2f40720747cbe0d954718c6ce48ca16804",
+  "prompts": {},
+  "sessions": {
+    "s_4d20f040228e16": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0eece-a69d-7181-8052-1b64ee73e7f2",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
