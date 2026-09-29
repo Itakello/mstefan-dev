@@ -32,6 +32,10 @@ class Blocked(Exception):
     pass
 
 
+class Refused(Blocked):
+    pass
+
+
 class Superseded(Exception):
     pass
 
@@ -249,11 +253,11 @@ def load(path):
 
 def tick(client, state, path, sha, run_id, attestation, now):
     if state['phase'] == 'paused':
-        raise Blocked('controller paused; attended reconciliation required')
+        raise Refused('controller paused; attended reconciliation required')
     if state['phase'] == 'submit_unknown':
-        raise Blocked('submission unknown; replay refused')
+        raise Refused('submission unknown; replay refused')
     if state['phase'] != 'idle' and (state.get('sha') != sha or state.get('run_id') != run_id):
-        raise Blocked('unfinished release requires original event reconciliation')
+        raise Refused('unfinished release requires original event reconciliation')
     if state['phase'] != 'idle' and now >= state['deadline']:
         raise Blocked('deployment deadline exceeded')
     if state['phase'] == 'idle':
@@ -306,10 +310,12 @@ def run(client, state, path, sha, run_id, attestation, clock=time.time, sleep=ti
             state.pop(key, None)
         save(path, state)
         return 'superseded'
+    except Refused:
+        raise
     except (Blocked, KeyError, TypeError, ValueError, OSError) as error:
         if sha not in state['failed_shas']:
             state['failed_shas'].append(sha)
-        state.update(phase='paused', reason=str(error) if isinstance(error, Blocked) else 'invalid configuration, state or local persistence')
+        state.update(failure_phase=state['phase'], phase='paused', reason=str(error) if isinstance(error, Blocked) else 'invalid configuration, state or local persistence')
         save(path, state)
         raise
 

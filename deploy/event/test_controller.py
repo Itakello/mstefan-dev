@@ -142,8 +142,10 @@ class FlowTests(unittest.TestCase):
         self.client.error = 'post'
         with self.assertRaises(c.Blocked):
             self.run_flow()
+        self.assertEqual(self.state['failure_phase'], 'submit_unknown')
+        self.assertIn(NEW, self.state['failed_shas'])
         self.client.error = None
-        with self.assertRaises(c.Blocked):
+        with self.assertRaises(c.Refused):
             self.run_flow()
         self.assertEqual(self.client.posts, 1)
 
@@ -161,6 +163,27 @@ class FlowTests(unittest.TestCase):
         with self.assertRaises(c.Blocked):
             self.run_flow()
         self.assertEqual(self.client.posts, 1)
+
+    def test_start_refusals_preserve_existing_state_bytes_and_failed_shas(self):
+        for phase, incoming_sha, incoming_run in (
+            ('submit_unknown', NEW, 5),
+            ('paused', OLD, 6),
+            ('observing', OLD, 6),
+            ('prepared', OLD, 6),
+            ('smoke', OLD, 6),
+        ):
+            with self.subTest(phase=phase):
+                self.state = {'phase': phase, 'sha': NEW, 'run_id': 5, 'deadline': 100,
+                              'deployment_id': 'dep_new', 'failed_shas': [NEW] if phase == 'paused' else [],
+                              'reason': 'existing evidence', 'baseline': {'id': ID, 'sha': OLD}}
+                c.save(self.path, self.state)
+                original_bytes = self.path.read_bytes()
+                original_state = copy.deepcopy(self.state)
+                with self.assertRaises(c.Refused):
+                    c.run(self.client, self.state, self.path, incoming_sha, incoming_run, {}, clock=lambda: 10)
+                self.assertEqual(self.path.read_bytes(), original_bytes)
+                self.assertEqual(self.state, original_state)
+                self.assertEqual(self.client.posts, 0)
 
     def test_active_baseline_change_prevents_post(self):
         c.tick(self.client, self.state, self.path, NEW, 5, {}, 10)
