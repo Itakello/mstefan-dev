@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpen, Presentation, ChevronDown, ExternalLink, Github, Monitor, Smartphone } from "lucide-react";
+import { BookOpen, Presentation, ChevronDown, ExternalLink, Github, Monitor, Smartphone, Trophy } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { DocumentPreview } from "@/components/DocumentPreview";
@@ -104,7 +104,7 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
   const metadata = [selected.type ? copy.work.types[selected.type] : undefined, selected.year, groups.length ? undefined : selected.language].filter(Boolean);
   const linkClass = "inline-flex items-center gap-2 text-sm font-medium";
   return (
-    <div className="mt-8 grid min-w-0 gap-8 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-10">
+    <div className="mt-8 grid min-w-0 gap-8 lg:grid-cols-[288px_minmax(0,1fr)] lg:gap-6">
       <nav aria-label={copy.work.selectorLabel} className="max-h-64 overflow-y-auto lg:max-h-[760px]">
         {items.map(item => <button key={item.id} type="button" onClick={() => { setSelectedId(item.id); setDocumentKind("paper"); }}
           aria-label={copy.websites.selectSite(item.name)} aria-current={item.id === selected.id ? "true" : undefined}
@@ -113,10 +113,10 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
           <span className="mt-1 block text-sm leading-5 text-black/60 dark:text-white/60">{item.shortDescription || item.description}</span>
         </button>)}
       </nav>
-      <section aria-labelledby="selected-work-title" className="min-w-0 lg:border-l lg:border-black/10 lg:pl-8 dark:lg:border-white/10">
+      <section aria-labelledby="selected-work-title" className="min-w-0 lg:border-l lg:border-black/10 lg:pl-6 dark:lg:border-white/10">
         <div className="grid grid-cols-[minmax(0,1fr)_112px] gap-4 sm:gap-6">
           <div className="min-w-0">
-            <h2 id="selected-work-title" className="text-2xl font-semibold tracking-tight">{selected.name}</h2>
+            <h2 id="selected-work-title" className="text-2xl font-semibold tracking-tight [overflow-wrap:anywhere]">{selected.name}</h2>
             {metadata.length > 0 && <p className="mt-2 text-xs text-black/55 dark:text-white/55">{metadata.join(" · ")}</p>}
             <p className="mt-3 max-w-2xl whitespace-pre-line text-sm leading-6 text-black/70 dark:text-white/70">{selected.description}</p>
             <div className="mt-4 flex flex-wrap gap-5">
@@ -127,7 +127,7 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
           {groups.length > 0 ? <aside aria-label={copy.projectCard.technologiesByCategory(selected.name)} className="relative self-start min-h-0 min-w-0 border-l border-black/10 dark:border-white/10">
             <div className="flex flex-col pl-3">
             <h3 className="text-xs font-semibold uppercase tracking-wider text-black/50 dark:text-white/50">Stack</h3>
-            <div ref={stackScroll} data-work-stack-scroll tabIndex={0} className="mt-3 h-[158px] overflow-y-auto overscroll-contain pr-1 [scrollbar-width:thin]" onScroll={() => { updateStackOverflow(); setStackLabel(null); }}>
+            <div ref={stackScroll} data-work-stack-scroll tabIndex={0} className="mt-3 h-[158px] overflow-y-auto overscroll-contain pr-1" onScroll={() => { updateStackOverflow(); setStackLabel(null); }}>
             <ul className="flex flex-wrap gap-2">
               {groups.flatMap(group => group.entries.map(entry => <li key={entry.name}>
                 <details className="group relative" onToggle={event => {
@@ -147,9 +147,12 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
             </div>
           </aside> : stackCatalog.message && <p role="status" className="text-xs leading-5 text-black/55 dark:text-white/55">{copy.publication.stack[stackCatalog.message]}</p>}
         </div>
-        {(selected.paperUrl || selected.slidesUrl || selected.publication) && <section aria-label={copy.work.research} className="mt-7 border-t border-black/10 pt-5 dark:border-white/10">
+        {selected.publication && <section aria-label={copy.work.accomplishments} className="mt-4 rounded-lg border border-black/10 p-3 dark:border-white/10">
+          <h3 className="flex items-center gap-2 text-sm font-semibold"><Trophy size={16} className="text-[hsl(var(--accent))]" aria-hidden />{copy.work.accomplishments}</h3>
+          <p className="mt-2 text-sm text-black/65 dark:text-white/65">{selected.publication}</p>
+        </section>}
+        {(selected.paperUrl || selected.slidesUrl) && <section aria-label={copy.work.research} className="mt-4 border-t border-black/10 pt-4 dark:border-white/10">
           <h3 className="text-sm font-semibold">{copy.work.research}</h3>
-          {selected.publication && <p className="mt-2 text-sm text-black/65 dark:text-white/65">{selected.publication}</p>}
           {(selected.paperUrl || selected.slidesUrl) && <>
             <div role="group" aria-label={copy.work.research} className="mt-4 mb-4 inline-flex gap-1 rounded-lg border border-black/10 p-1 dark:border-white/15">
               {([{ kind: "paper", url: selected.paperUrl, label: copy.work.paper, Icon: BookOpen }, { kind: "slides", url: selected.slidesUrl, label: copy.work.slides, Icon: Presentation }] as const).filter(resource => resource.url).map(resource => {
