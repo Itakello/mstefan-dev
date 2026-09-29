@@ -14,7 +14,7 @@ export function DocumentPreview({ url, title, locale, presentation = false }: { 
   const [page, setPage] = useState(1);
   const [zoom, setZoom] = useState(1);
   const [viewportHeight, setViewportHeight] = useState(0);
-  const [size, setSize] = useState({ width: 0, height: 0 });
+  const [width, setWidth] = useState(0);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const italian = locale === "it";
   useEffect(() => {
@@ -23,7 +23,7 @@ export function DocumentPreview({ url, title, locale, presentation = false }: { 
     const updateViewport = () => setViewportHeight(window.innerHeight);
     updateViewport();
     window.addEventListener("resize", updateViewport);
-    const observer = new ResizeObserver(([entry]) => setSize({ width: entry.contentRect.width, height: entry.contentRect.height }));
+    const observer = new ResizeObserver(([entry]) => setWidth(entry.contentRect.width));
     observer.observe(element);
     return () => { observer.disconnect(); window.removeEventListener("resize", updateViewport); };
   }, []);
@@ -44,7 +44,7 @@ export function DocumentPreview({ url, title, locale, presentation = false }: { 
     return () => { disposed = true; void task?.destroy(); };
   }, [url]);
   useEffect(() => {
-    if (!document || !size.width || !viewportHeight || !canvas.current) return;
+    if (!document || !width || !viewportHeight || !canvas.current) return;
     let disposed = false;
     let render: ReturnType<Awaited<ReturnType<PDFDocumentProxy["getPage"]>>["render"]> | undefined;
     const element = canvas.current;
@@ -57,7 +57,7 @@ export function DocumentPreview({ url, title, locale, presentation = false }: { 
         if (disposed) return;
         const base = pdfPage.getViewport({ scale: 1 });
         const maxHeight = Math.max(1, parseFloat(window.getComputedStyle(host.current!).maxHeight) - 24);
-        const fit = presentation ? Math.min(size.width / base.width, maxHeight / base.height) : size.width / base.width;
+        const fit = presentation ? Math.min(width / base.width, maxHeight / base.height) : width / base.width;
         const viewport = pdfPage.getViewport({ scale: fit * zoom });
         const ratio = Math.min(window.devicePixelRatio || 1, 2);
         element.width = Math.ceil(viewport.width * ratio);
@@ -84,7 +84,7 @@ export function DocumentPreview({ url, title, locale, presentation = false }: { 
     }
     void draw();
     return () => { disposed = true; render?.cancel(); textLayer?.cancel(); };
-  }, [document, page, size, zoom, presentation, viewportHeight]);
+  }, [document, page, width, zoom, presentation, viewportHeight]);
   const control = "inline-flex items-center justify-center rounded-md p-2 hover:bg-black/5 disabled:opacity-30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[hsl(var(--accent))] dark:hover:bg-white/10";
   return <section aria-label={`${title}: ${italian ? "Lettore documenti" : "Document reader"}`} className="overflow-hidden rounded-xl border border-black/10 dark:border-white/15">
     <div className="flex flex-wrap items-center justify-between gap-2 border-b border-black/10 px-2 py-2 text-xs dark:border-white/15">
