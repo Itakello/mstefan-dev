@@ -1,0 +1,21 @@
+components/cms/AboutContent.tsx
+  s_378fc10f812003::t_a85797dba0ab4e 23
+tests/cms/lifecycle.test.mts
+  s_378fc10f812003::t_1030957c7dfaff 453,512
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0c2d477a52117aa53a3f83890f3b917f2831544d",
+  "prompts": {},
+  "sessions": {
+    "s_378fc10f812003": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0e6e9-85f7-70e3-aded-c9af1613e5f2",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
