@@ -1,5 +1,5 @@
-.section { min-width: 0; }
-.browser { --rail-width: minmax(280px, 1.2fr); border: 1px solid #3b3b3e; border-radius: 8px; overflow: hidden; background: #1e1e1e; color: #e4e4e7; scroll-margin-top: 2rem; }
+.section { min-width: 0; container-type: inline-size; }
+.browser { --rail-width: clamp(128px, calc(55cqw - 100px), 55%); border: 1px solid #3b3b3e; border-radius: 8px; overflow: hidden; background: #1e1e1e; color: #e4e4e7; scroll-margin-top: 2rem; }
 .toolbar { display: flex; align-items: center; gap: 9px; padding: 13px 20px; border-bottom: 1px solid #3b3b3e; background: #252526; font-family: ui-monospace, monospace; font-size: 12px; }
 .toolbar > svg { color: var(--career-main); flex-shrink: 0; }
 .separator { color: #71717a; padding: 0 3px; }
@@ -61,15 +61,7 @@
   .detail { padding: 24px 12px 30px; }
   .detailCompany { font-size: 21px; }
 }
-@media (max-width: 640px) {
-  .browser { --rail-width: minmax(240px, 1.1fr); }
-}
 @media (max-width: 480px) {
-  .header { display: none; }
-  .body { grid-template-columns: minmax(0, 1fr); }
-  .tree { height: auto; border-left: 0; border-top: 1px solid #3b3b3e; overflow: visible; }
-  .titleList { max-height: none; overflow: visible; }
-  .detail { max-height: none; overflow: visible; }
   .badge { min-width: 0; max-width: 100%; }
   .badge > span, .detailRef > span { min-width: 0; overflow-wrap: anywhere; }
 }

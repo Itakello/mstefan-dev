@@ -380,7 +380,7 @@ test('the mainline stops at the latest dated point without a future-year tail', 
 
 test('fitted mobile lanes retain parents and circular paths within the available width', () => {
   const jobs = [job('parent', 1, 10), job('child', 2, 9, 'parent'), ...Array.from({ length: 18 }, (_, index) => job(`other-${index}`, 3, 8))];
-  for (const width of [180, 246, 350, 560]) {
+  for (const width of [64, 73, 180, 246, 350, 560]) {
     const layout = layoutCareerTimeline(jobs, now, 64, width);
     assert.equal(layout.width, width);
     assert.equal(new Set(layout.entries.map((entry) => entry.x)).size, jobs.length);

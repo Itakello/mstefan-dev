@@ -102,6 +102,7 @@ test("private deployment serves CMS through its tailnet hostname while public re
     });
     process.env.SITE_DEPLOYMENT = "private";
     assert.equal(proxy(request("itakello-server.tailacf6a7.ts.net:10000")).status, 200);
+    assert.equal(proxy(request("itakello-server.tailacf6a7.ts.net:10000", true)).status, 404);
     assert.equal(proxy(request("mstefan.dev")).status, 404);
     assert.equal(proxy(request("localhost:3000", true)).status, 404);
     delete process.env.SITE_DEPLOYMENT;

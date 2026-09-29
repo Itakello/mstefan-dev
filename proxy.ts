@@ -18,8 +18,10 @@ export function proxy(request: NextRequest) {
   // The preview CMS is reachable at its verified tailnet address. A public
   // Host header must never acquire CMS access, even on the private deployment.
   const host = request.headers.get("host") ?? "";
-  const privateHost = (process.env.SITE_DEPLOYMENT === "private" && host.toLowerCase() === "itakello-server.tailacf6a7.ts.net:10000")
-    || (!request.headers.has("x-real-ip") && /^(?:localhost|127\.0\.0\.1|\[::1\])(?::\d+)?$/i.test(host));
+  const privateHost = !request.headers.has("x-real-ip") && (
+    (process.env.SITE_DEPLOYMENT === "private" && host.toLowerCase() === "itakello-server.tailacf6a7.ts.net:10000")
+    || /^(?:localhost|127\.0\.0\.1|\[::1\])(?::\d+)?$/i.test(host)
+  );
   if (!privateHost) {
     let pathname: string;
     try { pathname = decodeURIComponent(request.nextUrl.pathname).replace(/\/+$/, ""); }

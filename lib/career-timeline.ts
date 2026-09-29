@@ -82,7 +82,7 @@ export function layoutCareerTimeline(jobs: TimelineJob[], now: number, spacing =
     .forEach((entry, index) => lanes.set(entry.index, index + 1));
   const laneCount = Math.max(0, ...lanes.values());
   const fitted = availableWidth !== undefined && Number.isFinite(availableWidth);
-  const width = fitted ? Math.max(80, availableWidth!) : Math.max(160, 104 + laneCount * spacing);
+  const width = fitted ? Math.max(64, availableWidth!) : Math.max(160, 104 + laneCount * spacing);
   const mainX = width - 24;
   if (fitted) spacing = Math.min(spacing, (mainX - 16) / Math.max(1, laneCount));
   const entries: TimelineEntry[] = dates.map((entry) => ({

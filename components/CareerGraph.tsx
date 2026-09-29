@@ -70,16 +70,14 @@ export function CareerGraph({ career, locale, expanded = false }: { career: Care
   useEffect(() => {
     const viewport = tree.current;
     if (!viewport) return;
-    const media = window.matchMedia("(max-width: 640px)");
     const measure = () => {
-      const next = { width: viewport.clientWidth, compact: media.matches };
+      const next = { width: viewport.clientWidth, compact: viewport.clientWidth < 320 };
       setGraphViewport((current) => current.width === next.width && current.compact === next.compact ? current : next);
     };
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(viewport);
-    media.addEventListener("change", measure);
-    return () => { observer.disconnect(); media.removeEventListener("change", measure); };
+    return () => observer.disconnect();
   }, [jobs.length]);
   useEffect(() => {
     const viewport = tree.current;
