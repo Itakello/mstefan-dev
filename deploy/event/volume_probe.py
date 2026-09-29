@@ -1,0 +1,334 @@
+#!/usr/bin/python3
+"""Socket-activated read-only probe. No input, command or environment arguments."""
+import hashlib
+import http.client
+import json
+import os
+import posixpath
+import re
+import socket
+import stat
+import sys
+import time
+import urllib.parse
+from controller import Blocked, PROBE_LIMIT, VOLUME, activation_config, read_activation
+
+LIVE = {'running', 'paused', 'restarting'}
+IDS = re.compile('[0-9a-f]{64}')
+LIST_PATH = '/containers/json?all=1&filters=' + urllib.parse.quote(json.dumps({'status': sorted(LIVE)}, separators=(',', ':')))
+DOCKER_LIMIT = 4 * 1024 * 1024
+
+
+class Docker:
+    def get(self, path):
+        if path != LIST_PATH and path != '/volumes/' + VOLUME and not re.fullmatch('/containers/[0-9a-f]{64}/json', path):
+            raise Blocked('probe endpoint refused')
+        connection = http.client.HTTPConnection('localhost', timeout=2)
+        connection.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        try:
+            connection.sock.settimeout(2)
+            connection.sock.connect('/var/run/docker.sock')
+            connection.request('GET', path)
+            response = connection.getresponse()
+            if response.status != 200:
+                raise Blocked('Docker read failed')
+            raw = response.read(DOCKER_LIMIT + 1)
+            if len(raw) > DOCKER_LIMIT:
+                raise Blocked('Docker response too large')
+            return json.loads(raw)
+        finally:
+            connection.close()
+
+
+def path_overlap(left, right):
+    return posixpath.commonpath([left, right]) in {left, right}
+
+
+class MountTopology:
+    """Map visible host paths to kernel filesystem roots; never read data files."""
+    def __init__(self, text, stat_path=None, canonical=None, container_view=False):
+        self.stat_path = stat_path or os.stat
+        self.canonical = canonical or (lambda path: os.path.realpath(path, strict=True))
+        self.entries = {}
+        self.entry_writable = {}
+        self.unresolved_points = set()
+        self.unresolved_devices = {}
+        self.opaque_points = set()
+        groups = {}
+        lines = text.splitlines()
+        self.lines = tuple(lines)
+        if not lines or len(lines) > 8192:
+            raise Blocked('host mount topology incomplete')
+        seen_ids = set()
+        for line in lines:
+            fields, separator, filesystem = line.partition(' - ')
+            values = fields.split()
+            if not separator or len(values) < 6 or len(filesystem.split()) < 3 or not re.fullmatch('[1-9][0-9]*', values[0]) or not re.fullmatch('[0-9]+', values[1]) or values[0] in seen_ids or not re.fullmatch('[0-9]+:[0-9]+', values[2]) or not re.fullmatch(r'(?:ro|rw)(?:,[A-Za-z0-9_=.-]+)*', values[5]):
+                raise Blocked('host mount topology invalid')
+            seen_ids.add(values[0])
+            device = tuple(int(part) for part in values[2].split(':'))
+            paths = []
+            for index, encoded in enumerate(values[3:5]):
+                if not re.fullmatch(r'(?:[^\\]|\\(?:040|011|012|134))*', encoded):
+                    raise Blocked('host mount topology escape invalid')
+                decoded = re.sub(r'\\(040|011|012|134)', lambda match: chr(int(match[1], 8)), encoded)
+                if index == 0 and re.fullmatch(r'net:\[[0-9]+\]', decoded):
+                    host_namespace = re.fullmatch(r'/run/docker/netns/[A-Za-z0-9][A-Za-z0-9_.-]{0,127}', values[4])
+                    monitored_namespace = container_view and re.fullmatch(r'/host/root/run/docker/netns/[A-Za-z0-9][A-Za-z0-9_.-]{0,127}', values[4])
+                    if filesystem.split()[0] != 'nsfs' or not (host_namespace or monitored_namespace):
+                        raise Blocked('host network namespace mount invalid')
+                    paths.append(None)
+                elif not posixpath.isabs(decoded) or posixpath.normpath(decoded) != decoded:
+                    raise Blocked('host mount topology path invalid')
+                else:
+                    paths.append(decoded)
+            root, mountpoint = paths
+            groups.setdefault(mountpoint, []).append((values[0], values[1], device, root, values[5].split(',')[0] == 'rw'))
+        for mountpoint, group in groups.items():
+            if len(group) == 1:
+                if group[0][3] is None:
+                    self.unresolved_points.add(mountpoint)
+                    self.unresolved_devices[mountpoint] = {row[2] for row in group}
+                    self.opaque_points.add(mountpoint)
+                else:
+                    self.entries[mountpoint] = (group[0][2], group[0][3])
+                    self.entry_writable[mountpoint] = group[0][4]
+                continue
+            parents = {row[1] for row in group}
+            visible = [row for row in group if row[0] not in parents]
+            by_id = {row[0]: row for row in group}
+            if len(visible) != 1:
+                self.unresolved_points.add(mountpoint)
+                self.unresolved_devices[mountpoint] = {row[2] for row in group}
+                continue
+            chain = set()
+            current = visible[0]
+            while current[0] not in chain:
+                chain.add(current[0])
+                current = by_id.get(current[1])
+                if current is None:
+                    break
+            if len(chain) != len(group):
+                self.unresolved_points.add(mountpoint)
+                self.unresolved_devices[mountpoint] = {row[2] for row in group}
+                continue
+            if visible[0][3] is None:
+                self.unresolved_points.add(mountpoint)
+                self.unresolved_devices[mountpoint] = {row[2] for row in group}
+                self.opaque_points.add(mountpoint)
+            else:
+                self.entries[mountpoint] = (visible[0][2], visible[0][3])
+                self.entry_writable[mountpoint] = visible[0][4]
+        if '/' not in self.entries and '/' not in self.unresolved_points:
+            raise Blocked('host mount topology root missing')
+
+    @classmethod
+    def read(cls, expected_namespace=None):
+        own = os.readlink('/proc/self/ns/mnt')
+        if not isinstance(expected_namespace, str) or not re.fullmatch(r'mnt:\[[1-9][0-9]*\]', expected_namespace) or own != expected_namespace:
+            raise Blocked('probe must observe the host mount namespace')
+        with open('/proc/self/mountinfo') as stream:
+            text = stream.read(1024 * 1024 + 1)
+        if len(text.encode()) > 1024 * 1024:
+            raise Blocked('host mount topology too large')
+        return cls(text)
+
+    def identity(self, path):
+        canonical = self.canonical(path)
+        if not posixpath.isabs(canonical):
+            raise Blocked('host path unresolved')
+        if any(posixpath.commonpath([point, canonical]) == point for point in self.unresolved_points):
+            raise Blocked('host mount stack unresolved for checked path')
+        candidates = [point for point in self.entries if posixpath.commonpath([point, canonical]) == point]
+        point = max(candidates, key=len)
+        device, root = self.entries[point]
+        metadata = self.stat_path(canonical)
+        if (os.major(metadata.st_dev), os.minor(metadata.st_dev)) != device:
+            raise Blocked('host path device changed')
+        relative = posixpath.relpath(canonical, point)
+        location = root if relative == '.' else posixpath.normpath(posixpath.join(root, relative))
+        return canonical, device, location, metadata.st_ino
+
+    def readonly_namespace_file(self, source):
+        canonical = self.canonical(source)
+        return canonical in self.opaque_points and stat.S_ISREG(self.stat_path(canonical).st_mode)
+
+    def check_unresolved_children(self, source, target_device, permit_foreign):
+        for point, devices in self.unresolved_devices.items():
+            if posixpath.commonpath([point, source]) != source:
+                continue
+            nested_target_mount = any(posixpath.commonpath([child, point]) == point and device == target_device
+                                      for child, (device, _) in self.entries.items())
+            if not permit_foreign or target_device in devices or nested_target_mount:
+                raise Blocked('host mount stack unresolved under bind source')
+
+    def recursive_overlap(self, source, approved):
+        actual = self.identity(source)
+        target = self.identity(approved)
+        self.check_unresolved_children(actual[0], target[1], permit_foreign=True)
+        for point in self.entries:
+            if point != actual[0] and posixpath.commonpath([point, actual[0]]) == actual[0]:
+                if any(posixpath.commonpath([point, opaque]) == opaque for opaque in self.unresolved_points):
+                    continue
+                child = self.identity(point)
+                if child[1] == target[1] and (child[3] == target[3] or path_overlap(child[2], target[2])):
+                    return True
+        return False
+
+    def overlaps(self, source, approved):
+        actual = self.identity(source)
+        target = self.identity(approved)
+        self.check_unresolved_children(actual[0], target[1], permit_foreign=False)
+        regions = [actual]
+        # A parent bind recursively exposes child mounts, including aliases.
+        for point in self.entries:
+            if point != actual[0] and posixpath.commonpath([point, actual[0]]) == actual[0]:
+                if any(posixpath.commonpath([point, opaque]) == opaque for opaque in self.unresolved_points):
+                    continue
+                regions.append(self.identity(point))
+        return any(region[1] == target[1] and (region[3] == target[3] or path_overlap(region[2], target[2])) for region in regions)
+
+
+
+def read_process_mountinfo(pid, container_id):
+    if type(pid) is not int or not 0 < pid < 2**31 or not IDS.fullmatch(container_id):
+        raise Blocked('container process identity invalid')
+    directory = os.open('/proc/' + str(pid), os.O_RDONLY | os.O_DIRECTORY | os.O_CLOEXEC)
+    try:
+        def read_member(name, limit):
+            fd = os.open(name, os.O_RDONLY | os.O_CLOEXEC | os.O_NOFOLLOW, dir_fd=directory)
+            with os.fdopen(fd) as stream:
+                content = stream.read(limit + 1)
+            if len(content.encode()) > limit:
+                raise Blocked('container process metadata too large')
+            return content
+        def check_cgroup():
+            cgroup = read_member('cgroup', 16 * 1024)
+            if not re.search(r'(?<![0-9a-f])' + container_id + r'(?![0-9a-f])', cgroup):
+                raise Blocked('container PID/cgroup mismatch')
+        check_cgroup()
+        text = read_member('mountinfo', 1024 * 1024)
+        check_cgroup()
+        return MountTopology(text, container_view=True), hashlib.sha256(text.encode()).hexdigest()
+    finally:
+        os.close(directory)
+
+
+def process_writers(process_topology, approved_identity):
+    for point, devices in process_topology.unresolved_devices.items():
+        if approved_identity[1] in devices:
+            raise Blocked('container mount identity ambiguous')
+    return [point for point, (device, root) in process_topology.entries.items()
+            if process_topology.entry_writable[point] and device == approved_identity[1]
+            and path_overlap(root, approved_identity[2])]
+
+
+
+def snapshot(docker, mountpoint, topology, process_reader):
+    listed = docker.get(LIST_PATH)
+    if not isinstance(listed, list) or len(listed) > 128:
+        raise Blocked('Docker active container listing invalid')
+    ids = set()
+    users = []
+    identities = []
+    approved_identity = topology.identity(mountpoint)
+    for row in listed:
+        container_id = row.get('Id') if isinstance(row, dict) else None
+        if not isinstance(container_id, str) or not IDS.fullmatch(container_id) or container_id in ids or row.get('State') not in LIVE:
+            raise Blocked('Docker active container identity invalid')
+        ids.add(container_id)
+        record = docker.get('/containers/' + container_id + '/json')
+        if not isinstance(record, dict) or record.get('Id') != container_id or not isinstance(record.get('State'), dict) or record['State'].get('Status') != row['State']:
+            raise Blocked('Docker container changed during probe')
+        pid = record['State'].get('Pid')
+        if type(pid) is not int or not 0 < pid < 2**31:
+            raise Blocked('container PID unavailable')
+        process_topology, process_digest = process_reader(pid, container_id)
+        again = docker.get('/containers/' + container_id + '/json')
+        if not isinstance(again, dict) or again.get('Id') != container_id or not isinstance(again.get('State'), dict) or again['State'].get('Pid') != pid or again['State'].get('Status') != row['State']:
+            raise Blocked('container PID changed during probe')
+        name = record.get('Name')
+        mounts = record.get('Mounts')
+        if not isinstance(name, str) or not re.fullmatch('/[A-Za-z0-9][A-Za-z0-9_.-]{0,127}', name) or not isinstance(mounts, list):
+            raise Blocked('Docker container metadata invalid')
+        identities.append((container_id, name, row['State'], pid, process_digest))
+        mount_by_destination = {}
+        for mount in mounts:
+            if not isinstance(mount, dict) or not isinstance(mount.get('Source'), str) or type(mount.get('RW')) is not bool:
+                raise Blocked('Docker mount metadata invalid')
+            source = mount['Source']
+            destination = mount.get('Destination')
+            if not isinstance(destination, str) or not posixpath.isabs(destination) or posixpath.normpath(destination) != destination:
+                raise Blocked('Docker mount destination invalid')
+            if destination in mount_by_destination:
+                raise Blocked('Docker mount destination duplicated')
+            mount_by_destination[destination] = mount
+            source_path = None
+            if mount.get('Type') in {'volume', 'bind'}:
+                if not os.path.isabs(source):
+                    raise Blocked('Docker host mount source invalid')
+                if mount.get('Type') == 'bind' and mount['RW'] is False and topology.readonly_namespace_file(source):
+                    continue
+                source_path = topology.identity(source)[0]
+                if mount['RW'] is False:
+                    if topology.recursive_overlap(source_path, mountpoint):
+                        raise Blocked('read-only parent bind may expose writable child')
+                    continue
+            if mount.get('Name') == VOLUME and (mount.get('Type') != 'volume' or source_path != mountpoint):
+                raise Blocked('approved volume identity inconsistent')
+            if mount['RW'] and source_path is not None:
+                topology.overlaps(source_path, mountpoint)
+        for destination in process_writers(process_topology, approved_identity):
+            mount = mount_by_destination.get(destination)
+            if mount is not None and not mount['RW']:
+                raise Blocked('read-only mount exposes writable approved storage')
+            mount_type = 'unknown'
+            if mount is not None:
+                if mount.get('Type') == 'bind':
+                    mount_type = 'bind'
+                elif mount.get('Type') == 'volume' and mount.get('Name') == VOLUME and topology.identity(mount['Source'])[0] == mountpoint:
+                    mount_type = 'volume'
+            users.append({'id': container_id, 'name': name[1:], 'status': row['State'],
+                          'destination': destination, 'rw': True, 'mount_type': mount_type})
+    return sorted(identities), sorted(users, key=lambda user: (user['id'], user['destination'], user['mount_type']))
+
+
+def probe(docker, topology_factory=None, process_reader=None):
+    volume = docker.get('/volumes/' + VOLUME)
+    mountpoint = volume.get('Mountpoint') if isinstance(volume, dict) else None
+    if not isinstance(volume, dict) or volume.get('Name') != VOLUME or not isinstance(mountpoint, str) or not mountpoint.startswith('/') or mountpoint == '/' or mountpoint.endswith('/'):
+        raise Blocked('approved Docker volume unavailable')
+    topology_factory = topology_factory or MountTopology.read
+    process_reader = process_reader or getattr(docker, 'process_mountinfo', read_process_mountinfo)
+    topology = topology_factory()
+    mountpoint = topology.identity(mountpoint)[0]
+    if mountpoint == '/':
+        raise Blocked('approved Docker volume mountpoint invalid')
+    before_identity = topology.identity(mountpoint)
+    before = snapshot(docker, mountpoint, topology, process_reader)
+    after_topology = topology_factory()
+    after = snapshot(docker, mountpoint, after_topology, process_reader)
+    if topology.lines != after_topology.lines or before_identity != after_topology.identity(mountpoint) or before != after:
+        raise Blocked('volume users changed during probe')
+    result = {'ok': True, 'volume': VOLUME, 'count': len(after[1]), 'users': after[1]}
+    if len(json.dumps(result).encode()) > PROBE_LIMIT:
+        raise Blocked('probe response too large')
+    return result
+
+
+def main():
+    try:
+        if len(sys.argv) != 1 or os.geteuid() != 0:
+            raise Blocked('probe invocation refused')
+        proof = read_activation()
+        activation_config(proof, time.time())
+        result = probe(Docker(), topology_factory=lambda: MountTopology.read(proof['host_mount_namespace']))
+    except (Blocked, OSError, ValueError, TypeError, KeyError, http.client.HTTPException):
+        result = {'ok': False}
+    sys.stdout.write(json.dumps(result, separators=(',', ':')) + '\n')
+    sys.stdout.flush()
+    return 0 if result['ok'] else 1
+
+
+if __name__ == '__main__':
+    sys.exit(main())

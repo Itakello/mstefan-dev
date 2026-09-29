@@ -1,0 +1,13 @@
+[Unit]
+Description=Read-only mstefan.dev volume probe
+
+[Socket]
+ListenStream=/run/mstefan-event-deploy-probe.sock
+SocketUser=root
+SocketGroup=mstefan-event-deploy
+SocketMode=0660
+Accept=yes
+MaxConnections=4
+
+[Install]
+WantedBy=sockets.target

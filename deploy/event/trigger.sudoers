@@ -1,0 +1,2 @@
+# The root-owned entrypoint validates both arguments before invoking systemctl.
+mstefan-event-deploy-trigger ALL=(root) NOPASSWD: /usr/local/sbin/mstefan-event-deploy-trigger *
