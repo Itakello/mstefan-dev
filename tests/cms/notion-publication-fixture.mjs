@@ -17,6 +17,9 @@ const fixtureRows = [
   Summary: { rich_text: [{ plain_text: en }] }, 'Summary IT': { rich_text: [{ plain_text: it }] },
   URL: { url: index === 1 ? null : `https://github.com/fixture/project-${index}` }, 'Website URL': { type: 'url', url: website },
 } }));
+fixtureRows[2].properties['Paper URL'] = { type: 'url', url: 'https://example.com/research-paper.pdf' };
+fixtureRows[2].properties['Slides URL'] = { type: 'url', url: 'https://example.com/research-slides.pdf' };
+fixtureRows[2].properties.Publication = { rich_text: [{ plain_text: 'Coauthor · Published in Example Journal' }] };
 const stackRows = [['TypeScript', 'Language', 'logos:typescript-icon'], ['Python', 'Language', 'logos:python'], ['Next.js', 'Framework', 'logos:nextjs-icon'], ['React', 'Library', 'logos:react'], ['Node.js', 'Runtime', 'logos:nodejs-icon'], ['GitHub Actions', 'Infrastructure', 'logos:github-actions'], ['Notion', 'Integration', 'logos:notion-icon'], ['pnpm', 'CLI', 'logos:pnpm'], ['Tailwind CSS', 'Framework', 'logos:tailwindcss-icon'], ['MongoDB', 'Database', 'logos:mongodb-icon'], ['AWS', 'Cloud', 'logos:aws'], ['Docker', 'Infrastructure', 'logos:docker-icon']].map(([name, category, iconKey], index) => ({ id: `visual-stack-${index}`, properties: {
   Name: { title: [{ plain_text: name }] }, Category: { select: { name: category } }, 'Icon key': { rich_text: [{ plain_text: iconKey }] },
 } }));

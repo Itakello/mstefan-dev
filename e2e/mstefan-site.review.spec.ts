@@ -109,6 +109,10 @@ test.describe("Public website review", () => {
     await expect(page.getByRole("link", { name: "Visit website", exact: true })).toBeVisible();
     await expect(page.getByRole("link", { name: "Source code", exact: true })).toHaveCount(0);
     await page.getByRole("button", { name: "Select Automation tools", exact: true }).click();
+    await expect(page.getByRole("region", { name: "Research & materials", exact: true })).toBeVisible();
+    await expect(page.getByText("Coauthor · Published in Example Journal", { exact: true })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Read paper", exact: true })).toHaveAttribute("href", "https://example.com/research-paper.pdf");
+    await expect(page.getByRole("link", { name: "View slides", exact: true })).toHaveAttribute("href", "https://example.com/research-slides.pdf");
     const repositoryStack = page.getByRole("complementary", { name: "Automation tools technologies grouped by category" });
     await expect(repositoryStack.locator('summary[aria-label="Python · Language"]')).toBeVisible();
     await expect(repositoryStack.getByText("TypeScript", { exact: true })).toHaveCount(0);

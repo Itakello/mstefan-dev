@@ -63,6 +63,8 @@ Notion database expected properties (create these columns):
 - `Name` (title)
 - `URL` (url)
 - `Website URL` (url, optional public website; supplies Work visit links and previews for permitted website origins)
+- `Paper URL` / `Slides URL` (url, optional HTTPS research resources; blank values are omitted, nonblank invalid or credential-bearing URLs fail publication)
+- `Publication` / `Publication IT` (rich_text, optional publication credit in each locale; no translation fallback)
 - `Summary` (rich_text, required English long summary)
 - `Summary IT` (rich_text, required Italian long summary)
 - `Short summary` (rich_text, optional English short summary)

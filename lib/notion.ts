@@ -6,6 +6,7 @@ import { isStackIconSource, type StackEntry } from "@/lib/stack";
 export type LocalizedProjectCopy = {
   summary: string;
   shortSummary?: string;
+  publication?: string;
 };
 
 export type NotionProject = {
@@ -13,6 +14,8 @@ export type NotionProject = {
   copy: Record<Locale, LocalizedProjectCopy>;
   url?: string;
   websiteUrl?: string;
+  paperUrl?: string;
+  slidesUrl?: string;
   tags?: string[];
   year?: string;
   language?: string;
@@ -101,6 +104,20 @@ export function parseNotionProjectPage(page: any): NotionProject | null {
   if (website && (typeof website !== "object" || (website.type && website.type !== "url")
     || (website.url !== null && typeof website.url !== "string"))) return null;
   const websiteUrl = typeof website?.url === "string" ? website.url.trim() : undefined;
+  const resources: { paperUrl?: string; slidesUrl?: string } = {};
+  for (const [property, key] of [["Paper URL", "paperUrl"], ["Slides URL", "slidesUrl"]] as const) {
+    const value = properties[property];
+    if (!value || value.url === null) continue;
+    if ((value.type && value.type !== "url") || typeof value.url !== "string") return null;
+    if (!value.url.trim()) continue;
+    try {
+      const parsed = new URL(value.url.trim());
+      if (parsed.protocol !== "https:" || parsed.username || parsed.password) return null;
+      resources[key] = parsed.href;
+    } catch { return null; }
+  }
+  const publication = richText(properties.Publication?.rich_text);
+  const italianPublication = richText(properties["Publication IT"]?.rich_text);
   const language = typeof properties.Language?.multi_select?.[0]?.name === "string"
     ? properties.Language.multi_select[0].name
     : undefined;
@@ -109,11 +126,12 @@ export function parseNotionProjectPage(page: any): NotionProject | null {
   return {
     title,
     copy: {
-      en: { summary: englishSummary, ...(englishShortSummary ? { shortSummary: englishShortSummary } : {}) },
-      it: { summary: italianSummary, ...(italianShortSummary ? { shortSummary: italianShortSummary } : {}) },
+      en: { summary: englishSummary, ...(publication ? { publication } : {}), ...(englishShortSummary ? { shortSummary: englishShortSummary } : {}) },
+      it: { summary: italianSummary, ...(italianPublication ? { publication: italianPublication } : {}), ...(italianShortSummary ? { shortSummary: italianShortSummary } : {}) },
     },
     url,
     ...(websiteUrl ? { websiteUrl } : {}),
+    ...resources,
     tags: tags.length > 0 ? tags : undefined,
     language,
     year,

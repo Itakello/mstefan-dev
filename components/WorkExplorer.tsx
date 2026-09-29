@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, ExternalLink, Github, Monitor, Smartphone } from "lucide-react";
+import { BookOpen, Presentation, ChevronDown, ExternalLink, Github, Monitor, Smartphone } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { StackBadge } from "@/components/StackBadge";
@@ -142,6 +142,15 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
             </div>
           </aside> : stackCatalog.message && <p role="status" className="text-xs leading-5 text-black/55 dark:text-white/55">{copy.publication.stack[stackCatalog.message]}</p>}
         </div>
+        {(selected.paperUrl || selected.slidesUrl || selected.publication) && <section aria-label={copy.work.research} className="mt-7 border-t border-black/10 pt-5 dark:border-white/10">
+          <h3 className="text-sm font-semibold">{copy.work.research}</h3>
+          {selected.publication && <p className="mt-2 text-sm text-black/65 dark:text-white/65">{selected.publication}</p>}
+          <div className="mt-4 flex flex-wrap gap-3">
+            {([{ url: selected.paperUrl, label: copy.work.paper, Icon: BookOpen }, { url: selected.slidesUrl, label: copy.work.slides, Icon: Presentation }]).filter(resource => resource.url).map(resource => <a key={resource.label} href={resource.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-3 rounded-lg border border-black/10 px-4 py-3 text-sm font-medium hover:bg-black/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[hsl(var(--accent))] dark:border-white/15 dark:hover:bg-white/5">
+              <resource.Icon size={18} aria-hidden /><span>{resource.label}</span><ExternalLink size={14} aria-hidden className="text-black/40 dark:text-white/40" />
+            </a>)}
+          </div>
+        </section>}
         {selected.preview && previewUrl && (depth === null || !parentOrigin ? <p role="status" className="mt-6 text-sm">{copy.websites.loading}</p>
           : canRenderWebsitePreview(depth) ? <div className="mt-7">
             <div role="group" aria-label={copy.work.previewSize} className="mb-4 inline-flex gap-1 rounded-lg border border-black/10 p-1 dark:border-white/15">
