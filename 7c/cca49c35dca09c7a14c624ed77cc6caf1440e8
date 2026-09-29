@@ -1,0 +1,60 @@
+components/CareerGraph.tsx
+  s_fc646ba2f41cef::t_9286126fd6214c 4,88-94,100,168-172
+  s_fc646ba2f41cef::t_adf62b33376cd3 25-27,29,38-54,61-63,72,97-99,101-105,128,143,145,149,152,155,157-161,163-164,167,173-175,178-190
+  s_fc646ba2f41cef::t_0bbb345b6c7903 156
+scripts/baseline-payload-preview.mjs
+  s_fc646ba2f41cef::t_6537ac25a3c046 35,38,43,47-50,62
+tests/career-timeline.test.ts
+  s_fc646ba2f41cef::t_38717a536b70d2 81,85-146,177-239
+  s_fc646ba2f41cef::t_5c24b6e4b2e53d 147-152,155,157-170,175-176
+  s_fc646ba2f41cef::t_d2b067682fb522 153-154,156,171-174
+tests/cms/career.test.mts
+  s_fc646ba2f41cef::t_6e273aa9d94135 31,76,97-113,129,157-164
+  s_fc646ba2f41cef::t_83c753e634e24b 165
+lib/career-timeline.ts
+  s_fc646ba2f41cef::t_91abc640a939b6 88-89,91,93,99-109,120
+  s_fc646ba2f41cef::t_2d545c70d904ed 1-2,20-27,29,43,46-71,73-78,81-83,86,90,92,94-98,110-119,121-130
+  s_fc646ba2f41cef::t_38717a536b70d2 72
+tests/cms/migration.test.mts
+  s_fc646ba2f41cef::t_df2d973421df43 329
+  s_fc646ba2f41cef::t_c7e47cd0d28fd5 9,25,29-32,57-136
+  s_fc646ba2f41cef::t_34d016fecf08dd 137
+payload.config.ts
+  s_fc646ba2f41cef::t_94dd1ba08c5aa5 61-84,98-101,103,112-114
+  s_99649e26c921f2::t_2df5e07a828c93 115
+components/CareerGraph.module.css
+  s_fc646ba2f41cef::t_37d74e626f7fd5 2,19,35-36,38-49,65-68
+  s_fc646ba2f41cef::t_878f22d09550c0 69
+migrations/20260929_081759_career_branch_graph.json
+  s_fc646ba2f41cef::t_19e4f202bf512c 1-2150
+migrations/20260929_081759_career_branch_graph.ts
+  s_fc646ba2f41cef::t_e7d4f1a32a0e76 1-15
+migrations/index.ts
+  s_fc646ba2f41cef::t_a114ec9559eb3a 3,14-19
+tests/cms/lifecycle.test.mts
+  s_fc646ba2f41cef::t_355a6583f41c97 258-261,264-266,270,273,277,293,305-306,313,316,325,327,329,333,341-409
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "7ccca49c35dca09c7a14c624ed77cc6caf1440e8",
+  "prompts": {},
+  "sessions": {
+    "s_99649e26c921f2": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0ec14-2355-7fd1-a6cb-ec2e94e09f5f",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    },
+    "s_fc646ba2f41cef": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0e9a5-4cb9-7890-88b5-1b5cca1ba8c4",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
