@@ -85,10 +85,11 @@ test.describe("Public website review", () => {
     await page.locator("#playwright-review-step").evaluate(node => node.remove());
     await page.screenshot({ path: ".artifacts/playwright/work-desktop.png", fullPage: true });
     await desktop.getByRole("link", { name: "About", exact: true }).click();
-    await expect(desktop.getByRole("heading", { level: 1, name: "About", exact: true })).toBeVisible();
+    await expect(desktop.locator("#career-story")).toHaveAttribute("aria-label", "About");
+    await expect(desktop.getByRole("heading", { level: 1, name: "main", exact: true })).toBeVisible();
     await modes.getByRole("button", { name: "Mobile", exact: true }).click();
     await expect(page.locator("iframe")).toHaveCount(1);
-    await expect(mobile.getByRole("heading", { level: 1, name: "About", exact: true })).toBeVisible();
+    await expect(mobile.locator("#career-story")).toHaveAttribute("aria-label", "About");
     await expect(modes.getByRole("button", { name: "Mobile", exact: true })).toHaveAttribute("aria-pressed", "true");
     expect(await frame?.evaluate(() => window.innerWidth)).toBe(390);
     const mobileGeometry = await page.locator("iframe").evaluate(node => ({
@@ -99,7 +100,7 @@ test.describe("Public website review", () => {
     expect(await page.locator("iframe").evaluate(node => node.parentElement?.parentElement?.getBoundingClientRect().height)).toBe(stageHeight);
     await page.screenshot({ path: ".artifacts/playwright/work-phone.png", fullPage: true });
     await modes.getByRole("button", { name: "Desktop", exact: true }).click();
-    await expect(desktop.getByRole("heading", { level: 1, name: "About", exact: true })).toBeVisible();
+    await expect(desktop.getByRole("heading", { level: 1, name: "main", exact: true })).toBeVisible();
     expect(await frame?.evaluate(() => window.innerWidth)).toBe(1280);
     const clientSelection = page.getByRole("navigation", { name: "Choose a project" }).getByRole("button", { name: "Select The Karakal Times" });
     await clientSelection.focus();
@@ -150,7 +151,8 @@ test.describe("Public website review", () => {
     // 3. Open About and verify its portrait and biography.
     await page.getByRole("link", { name: "About", exact: true }).click();
     await expect(page).toHaveURL(/\/en\/about$/);
-    await expect(page.getByRole("heading", { level: 1, name: "About" })).toBeVisible();
+    await expect(page.locator("#career-story")).toHaveAttribute("aria-label", "About");
+    await expect(page.getByRole("heading", { level: 1, name: "main" })).toBeVisible();
     await expect(page.getByRole("img", { name: "Massimo Stefan standing in an elevator, holding a laptop" })).toBeVisible();
     const story = page.locator("#career-story");
     const aboutCareer = page.getByRole("region", { name: "Career", exact: true });
@@ -159,11 +161,11 @@ test.describe("Public website review", () => {
     const careerBox = await aboutCareer.boundingBox();
     expect(storyBox && careerBox && storyBox.x + storyBox.width <= careerBox.x).toBeTruthy();
     await aboutCareer.locator("button[data-career-job]", { hasText: "Amazon" }).click();
-    await expect(story.getByRole("heading", { level: 1, name: "Amazon" })).toBeVisible();
-    await expect(story.getByText("Software Development Engineer I")).toBeVisible();
+    await expect(aboutCareer.locator("button[data-career-job]", { hasText: "Amazon" })).toHaveAttribute("aria-pressed", "true");
+    await expect(story.getByRole("heading", { level: 1, name: "main" })).toBeVisible();
     await expect(aboutCareer.locator("[aria-live='polite']")).toHaveCount(0);
     await aboutCareer.locator("[data-career-main-row]").click();
-    await expect(story.getByRole("heading", { level: 1, name: "About" })).toBeVisible();
+    await expect(story.getByRole("heading", { level: 1, name: "main" })).toBeVisible();
     await expect(story.getByRole("img", { name: "Massimo Stefan standing in an elevator, holding a laptop" })).toBeVisible();
     await showReviewStep(page, "3 · About and portrait");
 
@@ -176,7 +178,8 @@ test.describe("Public website review", () => {
     await page.getByRole("button", { name: "Select language" }).click();
     await page.getByRole("menuitemradio", { name: /Italiano/ }).click();
     await expect(page).toHaveURL(/\/it\/about$/);
-    await expect(page.getByRole("heading", { level: 1, name: "Profilo" })).toBeVisible();
+    await expect(page.locator("#career-story")).toHaveAttribute("aria-label", "Profilo");
+    await expect(page.getByRole("heading", { level: 1, name: "main" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Lavori", exact: true })).toBeVisible();
     await page.getByRole("link", { name: "Lavori", exact: true }).click();
     await expect(page).toHaveURL(/\/it\/projects$/);
@@ -223,8 +226,8 @@ test.describe("Public website review", () => {
     const mobileExplorerBox = await mobileExplorer.boundingBox();
     expect(mobileStoryBox && mobileExplorerBox && mobileStoryBox.y + mobileStoryBox.height <= mobileExplorerBox.y).toBeTruthy();
     await mobileExplorer.locator("button[data-career-job]", { hasText: "Amazon" }).click();
-    await expect(mobileStory.getByRole("heading", { level: 1, name: "Amazon" })).toBeVisible();
-    await expect(page.getByRole("link", { name: /Amazon · Read story/ })).toBeVisible();
+    await expect(mobileStory.getByRole("heading", { level: 1, name: "main" })).toBeVisible();
+    await expect(page.getByRole("link", { name: /Profile · Read story/ })).toBeVisible();
     await page.screenshot({ path: ".artifacts/playwright/career-about-mobile.png", fullPage: true });
     await page.setViewportSize({ width: 400, height: 800 });
     await expect(page.locator("footer > div")).toHaveCSS("flex-direction", "row");

@@ -14,5 +14,7 @@ export async function getCareerContent(locale: Locale, preview: boolean): Promis
     slug: "career", locale, fallbackLocale: false, draft: preview, depth: 1,
     overrideAccess: !preview, user,
   });
-  return career._status === "published" || preview ? career : { ...career, jobs: [] };
+  if (preview) return career;
+  if (career._status !== "published") return { ...career, jobs: [] };
+  return { ...career, jobs: career.jobs?.map((job) => job.summary?.trim() ? job : { ...job, photo: null }) };
 }

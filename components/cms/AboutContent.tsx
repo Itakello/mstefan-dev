@@ -14,8 +14,9 @@ type Job = NonNullable<Career["jobs"]>[number];
 type Props = { content: PageContent<"about">; career: Career; locale: Locale };
 
 export function AboutContent({ content, career, locale }: Props) {
-  const [selected, setSelected] = useState<Job | null>(null);
+  const [selectedJob, setSelected] = useState<Job | null>(null);
   const select = useCallback((job: Job | null) => setSelected(job), []);
+  const selected = selectedJob?.summary?.trim() ? selectedJob : null;
   const profilePhoto = content.photo && typeof content.photo === "object" ? content.photo : null;
   const experiencePhoto = selected?.photo && typeof selected.photo === "object" ? selected.photo : null;
   const photo = selected ? experiencePhoto : profilePhoto;
@@ -33,7 +34,7 @@ export function AboutContent({ content, career, locale }: Props) {
               <p>{selected.role}</p>
               {selected.summary && <p className={styles.summary}>{selected.summary}</p>}
             </> : <>
-              <h1>{content.title}</h1>
+              <h1 className={styles.branch} style={{ color: career.mainlineColor || "#25b8f3" }}>main</h1>
               <p>{content.firstParagraph}</p>
               <p>{content.secondParagraph}</p>
             </>}
