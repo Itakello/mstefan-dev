@@ -1,0 +1,39 @@
+README.md
+  s_378fc10f812003::t_38de933e0206c6 77-78
+app/globals.css
+  s_378fc10f812003::t_6c174dfb9a1e6a 326-356
+components/DocumentPreview.tsx
+  s_378fc10f812003::t_5b5eef077646f8 1-103
+components/WorkExplorer.tsx
+  s_378fc10f812003::t_9106370ba6e2e5 6,54,82-84,109,153-161
+e2e/mstefan-site.review.spec.ts
+  s_378fc10f812003::t_97afe26d5cab14 4,16-18,112,115-132
+lib/documentMedia.ts
+  s_378fc10f812003::t_0b1c3d21f525c0 1-12
+lib/i18n/copy.ts
+  s_378fc10f812003::t_0b7825100a89f6 161,260
+package.json
+  s_378fc10f812003::t_c38b71e4bb97ea 32,38,43
+pnpm-lock.yaml
+  s_378fc10f812003::t_65fb4c7733b2eb 64-66,1000-1069,2513-2516,3827-3874,5556-5559
+tests/document-media.test.ts
+  s_378fc10f812003::t_22bf83c0538ab8 1-8
+tests/fixtures/research.pdf
+  s_378fc10f812003::t_2c0ee34804f11a 1-43
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "53ded0ee4056395fb597d0dc667a099e5faea761",
+  "prompts": {},
+  "sessions": {
+    "s_378fc10f812003": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0e6e9-85f7-70e3-aded-c9af1613e5f2",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
