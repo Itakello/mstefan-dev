@@ -95,7 +95,7 @@ before(async () => {
   environment = {
     ...process.env, NODE_ENV: 'production', PAYLOAD_DATA_DIR: dataDir,
     PAYLOAD_SECRET: randomBytes(32).toString('hex'), NEXT_TELEMETRY_DISABLED: '1',
-    NOTION_TOKEN: '', NOTION_DATABASE_ID: '', NOTION_STACK_DATABASE_ID: '', GITHUB_TOKEN: '', VERCEL: '', VERCEL_ENV: '', SITE_DEPLOYMENT: 'private',
+    NOTION_TOKEN: '', NOTION_DATABASE_ID: '', NOTION_STACK_DATABASE_ID: '', GITHUB_TOKEN: '', VERCEL: '', VERCEL_ENV: '', SITE_DEPLOYMENT: 'public',
     NODE_OPTIONS: `--import=${path.resolve('tests/cms/offline-fetch.mjs')}`,
   };
   const migration = spawnSync(process.execPath, ['node_modules/payload/bin.js', 'migrate'], { env: environment, encoding: 'utf8' });
@@ -194,6 +194,12 @@ test('production drafts, active-locale UI publishing, media privacy, and restart
   assert.equal(privateFile.status, 200);
   const secondRegistration = await request('/api/users/first-register', { email: 'another@example.invalid', password });
   assert.notEqual(secondRegistration.status, 200);
+  await stop();
+  environment.SITE_DEPLOYMENT = 'private';
+  await start();
+  const loginAgain = await request('/api/users/login', { email, password });
+  assert.equal(loginAgain.status, 200);
+  cookie = loginAgain.headers.get('set-cookie')!.split(';')[0];
 });
 
 
@@ -213,8 +219,9 @@ test('career admin live preview keeps About text intact and locale drafts privat
     const preview = page.frameLocator('iframe');
     await expect(preview.getByRole('heading', { level: 1 })).toHaveText('en-published-from-ui');
     await page.locator('#field-jobs__0__summary').fill('Unsaved career live preview');
+    await preview.getByRole('region', { name: 'Career', exact: true }).locator('button[data-career-job]').first().click();
     await expect(preview.getByText('Unsaved career live preview', { exact: true })).toBeVisible();
-    await expect(preview.getByRole('heading', { level: 1 })).toHaveText('en-published-from-ui');
+    await expect(preview.getByRole('heading', { level: 1 })).toHaveText('Amazon');
     const publicPage = await request('/en/about');
     assert.ok(!(await publicPage.text()).includes('Unsaved career live preview'));
     const saveDraft = page.waitForResponse((response) => response.request().method() === 'POST' && response.url().includes('/api/globals/career') && response.url().includes('draft=true'));
@@ -345,6 +352,14 @@ test('career admin live preview keeps About text intact and locale drafts privat
 });
 
 test('nested career branches share junctions and synchronize graph and Experience selection', { timeout: 60_000 }, async () => {
+  const form = new FormData();
+  const photoBytes = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6ks8AAAAASUVORK5CYII=', 'base64');
+  form.set('file', new Blob([photoBytes], { type: 'image/png' }), 'synthetic-experience.png');
+  form.set('_payload', JSON.stringify({ alt: 'Synthetic experience portrait' }));
+  const upload = await fetch(`${base}/api/media`, { method: 'POST', headers: { Cookie: cookie }, body: form });
+  assert.equal(upload.status, 201);
+  const photo = (await upload.json()).doc;
+  assert.ok([401, 403, 404].includes((await fetch(new URL(photo.url, base))).status), 'Unpublished experience photo must be private');
   const fixtures = [
     ['B', 'education/university', 1, 9, null, '#ffaa66'],
     ['C', 'work/independent', 1, 6, null, '#66dd88'],
@@ -357,9 +372,13 @@ test('nested career branches share junctions and synchronize graph and Experienc
   ] as const;
   const jobs = fixtures.map(([company, branchName, start, end, parentBranchName, color]) => ({
     company, branchName, role: 'Synthetic test experience', parentBranchName, color,
+    ...(company === 'F' ? { photo: photo.id } : {}),
     startDate: new Date(Date.UTC(2024, start, 1)).toISOString(), endDate: new Date(Date.UTC(2024, end, 1)).toISOString(),
   }));
   await update('career', 'en', { jobs, laneSpacing: 24, _status: 'published' }, '&publishSpecificLocale=en');
+  const publishedPhoto = await fetch(new URL(photo.url, base));
+  assert.equal(publishedPhoto.status, 200);
+  assert.deepEqual(Buffer.from(await publishedPhoto.arrayBuffer()), photoBytes);
   const browser = await chromium.launch({ headless: true });
   try {
     const page = await browser.newPage({ viewport: { width: 1000, height: 900 } });
@@ -368,11 +387,15 @@ test('nested career branches share junctions and synchronize graph and Experienc
     const project = graph.locator('[data-career-branch][aria-label^="work/company/project:"]');
     const firstTitle = graph.locator('button[data-career-job]').first();
     const projectTitle = graph.locator('button[data-career-job]', { hasText: 'work/company/project' });
+    await expect(page.locator('#career-story img')).toHaveAttribute('src', '/profile-photo.jpg');
     await expect(graph.locator('[data-career-label]')).toHaveCount(0);
     await projectTitle.hover();
     await expect(project).toHaveAttribute('data-highlighted', 'true');
-    await expect(firstTitle).toHaveAttribute('aria-pressed', 'true');
+    await expect(graph.locator('[data-career-main-row]')).toHaveAttribute('aria-pressed', 'true');
     await projectTitle.click();
+    await expect(page.locator('#career-story img')).toHaveAttribute('src', photo.url);
+    await expect(page.locator('#career-story img')).toHaveAttribute('alt', 'Synthetic experience portrait');
+    assert.ok(await page.locator('#career-story img').evaluate((image) => (image as HTMLImageElement).complete && (image as HTMLImageElement).naturalWidth > 0));
     await expect(project).toHaveAttribute('aria-pressed', 'true');
     await project.focus();
     await project.press('Enter');
@@ -380,8 +403,9 @@ test('nested career branches share junctions and synchronize graph and Experienc
     const mainRow = graph.locator('[data-career-main-row]');
     const mainline = graph.locator('[data-career-main-branch]');
     await mainRow.click();
+    await expect(page.locator('#career-story img')).toHaveAttribute('src', '/profile-photo.jpg');
     await expect(mainline).toHaveAttribute('aria-pressed', 'true');
-    await expect(graph.locator('[aria-live="polite"] h3')).toHaveText('Full-stack developer');
+    await expect(page.locator('#career-story').getByRole('heading', { level: 1 })).toHaveText('en-published-from-ui');
     await projectTitle.click();
     await mainline.focus();
     await mainline.press('Enter');
@@ -446,7 +470,8 @@ test('authenticated previews load only the active source draft', { timeout: 60_0
       await expect(page.getByText(titles[slug], { exact: true })).toHaveCount(0);
       const careerPreview = page.getByRole('region', { name: 'Career', exact: true });
       await expect(careerPreview.locator('button[data-career-job]').first()).toContainText(privateRole);
-      await expect(careerPreview.getByText(privateSummary, { exact: true })).toBeVisible();
+      if (slug === 'about') await careerPreview.locator('button[data-career-job]').first().click();
+      await expect(page.getByText(privateSummary, { exact: true })).toBeVisible();
       await page.goto(`${base}${pathname}?preview=1`);
       await expect(page.getByRole('heading', { level: 1 })).toHaveText(titles[slug]);
       const pagePreviewCareer = page.getByRole('region', { name: 'Career', exact: true });
