@@ -3,7 +3,6 @@
 import { ExternalLink, Github, Monitor, Smartphone } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { StackBadge } from "@/components/StackBadge";
-import { StackCategoryIcon } from "@/components/StackCatalog";
 import { displayStackCategory, groupStackEntries, projectStackLabels, resolveProjectStack } from "@/lib/stack";
 import type { WebsiteStackState } from "@/lib/websiteStack";
 import { getCopy } from "@/lib/i18n/copy";
@@ -78,7 +77,7 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
         </button>)}
       </nav>
       <section aria-labelledby="selected-work-title" className="min-w-0 lg:border-l lg:border-black/10 lg:pl-8 dark:lg:border-white/10">
-        <div className="grid gap-6 sm:grid-cols-[minmax(0,1fr)_200px] xl:grid-cols-[minmax(0,1fr)_260px] xl:gap-8">
+        <div className="grid grid-cols-[minmax(0,1fr)_112px] gap-4 sm:gap-6">
           <div className="min-w-0">
             <h2 id="selected-work-title" className="text-2xl font-semibold tracking-tight">{selected.name}</h2>
             {metadata.length > 0 && <p className="mt-2 text-xs text-black/55 dark:text-white/55">{metadata.join(" · ")}</p>}
@@ -88,18 +87,21 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
               {selected.sourceUrl && <a className={linkClass} href={selected.sourceUrl} target="_blank" rel="noreferrer"><Github size={16} aria-hidden="true" />{copy.work.source}</a>}
             </div>
           </div>
-          {groups.length > 0 ? <aside aria-label={copy.projectCard.technologiesByCategory(selected.name)} className="min-w-0 border-t border-black/10 pt-4 sm:border-l sm:border-t-0 sm:pl-5 sm:pt-0 dark:border-white/10">
+          {groups.length > 0 ? <aside aria-label={copy.projectCard.technologiesByCategory(selected.name)} className="min-w-0 border-l border-black/10 pl-3 dark:border-white/10">
             <h3 className="text-xs font-semibold uppercase tracking-wider text-black/50 dark:text-white/50">Stack</h3>
-            <div className="mt-3 space-y-4">
-              {groups.map(group => <div key={group.category}>
-                <div className="mb-2 flex items-center gap-1.5 text-xs text-black/55 dark:text-white/55">
-                  <StackCategoryIcon category={group.category} />{displayStackCategory(group.category, locale)}
-                </div>
-                <ul className="flex flex-wrap gap-x-4 gap-y-2">
-                  {group.entries.map(entry => <li key={entry.name}><StackBadge item={entry} compact /></li>)}
-                </ul>
-              </div>)}
-            </div>
+            <ul className="mt-3 flex flex-wrap gap-2">
+              {groups.flatMap(group => group.entries.map(entry => <li key={entry.name}>
+                <details className="group relative">
+                  <summary aria-label={`${entry.name} · ${displayStackCategory(group.category, locale)}`} className="flex cursor-pointer list-none rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-[hsl(var(--accent))] [&::-webkit-details-marker]:hidden">
+                    <StackBadge item={entry} label={false} compact />
+                  <span aria-hidden="true" className="absolute right-0 top-full z-20 mt-1 hidden w-max max-w-40 rounded-md border border-black/10 bg-white px-2 py-1 text-xs shadow-md group-open:block group-hover:block group-focus-within:block dark:border-white/15 dark:bg-zinc-900">
+                    <span className="block font-medium">{entry.name}</span>
+                    <span className="block text-black/55 dark:text-white/55">{displayStackCategory(group.category, locale)}</span>
+                  </span>
+                  </summary>
+                </details>
+              </li>))}
+            </ul>
           </aside> : stackCatalog.message && <p role="status" className="text-xs leading-5 text-black/55 dark:text-white/55">{copy.publication.stack[stackCatalog.message]}</p>}
         </div>
         {selected.preview && previewUrl && (depth === null || !parentOrigin ? <p role="status" className="mt-6 text-sm">{copy.websites.loading}</p>

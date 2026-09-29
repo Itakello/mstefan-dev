@@ -62,7 +62,11 @@ test.describe("Public website review", () => {
 
     await page.getByRole("button", { name: "Select mstefan.dev", exact: true }).click();
     const projectStack = page.getByRole("complementary", { name: "mstefan.dev technologies grouped by category" });
-    await expect(projectStack.getByText("TypeScript", { exact: true })).toBeVisible();
+    const typeScript = projectStack.locator('summary[aria-label="TypeScript · Language"]');
+    await typeScript.focus();
+    await expect(projectStack.getByText("TypeScript", { exact: true }).last()).toBeVisible();
+    await typeScript.click();
+    await expect(projectStack.locator("details[open]")).toHaveCount(1);
     await expect(projectStack.getByText("Python", { exact: true })).toHaveCount(0);
     const desktop = page.frameLocator('iframe[title="Desktop: Interactive preview of mstefan.dev"]');
     const mobile = page.frameLocator('iframe[title="Mobile: Interactive preview of mstefan.dev"]');
@@ -104,7 +108,7 @@ test.describe("Public website review", () => {
     await expect(page.getByRole("link", { name: "Source code", exact: true })).toHaveCount(0);
     await page.getByRole("button", { name: "Select Automation tools", exact: true }).click();
     const repositoryStack = page.getByRole("complementary", { name: "Automation tools technologies grouped by category" });
-    await expect(repositoryStack.getByText("Python", { exact: true })).toBeVisible();
+    await expect(repositoryStack.locator('summary[aria-label="Python · Language"]')).toBeVisible();
     await expect(repositoryStack.getByText("TypeScript", { exact: true })).toHaveCount(0);
     await expect(page.locator("iframe")).toHaveCount(0);
     await expect(page.getByRole("group", { name: "Preview size" })).toHaveCount(0);
@@ -211,7 +215,7 @@ test.describe("Public website review", () => {
     await page.goto("/it/websites");
     await expect(page.getByRole("navigation", { name: "Scegli un progetto" }).getByRole("button")).toHaveCount(1);
     const stack = page.getByRole("complementary", { name: "Tecnologie di mstefan.dev raggruppate per categoria" });
-    for (const width of [900, 640]) {
+    for (const width of [900, 640, 576, 360]) {
       await page.setViewportSize({ width, height: 800 });
       const details = await page.locator("#selected-work-title").boundingBox();
       const panel = await stack.boundingBox();
