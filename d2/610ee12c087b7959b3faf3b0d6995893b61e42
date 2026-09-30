@@ -1,0 +1,25 @@
+lib/websiteShowcase.ts
+  s_378fc10f812003::t_c29b515cfd9667 9,38,42-43
+  s_378fc10f812003::t_482b895b4b4c71 44-45
+components/WorkShowcase.tsx
+  s_378fc10f812003::t_c29b515cfd9667 10,83
+tests/website-showcase.test.ts
+  s_378fc10f812003::t_c29b515cfd9667 5,134-145
+  s_378fc10f812003::t_2f9a92ecdc2ffc 146
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d2610ee12c087b7959b3faf3b0d6995893b61e42",
+  "prompts": {},
+  "sessions": {
+    "s_378fc10f812003": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0e6e9-85f7-70e3-aded-c9af1613e5f2",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
