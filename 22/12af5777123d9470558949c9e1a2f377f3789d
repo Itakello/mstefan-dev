@@ -1,0 +1,31 @@
+components/WorkExplorer.tsx
+  s_378fc10f812003::t_9a143b9cd2c896 31
+lib/i18n/copy.ts
+  s_378fc10f812003::t_5f0bea407726fe 68,71,162,165,262,265
+components/WorkShowcase.tsx
+  s_378fc10f812003::t_5f0bea407726fe 17,71,73
+  s_378fc10f812003::t_9a143b9cd2c896 43-55
+  s_378fc10f812003::t_2e952b92f39e7f 61
+e2e/mstefan-site.review.spec.ts
+  s_378fc10f812003::t_2e952b92f39e7f 75-77
+  s_378fc10f812003::t_0f4a9e89fa8d3a 62-64,80-83,87-88,91,99,103,108,113,116-117,119-125,163-167,283
+  s_378fc10f812003::t_5d89819fa8ea32 86
+  s_378fc10f812003::t_08d1eb8e2018e5 90,92
+  s_378fc10f812003::t_5f0bea407726fe 65,292
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2212af5777123d9470558949c9e1a2f377f3789d",
+  "prompts": {},
+  "sessions": {
+    "s_378fc10f812003": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0e6e9-85f7-70e3-aded-c9af1613e5f2",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
