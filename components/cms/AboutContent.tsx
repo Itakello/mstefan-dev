@@ -5,7 +5,7 @@ import { useCallback, useState } from "react";
 import { useLivePreview } from "@payloadcms/live-preview-react";
 import { Prose } from "@/components/Prose";
 import { PdfPreview } from "@/components/PdfPreview";
-import { CareerGraph } from "@/components/CareerGraph";
+import { BranchIcon, CareerGraph } from "@/components/CareerGraph";
 import type { Career } from "@/payload-types";
 import type { Locale } from "@/lib/i18n/config";
 import type { PageContent } from "@/lib/cms/types";
@@ -36,12 +36,12 @@ export function AboutContent({ content, career, locale }: Props) {
         <div aria-live="polite" aria-atomic="true">
           <Prose>
             {selected ? <>
-              <p className={styles.branch} style={{ color: selected.color }}>{selected.branchName}</p>
+              <p className={styles.branch} style={{ color: selected.color }}><BranchIcon /><span>{selected.branchName}</span></p>
               <h1>{selected.company}</h1>
               <p>{selected.role}</p>
               {selected.summary && <p className={styles.summary}>{selected.summary}</p>}
             </> : <>
-              <h1 className={styles.branch} style={{ color: career.mainlineColor || "#25b8f3" }}>main</h1>
+              <h1 className={styles.branch} style={{ color: career.mainlineColor || "#25b8f3" }}><BranchIcon /><span>master</span></h1>
               <p>{content.firstParagraph}</p>
               <p>{content.secondParagraph}</p>
             </>}

@@ -5,6 +5,13 @@
 :root {
   /* Accent in HSL. Change this to tweak the vibe. */
   --accent: 270 89% 56%;
+  --page-bg: #f6f5f1;
+  --page-text: #24262b;
+  --page-muted: #595d65;
+  --surface-bg: #efeeea;
+  --surface-border: rgb(0 0 0 / 0.1);
+  --surface-hover: rgb(0 0 0 / 0.04);
+  --surface-selected: rgb(0 0 0 / 0.08);
   --scrollbar-track: #f4f4f5;
   --scrollbar-thumb: #a1a1aa;
 }
@@ -63,7 +70,9 @@ html {
 }
 
 body {
-  @apply bg-white text-black antialiased;
+  @apply antialiased;
+  background-color: var(--page-bg);
+  color: var(--page-text);
 }
 
 a {
@@ -75,25 +84,44 @@ a {
 }
 
 /* Prose defaults */
-.prose {}
+.prose {
+  --tw-prose-body: var(--page-text);
+  --tw-prose-headings: var(--page-text);
+  --tw-prose-bold: var(--page-text);
+  --tw-prose-links: var(--page-text);
+  --tw-prose-captions: var(--page-muted);
+  --tw-prose-invert-body: var(--page-text);
+  --tw-prose-invert-headings: var(--page-text);
+  --tw-prose-invert-bold: var(--page-text);
+  --tw-prose-invert-links: var(--page-text);
+  --tw-prose-invert-captions: var(--page-muted);
+}
 .prose a {
   @apply no-underline border-b border-accent/50 hover:border-accent;
 }
 
 /* Subtle card style */
 .card {
-  @apply rounded-2xl border border-black/10 bg-black/[0.03] backdrop-blur-sm shadow-soft;
+  @apply rounded-2xl border backdrop-blur-sm shadow-soft;
+  border-color: var(--surface-border);
+  background: var(--surface-bg);
 }
 
 /* Dark mode overrides */
-.dark body {
-  @apply bg-black text-white;
+.dark {
+  --page-bg: #000000;
+  --page-text: #e7e8ea;
+  --page-muted: #b6b8bd;
+  --surface-bg: #0d0d0d;
+  --surface-border: rgb(255 255 255 / 0.1);
+  --surface-hover: rgb(255 255 255 / 0.04);
+  --surface-selected: rgb(255 255 255 / 0.08);
 }
 .dark .prose {
   @apply prose-invert;
 }
 .dark .card {
-  @apply border-white/10 bg-white/5 shadow-softDark;
+  @apply shadow-softDark;
 }
 
 .project-panel {
