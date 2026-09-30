@@ -59,6 +59,10 @@ test.describe("Public website review", () => {
     await page.getByRole("link", { name: "Work", exact: true }).click();
     await expect(page).toHaveURL(/\/en\/projects$/);
     await expect(page.getByRole("heading", { level: 1, name: "My work" })).toBeVisible();
+    const gallery = page.getByRole("region", { name: "Websites", exact: true });
+    const projects = page.getByRole("region", { name: "Projects", exact: true });
+    await expect(gallery.getByRole("group", { name: "Choose a website" }).getByRole("button", { name: "Show mstefan.dev in website gallery" })).toHaveCount(1);
+    await expect(page.getByRole("button", { name: "Select mstefan.dev", exact: true })).toHaveCount(1);
 
     await page.getByRole("button", { name: "Select mstefan.dev", exact: true }).click();
     await expect(page.getByRole("button", { name: "Select mstefan.dev", exact: true }).getByText("Website", { exact: true })).toBeVisible();
@@ -68,49 +72,57 @@ test.describe("Public website review", () => {
     await expect(page.getByText("TypeScript", { exact: true }).last()).toBeVisible();
     await typeScript.click();
     await expect(projectStack.locator("details[open]")).toHaveCount(1);
-    await page.evaluate(() => window.scrollBy(0, 30));
+    const stackScrollPosition = await page.evaluate(() => window.scrollY);
+    await page.evaluate(() => window.scrollBy(0, -30));
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeLessThan(stackScrollPosition);
     await expect(page.locator("[data-work-stack-label]")).toHaveCount(0);
     await expect(projectStack.getByText("Python", { exact: true })).toHaveCount(0);
-    const desktop = page.frameLocator('iframe[title="Desktop: Interactive preview of mstefan.dev"]');
-    const mobile = page.frameLocator('iframe[title="Mobile: Interactive preview of mstefan.dev"]');
-    const modes = page.getByRole("group", { name: "Preview size" });
-    await expect(page.locator("iframe")).toHaveCount(1);
+    const desktop = gallery.frameLocator('iframe[title="Desktop: Interactive preview of mstefan.dev"]');
+    const mobile = gallery.frameLocator('iframe[title="Mobile: Interactive preview of mstefan.dev"]');
+    const modes = gallery.getByRole("group", { name: "Preview size" });
+    await expect(gallery.locator(".website-gallery-card iframe")).toHaveCount(1);
     await expect(desktop.getByRole("heading", { level: 1, name: "I build AI systems for real work." })).toBeVisible();
     await expect(modes.getByRole("button", { name: "Desktop", exact: true })).toHaveAttribute("aria-pressed", "true");
-    const stageHeight = await page.locator("iframe").evaluate(node => node.parentElement?.parentElement?.getBoundingClientRect().height);
-    const frame = await page.locator("iframe").elementHandle().then(handle => handle?.contentFrame());
+    await gallery.locator(".website-gallery-card").evaluate(async node => { await Promise.all(node.getAnimations().map(animation => animation.finished)); });
+    const stageHeight = await gallery.locator(".website-gallery-card iframe").evaluate(node => node.parentElement?.parentElement?.getBoundingClientRect().height);
+    const frame = await gallery.locator(".website-gallery-card iframe").elementHandle().then(handle => handle?.contentFrame());
     expect(await frame?.evaluate(() => window.innerWidth)).toBe(1280);
-    const header = await page.getByRole("link", { name: "Visit website", exact: true }).boundingBox();
-    const preview = await page.locator("iframe").boundingBox();
-    expect(header && preview && header.y + header.height < preview.y).toBeTruthy();
+    const title = await gallery.getByRole("heading", { level: 3, name: "mstefan.dev" }).boundingBox();
+    const preview = await gallery.locator(".website-gallery-card iframe").boundingBox();
+    expect(title && preview && title.y + title.height < preview.y).toBeTruthy();
     await page.locator("#playwright-review-step").evaluate(node => node.remove());
     await page.screenshot({ path: ".artifacts/playwright/work-desktop.png", fullPage: true });
     await desktop.getByRole("link", { name: "About", exact: true }).click();
     await expect(desktop.locator("#career-story")).toHaveAttribute("aria-label", "About");
     await expect(desktop.getByRole("heading", { level: 1, name: "main", exact: true })).toBeVisible();
     await modes.getByRole("button", { name: "Mobile", exact: true }).click();
-    await expect(page.locator("iframe")).toHaveCount(1);
+    await expect(gallery.locator(".website-gallery-card iframe")).toHaveCount(1);
     await expect(mobile.locator("#career-story")).toHaveAttribute("aria-label", "About");
     await expect(modes.getByRole("button", { name: "Mobile", exact: true })).toHaveAttribute("aria-pressed", "true");
     expect(await frame?.evaluate(() => window.innerWidth)).toBe(390);
-    const mobileGeometry = await page.locator("iframe").evaluate(node => ({
+    const mobileGeometry = await gallery.locator(".website-gallery-card iframe").evaluate(node => ({
       width: node.getBoundingClientRect().width,
       availableWidth: node.parentElement?.parentElement?.getBoundingClientRect().width,
     }));
     expect(Math.abs(mobileGeometry.width - (mobileGeometry.availableWidth ?? 0))).toBeLessThan(2);
-    expect(await page.locator("iframe").evaluate(node => node.parentElement?.parentElement?.getBoundingClientRect().height)).toBe(stageHeight);
+    expect(await gallery.locator(".website-gallery-card iframe").evaluate(node => node.parentElement?.parentElement?.getBoundingClientRect().height)).toBe(stageHeight);
     await page.screenshot({ path: ".artifacts/playwright/work-phone.png", fullPage: true });
     await modes.getByRole("button", { name: "Desktop", exact: true }).click();
     await expect(desktop.getByRole("heading", { level: 1, name: "main", exact: true })).toBeVisible();
     expect(await frame?.evaluate(() => window.innerWidth)).toBe(1280);
-    const clientSelection = page.getByRole("navigation", { name: "Choose a project" }).getByRole("button", { name: "Select The Karakal Times" });
+    const clientSelection = projects.getByRole("navigation", { name: "Choose a project" }).getByRole("button", { name: "Select The Karakal Times" });
     await clientSelection.focus();
     await page.keyboard.press("Enter");
-    await expect(page.locator("iframe")).toHaveCount(0);
-    await expect(page.getByText("Explore the live website in a new tab.")).toBeVisible();
+    await expect(projects.getByRole("heading", { level: 3, name: "The Karakal Times" })).toBeVisible();
+    await expect(gallery.locator(".website-gallery-card iframe")).toHaveCount(1);
     await expect(page).toHaveURL(/\/en\/projects$/);
-    await expect(page.getByRole("link", { name: "Visit website", exact: true })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Source code", exact: true })).toHaveCount(0);
+    await expect(projects.getByRole("link", { name: "Visit website", exact: true })).toBeVisible();
+    await expect(projects.getByRole("link", { name: "Source code", exact: true })).toHaveCount(0);
+    await gallery.getByRole("group", { name: "Choose a website" }).getByRole("button", { name: "Show The Karakal Times in website gallery" }).click();
+    await expect(gallery.locator(".website-gallery-card iframe")).toHaveCount(0);
+    await expect(gallery.getByText("Explore the live website in a new tab.")).toBeVisible();
+    await gallery.getByRole("group", { name: "Choose a website" }).getByRole("button", { name: "Show mstefan.dev in website gallery" }).click();
+    await expect(gallery.locator(".website-gallery-card iframe")).toHaveCount(1);
     await page.goto("/en/projects?project=Automation%20tools");
     await expect(page.getByRole("region", { name: "Research & materials", exact: true })).toBeVisible();
     await expect(page.getByText("Coauthor · Published in Example Journal", { exact: true })).toBeVisible();
@@ -148,10 +160,11 @@ test.describe("Public website review", () => {
     const repositoryStack = page.getByRole("complementary", { name: "Automation tools technologies grouped by category" });
     await expect(repositoryStack.locator('summary[aria-label="Python · Language"]')).toBeVisible();
     await expect(repositoryStack.getByText("TypeScript", { exact: true })).toHaveCount(0);
-    await expect(page.locator("iframe")).toHaveCount(0);
-    await expect(page.getByRole("group", { name: "Preview size" })).toHaveCount(0);
-    await expect(page.getByRole("link", { name: "Source code", exact: true })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Visit website", exact: true })).toHaveCount(0);
+    await expect(projects.locator("iframe")).toHaveCount(0);
+    await expect(projects.getByRole("group", { name: "Preview size" })).toHaveCount(0);
+    await expect(projects.getByRole("link", { name: "Source code", exact: true })).toBeVisible();
+    await expect(projects.getByRole("link", { name: "Visit website", exact: true })).toHaveCount(0);
+    await expect(gallery.locator(".website-gallery-card iframe")).toHaveCount(1);
     await page.getByRole("button", { name: "Select mstefan.dev", exact: true }).click();
     await expect(desktop.getByRole("heading", { level: 1, name: "I build AI systems for real work." })).toBeVisible();
     await showReviewStep(page, "2 · Work explorer and responsive preview toggle");
@@ -267,7 +280,7 @@ test.describe("Public website review", () => {
       frame = actual;
     }
     await expect(frame.locator("iframe")).toHaveCount(0);
-    await expect(frame.getByRole("link", { name: "Visit website", exact: true })).toBeVisible();
+    await expect(frame.getByRole("region", { name: "Websites", exact: true }).getByRole("link", { name: "Visit website", exact: true })).toBeVisible();
     await page.screenshot({ path: ".artifacts/playwright/gallery-depth-limit.png", fullPage: true });
   });
 
@@ -276,6 +289,7 @@ test.describe("Public website review", () => {
     if (!state) throw new Error("Missing publication fixture state");
     await writeFile(state, "one");
     await page.goto("/it/websites");
+    await expect(page.getByRole("group", { name: "Scegli un sito web" }).getByRole("button", { name: "Mostra mstefan.dev nella galleria dei siti web" })).toHaveCount(1);
     await expect(page.getByRole("navigation", { name: "Scegli un progetto" }).getByRole("button")).toHaveCount(1);
     const stack = page.getByRole("complementary", { name: "Tecnologie di mstefan.dev raggruppate per categoria" });
     for (const width of [900, 640, 576, 360]) {

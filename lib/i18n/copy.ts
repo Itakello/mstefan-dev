@@ -65,9 +65,10 @@ type SiteCopy = {
     toolkitDescription: string;
   };
   projects: { title: string; description: string };
-  work: { types: { Website: string; App: string; Tool: string; Research: string }; projectsHeading: string; websitesHeading: string; previewSize: string; selectorLabel: string; desktop: string; mobile: string; source: string; visit: string; research: string; accomplishments: string; paper: string; slides: string };
+  work: { types: { Website: string; App: string; Tool: string; Research: string }; projectsHeading: string; websitesHeading: string; previewSize: string; selectorLabel: string; websiteSelectorLabel: string; desktop: string; mobile: string; source: string; visit: string; research: string; accomplishments: string; paper: string; slides: string };
   websites: {
     selectSite: (title: string) => string;
+    showInGallery: (title: string) => string;
     previewTitle: (title: string) => string;
     loading: string;
     linkOnly: string;
@@ -158,9 +159,10 @@ export const copy = {
       toolkitDescription: "Tools and technologies I use across my work.",
     },
     projects: { title: "My work", description: "Explore the projects, websites and tools I build." },
-    work: { types: { Website: "Website", App: "App", Tool: "Tool", Research: "Research" }, projectsHeading: "Projects", websitesHeading: "Websites", previewSize: "Preview size", selectorLabel: "Choose a project", desktop: "Desktop", mobile: "Mobile", source: "Source code", visit: "Visit website", research: "Research & materials", accomplishments: "Accomplishments", paper: "Paper", slides: "Slides" },
+    work: { types: { Website: "Website", App: "App", Tool: "Tool", Research: "Research" }, projectsHeading: "Projects", websitesHeading: "Websites", previewSize: "Preview size", selectorLabel: "Choose a project", websiteSelectorLabel: "Choose a website", desktop: "Desktop", mobile: "Mobile", source: "Source code", visit: "Visit website", research: "Research & materials", accomplishments: "Accomplishments", paper: "Paper", slides: "Slides" },
     websites: {
       selectSite: (title) => `Select ${title}`,
+      showInGallery: (title) => `Show ${title} in website gallery`,
       previewTitle: (title) => `Interactive preview of ${title}`,
       loading: "Preparing the live preview…",
       linkOnly: "Explore the live website in a new tab.",
@@ -257,9 +259,10 @@ export const copy = {
       toolkitDescription: "Strumenti e tecnologie che uso nel mio lavoro.",
     },
     projects: { title: "I miei lavori", description: "Esplora i progetti, i siti web e gli strumenti che realizzo." },
-    work: { types: { Website: "Sito web", App: "App", Tool: "Strumento", Research: "Ricerca" }, projectsHeading: "Progetti", websitesHeading: "Siti web", previewSize: "Dimensione anteprima", selectorLabel: "Scegli un progetto", desktop: "Desktop", mobile: "Mobile", source: "Codice sorgente", visit: "Visita il sito", research: "Ricerca e materiali", accomplishments: "Risultati", paper: "Paper", slides: "Slide" },
+    work: { types: { Website: "Sito web", App: "App", Tool: "Strumento", Research: "Ricerca" }, projectsHeading: "Progetti", websitesHeading: "Siti web", previewSize: "Dimensione anteprima", selectorLabel: "Scegli un progetto", websiteSelectorLabel: "Scegli un sito web", desktop: "Desktop", mobile: "Mobile", source: "Codice sorgente", visit: "Visita il sito", research: "Ricerca e materiali", accomplishments: "Risultati", paper: "Paper", slides: "Slide" },
     websites: {
       selectSite: (title) => `Seleziona ${title}`,
+      showInGallery: (title) => `Mostra ${title} nella galleria dei siti web`,
       previewTitle: (title) => `Anteprima interattiva di ${title}`,
       loading: "Preparo l'anteprima live…",
       linkOnly: "Esplora il sito live in una nuova scheda.",

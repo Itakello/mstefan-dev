@@ -28,7 +28,7 @@ export function ResponsivePreview({ url, title, mobile, sandbox }: { url: string
   const container = useRef<HTMLDivElement>(null);
   const [available, setAvailable] = useState({ width: 0, height: 0 });
   const width = mobile ? 390 : 1280;
-  const scale = mobile ? Math.min(1, available.width / width) : Math.min(1, available.width / width, available.height / 800);
+  const scale = mobile ? available.width / width : Math.min(1, available.width / width, available.height / 800);
   const height = mobile && scale > 0 ? available.height / scale : 800;
   useEffect(() => {
     const element = container.current;
