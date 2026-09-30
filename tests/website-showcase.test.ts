@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  approvedGalleryWebsites,
   canRenderWebsitePreview,
   personalPreviewOrigin,
   workItemsFromProjects,
@@ -129,4 +130,17 @@ test("legacy non-GitHub project URLs remain visit links without enabling embeddi
   }
   const item = workItemsFromProjects([{ ...project, url: "https://legacy.example.com", websiteUrl: "https://current.example.com" }])[0];
   assert.equal(item.url, "https://current.example.com/");
+});
+
+test("only explicit approved Website URLs enter the gallery while legacy project links remain visitable", () => {
+  const [legacy, approved] = workItemsFromProjects([
+    { ...project, url: "https://legacy.example.com" },
+    { ...project, url: "https://github.com/Itakello/site", websiteUrl: "https://approved.example.com" },
+  ]);
+
+  assert.equal(legacy.url, "https://legacy.example.com");
+  assert.equal(websitePreviewUrl(legacy, "en"), "https://legacy.example.com");
+  assert.equal(legacy.approvedWebsiteUrl, undefined);
+  assert.equal(approved.approvedWebsiteUrl, "https://approved.example.com/");
+  assert.deepEqual(approvedGalleryWebsites([legacy, approved]), [approved]);
 });

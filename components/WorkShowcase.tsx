@@ -7,7 +7,7 @@ import { getCopy } from "@/lib/i18n/copy";
 import type { Locale } from "@/lib/i18n/config";
 import type { WebsiteStackState } from "@/lib/websiteStack";
 import {
-  canRenderWebsitePreview, personalPreviewOrigin, type ShowcaseWebsite, websitePreviewUrl,
+  approvedGalleryWebsites, canRenderWebsitePreview, personalPreviewOrigin, type ShowcaseWebsite, websitePreviewUrl,
 } from "@/lib/websiteShowcase";
 
 function SitePeek({ item, locale, origin, depth, onSelect }: {
@@ -80,7 +80,7 @@ export function WorkShowcase({ locale, items, stackCatalog }: {
   locale: Locale; items: ShowcaseWebsite[]; stackCatalog: WebsiteStackState;
 }) {
   const copy = getCopy(locale);
-  const sites = items.filter(item => item.url);
+  const sites = approvedGalleryWebsites(items);
   return <>
     {sites.length > 0 && <WebsiteGallery locale={locale} sites={sites} />}
     <section aria-labelledby="work-projects-heading" className="mt-14 border-t border-black/10 pt-8 dark:border-white/10">

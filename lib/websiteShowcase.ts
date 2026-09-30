@@ -6,7 +6,7 @@ export const WEBSITE_PREVIEW_MAX_DEPTH = 3;
 
 const PERSONAL_SITE_ORIGIN = "https://www.mstefan.dev";
 const PRIVATE_PREVIEW_ORIGIN = "https://itakello-server.tailacf6a7.ts.net:10000";
-export type ShowcaseWebsite = { id: string; type?: ProjectType; url?: string; sourceUrl?: string; preview: boolean; name: string; description: string; shortDescription?: string; year?: string; paperUrl?: string; slidesUrl?: string; publication?: string; language?: string; tags?: string[] };
+export type ShowcaseWebsite = { id: string; type?: ProjectType; url?: string; approvedWebsiteUrl?: string; sourceUrl?: string; preview: boolean; name: string; description: string; shortDescription?: string; year?: string; paperUrl?: string; slidesUrl?: string; publication?: string; language?: string; tags?: string[] };
 
 export function approvedWebsiteUrls(projects: readonly { websiteUrl?: string }[]): (string | undefined)[] {
   const seen = new Set<string>();
@@ -35,8 +35,12 @@ export function workItemsFromProjects(projects: readonly Project[]): ShowcaseWeb
     const url = new URL(websiteUrl);
     const preview = [PERSONAL_SITE_ORIGIN, "https://mstefan.dev"].includes(url.origin)
       && url.pathname === "/" && !url.search && !url.hash;
-    return { ...metadata, id: url.href, url: url.href, preview };
+    return { ...metadata, id: url.href, url: url.href, approvedWebsiteUrl: url.href, preview };
   });
+}
+
+export function approvedGalleryWebsites(items: readonly ShowcaseWebsite[]): ShowcaseWebsite[] {
+  return items.filter(item => Boolean(item.approvedWebsiteUrl));
 }
 
 export function personalPreviewOrigin(hostname: string, currentOrigin: string) {
