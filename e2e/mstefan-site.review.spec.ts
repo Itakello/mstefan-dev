@@ -112,6 +112,8 @@ test.describe("Public website review", () => {
     await gallery.getByRole("group", { name: "Choose a website" }).getByRole("button", { name: "Show The Karakal Times in website gallery" }).click();
     await expect(gallery.locator(".website-gallery-card iframe")).toHaveCount(0);
     await expect(gallery.getByText("Explore the live website in a new tab.")).toBeVisible();
+    await expect(gallery.locator("iframe")).toHaveCount(1);
+    await expect(gallery.getByRole("button", { name: "Show mstefan.dev in website gallery", exact: true })).toHaveCount(2);
     await gallery.getByRole("group", { name: "Choose a website" }).getByRole("button", { name: "Show mstefan.dev in website gallery" }).click();
     await expect(gallery.locator(".website-gallery-card iframe")).toHaveCount(1);
     await page.goto("/en/projects?project=Automation%20tools");

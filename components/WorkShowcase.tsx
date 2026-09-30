@@ -54,9 +54,9 @@ function WebsiteGallery({ locale, sites }: { locale: Locale; sites: ShowcaseWebs
       </div>
     </div>
     <div className={`grid min-w-0 items-center gap-4 ${hasNeighbors ? "lg:grid-cols-[minmax(0,1fr)_minmax(0,3fr)_minmax(0,1fr)]" : ""}`}>
-      {hasNeighbors && <SitePeek item={sites[(index - 1 + sites.length) % sites.length]} locale={locale} origin={origin} depth={depth}
+      {sites.length > 2 && <SitePeek item={sites[(index - 1 + sites.length) % sites.length]} locale={locale} origin={origin} depth={depth}
         onSelect={() => setSelectedId(sites[(index - 1 + sites.length) % sites.length].id)} />}
-      <div key={selected.id} className="website-gallery-card min-w-0 overflow-hidden rounded-2xl border border-black/10 bg-white shadow-[0_24px_70px_-40px_rgba(0,0,0,.5)] dark:border-white/15 dark:bg-black">
+      <div key={selected.id} className={`website-gallery-card min-w-0 overflow-hidden rounded-2xl border border-black/10 bg-white shadow-[0_24px_70px_-40px_rgba(0,0,0,.5)] dark:border-white/15 dark:bg-black ${hasNeighbors ? "lg:col-start-2" : ""}`}>
         {selected.preview && previewUrl && depth !== null && canRenderWebsitePreview(depth)
           ? <ResponsivePreview url={previewUrl} title={`${mobile ? copy.work.mobile : copy.work.desktop}: ${copy.websites.previewTitle(selected.name)}`} mobile={mobile}
               sandbox={new URL(previewUrl).origin === window.location.origin ? undefined : "allow-scripts allow-same-origin allow-forms allow-popups"} />
