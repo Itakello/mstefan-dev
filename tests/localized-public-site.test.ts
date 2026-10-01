@@ -17,6 +17,7 @@ test("localized public routes expose the supported public and disclosure paths",
   for (const route of [
     "app/[locale]/page.tsx",
     "app/[locale]/projects/page.tsx",
+    "app/[locale]/websites/page.tsx",
     "app/[locale]/about/page.tsx",
     "app/[locale]/mail-rules/page.tsx",
     "app/[locale]/mail-rules/privacy/page.tsx",
@@ -78,9 +79,17 @@ test("sitemap adds localized canonicals and excludes legacy public paths", async
   const config = await source("next-sitemap.config.mjs");
   const sitemap = await source("public/sitemap-0.xml");
 
-  for (const localePath of ["/en", "/en/projects", "/en/about", "/it", "/it/projects", "/it/about"]) {
+  for (const localePath of [
+    "/en",
+    "/en/projects",
+    "/en/about",
+    "/it",
+    "/it/projects",
+    "/it/about",
+  ]) {
     assert.ok(config.includes(localePath));
     assert.ok(sitemap.includes(`mstefan.dev${localePath}`));
   }
-  assert.doesNotMatch(sitemap, /mstefan\.dev\/(?:about|projects)(?:<|\/)/);
+  assert.doesNotMatch(sitemap, /mstefan\.dev\/(?:en|it)\/websites/);
+  assert.doesNotMatch(sitemap, /mstefan\.dev\/(?:about|projects|websites)(?:<|\/)/);
 });

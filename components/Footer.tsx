@@ -17,7 +17,7 @@ export function Footer({ locale }: { locale: Locale }) {
         </p>
         <div className="flex flex-nowrap gap-1 sm:gap-2 md:shrink-0">
           <IconLink
-            href="mailto:massimo@mstefan.dev"
+            href="mailto:me@mstefan.dev"
             label="Email"
             icon={<Icon icon="lucide:mail" className={BRAND_ICON_CLASS} aria-hidden />}
           />

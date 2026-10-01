@@ -6,6 +6,7 @@ import {
   mergeAndEnrichProjects,
   resolveProjectPublicationState,
 } from "@/lib/projectPublication";
+import { approvedWebsiteUrls } from "@/lib/websiteShowcase";
 
 type PublicProjectsLoaderOptions = {
   fetchProjects?: typeof fetchProjectsFromNotion;
@@ -34,9 +35,14 @@ export function selectPublicProjectLocale(project: NotionProject, locale: Locale
 
   return {
     title: project.title,
+    ...(project.type ? { type: project.type } : {}),
     summary: localizedCopy.summary,
     ...(localizedCopy.shortSummary ? { shortSummary: localizedCopy.shortSummary } : {}),
     ...(project.url ? { url: project.url } : {}),
+    ...(project.websiteUrl ? { websiteUrl: project.websiteUrl } : {}),
+    ...(project.paperUrl ? { paperUrl: project.paperUrl } : {}),
+    ...(project.slidesUrl ? { slidesUrl: project.slidesUrl } : {}),
+    ...(localizedCopy.publication ? { publication: localizedCopy.publication } : {}),
     ...(project.tags ? { tags: project.tags } : {}),
     ...(project.year ? { year: project.year } : {}),
     ...(project.language ? { language: project.language } : {}),
@@ -57,7 +63,10 @@ export async function loadPublicProjects(
       return null;
     }),
     fetchProjects()
-      .then((projects) => ({ projects, failed: false }))
+      .then((projects) => {
+        if (projects) approvedWebsiteUrls(projects);
+        return { projects, failed: false };
+      })
       .catch((error) => {
         console.error("Failed to load the Notion project publication source.", error);
         return { projects: null, failed: true };

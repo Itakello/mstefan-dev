@@ -44,7 +44,7 @@ export default async function MailRulesPage({
       <p>{content.control}</p>
 
       <p>
-        {content.privacyLead}{" "}
+        {content.privacyLead}
         <Link href={`/${locale}/mail-rules/privacy`}>{content.privacyLink}</Link>{" "}
         {content.privacySuffix}
       </p>

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
+import { WebsiteAnalytics } from "@/components/WebsiteAnalytics";
 import { supportedLocales } from "@/lib/i18n/config";
 import { isSupportedLocale } from "@/lib/i18n/routing";
 import { INITIAL_THEME_SCRIPT } from "@/lib/theme";
@@ -37,6 +38,7 @@ export default async function LocaleLayout({
         <script dangerouslySetInnerHTML={{ __html: INITIAL_THEME_SCRIPT }} />
       </head>
       <body>
+        <WebsiteAnalytics projectToken={process.env.POSTHOG_PROJECT_TOKEN} />
         <div className="container">
           <Header locale={locale} />
           <main className="py-10">{children}</main>

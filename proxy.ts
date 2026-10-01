@@ -15,21 +15,24 @@ function persistLocale(response: NextResponse, locale: string) {
 }
 
 export function proxy(request: NextRequest) {
-  // Only the loopback-bound application port and SSH tunnel serve the CMS.
-  // Openship always overwrites X-Real-IP. A spoofed loopback Host arriving
-  // through its TLS vhost must not acquire private access.
-  const privateHost = !request.headers.has("x-real-ip") && /^(?:localhost|127\.0\.0\.1|\[::1\])(?::\d+)?$/i.test(request.headers.get("host") ?? "");
+  // The preview CMS is reachable at its verified tailnet address. A public
+  // Host header must never acquire CMS access, even on the private deployment.
+  const host = request.headers.get("host") ?? "";
+  const privateHost = !request.headers.has("x-real-ip") && (
+    (process.env.SITE_DEPLOYMENT === "private" && host.toLowerCase() === "itakello-server.tailacf6a7.ts.net:10000")
+    || /^(?:localhost|127\.0\.0\.1|\[::1\])(?::\d+)?$/i.test(host)
+  );
   if (!privateHost) {
     let pathname: string;
     try { pathname = decodeURIComponent(request.nextUrl.pathname).replace(/\/+$/, ""); }
     catch { return new NextResponse(null, { status: 404 }); }
     const api = pathname === "/api" || pathname.startsWith("/api/");
-    const media = pathname.startsWith("/api/media/file/") && ["GET", "HEAD"].includes(request.method);
+    const publishedFile = (pathname.startsWith("/api/media/file/") || pathname.startsWith("/api/documents/file/")) && ["GET", "HEAD"].includes(request.method);
     const webhook = ["/api/webhooks/github", "/api/webhooks/notion"].includes(pathname) && request.method === "POST";
-    if (pathname === "/admin" || pathname.startsWith("/admin/") || request.nextUrl.searchParams.has("preview") || (api && !media && !webhook)) {
+    if (pathname === "/admin" || pathname.startsWith("/admin/") || request.nextUrl.searchParams.has("preview") || (api && !publishedFile && !webhook)) {
       return new NextResponse(null, { status: 404, headers: { "Cache-Control": "no-store" } });
     }
-    if (media) {
+    if (publishedFile) {
       const headers = new Headers(request.headers);
       headers.delete("cookie");
       headers.delete("authorization");

@@ -10,6 +10,7 @@ const supportedLocaleSet = new Set<Locale>(supportedLocales);
 const publicPathSet = new Set<PublicPath>([
   "/",
   "/projects",
+  "/websites",
   "/about",
   "/mail-rules",
   "/mail-rules/privacy",
@@ -18,6 +19,7 @@ const publicPathSet = new Set<PublicPath>([
 export type LocalizedPath =
   | `/${Locale}`
   | `/${Locale}/projects`
+  | `/${Locale}/websites`
   | `/${Locale}/about`
   | `/${Locale}/mail-rules`
   | `/${Locale}/mail-rules/privacy`;

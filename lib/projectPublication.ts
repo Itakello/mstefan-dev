@@ -1,9 +1,17 @@
+export const PROJECT_TYPES = ["Website", "App", "Tool", "Research"] as const;
+export type ProjectType = (typeof PROJECT_TYPES)[number];
+
 export type Project = {
   title: string;
+  type?: ProjectType;
   shortSummary?: string;
   summary: string;
   year?: string;
   url?: string;
+  websiteUrl?: string;
+  paperUrl?: string;
+  slidesUrl?: string;
+  publication?: string;
   tags?: string[];
   language?: string;
   featured?: boolean;

@@ -18,14 +18,14 @@ const mailRulesCopy = {
       controlTitle: "Control and access",
       control:
         "The tool is not offered to the public. It runs on the owner's computer, serves one Gmail account, and requires explicit approval before it changes Gmail. Unmanaged filters are not deletion candidates.",
-      privacyLead: "Read the",
+      privacyLead: "Read the ",
       privacyLink: "Mail Rules privacy policy",
       privacySuffix: "for the data-access, storage, sharing, and deletion practices.",
     },
     privacy: {
       title: "Mail Rules privacy policy",
       description: "How the personal Mail Rules tool accesses and handles Google user data.",
-      updated: "Last updated: September 26, 2026.",
+      updated: "Last updated: October 1, 2026.",
       introduction:
         "This policy describes how Mail Rules, a personal tool operated by Massimo Stefan, accesses and handles Google user data.",
       accessTitle: "Google user data accessed",
@@ -48,7 +48,7 @@ const mailRulesCopy = {
         "When Mail Rules is invoked through OpenAI Codex, Gmail-derived tool results become content in that Codex task. Depending on the requested operation, those results can include label names and identifiers; filter identifiers, criteria, and actions; reconciliation results; and message identifiers, sender, subject, date, snippet, thread identifier, and label identifiers. That content is handled under the OpenAI product and account data controls applicable to the task. Mail Rules does not control or promise OpenAI's retention or training behavior. OAuth client secrets and tokens are never included in tool results.",
       sharingTitle: "Sharing and transfer",
       sharing:
-        "The operator does not sell, rent, or share Google user data with advertisers. Gmail-derived tool results are transmitted to OpenAI only when the owner explicitly invokes a Gmail operation through Codex, including a listing, reconciliation preview, rule test, or approved write. OAuth credentials may be stored in the owner's private 1Password vault solely for backup.",
+        "The operator does not sell, rent, or share Google user data with advertisers. Gmail-derived tool results are transmitted to OpenAI when Codex calls a Mail Rules tool in response to the owner's request, including a listing, reconciliation preview, rule test, or approved write. OAuth credentials may be stored in the owner's private 1Password vault solely for backup.",
       limitedUse:
         "Mail Rules' use and transfer of information received from Google APIs adheres to the Limited Use requirements in the",
       securityTitle: "Security, revocation, and deletion",
@@ -86,7 +86,7 @@ const mailRulesCopy = {
     privacy: {
       title: "Informativa sulla privacy di Mail Rules",
       description: "Come lo strumento personale Mail Rules accede ai dati utente Google e li gestisce.",
-      updated: "Ultimo aggiornamento: 26 settembre 2026.",
+      updated: "Ultimo aggiornamento: 1 ottobre 2026.",
       introduction:
         "Questa informativa descrive come Mail Rules, uno strumento personale gestito da Massimo Stefan, accede ai dati utente Google e li tratta.",
       accessTitle: "Dati utente Google consultati",
@@ -109,7 +109,7 @@ const mailRulesCopy = {
         "Quando Mail Rules viene invocato tramite OpenAI Codex, i risultati degli strumenti derivati da Gmail diventano contenuto di quel task Codex. In base all'operazione richiesta, tali risultati possono includere nomi e identificativi delle etichette; identificativi, criteri e azioni dei filtri; risultati della riconciliazione; e identificativi dei messaggi, mittente, oggetto, data, snippet, identificativo della conversazione e identificativi delle etichette dei messaggi. Questi contenuti sono gestiti secondo i controlli dati del prodotto e dell'account OpenAI applicabili al task. Mail Rules non controlla né promette il comportamento di OpenAI in materia di conservazione o addestramento. I segreti e i token OAuth non vengono mai inclusi nei risultati degli strumenti.",
       sharingTitle: "Condivisione e trasferimento",
       sharing:
-        "Il gestore non vende, affitta o condivide i dati utente Google con inserzionisti. I risultati degli strumenti derivati da Gmail vengono trasmessi a OpenAI solo quando il proprietario invoca esplicitamente un'operazione Gmail tramite Codex, inclusi un elenco, un'anteprima di riconciliazione, il test di una regola o una scrittura approvata. Le credenziali OAuth possono essere conservate nel vault 1Password privato del proprietario esclusivamente come backup.",
+        "Il gestore non vende, affitta o condivide i dati utente Google con inserzionisti. I risultati degli strumenti derivati da Gmail vengono trasmessi a OpenAI quando Codex invoca uno strumento Mail Rules in risposta alla richiesta del proprietario, inclusi un elenco, un'anteprima di riconciliazione, il test di una regola o una scrittura approvata. Le credenziali OAuth possono essere conservate nel vault 1Password privato del proprietario esclusivamente come backup.",
       limitedUse:
         "L'uso e il trasferimento delle informazioni ricevute dalle API Google da parte di Mail Rules rispettano i requisiti di Limited Use della",
       securityTitle: "Sicurezza, revoca ed eliminazione",

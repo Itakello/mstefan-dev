@@ -10,6 +10,7 @@ export const publicPagePaths = {
 
 export type PublicPath =
   | (typeof publicPagePaths)[PublicPage]
+  | "/websites"
   | "/mail-rules"
   | "/mail-rules/privacy";
 
@@ -68,21 +69,29 @@ type SiteCopy = {
     toolkitDescription: string;
   };
   projects: { title: string; description: string };
+  work: { types: { Website: string; App: string; Tool: string; Research: string }; previewSize: string; selectorLabel: string; desktop: string; mobile: string; source: string; visit: string; research: string; accomplishments: string; paper: string; slides: string };
+  websites: {
+    selectSite: (title: string) => string;
+    previewTitle: (title: string) => string;
+    loading: string;
+    linkOnly: string;
+    depthLimit: string;
+  };
   about: { title: string; firstParagraph: string; secondParagraph: string; imageAlt: string };
   og: { description: string };
 };
 
 export const copy = {
   en: {
-    nav: { home: "Home", projects: "Projects", about: "About" },
+    nav: { home: "Home", projects: "Work", about: "About" },
     metadata: {
       home: {
         title: "Massimo Stefan",
         description: "Software engineer building AI systems, agents, and reliable automation.",
       },
       projects: {
-        title: "Projects",
-        description: "Selected public software projects by Massimo Stefan.",
+        title: "Work",
+        description: "Selected websites and software projects by Massimo Stefan.",
       },
       about: {
         title: "About",
@@ -152,7 +161,16 @@ export const copy = {
       toolkit: "Toolkit",
       toolkitDescription: "Tools and technologies I use across my work.",
     },
-    projects: { title: "Public projects", description: "Projects approved for publication, grouped by year." },
+    projects: { title: "My work", description: "Explore the projects, websites and tools I build." },
+    work: { types: { Website: "Website", App: "App", Tool: "Tool", Research: "Research" }, previewSize: "Preview size", selectorLabel: "Choose a project", desktop: "Desktop", mobile: "Mobile", source: "Source code", visit: "Visit website", research: "Research & materials", accomplishments: "Accomplishments", paper: "Paper", slides: "Slides" },
+    websites: {
+      selectSite: (title) => `Select ${title}`,
+      previewTitle: (title) => `Interactive preview of ${title}`,
+      loading: "Preparing the live preview…",
+      linkOnly: "Explore the live website in a new tab.",
+      depthLimit: "You reached the third website inside the website. The live preview stops here so the recursion stays intentional.",
+
+    },
     about: {
       title: "About",
       firstParagraph: "I’m Massimo Stefan, a software engineer based in Italy. I build agents and automation that connect models to the tools and information people already use.",
@@ -162,15 +180,15 @@ export const copy = {
     og: { description: "Software engineer building AI systems for real work." },
   },
   it: {
-    nav: { home: "Home", projects: "Progetti", about: "Profilo" },
+    nav: { home: "Home", projects: "Lavori", about: "Profilo" },
     metadata: {
       home: {
         title: "Massimo Stefan",
         description: "Ingegnere del software: sistemi di IA, agenti e automazioni affidabili.",
       },
       projects: {
-        title: "Progetti",
-        description: "Progetti software pubblici selezionati di Massimo Stefan.",
+        title: "Lavori",
+        description: "Siti web e progetti software selezionati di Massimo Stefan.",
       },
       about: {
         title: "Profilo",
@@ -242,7 +260,16 @@ export const copy = {
       toolkit: "Strumenti",
       toolkitDescription: "Strumenti e tecnologie che uso nel mio lavoro.",
     },
-    projects: { title: "Progetti pubblici", description: "Progetti approvati per la pubblicazione, raggruppati per anno." },
+    projects: { title: "I miei lavori", description: "Esplora i progetti, i siti web e gli strumenti che realizzo." },
+    work: { types: { Website: "Sito web", App: "App", Tool: "Strumento", Research: "Ricerca" }, previewSize: "Dimensione anteprima", selectorLabel: "Scegli un progetto", desktop: "Desktop", mobile: "Mobile", source: "Codice sorgente", visit: "Visita il sito", research: "Ricerca e materiali", accomplishments: "Risultati", paper: "Paper", slides: "Slide" },
+    websites: {
+      selectSite: (title) => `Seleziona ${title}`,
+      previewTitle: (title) => `Anteprima interattiva di ${title}`,
+      loading: "Preparo l'anteprima live…",
+      linkOnly: "Esplora il sito live in una nuova scheda.",
+      depthLimit: "Hai raggiunto il terzo sito dentro il sito. L'anteprima live si ferma qui, così la ricorsione resta intenzionale.",
+
+    },
     about: {
       title: "Profilo",
       firstParagraph: "Sono Massimo Stefan, ingegnere del software in Italia. Creo agenti e automazioni che collegano i modelli agli strumenti e alle informazioni già usati dalle persone.",

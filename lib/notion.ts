@@ -1,3 +1,4 @@
+import { PROJECT_TYPES, type ProjectType } from "@/lib/projectPublication";
 import { Client } from "@notionhq/client";
 
 import type { Locale } from "@/lib/i18n/config";
@@ -6,12 +7,17 @@ import { isStackIconSource, type StackEntry } from "@/lib/stack";
 export type LocalizedProjectCopy = {
   summary: string;
   shortSummary?: string;
+  publication?: string;
 };
 
 export type NotionProject = {
   title: string;
+  type?: ProjectType;
   copy: Record<Locale, LocalizedProjectCopy>;
   url?: string;
+  websiteUrl?: string;
+  paperUrl?: string;
+  slidesUrl?: string;
   tags?: string[];
   year?: string;
   language?: string;
@@ -90,12 +96,45 @@ export function parseNotionProjectPage(page: any): NotionProject | null {
   const italianSummary = richText(properties["Summary IT"]?.rich_text);
   if (!title || !englishSummary || !italianSummary) return null;
 
+  const typeProperty = properties.Type;
+  let projectType: ProjectType | undefined;
+  if (typeProperty !== undefined) {
+    if (!typeProperty || typeProperty.type !== "select") return null;
+    if (typeProperty.select !== null) {
+      const name = typeProperty.select?.name;
+      if (!PROJECT_TYPES.includes(name)) return null;
+      projectType = name;
+    }
+  }
   const englishShortSummary = richText(properties["Short summary"]?.rich_text);
   const italianShortSummary = richText(properties["Short summary IT"]?.rich_text);
   const tags = (properties.Tags?.multi_select ?? [])
     .map((tag: any) => typeof tag?.name === "string" ? tag.name.trim() : "")
     .filter(Boolean);
   const url = typeof properties.URL?.url === "string" ? properties.URL.url : undefined;
+  const website = properties["Website URL"];
+  if (website && (typeof website !== "object" || (website.type && website.type !== "url")
+    || (website.url !== null && typeof website.url !== "string"))) return null;
+  const websiteUrl = typeof website?.url === "string" ? website.url.trim() : undefined;
+  const resources: { paperUrl?: string; slidesUrl?: string } = {};
+  for (const [property, key] of [["Paper URL", "paperUrl"], ["Slides URL", "slidesUrl"]] as const) {
+    const value = properties[property];
+    if (!value || value.url === null) continue;
+    if ((value.type && value.type !== "url") || typeof value.url !== "string") return null;
+    if (!value.url.trim()) continue;
+    try {
+      const parsed = new URL(value.url.trim());
+      if (parsed.protocol !== "https:" || parsed.username || parsed.password) return null;
+      resources[key] = parsed.href;
+    } catch { return null; }
+  }
+  for (const property of ["Publication", "Publication IT"]) {
+    const value = properties[property];
+    if (value === undefined) continue;
+    if (!value || typeof value !== "object" || (value.type && value.type !== "rich_text") || !Array.isArray(value.rich_text)) return null;
+  }
+  const publication = richText(properties.Publication?.rich_text);
+  const italianPublication = richText(properties["Publication IT"]?.rich_text);
   const language = typeof properties.Language?.multi_select?.[0]?.name === "string"
     ? properties.Language.multi_select[0].name
     : undefined;
@@ -103,11 +142,14 @@ export function parseNotionProjectPage(page: any): NotionProject | null {
 
   return {
     title,
+    ...(projectType ? { type: projectType } : {}),
     copy: {
-      en: { summary: englishSummary, ...(englishShortSummary ? { shortSummary: englishShortSummary } : {}) },
-      it: { summary: italianSummary, ...(italianShortSummary ? { shortSummary: italianShortSummary } : {}) },
+      en: { summary: englishSummary, ...(publication ? { publication } : {}), ...(englishShortSummary ? { shortSummary: englishShortSummary } : {}) },
+      it: { summary: italianSummary, ...(italianPublication ? { publication: italianPublication } : {}), ...(italianShortSummary ? { shortSummary: italianShortSummary } : {}) },
     },
     url,
+    ...(websiteUrl ? { websiteUrl } : {}),
+    ...resources,
     tags: tags.length > 0 ? tags : undefined,
     language,
     year,

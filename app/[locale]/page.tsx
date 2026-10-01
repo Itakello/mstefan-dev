@@ -1,5 +1,5 @@
 import { HomeContent, HomeLivePreview } from "@/components/cms/HomeContent";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { ProjectCard } from "@/components/ProjectCard";
 import { StackCatalog } from "@/components/StackCatalog";
@@ -21,11 +21,14 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   return getLocalizedMetadata(locale, "home");
 }
 
-export default async function Home({ params, searchParams }: { params: Promise<{ locale: string }>; searchParams: Promise<{ preview?: string }> }) {
+export default async function Home({ params, searchParams }: { params: Promise<{ locale: string }>; searchParams: Promise<{ preview?: string; previewSource?: string }> }) {
   const { locale } = await params;
   if (!isSupportedLocale(locale)) notFound();
   const { getPageContent } = await import("@/lib/cms/pageContent");
-  const preview = (await searchParams).preview === "1";
+  const query = await searchParams;
+  const preview = query.preview === "1";
+  const careerPreview = preview && query.previewSource === "career";
+  if (careerPreview) redirect(`/${locale}/about?preview=1&previewSource=career`);
   const content = await getPageContent("home", locale, preview);
   const [{ projects, publication }, stackCatalog] = await Promise.all([loadPublicProjects(locale), loadWebsiteStack()]);
   if (stackCatalog.status === "ready") {

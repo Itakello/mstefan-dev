@@ -61,7 +61,11 @@ These are optional unless you use the Notion and repository proposal scripts.
 
 Notion database expected properties (create these columns):
 - `Name` (title)
+- `Type` (select, optional: Website, App, Tool, Research; absent or unselected types are omitted, other values fail publication)
 - `URL` (url)
+- `Website URL` (url, optional public website; supplies Work visit links and previews for permitted website origins)
+- `Paper URL` / `Slides URL` (url, optional HTTPS research resources; blank values are omitted, nonblank invalid or credential-bearing URLs fail publication)
+- `Publication` / `Publication IT` (rich_text, optional publication credit in each locale; no translation fallback)
 - `Summary` (rich_text, required English long summary)
 - `Summary IT` (rich_text, required Italian long summary)
 - `Short summary` (rich_text, optional English short summary)
@@ -71,13 +75,15 @@ Notion database expected properties (create these columns):
 - `Year` (number)
 - `Status` (status: "To Add", "Added", "Removed")
 
+Paper and slides URLs are rendered as PDFs inside Work, with page navigation, zoom, and selectable text. Use public PDF sources that allow cross-origin reading (CORS), such as raw GitHub files or arXiv. GitHub blob links are converted to raw content for the reader. Hosts that require sign-in, block CORS, or serve a non-PDF retain an external Open PDF link when the inline preview is unavailable.
+
 An `Added` row requires both nonblank long summaries. The website never falls back between English and Italian summaries; each locale uses only its own long and optional short summary.
 
 The website renders only approved Notion entries when `NOTION_TOKEN` and `NOTION_DATABASE_ID` are present. GitHub can enrich matching approved entries with creation timestamps and detected language, but cannot publish additional repositories, replace approved summaries, or block publication when its optional data is unavailable or malformed. Stack coverage is checked against Notion-owned project labels; a missing Stack entry for optional GitHub language is not a publication gate. If Notion is unconfigured or unavailable, the Projects page renders zero cards with an explicit unavailable state; an empty approved result renders zero cards with an explicit no-approved-projects state.
 
 Notion changes reach `/api/webhooks/notion`. Authenticated events from the explicitly configured Projects or Stack data source invalidate the localized Home and Projects pages plus their shared GitHub enrichment cache. Database IDs remain the read configuration; `NOTION_PROJECTS_DATA_SOURCE_ID` and `NOTION_STACK_DATA_SOURCE_ID` are separately required because current Notion webhook payloads identify data sources rather than their parent database pages. Missing or duplicate webhook source IDs return `503` instead of silently accepting an event without invalidation. The next visit fetches the latest canonical data and publishes it only after the complete Projects and Stack contract passes. A daily revalidation is retained only as recovery for a delayed or missed webhook.
 
-All Stack records are displayed on the homepage. Stack records require `Name` (title), `Category` (select), and `Icon key` (an Iconify `collection:icon` key or a trusted Notion-hosted asset URL). Every technology referenced by an approved project must resolve to one Stack record. Vercel production builds and refreshes require `NOTION_TOKEN`, `NOTION_STACK_DATABASE_ID`, and a non-empty valid Stack database. A failed production read, missing project technology, or missing icon blocks regeneration so the previous valid page remains live. Local and preview builds render zero Stack items with an explicit state when the canonical source is unconfigured, empty, or unavailable; there is no checked-in Stack fallback.
+All Stack records are displayed on the homepage. Stack records require `Name` (title), `Category` (select), and `Icon key` (an Iconify `collection:icon` key or a trusted Notion-hosted asset URL). Every technology referenced by an approved project must resolve to one Stack record. Production builds and refreshes require `NOTION_TOKEN`, `NOTION_STACK_DATABASE_ID`, and a non-empty valid Stack database. A failed production read, missing project technology, or missing icon blocks regeneration so the previous valid page remains live. Local and preview builds render zero Stack items with an explicit state when the canonical source is unconfigured, empty, or unavailable; there is no checked-in Stack fallback.
 
 ## Useful scripts
 ```bash
@@ -143,13 +149,11 @@ never receives the API key.
 ## API
 - `GET /api/projects/diff` — lists GitHub repos not yet present on the site (based on curated/Notion URLs).
 
-## Deployment (Vercel)
-1. Push to GitHub.
-2. Import the repo in Vercel.
-3. Set env vars as needed (see above).
-4. Build command: `pnpm build`.
-5. After build, `postbuild` runs `next-sitemap` and writes sitemap/robots into `public/`.
-6. Configure your custom domain in Vercel.
+## Deployment
+
+The public `mstefan.dev` site runs on Openship using the root Dockerfile and the existing persistent Payload volume. Follow the [production runtime procedure](deploy/payload-production/README.md) for routing, backups, and deployment. Successful push CI runs on `master` trigger the [guarded event deployment](deploy/event/README.md) to the existing Openship project when `MSTEFAN_EVENT_DEPLOY_ENABLED=true`. The host validates the exact commit, activation window, persistent-volume writer, and public/private route checks. Native Openship auto-deploy stays disabled so there is only one deployment source. Pause new events by setting the repository variable to `false`; use the event procedure for attended recovery.
+
+Set `POSTHOG_PROJECT_TOKEN` in that project's production runtime environment and enable stateless Cookieless server hash mode in the EU PostHog project to activate public website analytics. See [Website analytics](deploy/payload-production/README.md#website-analytics) for collection boundaries and measurement limitations. Private runtimes do not collect analytics.
 
 ## Project structure
 ```text

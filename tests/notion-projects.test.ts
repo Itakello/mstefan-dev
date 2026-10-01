@@ -329,3 +329,68 @@ test("project previews use the selected locale's short summary or its own long s
   assert.equal(projectPreviewSummary(selectPublicProjectLocale(project, "en")), "English short.");
   assert.equal(projectPreviewSummary(selectPublicProjectLocale(project, "it")), "Riepilogo lungo italiano.");
 });
+
+
+test("website URLs are optional and malformed property shapes fail closed", () => {
+  assert.equal(parseNotionProjectPage(page())?.websiteUrl, undefined);
+  for (const value of [null, "", "   "]) {
+    const row = page({ properties: { ...page().properties, "Website URL": { type: "url", url: value } } });
+    assert.equal(parseNotionProjectPage(row)?.websiteUrl, undefined);
+  }
+  for (const value of ["wrong-shape", { type: "rich_text", rich_text: [] }, { type: "url", url: 42 }]) {
+    assert.equal(parseNotionProjectPage(page({ properties: { ...page().properties, "Website URL": value } })), null);
+  }
+});
+
+
+test("research resources remain optional, secure and localized through publication", () => {
+  const properties = { ...page().properties,
+    "Paper URL": { type: "url", url: "https://example.com/paper.pdf" },
+    "Slides URL": { type: "url", url: "https://example.com/slides.pdf" },
+    Publication: { rich_text: [{ plain_text: "Coauthor · Published in TMLR" }] },
+    "Publication IT": { rich_text: [{ plain_text: "Coautore · Pubblicato su TMLR" }] },
+  };
+  const project = parseNotionProjectPage(page({ properties }));
+  assert.ok(project);
+  const english = selectPublicProjectLocale(project, "en");
+  assert.equal(english.paperUrl, "https://example.com/paper.pdf");
+  assert.equal(english.slidesUrl, "https://example.com/slides.pdf");
+  assert.equal(english.publication, "Coauthor · Published in TMLR");
+  assert.equal(selectPublicProjectLocale(project, "it").publication, "Coautore · Pubblicato su TMLR");
+  for (const property of ["Paper URL", "Slides URL"]) {
+    for (const url of ["", "   ", null]) {
+      const blank = parseNotionProjectPage(page({ properties: { ...properties, [property]: { type: "url", url } } }));
+      assert.ok(blank);
+      assert.equal(property === "Paper URL" ? blank.paperUrl : blank.slidesUrl, undefined);
+    }
+  }
+  for (const url of ["javascript:alert(1)", "http://example.com/paper", "https://user:password@example.com/paper", "invalid"]) {
+    assert.equal(parseNotionProjectPage(page({ properties: { ...properties, "Paper URL": { type: "url", url } } })), null);
+  }
+});
+
+test("publication credits reject wrong property types while allowing blank rich text", () => {
+  for (const property of ["Publication", "Publication IT"]) {
+    for (const value of [{ type: "url", url: "https://example.com" }, { type: "rich_text", rich_text: null }, null]) {
+      const invalid = page({ properties: { ...page().properties, [property]: value } });
+      assert.equal(parseNotionProjectPage(invalid), null);
+    }
+    const blank = page({ properties: { ...page().properties, [property]: { type: "rich_text", rich_text: [] } } });
+    assert.ok(parseNotionProjectPage(blank));
+  }
+});
+
+test("project types use the four authored values and remain optional", () => {
+  for (const type of ["Website", "App", "Tool", "Research"] as const) {
+    const project = parseNotionProjectPage(page({ properties: { ...page().properties, Type: { type: "select", select: { name: type } } } }));
+    assert.ok(project);
+    assert.equal(selectPublicProjectLocale(project, "en").type, type);
+
+  }
+  const blank = parseNotionProjectPage(page({ properties: { ...page().properties, Type: { type: "select", select: null } } }));
+  assert.ok(blank);
+  assert.equal(blank.type, undefined);
+  for (const value of [null, { type: "rich_text", rich_text: [] }, { type: "select", select: { name: "Other" } }, { type: "select", select: {} }, { select: { name: "Website" } }, { type: null, select: { name: "Website" } }]) {
+    assert.equal(parseNotionProjectPage(page({ properties: { ...page().properties, Type: value } })), null);
+  }
+});

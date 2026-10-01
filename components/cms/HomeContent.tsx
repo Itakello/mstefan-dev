@@ -28,7 +28,7 @@ export function HomeContent({ content, locale, selectedWork, toolkit }: Props) {
             {content.projectsAction}
           </Link>
           <a
-            href="mailto:massimo@mstefan.dev"
+            href="mailto:me@mstefan.dev"
             className="rounded-xl border px-4 py-2 font-medium no-underline border-black/15 hover:border-accent dark:border-white/15"
           >
             {content.contactAction}
