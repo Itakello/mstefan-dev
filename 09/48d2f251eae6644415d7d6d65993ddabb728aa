@@ -1,0 +1,19 @@
+specs/mstefan-site-review.md
+  s_e10a926b459fcf::t_8e79f28f73e771 21
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0948d2f251eae6644415d7d6d65993ddabb728aa",
+  "prompts": {},
+  "sessions": {
+    "s_e10a926b459fcf": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a00411-e862-7f30-9c50-8e6a1ba0817d",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
