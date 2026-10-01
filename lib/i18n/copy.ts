@@ -8,7 +8,11 @@ export const publicPagePaths = {
   about: "/about",
 } as const;
 
-export type PublicPath = (typeof publicPagePaths)[PublicPage] | "/websites";
+export type PublicPath =
+  | (typeof publicPagePaths)[PublicPage]
+  | "/websites"
+  | "/mail-rules"
+  | "/mail-rules/privacy";
 
 type SiteCopy = {
   nav: Record<PublicPage, string>;

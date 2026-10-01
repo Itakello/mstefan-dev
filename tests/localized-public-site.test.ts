@@ -9,7 +9,7 @@ async function source(file: string) {
   return readFile(path.join(root, file), "utf8");
 }
 
-test("localized public routes expose only the eight supported paths", async () => {
+test("localized public routes expose the supported public and disclosure paths", async () => {
   const layout = await source("app/[locale]/layout.tsx");
 
   assert.match(layout, /generateStaticParams/);
@@ -19,8 +19,20 @@ test("localized public routes expose only the eight supported paths", async () =
     "app/[locale]/projects/page.tsx",
     "app/[locale]/websites/page.tsx",
     "app/[locale]/about/page.tsx",
+    "app/[locale]/mail-rules/page.tsx",
+    "app/[locale]/mail-rules/privacy/page.tsx",
   ]) {
     assert.match(await source(route), /params: Promise<\{ locale: string \}>/);
+  }
+
+  for (const disclosureRoute of [
+    "app/[locale]/mail-rules/page.tsx",
+    "app/[locale]/mail-rules/privacy/page.tsx",
+  ]) {
+    assert.match(
+      await source(disclosureRoute),
+      /robots: \{ index: false, follow: false \}/,
+    );
   }
 });
 
