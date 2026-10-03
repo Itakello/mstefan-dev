@@ -1,0 +1,21 @@
+lib/websiteStack.ts
+  s_0d46d53e6667c6::t_d6839a690f969a 138,165,167
+tests/website-stack.test.ts
+  s_0d46d53e6667c6::t_b91f0fce89817f 133-160
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a8ccde9f2c07086733f163572a7eda0536db0c62",
+  "prompts": {},
+  "sessions": {
+    "s_0d46d53e6667c6": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fb033-ed4b-7e70-a575-d83199486769",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
