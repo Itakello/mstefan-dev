@@ -99,11 +99,95 @@ test("does not cache failed icon checks", async () => {
   let requests = 0;
   const fetchIcon = async () => {
     requests++;
-    return new Response(null, { status: requests === 1 ? 429 : 404 });
+    return new Response(null, { status: 404 });
   };
   await assert.rejects(validateStackIcons(liveStack, fetchIcon), /icon not found/);
   await assert.rejects(validateStackIcons(liveStack, fetchIcon), /icon not found/);
   assert.equal(requests, 2);
+});
+
+test("retries a transient icon response before accepting its validated SVG", async () => {
+  let requests = 0;
+  let cancelled = false;
+  await validateStackIcons(liveStack, async () => {
+    requests++;
+    return requests === 1
+      ? new Response(new ReadableStream({ cancel() { cancelled = true; } }), { status: 429, headers: { "Retry-After": "0" } })
+      : new Response('<svg viewBox="0 0 24 24"><path fill="currentColor" /></svg>');
+  });
+  assert.equal(requests, 2);
+  assert.equal(cancelled, true);
+});
+
+test("retries a transient response even when body cancellation fails", async () => {
+  let requests = 0;
+  await validateStackIcons(liveStack, async () => {
+    requests++;
+    if (requests === 1) {
+      return new Response(new ReadableStream({
+        start(controller) { controller.error(new Error("response body failed")); },
+      }), { status: 429, headers: { "Retry-After": "0" } });
+    }
+    return new Response('<svg viewBox="0 0 24 24"><path fill="currentColor" /></svg>');
+  });
+  assert.equal(requests, 2);
+});
+
+test("retries a temporary server error and a network failure", async () => {
+  let requests = 0;
+  await validateStackIcons(liveStack, async () => {
+    requests++;
+    if (requests === 1) throw new TypeError("fetch failed");
+    if (requests === 2) return new Response(null, { status: 503, headers: { "Retry-After": "0" } });
+    return new Response('<svg viewBox="0 0 24 24"><path fill="currentColor" /></svg>');
+  });
+  assert.equal(requests, 3);
+});
+
+test("retries a broken SVG response body after HTTP 200 headers", async () => {
+  let requests = 0;
+  await validateStackIcons(liveStack, async () => {
+    requests++;
+    if (requests === 1) {
+      return new Response(new ReadableStream({
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode("<svg"));
+          controller.error(new Error("connection lost"));
+        },
+      }), { status: 200 });
+    }
+    return new Response('<svg viewBox="0 0 24 24"><path fill="currentColor" /></svg>');
+  });
+  assert.equal(requests, 2);
+});
+
+test("fails closed when every SVG response body breaks", async () => {
+  let requests = 0;
+  await assert.rejects(validateStackIcons(liveStack, async () => {
+    requests++;
+    return new Response(new ReadableStream({
+      start(controller) { controller.error(new Error("connection lost")); },
+    }), { status: 200 });
+  }), /icon unavailable for TypeScript \(network\)/);
+  assert.equal(requests, 3);
+});
+
+test("still rejects invalid artwork after a transient response", async () => {
+  let requests = 0;
+  await assert.rejects(validateStackIcons(liveStack, async () => {
+    requests++;
+    return requests === 1
+      ? new Response(null, { status: 503, headers: { "Retry-After": "0" } })
+      : new Response('<svg viewBox="0 0 100 10"><path fill="currentColor" /></svg>');
+  }), /icon is too wide/);
+  assert.equal(requests, 2);
+});
+
+test("rejects a successful HTTP response that is not SVG", async () => {
+  await assert.rejects(
+    validateStackIcons(liveStack, async () => new Response("<html>upstream error</html>", { status: 200 })),
+    /icon is not SVG for TypeScript/,
+  );
 });
 
 test("rejects skill-icons artwork", async () => {
@@ -221,7 +305,7 @@ test("icon validation makes uncached source requests", async () => {
 });
 
 
-test("stops scheduling icons after the first failure while in-flight requests settle", async () => {
+test("stops scheduling icons after an unrecoverable response", async () => {
   const entries = Array.from({ length: 46 }, (_, index) => ({
     ...liveStack[0], iconKey: `logos:icon-${index}`,
   }));
@@ -229,7 +313,7 @@ test("stops scheduling icons after the first failure while in-flight requests se
   const validation = validateStackIcons(entries, async () =>
     new Promise<Response>((resolve) => { responses.push(resolve); })
   );
-  const rejected = assert.rejects(validation, /icon not found/);
+  const rejected = assert.rejects(validation, /icon unavailable.*HTTP 429/);
   assert.equal(responses.length, 4);
   responses[0](new Response(null, { status: 429, headers: { "Retry-After": "221" } }));
   await rejected;
