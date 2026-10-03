@@ -135,6 +135,7 @@ export async function validateStackIcons(
           method: externalIcon ? "HEAD" : "GET",
           cache: "no-store",
         });
+        if (response.ok) return externalIcon ? null : await response.text();
       } catch (error) {
         if (attempt === ICON_REQUEST_ATTEMPTS - 1) {
           throw new Error(`Invalid Stack data: icon unavailable for ${entry.name} (network)`, { cause: error });
@@ -142,7 +143,6 @@ export async function validateStackIcons(
         await new Promise((resolve) => setTimeout(resolve, 250 * 2 ** attempt));
         continue;
       }
-      if (response.ok) return response;
       await response.body?.cancel();
       if (response.status === 404) throw new Error(`Invalid Stack data: icon not found for ${entry.name} (HTTP 404)`);
 
@@ -162,10 +162,9 @@ export async function validateStackIcons(
     }
 
     const externalIcon = isTrustedExternalIcon(entry.iconKey);
-    const response = await requestIcon(entry, externalIcon);
+    const svg = await requestIcon(entry, externalIcon);
 
-    if (!externalIcon) {
-      const svg = await response.text();
+    if (svg !== null) {
       if (!/^\s*(?:<\?xml[^>]*\?>\s*)?<svg\b[\s\S]*<\/svg>\s*$/i.test(svg)) {
         throw new Error(`Invalid Stack data: icon is not SVG for ${entry.name}`);
       }

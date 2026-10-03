@@ -130,6 +130,34 @@ test("retries a temporary server error and a network failure", async () => {
   assert.equal(requests, 3);
 });
 
+test("retries a broken SVG response body after HTTP 200 headers", async () => {
+  let requests = 0;
+  await validateStackIcons(liveStack, async () => {
+    requests++;
+    if (requests === 1) {
+      return new Response(new ReadableStream({
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode("<svg"));
+          controller.error(new Error("connection lost"));
+        },
+      }), { status: 200 });
+    }
+    return new Response('<svg viewBox="0 0 24 24"><path fill="currentColor" /></svg>');
+  });
+  assert.equal(requests, 2);
+});
+
+test("fails closed when every SVG response body breaks", async () => {
+  let requests = 0;
+  await assert.rejects(validateStackIcons(liveStack, async () => {
+    requests++;
+    return new Response(new ReadableStream({
+      start(controller) { controller.error(new Error("connection lost")); },
+    }), { status: 200 });
+  }), /icon unavailable for TypeScript \(network\)/);
+  assert.equal(requests, 3);
+});
+
 test("still rejects invalid artwork after a transient response", async () => {
   let requests = 0;
   await assert.rejects(validateStackIcons(liveStack, async () => {
