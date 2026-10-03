@@ -1,9 +1,12 @@
+import { unstable_cache } from "next/cache";
+
 import { publicationEnvironment } from "@/lib/publicationEnvironment";
 import { fetchStackFromNotion } from "@/lib/notion";
 import { PUBLICATION_CACHE_TAG, PUBLICATION_REVALIDATE_SECONDS } from "@/lib/publicationCache";
 import { isTrustedExternalIcon, stackIconUrl, type StackEntry } from "@/lib/stack";
 
 const MAX_STACK_ICON_WIDTH_RATIO = 2.5;
+const iconChecksInFlight = new WeakMap<typeof fetch, Map<string, Promise<void>>>();
 const SOLID_BLACK_OR_WHITE = new Set([
   "#000",
   "#000000",
@@ -53,6 +56,19 @@ export type WebsiteStackState = {
   message: "empty" | "unconfigured" | "error" | null;
 };
 
+type CacheIconValidation = (source: string, rules: string, validate: () => Promise<void>) => Promise<void>;
+
+const taggedIconValidation: CacheIconValidation = async (source, rules, validate) => {
+  const day = Math.floor(Date.now() / (PUBLICATION_REVALIDATE_SECONDS * 1_000));
+  await unstable_cache(async () => {
+    await validate();
+    return true;
+  }, ["stack-icon-validation", source, String(day), rules], {
+    revalidate: false,
+    tags: [PUBLICATION_CACHE_TAG],
+  })();
+};
+
 export async function loadWebsiteStack({
   fetchStack = fetchStackFromNotion,
   vercelEnv = publicationEnvironment(),
@@ -92,7 +108,10 @@ export async function loadWebsiteStack({
 
 export async function validateStackIcons(
   entries: readonly StackEntry[],
-  fetchIcon: typeof fetch = fetch
+  fetchIcon: typeof fetch = fetch,
+  cacheValidation: CacheIconValidation = fetchIcon === fetch
+    ? taggedIconValidation
+    : async (_source, _rules, validate) => validate(),
 ) {
   let nextEntry = 0;
   let failed = false;
@@ -104,7 +123,7 @@ export async function validateStackIcons(
     const externalIcon = isTrustedExternalIcon(entry.iconKey);
     const response = await fetchIcon(stackIconUrl(entry.iconKey), {
       method: externalIcon ? "HEAD" : "GET",
-      next: { revalidate: PUBLICATION_REVALIDATE_SECONDS, tags: [PUBLICATION_CACHE_TAG] }
+      cache: "no-store",
     });
     if (!response.ok) {
       throw new Error(`Invalid Stack data: icon not found for ${entry.name}`);
@@ -121,11 +140,33 @@ export async function validateStackIcons(
       }
     }
   }
+  const validationRules = [
+    validateEntry.toString(),
+    svgWidthRatio.toString(),
+    hasFixedSingleTonePaint.toString(),
+    isTrustedExternalIcon.toString(),
+    stackIconUrl.toString(),
+    String(MAX_STACK_ICON_WIDTH_RATIO),
+    [...SOLID_BLACK_OR_WHITE].join(","),
+  ].join("|");
+  function checkEntry(entry: StackEntry) {
+    const pending = iconChecksInFlight.get(fetchIcon) ?? new Map();
+    iconChecksInFlight.set(fetchIcon, pending);
+    const source = stackIconUrl(entry.iconKey);
+    const existing = pending.get(source);
+    if (existing) return existing;
+
+    const check = cacheValidation(source, validationRules, () => validateEntry(entry)).finally(() => {
+      if (pending.get(source) === check) pending.delete(source);
+    });
+    pending.set(source, check);
+    return check;
+  }
   await Promise.all(Array.from({ length: Math.min(4, entries.length) }, async () => {
     while (!failed && nextEntry < entries.length) {
       const entry = entries[nextEntry++];
       try {
-        await validateEntry(entry);
+        await checkEntry(entry);
       } catch (error) {
         failed = true;
         throw error;
