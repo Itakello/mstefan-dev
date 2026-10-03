@@ -1,0 +1,31 @@
+tests/website-stack.test.ts
+  s_0d46d53e6667c6::t_903aed326ec0c1 107-108
+  s_0d46d53e6667c6::t_5cf90dfa0e353b 70-73,82-87,90-93,95-106
+  s_0d46d53e6667c6::t_b165414c757acd 74,76-81,88-89,94
+  s_0d46d53e6667c6::t_d1b66d937b0cbc 75,225,227-228
+  s_0d46d53e6667c6::t_5f8f5bc794d978 109-117
+lib/websiteStack.ts
+  s_0d46d53e6667c6::t_6b1328f763f69c 1-2,9,68-69,71,111-113,154-155,157-159,161-164
+  s_0d46d53e6667c6::t_d1b66d937b0cbc 59,62,66,114,144-147,150-152,160
+  s_0d46d53e6667c6::t_527023d07055eb 61,148-149,156
+  s_0d46d53e6667c6::t_5cf90dfa0e353b 126,153,165,170
+  s_0d46d53e6667c6::t_bcf07ab5ddeeb5 63-65,70
+  s_0d46d53e6667c6::t_39130b46f91a81 67,127
+  s_0d46d53e6667c6::t_6c8f28562c705c 60
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "456dc552766ef2e1297534848ae97dfad865d871",
+  "prompts": {},
+  "sessions": {
+    "s_0d46d53e6667c6": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fb033-ed4b-7e70-a575-d83199486769",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
