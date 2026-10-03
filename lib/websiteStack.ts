@@ -6,6 +6,8 @@ import { PUBLICATION_CACHE_TAG, PUBLICATION_REVALIDATE_SECONDS } from "@/lib/pub
 import { isTrustedExternalIcon, stackIconUrl, type StackEntry } from "@/lib/stack";
 
 const MAX_STACK_ICON_WIDTH_RATIO = 2.5;
+const ICON_REQUEST_ATTEMPTS = 3;
+const MAX_ICON_RETRY_WAIT_MS = 2_000;
 const iconChecksInFlight = new WeakMap<typeof fetch, Map<string, Promise<void>>>();
 const SOLID_BLACK_OR_WHITE = new Set([
   "#000",
@@ -42,6 +44,16 @@ function hasFixedSingleTonePaint(svg: string) {
 
   const uniquePaints = new Set(paints);
   return uniquePaints.size === 1 && SOLID_BLACK_OR_WHITE.has([...uniquePaints][0]);
+}
+
+function iconRetryWait(response: Response, attempt: number) {
+  const retryAfter = response.headers.get("retry-after");
+  if (retryAfter) {
+    const seconds = Number(retryAfter);
+    const wait = Number.isFinite(seconds) ? seconds * 1_000 : Date.parse(retryAfter) - Date.now();
+    if (Number.isFinite(wait)) return wait <= MAX_ICON_RETRY_WAIT_MS ? Math.max(0, wait) : null;
+  }
+  return 250 * 2 ** attempt;
 }
 
 type WebsiteStackOptions = {
@@ -115,22 +127,48 @@ export async function validateStackIcons(
 ) {
   let nextEntry = 0;
   let failed = false;
+  async function requestIcon(entry: StackEntry, externalIcon: boolean) {
+    for (let attempt = 0; attempt < ICON_REQUEST_ATTEMPTS; attempt++) {
+      let response: Response;
+      try {
+        response = await fetchIcon(stackIconUrl(entry.iconKey), {
+          method: externalIcon ? "HEAD" : "GET",
+          cache: "no-store",
+        });
+      } catch (error) {
+        if (attempt === ICON_REQUEST_ATTEMPTS - 1) {
+          throw new Error(`Invalid Stack data: icon unavailable for ${entry.name} (network)`, { cause: error });
+        }
+        await new Promise((resolve) => setTimeout(resolve, 250 * 2 ** attempt));
+        continue;
+      }
+      if (response.ok) return response;
+      await response.body?.cancel();
+      if (response.status === 404) throw new Error(`Invalid Stack data: icon not found for ${entry.name} (HTTP 404)`);
+
+      const temporary = response.status === 429 || response.status >= 500;
+      if (!temporary) throw new Error(`Invalid Stack data: icon not found for ${entry.name} (HTTP ${response.status})`);
+      const wait = iconRetryWait(response, attempt);
+      if (attempt === ICON_REQUEST_ATTEMPTS - 1 || wait === null) {
+        throw new Error(`Invalid Stack data: icon unavailable for ${entry.name} (HTTP ${response.status})`);
+      }
+      await new Promise((resolve) => setTimeout(resolve, wait));
+    }
+    throw new Error(`Invalid Stack data: icon unavailable for ${entry.name}`);
+  }
   async function validateEntry(entry: StackEntry) {
     if (entry.iconKey.startsWith("skill-icons:")) {
       throw new Error(`Invalid Stack data: unsupported icon collection for ${entry.name}`);
     }
 
     const externalIcon = isTrustedExternalIcon(entry.iconKey);
-    const response = await fetchIcon(stackIconUrl(entry.iconKey), {
-      method: externalIcon ? "HEAD" : "GET",
-      cache: "no-store",
-    });
-    if (!response.ok) {
-      throw new Error(`Invalid Stack data: icon not found for ${entry.name}`);
-    }
+    const response = await requestIcon(entry, externalIcon);
 
     if (!externalIcon) {
       const svg = await response.text();
+      if (!/^\s*(?:<\?xml[^>]*\?>\s*)?<svg\b[\s\S]*<\/svg>\s*$/i.test(svg)) {
+        throw new Error(`Invalid Stack data: icon is not SVG for ${entry.name}`);
+      }
       const widthRatio = svgWidthRatio(svg);
       if (widthRatio !== null && widthRatio > MAX_STACK_ICON_WIDTH_RATIO) {
         throw new Error(`Invalid Stack data: icon is too wide for ${entry.name}`);
@@ -142,11 +180,15 @@ export async function validateStackIcons(
   }
   const validationRules = [
     validateEntry.toString(),
+    requestIcon.toString(),
+    iconRetryWait.toString(),
     svgWidthRatio.toString(),
     hasFixedSingleTonePaint.toString(),
     isTrustedExternalIcon.toString(),
     stackIconUrl.toString(),
     String(MAX_STACK_ICON_WIDTH_RATIO),
+    String(ICON_REQUEST_ATTEMPTS),
+    String(MAX_ICON_RETRY_WAIT_MS),
     [...SOLID_BLACK_OR_WHITE].join(","),
   ].join("|");
   function checkEntry(entry: StackEntry) {
