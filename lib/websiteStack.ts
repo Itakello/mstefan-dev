@@ -143,7 +143,7 @@ export async function validateStackIcons(
         await new Promise((resolve) => setTimeout(resolve, 250 * 2 ** attempt));
         continue;
       }
-      await response.body?.cancel();
+      await response.body?.cancel().catch(() => undefined);
       if (response.status === 404) throw new Error(`Invalid Stack data: icon not found for ${entry.name} (HTTP 404)`);
 
       const temporary = response.status === 429 || response.status >= 500;

@@ -119,6 +119,20 @@ test("retries a transient icon response before accepting its validated SVG", asy
   assert.equal(cancelled, true);
 });
 
+test("retries a transient response even when body cancellation fails", async () => {
+  let requests = 0;
+  await validateStackIcons(liveStack, async () => {
+    requests++;
+    if (requests === 1) {
+      return new Response(new ReadableStream({
+        start(controller) { controller.error(new Error("response body failed")); },
+      }), { status: 429, headers: { "Retry-After": "0" } });
+    }
+    return new Response('<svg viewBox="0 0 24 24"><path fill="currentColor" /></svg>');
+  });
+  assert.equal(requests, 2);
+});
+
 test("retries a temporary server error and a network failure", async () => {
   let requests = 0;
   await validateStackIcons(liveStack, async () => {
