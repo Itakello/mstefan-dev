@@ -3,7 +3,6 @@ import test from "node:test";
 
 import type { StackEntry } from "../lib/stack";
 import { loadWebsiteStack, validateStackIcons } from "../lib/websiteStack";
-import { PUBLICATION_CACHE_TAG, PUBLICATION_REVALIDATE_SECONDS } from "../lib/publicationCache";
 import { stackPublicationMessage } from "../lib/i18n/copy";
 
 const liveStack: StackEntry[] = [
@@ -65,6 +64,54 @@ test("rejects a well-formed Iconify key that does not exist", async () => {
   await assert.rejects(
     validateStackIcons(liveStack, async () => new Response(null, { status: 404 })),
     /icon not found for TypeScript/
+  );
+});
+
+test("reuses a successful icon check across sequential and concurrent publications", async () => {
+  let requests = 0;
+  let release!: () => void;
+  const blocked = new Promise<void>((resolve) => { release = resolve; });
+  const cache = new Map<string, Promise<void>>();
+  const cacheValidation = (source: string, _rules: string, validate: () => Promise<void>) => {
+    const existing = cache.get(source);
+    if (existing) return existing;
+    const check = validate();
+    cache.set(source, check);
+    return check;
+  };
+  const fetchIcon = async () => {
+    requests++;
+    await blocked;
+    return new Response('<svg viewBox="0 0 24 24"><path fill="currentColor" /></svg>');
+  };
+
+  const first = validateStackIcons(liveStack, fetchIcon, cacheValidation);
+  const second = validateStackIcons(liveStack, fetchIcon, cacheValidation);
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(requests, 1);
+  release();
+  await Promise.all([first, second]);
+  await validateStackIcons(liveStack, fetchIcon, cacheValidation);
+  assert.equal(requests, 1);
+});
+
+test("does not cache failed icon checks", async () => {
+  let requests = 0;
+  const fetchIcon = async () => {
+    requests++;
+    return new Response(null, { status: requests === 1 ? 429 : 404 });
+  };
+  await assert.rejects(validateStackIcons(liveStack, fetchIcon), /icon not found/);
+  await assert.rejects(validateStackIcons(liveStack, fetchIcon), /icon not found/);
+  assert.equal(requests, 2);
+});
+
+test("times out a stalled icon request", async () => {
+  await assert.rejects(
+    validateStackIcons(liveStack, async (_input, init) => new Promise<Response>((_resolve, reject) => {
+      init?.signal?.addEventListener("abort", () => reject(init.signal?.reason), { once: true });
+    })),
+    { name: "TimeoutError" },
   );
 });
 
@@ -175,12 +222,10 @@ test("bounds cold Stack icon validation while checking every entry", async () =>
   assert.equal(requested.size, entries.length);
 });
 
-test("icon validation uses the publication revalidation and invalidation contract", async () => {
+test("icon validation makes uncached source requests with a timeout", async () => {
   await validateStackIcons(liveStack, async (_input, init) => {
-    assert.deepEqual(init?.next, {
-      revalidate: PUBLICATION_REVALIDATE_SECONDS,
-      tags: [PUBLICATION_CACHE_TAG],
-    });
+    assert.equal(init?.cache, "no-store");
+    assert.ok(init?.signal instanceof AbortSignal);
     return new Response('<svg viewBox="0 0 24 24"></svg>');
   });
 });
