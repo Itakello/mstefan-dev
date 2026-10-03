@@ -123,7 +123,6 @@ export async function validateStackIcons(
     const externalIcon = isTrustedExternalIcon(entry.iconKey);
     const response = await fetchIcon(stackIconUrl(entry.iconKey), {
       method: externalIcon ? "HEAD" : "GET",
-      signal: AbortSignal.timeout(8_000),
       cache: "no-store",
     });
     if (!response.ok) {

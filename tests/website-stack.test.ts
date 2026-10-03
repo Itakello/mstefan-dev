@@ -106,15 +106,6 @@ test("does not cache failed icon checks", async () => {
   assert.equal(requests, 2);
 });
 
-test("times out a stalled icon request", async () => {
-  await assert.rejects(
-    validateStackIcons(liveStack, async (_input, init) => new Promise<Response>((_resolve, reject) => {
-      init?.signal?.addEventListener("abort", () => reject(init.signal?.reason), { once: true });
-    })),
-    { name: "TimeoutError" },
-  );
-});
-
 test("rejects skill-icons artwork", async () => {
   let requested = false;
 
@@ -222,10 +213,9 @@ test("bounds cold Stack icon validation while checking every entry", async () =>
   assert.equal(requested.size, entries.length);
 });
 
-test("icon validation makes uncached source requests with a timeout", async () => {
+test("icon validation makes uncached source requests", async () => {
   await validateStackIcons(liveStack, async (_input, init) => {
     assert.equal(init?.cache, "no-store");
-    assert.ok(init?.signal instanceof AbortSignal);
     return new Response('<svg viewBox="0 0 24 24"></svg>');
   });
 });
