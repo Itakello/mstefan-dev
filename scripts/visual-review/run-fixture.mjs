@@ -7,11 +7,16 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 
 const dataDir = await mkdtemp(path.join(tmpdir(), 'payload-visual-review-'));
+const smokeOnly = process.argv.includes('--smoke');
+const reuseBuild = process.argv.includes('--reuse-build');
+if (process.argv.slice(2).some((arg) => !['--smoke', '--reuse-build'].includes(arg)) || (reuseBuild && !smokeOnly)) {
+  throw new Error('Usage: run-fixture.mjs [--smoke [--reuse-build]]');
+}
 const environment = {
   ...process.env, NODE_ENV: 'production', PAYLOAD_DATA_DIR: dataDir,
   VISUAL_NOTION_FIXTURE_STATE: path.join(dataDir, 'notion-state'),
   PAYLOAD_SECRET: randomBytes(32).toString('hex'), NEXT_TELEMETRY_DISABLED: '1',
-  NOTION_TOKEN: 'visual-review-fixture', NOTION_DATABASE_ID: 'visual-review-fixture', NOTION_STACK_DATABASE_ID: 'visual-stack-fixture', GITHUB_TOKEN: '',
+  NOTION_TOKEN: 'visual-review-fixture', NOTION_DATABASE_ID: 'visual-review-fixture', NOTION_STACK_DATABASE_ID: 'visual-stack-fixture', GITHUB_TOKEN: '', POSTHOG_PROJECT_TOKEN: '',
   VERCEL: '', VERCEL_ENV: '', VERCEL_GITHUB_OIDC_TOKEN: '', SITE_DEPLOYMENT: 'private',
   NODE_OPTIONS: `--import=${path.resolve('tests/cms/notion-publication-fixture.mjs')}`,
 };
@@ -27,7 +32,7 @@ try {
   // Payload's onInit seeds the checked-in bilingual copy after migrations.
   await run(['node_modules/payload/bin.js', 'migrate']);
   await run(['node_modules/payload/bin.js', 'generate:types']);
-  await run(['node_modules/next/dist/bin/next', 'build', '--webpack']);
+  if (!reuseBuild) await run(['node_modules/next/dist/bin/next', 'build', '--webpack']);
   const probe = createServer();
   probe.listen(0, '127.0.0.1');
   await once(probe, 'listening');
@@ -54,7 +59,7 @@ try {
     await new Promise((resolve) => setTimeout(resolve, 500));
   }
   if (!ready) throw new Error(`Production fixture startup timed out: ${serverLog}`);
-  await run(['node_modules/@playwright/test/cli.js', 'test', '--project=review'], 180_000);
+  await run(['node_modules/@playwright/test/cli.js', 'test', '--project=review', ...(smokeOnly ? ['--grep', '@release-smoke'] : [])], 180_000);
 } finally {
   if (server && server.exitCode === null) {
     const exited = once(server, 'exit');

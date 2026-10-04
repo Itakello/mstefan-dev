@@ -10,7 +10,7 @@ if (!baseURL) {
 
 export default defineConfig({
   testDir: "./e2e",
-  testMatch: "**/*.review.spec.ts",
+  testMatch: "**/*.{review,smoke}.spec.ts",
   outputDir: ".artifacts/playwright/test-results",
   timeout: 60_000,
   expect: { timeout: 10_000 },
