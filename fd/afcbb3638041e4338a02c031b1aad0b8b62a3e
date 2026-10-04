@@ -1,0 +1,34 @@
+scripts/visual-review/run-fixture.mjs
+  s_0d46d53e6667c6::t_a5160379fb4eb6 10,62
+  s_0d46d53e6667c6::t_e295a71f9f35cf 19
+  s_0d46d53e6667c6::t_d5699b4402fba7 11-14,35
+app/global-not-found.tsx
+  s_0d46d53e6667c6::t_2486f1be22034c 2-3,25,29
+playwright.config.ts
+  s_0d46d53e6667c6::t_a5160379fb4eb6 13
+.github/workflows/ci.yml
+  s_0d46d53e6667c6::t_a5160379fb4eb6 139,158
+  s_0d46d53e6667c6::t_e295a71f9f35cf 160-167
+  s_0d46d53e6667c6::t_d5699b4402fba7 159
+tests/visual-review.test.ts
+  s_0d46d53e6667c6::t_295733b02c488f 43,46
+e2e/not-found.smoke.spec.ts
+  s_0d46d53e6667c6::t_0568300c58a5c5 26-27,49
+  s_0d46d53e6667c6::t_1d81b648f3e43a 1-25,28-48,50-61
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "fdafcbb3638041e4338a02c031b1aad0b8b62a3e",
+  "prompts": {},
+  "sessions": {
+    "s_0d46d53e6667c6": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fb033-ed4b-7e70-a575-d83199486769",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
