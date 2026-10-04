@@ -1,0 +1,35 @@
+deploy/event/release_observations.py
+  s_22df7f252e44cb::t_dfce919f3910f7 55,90,176,181-188
+  s_22df7f252e44cb::t_eac53f891f87e5 16,19,22,49,63-64
+  s_22df7f252e44cb::t_b1e374d49d2a78 189-191
+deploy/event/controller.py
+  s_22df7f252e44cb::t_0eca1b3722da39 153,219
+  s_22df7f252e44cb::t_6ba47bb5de1fed 322-326,337-338,344-348
+deploy/event/test_release_observations.py
+  s_22df7f252e44cb::t_9e88d4e13506b1 102,111-147
+  s_22df7f252e44cb::t_0ee6c4fd78ef42 30-31
+  s_22df7f252e44cb::t_beedc9b08c2dc4 148
+deploy/event/test_controller.py
+  s_22df7f252e44cb::t_636d68942528c4 259,270,283,313,332,384
+  s_22df7f252e44cb::t_2ef4c5fc8d3fca 387-409,531-541
+  s_22df7f252e44cb::t_f05e3881fcc3be 542
+deploy/event/README.md
+  s_22df7f252e44cb::t_981f9e84c9398a 41,48-54,76-79
+  s_22df7f252e44cb::t_db45f6a5745919 39-40
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "579e481c33cdd35d3aeb5f6526252ee1539335e7",
+  "prompts": {},
+  "sessions": {
+    "s_22df7f252e44cb": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a10248-f23d-7bf0-b98c-0efcb9b4095b",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
