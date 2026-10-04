@@ -2,6 +2,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 import release_observations as ledger
 
@@ -69,6 +70,41 @@ class LedgerTests(unittest.TestCase):
         self.assertEqual(self.data()['deployments'][0]['classification'], 'unknown')
         self.assertTrue(ledger.classify(self.path, 'dep_new', 'failed', ledger.now_utc()))
         self.assertEqual(self.data()['deployments'][0]['classification'], 'failed')
+
+    def test_full_ledger_refuses_admission_without_changing_ready_file(self):
+        data = self.data()
+        data['deployments'] = [
+            {'id': f'dep_{index}', 'sha': NEW, 'baselineSha': OLD,
+             'deployedAt': data['coverageStartedAt'], 'classification': 'unknown',
+             'commits': [], 'commitCoverageComplete': False,
+             'incidentStartedAt': None, 'recoveredAt': None}
+            for index in range(ledger.MAX_DEPLOYMENTS)
+        ]
+        self.path.write_text(json.dumps(data))
+        before = self.path.read_bytes()
+        with self.assertRaisesRegex(ledger.ObservationError, 'cannot admit'):
+            ledger.mark_pending(self.path)
+        self.assertEqual(self.path.read_bytes(), before)
+        self.assertEqual(ledger.capture_state(self.path), 'ready')
+
+    def test_byte_reservation_refuses_admission_before_file_changes(self):
+        before = self.path.read_bytes()
+        with patch.object(ledger, 'MAX_BYTES', len(before) + ledger.MAX_RECORD_RESERVE - 1):
+            with self.assertRaisesRegex(ledger.ObservationError, 'cannot admit'):
+                ledger.mark_pending(self.path)
+        self.assertEqual(self.path.read_bytes(), before)
+        self.assertEqual(ledger.capture_state(self.path), 'ready')
+
+    def test_record_reserve_exceeds_largest_allowed_serialized_row(self):
+        stamp = ledger.now_utc()
+        row = {'id': 'dep_' + 'x' * 120, 'sha': NEW, 'baselineSha': OLD,
+               'deployedAt': stamp, 'classification': 'failed-rework',
+               'commits': [{'sha': f'{index:040x}', 'committedAt': stamp}
+                           for index in range(ledger.MAX_COMMITS)],
+               'commitCoverageComplete': True, 'incidentStartedAt': stamp,
+               'recoveredAt': stamp}
+        self.assertLess(len(json.dumps(row, separators=(',', ':'), sort_keys=True).encode()) + 1,
+                        ledger.MAX_RECORD_RESERVE)
 
 
 if __name__ == '__main__':

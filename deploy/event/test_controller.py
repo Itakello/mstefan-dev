@@ -263,6 +263,38 @@ class FlowTests(unittest.TestCase):
         self.assertEqual(self.client.posts, 0)
         self.assertEqual(self.state['failure_phase'], 'idle')
 
+    def test_release_byte_capacity_blocks_production_post(self):
+        ledger = Path(self.temp.name) / 'delivery' / 'releases.json'
+        c.release_observations.init(ledger)
+        before = ledger.read_bytes()
+        with patch.dict(os.environ, {'MSTEFAN_RELEASE_OBSERVATIONS': str(ledger)}), \
+             patch.object(c.release_observations, 'MAX_BYTES', len(before) + c.release_observations.MAX_RECORD_RESERVE - 1):
+            with self.assertRaises(c.Blocked):
+                self.run_flow()
+        self.assertEqual(self.client.posts, 0)
+        self.assertEqual(ledger.read_bytes(), before)
+        self.assertEqual(c.release_observations.capture_state(ledger), 'ready')
+
+    def test_full_release_ledger_blocks_production_post(self):
+        ledger = Path(self.temp.name) / 'delivery' / 'releases.json'
+        c.release_observations.init(ledger)
+        data = json.loads(ledger.read_text())
+        data['deployments'] = [
+            {'id': f'dep_{index}', 'sha': OLD, 'baselineSha': OLD,
+             'deployedAt': data['coverageStartedAt'], 'classification': 'unknown',
+             'commits': [], 'commitCoverageComplete': False,
+             'incidentStartedAt': None, 'recoveredAt': None}
+            for index in range(c.release_observations.MAX_DEPLOYMENTS)
+        ]
+        ledger.write_text(json.dumps(data))
+        before = ledger.read_bytes()
+        with patch.dict(os.environ, {'MSTEFAN_RELEASE_OBSERVATIONS': str(ledger)}):
+            with self.assertRaises(c.Blocked):
+                self.run_flow()
+        self.assertEqual(self.client.posts, 0)
+        self.assertEqual(ledger.read_bytes(), before)
+        self.assertEqual(c.release_observations.capture_state(ledger), 'ready')
+
     def test_existing_active_sha_does_not_backfill_release(self):
         ledger = Path(self.temp.name) / 'delivery' / 'releases.json'
         c.release_observations.init(ledger)

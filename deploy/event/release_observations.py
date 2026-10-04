@@ -18,6 +18,7 @@ UTC_TIME = re.compile(r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d{1,6})?(?:Z|\+00:00
 MAX_BYTES = 10 * 1024 * 1024
 MAX_DEPLOYMENTS = 10000
 MAX_COMMITS = 250
+MAX_RECORD_RESERVE = 32 * 1024
 CLASSIFICATIONS = {"unknown", "normal", "failed", "rework", "failed-rework"}
 
 
@@ -127,6 +128,9 @@ def _save(path, data):
     raw = (json.dumps(data, separators=(",", ":"), sort_keys=True) + "\n").encode()
     if len(raw) > MAX_BYTES:
         raise ObservationError("ledger too large")
+    if data["captureState"] == "pending" and (len(data["deployments"]) >= MAX_DEPLOYMENTS or
+                                              len(raw) + MAX_RECORD_RESERVE > MAX_BYTES):
+        raise ObservationError("ledger cannot admit another release")
     fd, tmp = tempfile.mkstemp(prefix=".release-", dir=path.parent)
     try:
         os.fchmod(fd, 0o640)
