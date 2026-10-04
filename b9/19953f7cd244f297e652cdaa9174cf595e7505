@@ -1,0 +1,21 @@
+deploy/event/README.md
+  s_22df7f252e44cb::t_8834b8a1445eff 27
+deploy/event/mstefan-event-deploy-probe@.service
+  s_22df7f252e44cb::t_320ce89ebe2071 15-16
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b919953f7cd244f297e652cdaa9174cf595e7505",
+  "prompts": {},
+  "sessions": {
+    "s_22df7f252e44cb": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a10248-f23d-7bf0-b98c-0efcb9b4095b",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
