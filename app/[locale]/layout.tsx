@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { WebsiteAnalytics } from "@/components/WebsiteAnalytics";

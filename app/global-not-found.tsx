@@ -12,7 +12,6 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "404 · Massimo Stefan",
-  robots: { index: false, follow: false },
 };
 
 export default async function GlobalNotFound() {
