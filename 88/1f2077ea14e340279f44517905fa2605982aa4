@@ -1,0 +1,19 @@
+tests/localized-public-helpers.test.ts
+  s_0d46d53e6667c6::t_1f1c4c7af4f548 2,82-83
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "881f2077ea14e340279f44517905fa2605982aa4",
+  "prompts": {},
+  "sessions": {
+    "s_0d46d53e6667c6": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fb033-ed4b-7e70-a575-d83199486769",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
