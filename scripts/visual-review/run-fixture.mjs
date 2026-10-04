@@ -59,7 +59,7 @@ try {
     await new Promise((resolve) => setTimeout(resolve, 500));
   }
   if (!ready) throw new Error(`Production fixture startup timed out: ${serverLog}`);
-  await run(['node_modules/@playwright/test/cli.js', 'test', '--project=review', ...(smokeOnly ? ['--grep', '@release-smoke'] : [])], 180_000);
+  await run(['node_modules/@playwright/test/cli.js', 'test', '--project=review', smokeOnly ? '\\.smoke\\.spec\\.ts$' : '\\.review\\.spec\\.ts$'], 180_000);
 } finally {
   if (server && server.exitCode === null) {
     const exited = once(server, 'exit');

@@ -1,4 +1,6 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type BrowserContext } from "@playwright/test";
+
+const unexpectedRequests = new WeakMap<BrowserContext, string[]>();
 
 const routes = [
   { path: "/old-page", locale: "en" },
@@ -8,9 +10,26 @@ const routes = [
   { path: "/fr/old-page", locale: "it" },
 ] as const;
 
-test.beforeEach(async ({ context }) => {
-  if (!process.env.VISUAL_NOTION_FIXTURE_STATE) throw new Error("The isolated production fixture is required");
+test.beforeEach(async ({ context, baseURL }) => {
+  if (!process.env.VISUAL_NOTION_FIXTURE_STATE || !baseURL) throw new Error("The isolated production fixture is required");
+  const unexpected: string[] = [];
+  unexpectedRequests.set(context, unexpected);
+  const fixtureOrigin = new URL(baseURL).origin;
+  await context.route("**/*", async (route) => {
+    const url = new URL(route.request().url());
+    if (url.origin === fixtureOrigin) return route.continue();
+    if (url.origin === "https://api.iconify.design") {
+      const prefix = url.pathname.split("/")[1].replace(/\.json$/, "");
+      return route.fulfill({ json: { prefix, icons: {}, not_found: (url.searchParams.get("icons") || "").split(",") } });
+    }
+    unexpected.push(`${url.origin}${url.pathname}`);
+    return route.abort();
+  });
   await context.setExtraHTTPHeaders({ "x-real-ip": "127.0.0.1" });
+});
+
+test.afterEach(async ({ context }) => {
+  expect(unexpectedRequests.get(context)).toEqual([]);
 });
 
 for (const width of [1280, 390]) {
@@ -48,6 +67,7 @@ for (const width of [1280, 390]) {
     if (width < 640) await page.getByRole("button", { name: "Apri navigazione" }).click();
     await page.getByRole("link", { name: "Profilo", exact: true }).click();
     await expect(page).toHaveURL(/\/it\/about$/);
+    await expect(page.locator("#career-story")).toHaveAttribute("aria-label", "Profilo");
     await expect(page.locator("html")).toHaveClass(/dark/);
   });
 }
