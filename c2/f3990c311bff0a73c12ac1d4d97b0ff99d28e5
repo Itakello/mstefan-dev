@@ -1,0 +1,39 @@
+deploy/event/README.md
+  s_22df7f252e44cb::t_09e67c889ff7c8 42-47,49-58,83-84
+  s_22df7f252e44cb::t_b91bbec63fd8e0 32-35,38-41,48,59-68,73-82
+  s_22df7f252e44cb::t_c1a7985fad88f5 36-37
+  s_22df7f252e44cb::t_c1f7e3ba58afe4 13,31,69-72,85
+deploy/event/release_observations.py
+  s_22df7f252e44cb::t_773a7ef5428e3a 1-370
+deploy/event/mstefan-event-deploy@.service
+  s_22df7f252e44cb::t_592cb43607d07a 19
+deploy/event/controller.py
+  s_22df7f252e44cb::t_cf415e6af74e1c 18-19,307-310,341-363,400,408-415,419
+  s_22df7f252e44cb::t_1c8b9083d8cdd2 311-340,367
+  s_22df7f252e44cb::t_533b5994a6e122 364-365
+deploy/event/test_controller.py
+  s_22df7f252e44cb::t_aed9e44fc92a83 303
+  s_22df7f252e44cb::t_05617acbb17483 256
+  s_22df7f252e44cb::t_8fc9b98fc32dd9 264,281,301,321-347
+  s_22df7f252e44cb::t_12084f71bd0cf8 2-3,240-255,257-263,265,293-300,302,304-320,348
+  s_22df7f252e44cb::t_75584cb944828d 266-280,282-292
+  s_22df7f252e44cb::t_f9568765bd9489 349
+deploy/event/test_release_observations.py
+  s_22df7f252e44cb::t_5a4475038dfc5b 1-75
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c2f3990c311bff0a73c12ac1d4d97b0ff99d28e5",
+  "prompts": {},
+  "sessions": {
+    "s_22df7f252e44cb": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a10248-f23d-7bf0-b98c-0efcb9b4095b",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
