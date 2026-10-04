@@ -51,6 +51,7 @@ class MountTopology:
         self.canonical = canonical or (lambda path: os.path.realpath(path, strict=True))
         self.entries = {}
         self.entry_writable = {}
+        self.deleted_files = {}
         self.unresolved_points = set()
         self.unresolved_devices = {}
         self.opaque_points = set()
@@ -68,10 +69,16 @@ class MountTopology:
             seen_ids.add(values[0])
             device = tuple(int(part) for part in values[2].split(':'))
             paths = []
+            deleted = False
             for index, encoded in enumerate(values[3:5]):
                 if not re.fullmatch(r'(?:[^\\]|\\(?:040|011|012|134))*', encoded):
                     raise Blocked('host mount topology escape invalid')
                 decoded = re.sub(r'\\(040|011|012|134)', lambda match: chr(int(match[1], 8)), encoded)
+                if index == 0 and decoded.endswith('//deleted'):
+                    decoded = decoded[:-9]
+                    deleted = True
+                    if not container_view or filesystem.split()[0] != 'ext4' or values[5].split(',')[0] != 'ro':
+                        raise Blocked('deleted mount is not a read-only container file')
                 if index == 0 and re.fullmatch(r'net:\[[0-9]+\]', decoded):
                     host_namespace = re.fullmatch(r'/run/docker/netns/[A-Za-z0-9][A-Za-z0-9_.-]{0,127}', values[4])
                     monitored_namespace = container_view and re.fullmatch(r'/host/root/run/docker/netns/[A-Za-z0-9][A-Za-z0-9_.-]{0,127}', values[4])
@@ -83,7 +90,17 @@ class MountTopology:
                 else:
                     paths.append(decoded)
             root, mountpoint = paths
+            if deleted:
+                if root == '/' or stat_path is None or mountpoint in self.deleted_files:
+                    raise Blocked('deleted mount identity unavailable')
+                metadata = stat_path(mountpoint)
+                if not stat.S_ISREG(metadata.st_mode) or metadata.st_nlink != 0 or (os.major(metadata.st_dev), os.minor(metadata.st_dev)) != device:
+                    raise Blocked('deleted mount is not a verified unlinked file')
+                self.deleted_files[mountpoint] = (device, root, metadata.st_ino)
             groups.setdefault(mountpoint, []).append((values[0], values[1], device, root, values[5].split(',')[0] == 'rw'))
+        for point in self.deleted_files:
+            if len(groups[point]) != 1 or any(child != point and posixpath.commonpath([child, point]) == point for child in groups):
+                raise Blocked('deleted mount topology ambiguous')
         for mountpoint, group in groups.items():
             if len(group) == 1:
                 if group[0][3] is None:
@@ -119,6 +136,9 @@ class MountTopology:
             else:
                 self.entries[mountpoint] = (visible[0][2], visible[0][3])
                 self.entry_writable[mountpoint] = visible[0][4]
+        if any(posixpath.commonpath([point, ancestor]) == ancestor
+               for point in self.deleted_files for ancestor in self.unresolved_points):
+            raise Blocked('deleted mount ancestor ambiguous')
         if '/' not in self.entries and '/' not in self.unresolved_points:
             raise Blocked('host mount topology root missing')
 
@@ -208,13 +228,21 @@ def read_process_mountinfo(pid, container_id):
                 raise Blocked('container PID/cgroup mismatch')
         check_cgroup()
         text = read_member('mountinfo', 1024 * 1024)
+        topology = MountTopology(text, container_view=True,
+                                 stat_path=lambda path: os.stat('root' + path, dir_fd=directory, follow_symlinks=False))
+        if topology.deleted_files and read_member('mountinfo', 1024 * 1024) != text:
+            raise Blocked('container mounts changed during file proof')
         check_cgroup()
-        return MountTopology(text, container_view=True), hashlib.sha256(text.encode()).hexdigest()
+        proof = text + json.dumps(sorted(topology.deleted_files.items()), separators=(',', ':'))
+        return topology, hashlib.sha256(proof.encode()).hexdigest()
     finally:
         os.close(directory)
 
 
 def process_writers(process_topology, approved_identity):
+    for device, root, _ in process_topology.deleted_files.values():
+        if device == approved_identity[1] and path_overlap(root, approved_identity[2]):
+            raise Blocked('deleted mount overlaps approved storage')
     for point, devices in process_topology.unresolved_devices.items():
         if approved_identity[1] in devices:
             raise Blocked('container mount identity ambiguous')
@@ -263,6 +291,10 @@ def snapshot(docker, mountpoint, topology, process_reader):
             if destination in mount_by_destination:
                 raise Blocked('Docker mount destination duplicated')
             mount_by_destination[destination] = mount
+            if destination in process_topology.deleted_files:
+                if mount.get('Type') != 'bind' or mount['RW'] or not os.path.isabs(source):
+                    raise Blocked('deleted mount Docker identity inconsistent')
+                continue
             source_path = None
             if mount.get('Type') in {'volume', 'bind'}:
                 if not os.path.isabs(source):
@@ -278,6 +310,8 @@ def snapshot(docker, mountpoint, topology, process_reader):
                 raise Blocked('approved volume identity inconsistent')
             if mount['RW'] and source_path is not None:
                 topology.overlaps(source_path, mountpoint)
+        if not process_topology.deleted_files.keys() <= mount_by_destination.keys():
+            raise Blocked('deleted mount missing Docker bind identity')
         for destination in process_writers(process_topology, approved_identity):
             mount = mount_by_destination.get(destination)
             if mount is not None and not mount['RW']:
