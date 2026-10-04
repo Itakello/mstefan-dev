@@ -1,8 +1,88 @@
 import assert from "node:assert/strict";
+import { createRequire } from "node:module";
 import test from "node:test";
 import type { CaptureResult } from "posthog-js";
 
-import { isAnalyticsPage, sanitizeAnalyticsEvent } from "../lib/analytics";
+import { getNotFoundAnalyticsLocale, isAnalyticsPage, sanitizeAnalyticsEvent } from "../lib/analytics";
+import { analyticsConfig } from "../lib/analytics";
+
+test("the PostHog SDK retains a stateless sanitized not-found capture for transport", async () => {
+  const require = createRequire(import.meta.url);
+  const { PostHog } = require("posthog-js/lib/src/posthog-core.js");
+  const sdk = new PostHog();
+  const sent: CaptureResult[] = [];
+  sdk._send_request = () => {};
+  sdk._send_retriable_request = ({ data }: { data: CaptureResult }) => { sent.push(data); };
+  sdk.init("synthetic-project-token", {
+    ...analyticsConfig,
+    api_host: "https://unit.test",
+    request_batching: false,
+    capture_pageleave: false,
+  });
+  try {
+    const result = sdk.capture("page_not_found", {
+      $current_url: "https://mstefan.dev/en/404",
+      locale: "en",
+      $referrer: "https://example.com/private@example.com",
+      $pathname: "/en/private@example.com",
+    });
+    assert.ok(result);
+    assert.equal(sent.length, 1);
+    assert.deepEqual(sent[0].properties, {
+      $current_url: "https://mstefan.dev/en/404",
+      locale: "en",
+      token: "synthetic-project-token",
+      distinct_id: "$posthog_cookieless",
+      $cookieless_mode: true,
+      $process_person_profile: false,
+    });
+  } finally {
+    await sdk.shutdown();
+  }
+});
+
+test("not-found measurement accepts only public localized paths without preview", () => {
+  for (const url of ["https://mstefan.dev/en/missing", "https://www.mstefan.dev/it/old/link?email=private@example.com#private"]) {
+    assert.equal(getNotFoundAnalyticsLocale(new URL(url)), url.includes("/it/") ? "it" : "en");
+  }
+  for (const url of ["https://mstefan.dev/en", "https://mstefan.dev/fr/missing", "https://mstefan.dev/en/missing?preview=1", "http://localhost:3000/en/missing", "https://preview.mstefan.dev/en/missing"]) {
+    assert.equal(getNotFoundAnalyticsLocale(new URL(url)), null, url);
+  }
+  assert.equal(getNotFoundAnalyticsLocale(new URL("https://mstefan.dev/old-link?email=private@example.com"), "it"), "it");
+  assert.equal(getNotFoundAnalyticsLocale(new URL("https://mstefan.dev/fr/missing"), "en"), "en");
+  assert.equal(getNotFoundAnalyticsLocale(new URL("https://mstefan.dev/en/missing?preview=1"), "en"), null);
+});
+
+test("not-found event keeps only a locale and fixed 404 marker", () => {
+  const event = {
+    event: "page_not_found",
+    properties: {
+      $current_url: "https://mstefan.dev/it/404?email=private@example.com#private",
+      locale: "it",
+      $pathname: "/it/private@example.com",
+      $referrer: "https://example.com/private@example.com",
+      $initial_current_url: "https://example.com/private@example.com",
+      utm_campaign: "private@example.com",
+      token: "synthetic-project-token",
+      distinct_id: "$posthog_cookieless",
+      $cookieless_mode: true,
+      $process_person_profile: false,
+    },
+    $set: { email: "private@example.com" },
+    $set_once: { email: "private@example.com" },
+    $unset: ["private@example.com"],
+  } as unknown as CaptureResult;
+  const sanitized = sanitizeAnalyticsEvent(event);
+  assert.ok(sanitized);
+  assert.deepEqual(sanitized.properties, { $current_url: "https://mstefan.dev/it/404", locale: "it", token: "synthetic-project-token", distinct_id: "$posthog_cookieless", $cookieless_mode: true, $process_person_profile: false });
+  assert.equal(sanitized.$set, undefined);
+  assert.equal(sanitized.$set_once, undefined);
+  assert.equal(sanitized.$unset, undefined);
+  for (const url of ["https://mstefan.dev/it/private", "https://preview.mstefan.dev/it/404", "https://mstefan.dev/en/404"]) {
+    assert.equal(sanitizeAnalyticsEvent({ event: "page_not_found", uuid: "test", properties: { $current_url: url, locale: "it" } }), null);
+  }
+  assert.equal(sanitizeAnalyticsEvent({ event: "page_not_found", uuid: "test", properties: { $current_url: "https://mstefan.dev/it/404", locale: "it", token: "synthetic-project-token", distinct_id: "identified-user", $cookieless_mode: true, $process_person_profile: false } }), null);
+});
 
 test("analytics excludes editors, previews, private hosts and unsupported routes", () => {
   for (const url of [

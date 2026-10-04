@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { buildLocaleRedirectURL, getExplicitLocale, isPublicPathname, resolveLocale } from "@/lib/i18n/routing";
 
 const localeCookie = "site-locale";
+const publicFiles = new Set(["/robots.txt", "/sitemap.xml", "/sitemap-0.xml", "/icon.svg", "/profile-photo.jpg", "/profile-avatar.jpg"]);
 
 function persistLocale(response: NextResponse, locale: string) {
   response.cookies.set(localeCookie, locale, {
@@ -41,21 +42,37 @@ export function proxy(request: NextRequest) {
       return response;
     }
   }
-  const explicitLocale = getExplicitLocale(request.nextUrl.pathname);
-  if (explicitLocale) {
-    const destination = buildLocaleRedirectURL(request.nextUrl, explicitLocale);
-    return persistLocale(destination ? NextResponse.redirect(destination) : NextResponse.next(), explicitLocale);
-  }
-
-  if (!isPublicPathname(request.nextUrl.pathname)) return NextResponse.next();
-
   const { locale } = resolveLocale({
     pathname: request.nextUrl.pathname,
     cookieLocale: request.cookies.get(localeCookie)?.value,
     acceptLanguage: request.headers.get("accept-language"),
   });
+  const nextWithLocale = () => {
+    const headers = new Headers(request.headers);
+    headers.set("x-site-locale", locale);
+    return NextResponse.next({ request: { headers } });
+  };
+  const explicitLocale = getExplicitLocale(request.nextUrl.pathname);
+  if (explicitLocale) {
+    const destination = buildLocaleRedirectURL(request.nextUrl, explicitLocale);
+    return persistLocale(destination ? NextResponse.redirect(destination) : nextWithLocale(), explicitLocale);
+  }
+
+  if (!isPublicPathname(request.nextUrl.pathname)) {
+    const pathname = request.nextUrl.pathname.replace(/\/+$/, "");
+    if (!privateHost && /^\/[^/]+$/.test(pathname) && !publicFiles.has(pathname)) {
+      const destination = new URL(request.nextUrl);
+      destination.pathname = "/__site_not_found__/missing";
+      destination.search = "";
+      const headers = new Headers(request.headers);
+      headers.set("x-site-locale", locale);
+      return NextResponse.rewrite(destination, { request: { headers } });
+    }
+    return nextWithLocale();
+  }
+
   const destination = buildLocaleRedirectURL(request.nextUrl, locale);
-  return destination ? NextResponse.redirect(destination) : NextResponse.next();
+  return destination ? NextResponse.redirect(destination) : nextWithLocale();
 }
 
 export const config = {
