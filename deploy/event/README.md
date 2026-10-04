@@ -46,10 +46,9 @@ membership only to the verified aggregate reader, with no write access. The
 controller service user remains the sole writer. Preserve the directory and
 ledger across controller upgrades and rollback.
 
-With the controller idle, call `register_release_ledger(state, state_path)`
-under the configured environment before any deployment. It validates a ready
-absolute ledger path and saves that exact path in durable controller state; the
-next controller tick performs the same registration if it has not yet happened.
+With the controller idle, the next controller run validates a ready absolute
+ledger path and saves that exact path in durable controller state before any
+deployment.
 Changing or removing the configured path later blocks the controller and pauses
 the old ledger if it is ready, so readers cannot report an empty or stale ready
 feed. Before removing the flag, explicitly pause the bound ledger while the
