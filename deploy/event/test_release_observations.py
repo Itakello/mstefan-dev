@@ -97,6 +97,49 @@ class LedgerTests(unittest.TestCase):
         self.assertEqual(self.path.read_bytes(), before)
         self.assertEqual(ledger.capture_state(self.path), 'ready')
 
+    def test_outstanding_enrichment_and_classification_space_blocks_admission(self):
+        self.client.reply['total_commits'] = 251
+        ledger.mark_pending(self.path)
+        ledger.record(self.path, self.client, 'dep_old', NEW, OLD)
+        before = self.path.read_bytes()
+        with patch.object(ledger, 'MAX_BYTES', len(before) + ledger.MAX_RECORD_RESERVE +
+                          ledger.MAX_ENRICH_GROWTH + ledger.MAX_CLASSIFY_GROWTH - 1):
+            with self.assertRaisesRegex(ledger.ObservationError, 'cannot admit'):
+                ledger.mark_pending(self.path)
+        self.assertEqual(self.path.read_bytes(), before)
+        self.assertEqual(ledger.capture_state(self.path), 'ready')
+
+    def test_outstanding_growth_bounds_maximum_enrichment_and_incident(self):
+        stamp = ledger.now_utc()
+        before = {'id': 'dep_old', 'sha': NEW, 'baselineSha': OLD,
+                  'deployedAt': stamp, 'classification': 'unknown', 'commits': [],
+                  'commitCoverageComplete': False, 'incidentStartedAt': None, 'recoveredAt': None}
+        enriched = dict(before, commits=[{'sha': f'{index:040x}', 'committedAt': stamp}
+                                         for index in range(ledger.MAX_COMMITS)],
+                        commitCoverageComplete=True)
+        after = dict(enriched, classification='failed-rework',
+                     incidentStartedAt=stamp, recoveredAt=stamp)
+        size = lambda row: len(json.dumps(row, separators=(',', ':'), sort_keys=True).encode())
+        self.assertLess(size(enriched) - size(before), ledger.MAX_ENRICH_GROWTH)
+        self.assertLess(size(after) - size(enriched), ledger.MAX_CLASSIFY_GROWTH)
+
+    def test_attended_root_write_preserves_existing_ledger_owner(self):
+        owner = self.path.stat()
+        with patch.object(ledger.os, 'geteuid', return_value=0), \
+             patch.object(ledger.os, 'fchown') as chown:
+            ledger.pause(self.path)
+        chown.assert_called_once()
+        self.assertEqual(chown.call_args.args[1:], (owner.st_uid, owner.st_gid))
+        self.assertEqual(ledger.capture_state(self.path), 'paused')
+
+    def test_unprivileged_mismatched_owner_cannot_replace_ledger(self):
+        before = self.path.read_bytes()
+        with patch.object(ledger.os, 'geteuid', return_value=self.path.stat().st_uid + 1):
+            with self.assertRaisesRegex(ledger.ObservationError, 'ownership mismatch'):
+                ledger.pause(self.path)
+        self.assertEqual(self.path.read_bytes(), before)
+        self.assertEqual(ledger.capture_state(self.path), 'ready')
+
     def test_record_reserve_exceeds_largest_allowed_serialized_row(self):
         stamp = ledger.now_utc()
         row = {'id': 'dep_' + 'x' * (ledger.MAX_ID_BYTES - 4), 'sha': NEW, 'baselineSha': OLD,

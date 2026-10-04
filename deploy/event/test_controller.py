@@ -277,6 +277,31 @@ class FlowTests(unittest.TestCase):
         self.assertEqual(ledger.read_bytes(), before)
         self.assertEqual(c.release_observations.capture_state(ledger), 'ready')
 
+    def test_existing_incomplete_release_reserve_blocks_production_post(self):
+        ledger = Path(self.temp.name) / 'delivery' / 'releases.json'
+        c.release_observations.init(ledger)
+        c.release_observations.activate(ledger)
+        data = json.loads(ledger.read_text())
+        data['deployments'] = [
+            {'id': 'dep_old', 'sha': OLD, 'baselineSha': OLD,
+             'deployedAt': data['coverageStartedAt'], 'classification': 'unknown',
+             'commits': [], 'commitCoverageComplete': False,
+             'incidentStartedAt': None, 'recoveredAt': None}
+        ]
+        ledger.write_text(json.dumps(data))
+        before = ledger.read_bytes()
+        pending_size = len((json.dumps(dict(data, captureState='pending'),
+                                       separators=(',', ':'), sort_keys=True) + '\n').encode())
+        capacity = pending_size + c.release_observations.MAX_RECORD_RESERVE + \
+            c.release_observations.MAX_ENRICH_GROWTH + c.release_observations.MAX_CLASSIFY_GROWTH - 1
+        with patch.dict(os.environ, {'MSTEFAN_RELEASE_OBSERVATIONS': str(ledger)}), \
+             patch.object(c.release_observations, 'MAX_BYTES', capacity):
+            with self.assertRaises(c.Blocked):
+                self.run_flow()
+        self.assertEqual(self.client.posts, 0)
+        self.assertEqual(ledger.read_bytes(), before)
+        self.assertEqual(c.release_observations.capture_state(ledger), 'ready')
+
     def test_full_release_ledger_blocks_production_post(self):
         ledger = Path(self.temp.name) / 'delivery' / 'releases.json'
         c.release_observations.init(ledger)

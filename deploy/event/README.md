@@ -76,7 +76,8 @@ if it is incomplete or unavailable, lead-time coverage remains unavailable.
 An incident backed by provider evidence may start before the controller's
 `deployedAt` observation, as long as it falls within active coverage. Deployment
 IDs follow the existing 1 MiB provider-response bound; the ledger reserves
-space for that maximum ID and 250 commits before admitting a production POST.
+space for that maximum ID and 250 commits, plus future enrichment and incident
+classification of existing releases, before admitting a production POST.
 The reader and any dashboard must treat pending/paused capture, missing source,
 unclassified releases, and absent recovery evidence as Unknown, not zero.
 
@@ -96,3 +97,12 @@ Run `python3 -m unittest discover -s deploy/event -p 'test_*.py'` and workflow l
 A 40-minute controller deadline, 45-minute systemd bound and 50-minute GitHub job bound prevent endless runs. GitHub Actions exposes controller/SSH failures; no Slack/email recipient is added. Expired proof, CI/config/schema mismatch, build failure, timeout or smoke failure pauses durable state and records the failed SHA. No automatic rollback or guessed recovery endpoint is called. Failed SHA replay is refused. A durable `submit_unknown` marker written before POST prevents duplication after a crash/timeout before the returned ID is saved.
 
 Pause future events by setting `MSTEFAN_EVENT_DEPLOY_ENABLED=false`. To stop an active run, identify the exact `mstefan-event-deploy@<SHA>-<run>.service` and stop that unit; preserve state and inspect provider activity, since stopping the observer does not cancel a submitted build. Inspect protected state and provider records before reconciliation. For unknown submission, locate the exact matching native deployment; never clear state and repost without proving whether submission occurred. Recovery remains human attended: establish actual installed restore operations, stop all writers, restore verified database/media/image as necessary, and repeat identity/privacy/health checks. Reconcile state only after proof; do not delete failure evidence to force an unattended retry.
+
+Before rolling back to controller code without release capture, disable the
+deployment trigger and stop any active controller unit; reconcile a submitted
+release and pending ledger first. While the capture-aware code and bound
+environment are still installed, run `release_observations.py pause` on the
+bound ledger as `mstefan-event-deploy` and verify the aggregate reader reports
+coverage unavailable. Only then restore the older controller. Keep the ledger
+and controller state for attended reconciliation; do not resume deployment
+triggers until release capture is restored and verified.

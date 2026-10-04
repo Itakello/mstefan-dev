@@ -20,6 +20,8 @@ MAX_ID_BYTES = 1024 * 1024
 MAX_DEPLOYMENTS = 10000
 MAX_COMMITS = 250
 MAX_RECORD_RESERVE = MAX_ID_BYTES + 32 * 1024
+MAX_ENRICH_GROWTH = 32 * 1024
+MAX_CLASSIFY_GROWTH = 128
 CLASSIFICATIONS = {"unknown", "normal", "failed", "rework", "failed-rework"}
 
 
@@ -131,13 +133,26 @@ def _save(path, data):
     raw = (json.dumps(data, separators=(",", ":"), sort_keys=True) + "\n").encode()
     if len(raw) > MAX_BYTES:
         raise ObservationError("ledger too large")
-    if data["captureState"] == "pending" and (len(data["deployments"]) >= MAX_DEPLOYMENTS or
-                                              len(raw) + MAX_RECORD_RESERVE > MAX_BYTES):
-        raise ObservationError("ledger cannot admit another release")
+    if data["captureState"] == "pending":
+        growth = sum(MAX_CLASSIFY_GROWTH + (0 if row["commitCoverageComplete"] else MAX_ENRICH_GROWTH)
+                     for row in data["deployments"])
+        if len(data["deployments"]) >= MAX_DEPLOYMENTS or len(raw) + growth + MAX_RECORD_RESERVE > MAX_BYTES:
+            raise ObservationError("ledger cannot admit another release")
+    try:
+        existing = os.stat(path, follow_symlinks=False)
+    except FileNotFoundError:
+        existing = None
+    if existing is not None and not stat.S_ISREG(existing.st_mode):
+        raise ObservationError("unsafe ledger file")
     fd, tmp = tempfile.mkstemp(prefix=".release-", dir=path.parent)
     try:
-        os.fchmod(fd, 0o640)
         with os.fdopen(fd, "wb") as stream:
+            if existing is not None:
+                if os.geteuid() == 0:
+                    os.fchown(stream.fileno(), existing.st_uid, existing.st_gid)
+                elif (existing.st_uid, existing.st_gid) != (os.geteuid(), os.fstat(stream.fileno()).st_gid):
+                    raise ObservationError("ledger ownership mismatch")
+            os.fchmod(stream.fileno(), 0o640)
             stream.write(raw)
             stream.flush()
             os.fsync(stream.fileno())
