@@ -27,6 +27,8 @@ class LedgerTests(unittest.TestCase):
         self.path = Path(self.temp.name) / 'delivery' / 'releases.json'
         self.client = Client()
         self.assertTrue(ledger.init(self.path))
+        self.assertEqual(ledger.capture_state(self.path), 'inactive')
+        ledger.activate(self.path)
 
     def data(self):
         return json.loads(self.path.read_text())
@@ -97,7 +99,7 @@ class LedgerTests(unittest.TestCase):
 
     def test_record_reserve_exceeds_largest_allowed_serialized_row(self):
         stamp = ledger.now_utc()
-        row = {'id': 'dep_' + 'x' * 120, 'sha': NEW, 'baselineSha': OLD,
+        row = {'id': 'dep_' + 'x' * (ledger.MAX_ID_BYTES - 4), 'sha': NEW, 'baselineSha': OLD,
                'deployedAt': stamp, 'classification': 'failed-rework',
                'commits': [{'sha': f'{index:040x}', 'committedAt': stamp}
                            for index in range(ledger.MAX_COMMITS)],
@@ -105,6 +107,44 @@ class LedgerTests(unittest.TestCase):
                'recoveredAt': stamp}
         self.assertLess(len(json.dumps(row, separators=(',', ':'), sort_keys=True).encode()) + 1,
                         ledger.MAX_RECORD_RESERVE)
+
+    def test_incident_may_start_before_observation_within_coverage(self):
+        data = self.data()
+        data['coverageStartedAt'] = '2026-10-01T00:00:00.000000Z'
+        self.path.write_text(json.dumps(data))
+        ledger.mark_pending(self.path)
+        ledger.record(self.path, self.client, 'dep_delayed', NEW, OLD)
+        observed = self.data()['deployments'][0]['deployedAt']
+        incident = '2026-10-02T00:00:00.000000Z'
+        self.assertLess(incident, observed)
+        self.assertTrue(ledger.classify(self.path, 'dep_delayed', 'failed', incident, incident))
+        self.assertEqual(self.data()['deployments'][0]['incidentStartedAt'], incident)
+        with self.assertRaises(ledger.ObservationError):
+            ledger.classify(self.path, 'dep_delayed', 'failed', '2026-09-30T00:00:00.000000Z')
+
+    def test_id_acceptance_matches_bounded_provider_response(self):
+        self.assertTrue(ledger.valid_id('dep_' + 'x' * 121))
+        self.assertTrue(ledger.valid_id('dep_' + 'x' * (ledger.MAX_ID_BYTES - 4)))
+        self.assertFalse(ledger.valid_id('dep_' + 'x' * (ledger.MAX_ID_BYTES - 3)))
+
+    def test_activation_resets_coverage_only_for_new_inactive_ledger(self):
+        previous = self.data()['coverageStartedAt']
+        ledger.pause(self.path)
+        with self.assertRaises(ledger.ObservationError):
+            ledger.activate(self.path)
+        self.assertEqual(self.data()['coverageStartedAt'], previous)
+        fresh = Path(self.temp.name) / 'fresh' / 'releases.json'
+        ledger.init(fresh)
+        inactive = json.loads(fresh.read_text())
+        self.assertEqual(inactive['captureState'], 'inactive')
+        inactive.update(coverageStartedAt='2026-10-01T00:00:00.000000Z',
+                        updatedAt='2026-10-01T00:00:00.000000Z')
+        fresh.write_text(json.dumps(inactive))
+        ledger.activate(fresh)
+        active = json.loads(fresh.read_text())
+        self.assertEqual(active['captureState'], 'ready')
+        self.assertGreater(active['coverageStartedAt'], inactive['coverageStartedAt'])
+        self.assertEqual(active['deployments'], [])
 
 
 if __name__ == '__main__':

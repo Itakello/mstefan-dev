@@ -36,19 +36,22 @@ path, initialize `/var/lib/mstefan-delivery/releases.json` as
 `mstefan-event-deploy` with
 `python3 /opt/mstefan-event-deploy/release_observations.py init /var/lib/mstefan-delivery/releases.json`, then set
 `MSTEFAN_RELEASE_OBSERVATIONS=/var/lib/mstefan-delivery/releases.json` in the
-protected controller environment. Initialize at the actual start of attended
-coverage; the command records that current time and no earlier deployments. Do
-not use an empty ready ledger as evidence that capture was active before the
-first verified release. Create the directory owned by `mstefan-event-deploy`
+protected controller environment. During attended setup, this command creates
+an `inactive` ledger with no deployments. An inactive
+ledger is unavailable to the aggregate reader. Create the directory owned by `mstefan-event-deploy`
 with mode 2750 and a dedicated reader group. The setgid directory makes the
 atomically replaced mode-0640 ledger readable by that group; grant group
 membership only to the verified aggregate reader, with no write access. The
 controller service user remains the sole writer. Preserve the directory and
 ledger across controller upgrades and rollback.
 
-With the controller idle, the next controller run validates a ready absolute
-ledger path and saves that exact path in durable controller state before any
-deployment.
+With the controller idle, the next controller run validates the absolute ledger
+path and saves that exact path in durable controller state before activating a
+new inactive ledger. Activation sets `coverageStartedAt` to that time and makes
+the ledger ready. A crash between binding and activation leaves the ledger
+inactive; the bound controller resumes activation on its next idle run. A
+previously activated ready ledger retains its original coverage start. An
+operator-paused ledger is never activated through this setup path.
 Changing or removing the configured path later blocks the controller and pauses
 the old ledger if it is ready, so readers cannot report an empty or stale ready
 feed. Before removing the flag, explicitly pause the bound ledger while the
@@ -70,6 +73,10 @@ confirmed active release, not a provider-reported activation timestamp; a
 controller interruption can therefore lengthen measured lead time. GitHub
 compare is bounded to 250 main-branch commits;
 if it is incomplete or unavailable, lead-time coverage remains unavailable.
+An incident backed by provider evidence may start before the controller's
+`deployedAt` observation, as long as it falls within active coverage. Deployment
+IDs follow the existing 1 MiB provider-response bound; the ledger reserves
+space for that maximum ID and 250 commits before admitting a production POST.
 The reader and any dashboard must treat pending/paused capture, missing source,
 unclassified releases, and absent recovery evidence as Unknown, not zero.
 

@@ -13,12 +13,13 @@ import tempfile
 from pathlib import Path
 
 SHA = re.compile(r"[0-9a-f]{40}\Z")
-DEPLOYMENT_ID = re.compile(r"dep_[A-Za-z0-9_-]{1,120}\Z")
+DEPLOYMENT_ID = re.compile(r"dep_[A-Za-z0-9_-]+\Z")
 UTC_TIME = re.compile(r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d{1,6})?(?:Z|\+00:00)\Z")
 MAX_BYTES = 10 * 1024 * 1024
+MAX_ID_BYTES = 1024 * 1024
 MAX_DEPLOYMENTS = 10000
 MAX_COMMITS = 250
-MAX_RECORD_RESERVE = 32 * 1024
+MAX_RECORD_RESERVE = MAX_ID_BYTES + 32 * 1024
 CLASSIFICATIONS = {"unknown", "normal", "failed", "rework", "failed-rework"}
 
 
@@ -45,13 +46,13 @@ def valid_sha(value):
 
 
 def valid_id(value):
-    return isinstance(value, str) and DEPLOYMENT_ID.fullmatch(value) is not None
+    return isinstance(value, str) and len(value) <= MAX_ID_BYTES and DEPLOYMENT_ID.fullmatch(value) is not None
 
 
 def validate(data):
     if not isinstance(data, dict) or set(data) != {"version", "coverageStartedAt", "updatedAt", "captureState", "deployments"} or type(data["version"]) is not int or data["version"] != 1:
         raise ObservationError("invalid ledger")
-    if data["captureState"] not in {"ready", "pending", "paused"}:
+    if data["captureState"] not in {"inactive", "ready", "pending", "paused"}:
         raise ObservationError("invalid capture state")
     start, updated = timestamp(data["coverageStartedAt"]), timestamp(data["updatedAt"])
     if start != data["coverageStartedAt"] or updated != data["updatedAt"] or updated < start or updated > now_utc():
@@ -59,6 +60,8 @@ def validate(data):
     rows = data["deployments"]
     if not isinstance(rows, list) or len(rows) > MAX_DEPLOYMENTS:
         raise ObservationError("invalid deployments")
+    if data["captureState"] == "inactive" and rows:
+        raise ObservationError("inactive ledger has deployments")
     ids = set()
     for row in rows:
         if not isinstance(row, dict) or set(row) != {"id", "sha", "baselineSha", "deployedAt", "classification", "commits", "commitCoverageComplete", "incidentStartedAt", "recoveredAt"}:
@@ -84,7 +87,7 @@ def validate(data):
                 raise ObservationError("invalid commit time")
         incident, recovered = row["incidentStartedAt"], row["recoveredAt"]
         if incident is not None:
-            if timestamp(incident) != incident or incident < deployed or incident > updated:
+            if timestamp(incident) != incident or incident < start or incident > updated:
                 raise ObservationError("invalid incident time")
         if recovered is not None:
             if incident is None or timestamp(recovered) != recovered or recovered < incident or recovered > updated:
@@ -170,8 +173,19 @@ def init(path):
             return False
         current = now_utc()
         _save(p, {"version": 1, "coverageStartedAt": current, "updatedAt": current,
-                  "captureState": "ready", "deployments": []})
+                  "captureState": "inactive", "deployments": []})
         return True
+    return _locked(path, action)
+
+
+def activate(path):
+    def action(p):
+        data = _load(p)
+        if data["captureState"] != "inactive" or data["deployments"]:
+            raise ObservationError("capture activation conflict")
+        current = now_utc()
+        data.update(coverageStartedAt=current, updatedAt=current, captureState="ready")
+        _save(p, data)
     return _locked(path, action)
 
 

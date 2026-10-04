@@ -26,7 +26,6 @@ ACTIVATION = Path('/etc/mstefan-event-deploy/activation.json')
 PROBE_SOCKET = '/run/mstefan-event-deploy-probe.sock'
 PROBE_LIMIT = 32 * 1024
 SHA = re.compile(r'^[0-9a-f]{40}$')
-DEPLOYMENT = re.compile(r'^dep_[A-Za-z0-9_-]+$')
 LIMIT = 40 * 60
 PUBLIC = tuple('/' + locale + suffix for locale in ('en', 'it') for suffix in ('', '/projects', '/about'))
 PRIVATE = ('/admin', '/admin/login', '/api/users', '/api/users/first-register', '/api/globals/about?draft=true',
@@ -151,7 +150,7 @@ class Client:
     def baseline(self):
         project = self.ship('GET', '/api/projects/' + PROJECT)
         deployment_id = field(project, 'activeDeploymentId', 'active_deployment_id')
-        if not DEPLOYMENT.fullmatch(str(deployment_id)):
+        if not release_observations.valid_id(deployment_id):
             raise Blocked('active deployment invalid')
         record = self.record(deployment_id)
         sha = field(record, 'commitSha', 'commit_sha')
@@ -217,7 +216,7 @@ class Client:
     def submit(self, sha):
         result = self.ship('POST', '/api/deployments', {'projectId': PROJECT, 'branch': 'master', 'commitSha': sha, 'environment': 'production'})
         deployment_id = field(result, 'deployment_id')
-        if not DEPLOYMENT.fullmatch(str(deployment_id)):
+        if not release_observations.valid_id(deployment_id):
             raise Blocked('submitted deployment ID invalid')
         return deployment_id
 
@@ -320,6 +319,11 @@ def register_release_ledger(state, path):
                 if status == 'ready':
                     release_observations.pause(bound)
                 raise Blocked('release observation path changed or disabled')
+            if status == 'inactive':
+                if state['phase'] != 'idle':
+                    raise Blocked('inactive release observation binding requires idle controller')
+                release_observations.activate(bound)
+                status = 'ready'
             if status == 'paused' or (status == 'pending' and state['phase'] in {'idle', 'prepared'}):
                 raise Blocked('release observation state requires reconciliation')
         except (OSError, release_observations.ObservationError):
@@ -330,12 +334,18 @@ def register_release_ledger(state, path):
     if state['phase'] != 'idle' or not Path(configured).is_absolute():
         raise Blocked('release observation binding requires idle controller and absolute path')
     try:
-        if release_observations.capture_state(configured) != 'ready':
+        status = release_observations.capture_state(configured)
+        if status not in {'inactive', 'ready'}:
             raise Blocked('release observation ledger not ready')
     except (OSError, release_observations.ObservationError):
         raise Blocked('release observation binding unavailable') from None
     state['release_observation_ledger'] = configured
     save(path, state)
+    if status == 'inactive':
+        try:
+            release_observations.activate(configured)
+        except (OSError, release_observations.ObservationError):
+            raise Blocked('release observation activation failed') from None
 
 
 def mark_release_pending():

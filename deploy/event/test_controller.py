@@ -256,6 +256,7 @@ class FlowTests(unittest.TestCase):
     def test_release_admission_blocks_post(self):
         ledger = Path(self.temp.name) / 'delivery' / 'releases.json'
         c.release_observations.init(ledger)
+        c.release_observations.activate(ledger)
         c.release_observations.pause(ledger)
         with patch.dict(os.environ, {'MSTEFAN_RELEASE_OBSERVATIONS': str(ledger)}):
             with self.assertRaises(c.Blocked):
@@ -266,6 +267,7 @@ class FlowTests(unittest.TestCase):
     def test_release_byte_capacity_blocks_production_post(self):
         ledger = Path(self.temp.name) / 'delivery' / 'releases.json'
         c.release_observations.init(ledger)
+        c.release_observations.activate(ledger)
         before = ledger.read_bytes()
         with patch.dict(os.environ, {'MSTEFAN_RELEASE_OBSERVATIONS': str(ledger)}), \
              patch.object(c.release_observations, 'MAX_BYTES', len(before) + c.release_observations.MAX_RECORD_RESERVE - 1):
@@ -278,6 +280,7 @@ class FlowTests(unittest.TestCase):
     def test_full_release_ledger_blocks_production_post(self):
         ledger = Path(self.temp.name) / 'delivery' / 'releases.json'
         c.release_observations.init(ledger)
+        c.release_observations.activate(ledger)
         data = json.loads(ledger.read_text())
         data['deployments'] = [
             {'id': f'dep_{index}', 'sha': OLD, 'baselineSha': OLD,
@@ -307,6 +310,7 @@ class FlowTests(unittest.TestCase):
     def test_capture_failure_blocks_smoke_and_preserves_pending(self):
         ledger = Path(self.temp.name) / 'delivery' / 'releases.json'
         c.release_observations.init(ledger)
+        c.release_observations.activate(ledger)
         c.release_observations.mark_pending(ledger)
         self.state.update(phase='smoke', sha=NEW, run_id=5, deadline=100,
                           deployment_id='dep_new', baseline={'id': ID, 'sha': OLD},
@@ -325,6 +329,7 @@ class FlowTests(unittest.TestCase):
     def test_capture_replays_same_confirmed_release_after_save_failure(self):
         ledger = Path(self.temp.name) / 'delivery' / 'releases.json'
         c.release_observations.init(ledger)
+        c.release_observations.activate(ledger)
         c.release_observations.mark_pending(ledger)
         pending = {'id': 'dep_new', 'sha': NEW, 'baselineSha': OLD,
                    'deployedAt': c.release_observations.now_utc()}
@@ -376,8 +381,31 @@ class FlowTests(unittest.TestCase):
             with self.assertRaises(c.Blocked):
                 self.run_flow()
         self.assertEqual(c.release_observations.capture_state(ledger), 'paused')
-        self.assertEqual(c.release_observations.capture_state(other), 'ready')
+        self.assertEqual(c.release_observations.capture_state(other), 'inactive')
         self.assertEqual(self.client.posts, 0)
+
+    def test_binding_is_durable_before_activating_new_coverage(self):
+        ledger = Path(self.temp.name) / 'delivery' / 'releases.json'
+        c.release_observations.init(ledger)
+        with patch.dict(os.environ, {'MSTEFAN_RELEASE_OBSERVATIONS': str(ledger)}):
+            with patch.object(c.release_observations, 'activate', side_effect=SystemExit('crash')):
+                with self.assertRaises(SystemExit):
+                    c.register_release_ledger(self.state, self.path)
+            self.assertEqual(c.load(self.path)['release_observation_ledger'], str(ledger))
+            self.assertEqual(c.release_observations.capture_state(ledger), 'inactive')
+            persisted = c.load(self.path)
+            c.register_release_ledger(persisted, self.path)
+        self.assertEqual(c.release_observations.capture_state(ledger), 'ready')
+        self.assertEqual(self.client.posts, 0)
+
+    def test_binding_existing_ready_ledger_preserves_coverage_start(self):
+        ledger = Path(self.temp.name) / 'delivery' / 'releases.json'
+        c.release_observations.init(ledger)
+        c.release_observations.activate(ledger)
+        before = json.loads(ledger.read_text())['coverageStartedAt']
+        with patch.dict(os.environ, {'MSTEFAN_RELEASE_OBSERVATIONS': str(ledger)}):
+            c.register_release_ledger(self.state, self.path)
+        self.assertEqual(json.loads(ledger.read_text())['coverageStartedAt'], before)
 
 
 class Contracts(unittest.TestCase):
@@ -499,6 +527,18 @@ class Contracts(unittest.TestCase):
         self.client.ship = lambda *args: calls.append(args) or {'deployment_id': 'dep_new'}
         self.assertEqual(self.client.submit(NEW), 'dep_new')
         self.assertEqual(calls, [('POST', '/api/deployments', {'projectId': c.PROJECT, 'branch': 'master', 'commitSha': NEW, 'environment': 'production'})])
+
+    def test_deployment_id_matches_bounded_ledger_contract(self):
+        accepted = 'dep_' + 'x' * 121
+        self.client.ship = lambda *args: {'deployment_id': accepted}
+        self.assertEqual(self.client.submit(NEW), accepted)
+        oversized = 'dep_' + 'x' * (c.release_observations.MAX_ID_BYTES - 3)
+        self.client.ship = lambda *args: {'deployment_id': oversized}
+        with self.assertRaises(c.Blocked):
+            self.client.submit(NEW)
+        self.client.ship = lambda *args: {'activeDeploymentId': oversized}
+        with self.assertRaises(c.Blocked):
+            self.client.baseline()
 
 
 if __name__ == '__main__':
