@@ -1,0 +1,21 @@
+scripts/visual-review/run-fixture.mjs
+  s_0d46d53e6667c6::t_3b14054510f4c8 62
+playwright.config.ts
+  s_0d46d53e6667c6::t_3b14054510f4c8 37-40
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "567080baebd3e3c9d8222b498e20f8836dfa4c71",
+  "prompts": {},
+  "sessions": {
+    "s_0d46d53e6667c6": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fb033-ed4b-7e70-a575-d83199486769",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
