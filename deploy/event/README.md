@@ -10,7 +10,7 @@ After deployment, provider record/build status and active deployment ID/commit m
 
 ## Host installation and activation proof
 
-Use protected 1Password transport before creating or transferring credentials. Install root-owned `controller.py`, `launch.py` and `volume_probe.py` in `/opt/mstefan-event-deploy`, `mstefan-event-deploy@.service` in `/etc/systemd/system`, and executable `trigger.py` as `/usr/local/sbin/mstefan-event-deploy-trigger`. Install `trigger.sudoers` root-owned mode 0440 in `/etc/sudoers.d`, and validate with `visudo -cf`. Install `mstefan-event-deploy-probe.socket` and `mstefan-event-deploy-probe@.service` in `/etc/systemd/system`. Reload systemd. Create an unprivileged service account `mstefan-event-deploy` and mode-0700 `/var/lib/mstefan-event-deploy` owned by that account. Enable the probe socket after the service group exists. Its fixed `/run/mstefan-event-deploy-probe.sock` endpoint is root-owned mode 0660, group `mstefan-event-deploy`. No TCP listener, Docker group membership or controller sudo permission is needed. Do not install a timer or a native provider webhook.
+Use protected 1Password transport before creating or transferring credentials. Install root-owned `controller.py`, `release_observations.py`, `launch.py` and `volume_probe.py` in `/opt/mstefan-event-deploy`, `mstefan-event-deploy@.service` in `/etc/systemd/system`, and executable `trigger.py` as `/usr/local/sbin/mstefan-event-deploy-trigger`. Install `trigger.sudoers` root-owned mode 0440 in `/etc/sudoers.d`, and validate with `visudo -cf`. Install `mstefan-event-deploy-probe.socket` and `mstefan-event-deploy-probe@.service` in `/etc/systemd/system`. Reload systemd. Create an unprivileged service account `mstefan-event-deploy` and mode-0700 `/var/lib/mstefan-event-deploy` owned by that account. Enable the probe socket after the service group exists. Its fixed `/run/mstefan-event-deploy-probe.sock` endpoint is root-owned mode 0660, group `mstefan-event-deploy`. No TCP listener, Docker group membership or controller sudo permission is needed. Do not install a timer or a native provider webhook.
 
 The root-owned mode-0600 `/etc/mstefan-event-deploy/controller.env` requires `OPENSHIP_TOKEN`. This public repository can use anonymous read-only GitHub metadata/tree requests; missing `GITHUB_TOKEN` sends no Authorization header, and rate-limit/API errors fail closed. If needed, supply an optional token with read-only Contents/Actions for this repository. Do not copy broad interactive GitHub credentials into this service. Limit Openship access to this project's reads and deployment submission where installed authorization supports it; verify actual installed scope before enabling. Keep credentials out of source, logs and command arguments.
 
@@ -27,6 +27,61 @@ Install a root-owned regular `/etc/mstefan-event-deploy/activation.json` after a
 The root probe validates the same non-writable activation file and uses only fixed Docker Unix-socket GETs to inspect the approved volume and enumerate all running, paused and restarting containers. It also reads each container process's bounded `/proc/<pid>/mountinfo` and cgroup, checks the cgroup against the Docker container ID (blocking inaccessible or mismatched process identity), and identifies writable mounts held in that process's mount namespace even after a host bind source is retargeted. It returns only writable users of that storage: IDs, names, status and mount identity. A writer is labeled as the approved volume only when Docker also reports its exact name and source. Direct read-only mounts do not count as writers. A read-only parent bind with an overlapping child mount blocks because recursive children may remain writable; an exact read-only opaque network namespace file is exempt. Extra writers, bind aliases, a wrong active deployment, paused/restarting writer, malformed metadata or changed observations block the controller. The probe requires the root-attested mount namespace of host PID 1; it cannot dereference `/proc/1/ns/mnt` under its no-capability sandbox. It maps bind aliases with `/proc/self/mountinfo` filesystem device/root coordinates and path inode, and includes child mounts exposed through a RW parent. The probe unit omits `PrivateTmp`, `ProtectHome` and `ProtectSystem`, which would hide host aliases in a private mount view; it retains no capabilities, `NoNewPrivileges`, Unix-only access and fixed read-only Docker requests. Stacked mountpoints resolve to their visible child by kernel parent IDs. Host network namespace mounts with an exact `net:[digits]` root, `nsfs` type and `/run/docker/netns/<entry>` mountpoint are opaque: they do not affect unrelated volume checks, and access through or under them blocks. An ambiguous stack fails closed when it intersects the approved volume, a candidate mount source, or a child mount exposed through a writable parent; unrelated stacks do not block the probe. Unresolved checked host paths fail closed. It compares two complete observations to reject visible races, has a ten-second service bound and a 32 KiB output cap, and accepts no request arguments or commands. Docker environment values and response bodies are never emitted. Keep the controller service unprivileged with `NoNewPrivileges=true`; the probe receives no deployment credentials.
 
 This observation does not lock Docker or detect arbitrary host processes writing directly to the volume. Native stop-first proof and exclusion of competing provider/host writers remain required; a race after the final observation cannot be ruled out by a read-only probe. The attestation contains no credentials or copied provider response. Recheck live configuration before each submission; repeat installed-API, stop-first and recovery proof after provider upgrades/configuration changes. Disable native project auto-deploy to avoid a competing deployment source.
+
+## Optional production release observations
+
+`release_observations.py` owns a separate sanitized delivery ledger. Installing it
+does not activate capture. After proving the installed controller's production
+path, initialize `/var/lib/mstefan-delivery/releases.json` as
+`mstefan-event-deploy` with
+`python3 /opt/mstefan-event-deploy/release_observations.py init /var/lib/mstefan-delivery/releases.json`, then set
+`MSTEFAN_RELEASE_OBSERVATIONS=/var/lib/mstefan-delivery/releases.json` in the
+protected controller environment. Initialize at the actual start of attended
+coverage; the command records that current time and no earlier deployments. Do
+not use an empty ready ledger as evidence that capture was active before the
+first verified release. Create the directory owned by `mstefan-event-deploy`
+with mode 2750 and a dedicated reader group. The setgid directory makes the
+atomically replaced mode-0640 ledger readable by that group; grant group
+membership only to the verified aggregate reader, with no write access. The
+controller service user remains the sole writer. Preserve the directory and
+ledger across controller upgrades and rollback.
+
+With the controller idle, call `register_release_ledger(state, state_path)`
+under the configured environment before any deployment. It validates a ready
+absolute ledger path and saves that exact path in durable controller state; the
+next controller tick performs the same registration if it has not yet happened.
+Changing or removing the configured path later blocks the controller and pauses
+the old ledger if it is ready, so readers cannot report an empty or stale ready
+feed. Before removing the flag, explicitly pause the bound ledger while the
+configuration still points to it. Reconcile a pending capture first; a pending
+ledger is already unavailable to readers and cannot be paused as ready.
+
+With capture enabled, the ledger must durably enter `pending` before the
+production POST. A missing, paused, malformed or unwritable ledger blocks the
+POST. Once the exact submitted deployment is confirmed active with its SHA, the
+controller saves its deployment ID and observation time, then writes the release
+before public smoke. A smoke failure therefore leaves that release counted with
+classification `unknown`; an operator may later classify failure and recovery
+only from verified incident evidence. A crash after ledger write replays the
+same ID and timestamp without adding another release. An unresolved pending
+capture blocks the next production POST; reconcile the original deployment and
+ledger before clearing it. The controller never backfills previous or manually
+submitted deployments. `deployedAt` is the first durable observation of the
+confirmed active release, not a provider-reported activation timestamp; a
+controller interruption can therefore lengthen measured lead time. GitHub
+compare is bounded to 250 main-branch commits;
+if it is incomplete or unavailable, lead-time coverage remains unavailable.
+The reader and any dashboard must treat pending/paused capture, missing source,
+unclassified releases, and absent recovery evidence as Unknown, not zero.
+
+Before enabling, prove a controller-confirmed active production release, a
+failed-smoke release, a no-new-POST replay, and a pending-ledger refusal against
+the installed paths. `classify`, `enrich`, `pause`, `resume`, and `cancel-pending`
+are attended ledger commands; preserve a ledger copy and verify the exact
+deployment evidence before reconciling pending capture. Set the environment
+flag only after the initializer and reader have been checked. Removing the flag
+blocks further deployment and leaves the old ledger paused or pending until
+attended reconciliation.
 
 ## Manual proof, replay and pause
 

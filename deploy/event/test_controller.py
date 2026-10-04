@@ -1,4 +1,6 @@
 import copy
+import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -234,6 +236,116 @@ class FlowTests(unittest.TestCase):
                     self.run_flow()
                 self.assertEqual(self.state['phase'], 'paused')
                 self.assertEqual(self.client.posts, 0)
+
+    def test_release_capture_precedes_smoke_and_survives_failed_smoke(self):
+        ledger = Path(self.temp.name) / 'delivery' / 'releases.json'
+        c.release_observations.init(ledger)
+        self.client.gh = lambda path: {'status': 'ahead', 'base_commit': {'sha': OLD}, 'total_commits': 1,
+                                       'commits': [{'sha': NEW, 'commit': {'committer': {'date': '2020-01-01T00:00:00Z'}}}]}
+        self.client.health_error = True
+        with patch.dict(os.environ, {'MSTEFAN_RELEASE_OBSERVATIONS': str(ledger)}):
+            with self.assertRaises(c.Blocked):
+                self.run_flow()
+        data = json.loads(ledger.read_text())
+        self.assertEqual(data['captureState'], 'ready')
+        self.assertEqual([(row['id'], row['classification'], row['commitCoverageComplete']) for row in data['deployments']],
+                         [('dep_new', 'unknown', True)])
+        self.assertEqual(self.client.posts, 1)
+        self.assertEqual(self.state['failure_phase'], 'smoke')
+
+    def test_release_admission_blocks_post(self):
+        ledger = Path(self.temp.name) / 'delivery' / 'releases.json'
+        c.release_observations.init(ledger)
+        c.release_observations.pause(ledger)
+        with patch.dict(os.environ, {'MSTEFAN_RELEASE_OBSERVATIONS': str(ledger)}):
+            with self.assertRaises(c.Blocked):
+                self.run_flow()
+        self.assertEqual(self.client.posts, 0)
+        self.assertEqual(self.state['failure_phase'], 'idle')
+
+    def test_existing_active_sha_does_not_backfill_release(self):
+        ledger = Path(self.temp.name) / 'delivery' / 'releases.json'
+        c.release_observations.init(ledger)
+        self.client.active = {'id': ID, 'sha': NEW}
+        with patch.dict(os.environ, {'MSTEFAN_RELEASE_OBSERVATIONS': str(ledger)}):
+            self.run_flow()
+        self.assertEqual(json.loads(ledger.read_text())['deployments'], [])
+        self.assertEqual(self.client.posts, 0)
+
+    def test_capture_failure_blocks_smoke_and_preserves_pending(self):
+        ledger = Path(self.temp.name) / 'delivery' / 'releases.json'
+        c.release_observations.init(ledger)
+        c.release_observations.mark_pending(ledger)
+        self.state.update(phase='smoke', sha=NEW, run_id=5, deadline=100,
+                          deployment_id='dep_new', baseline={'id': ID, 'sha': OLD},
+                          release_observation_ledger=str(ledger),
+                          release_observation_pending={'id': 'dep_new', 'sha': NEW, 'baselineSha': OLD,
+                                                         'deployedAt': c.release_observations.now_utc()})
+        self.client.active = {'id': 'dep_new', 'sha': NEW}
+        with patch.dict(os.environ, {'MSTEFAN_RELEASE_OBSERVATIONS': str(ledger)}), \
+             patch.object(c.release_observations, 'record', side_effect=c.release_observations.ObservationError('private')):
+            with self.assertRaises(c.Blocked):
+                self.run_flow()
+        self.assertEqual(self.state['phase'], 'paused')
+        self.assertEqual(json.loads(ledger.read_text())['captureState'], 'pending')
+        self.assertIn('release_observation_pending', c.load(self.path))
+
+    def test_capture_replays_same_confirmed_release_after_save_failure(self):
+        ledger = Path(self.temp.name) / 'delivery' / 'releases.json'
+        c.release_observations.init(ledger)
+        c.release_observations.mark_pending(ledger)
+        pending = {'id': 'dep_new', 'sha': NEW, 'baselineSha': OLD,
+                   'deployedAt': c.release_observations.now_utc()}
+        self.state.update(phase='smoke', sha=NEW, run_id=5, deadline=100,
+                          deployment_id='dep_new', baseline={'id': ID, 'sha': OLD},
+                          release_observation_ledger=str(ledger),
+                          release_observation_pending=pending)
+        self.client.active = {'id': 'dep_new', 'sha': NEW}
+        c.save(self.path, self.state)
+        with patch.dict(os.environ, {'MSTEFAN_RELEASE_OBSERVATIONS': str(ledger)}):
+            original = c.save
+            calls = 0
+            def crash(path, state):
+                nonlocal calls
+                calls += 1
+                if calls == 1:
+                    raise SystemExit('after ledger commit')
+                original(path, state)
+            with patch.object(c, 'save', crash), self.assertRaises(SystemExit):
+                c.tick(self.client, self.state, self.path, NEW, 5, {}, 10)
+            persisted = c.load(self.path)
+            c.tick(self.client, persisted, self.path, NEW, 5, {}, 10)
+        rows = json.loads(ledger.read_text())['deployments']
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]['deployedAt'], pending['deployedAt'])
+        self.assertEqual(self.client.posts, 0)
+
+    def test_disabling_bound_ledger_pauses_feed_before_next_release(self):
+        ledger = Path(self.temp.name) / 'delivery' / 'releases.json'
+        c.release_observations.init(ledger)
+        with patch.dict(os.environ, {'MSTEFAN_RELEASE_OBSERVATIONS': str(ledger)}):
+            c.register_release_ledger(self.state, self.path)
+        self.assertEqual(c.load(self.path)['release_observation_ledger'], str(ledger))
+        with patch.dict(os.environ, {'MSTEFAN_RELEASE_OBSERVATIONS': ''}):
+            with self.assertRaises(c.Blocked):
+                self.run_flow()
+        self.assertEqual(self.client.posts, 0)
+        self.assertEqual(self.state['phase'], 'paused')
+        self.assertEqual(c.release_observations.capture_state(ledger), 'paused')
+
+    def test_changing_bound_ledger_refuses_new_path_and_pauses_old(self):
+        ledger = Path(self.temp.name) / 'delivery' / 'releases.json'
+        other = Path(self.temp.name) / 'other' / 'releases.json'
+        c.release_observations.init(ledger)
+        c.release_observations.init(other)
+        with patch.dict(os.environ, {'MSTEFAN_RELEASE_OBSERVATIONS': str(ledger)}):
+            c.register_release_ledger(self.state, self.path)
+        with patch.dict(os.environ, {'MSTEFAN_RELEASE_OBSERVATIONS': str(other)}):
+            with self.assertRaises(c.Blocked):
+                self.run_flow()
+        self.assertEqual(c.release_observations.capture_state(ledger), 'paused')
+        self.assertEqual(c.release_observations.capture_state(other), 'ready')
+        self.assertEqual(self.client.posts, 0)
 
 
 class Contracts(unittest.TestCase):
