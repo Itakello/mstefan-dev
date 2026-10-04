@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readdirSync } from "node:fs";
 import test from "node:test";
 
 import { NextRequest } from "next/server";
@@ -78,7 +79,8 @@ test("bare missing paths rewrite to one path without exposing query data or touc
     assert.equal(result.headers.get("x-middleware-rewrite"), "https://mstefan.dev/__site_not_found__/missing");
     assert.equal(result.headers.get("location"), null);
   }
-  for (const pathname of ["/robots.txt", "/sitemap.xml", "/sitemap-0.xml", "/icon.svg", "/profile-photo.jpg", "/profile-avatar.jpg"]) {
+  for (const file of readdirSync(new URL("../public/", import.meta.url), { withFileTypes: true }).filter((entry) => entry.isFile())) {
+    const pathname = `/${file.name}`;
     assert.equal(proxy(new NextRequest(`https://mstefan.dev${pathname}`)).headers.get("x-middleware-rewrite"), null, pathname);
   }
   assert.equal(proxy(new NextRequest("https://mstefan.dev/en/unknown")).headers.get("x-middleware-rewrite"), null);
