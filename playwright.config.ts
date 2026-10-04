@@ -10,7 +10,6 @@ if (!baseURL) {
 
 export default defineConfig({
   testDir: "./e2e",
-  testMatch: "**/*.{review,smoke}.spec.ts",
   outputDir: ".artifacts/playwright/test-results",
   timeout: 60_000,
   expect: { timeout: 10_000 },
@@ -35,5 +34,8 @@ export default defineConfig({
     video: { mode: "on", size: { width: 1280, height: 720 } },
     viewport: { width: 1280, height: 720 },
   },
-  projects: [{ name: "review", use: { browserName: "chromium" } }],
+  projects: [
+    { name: "review", testMatch: "**/*.review.spec.ts", use: { browserName: "chromium" } },
+    { name: "smoke", testMatch: "**/*.smoke.spec.ts", use: { browserName: "chromium" } },
+  ],
 });
