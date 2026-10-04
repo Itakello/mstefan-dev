@@ -15,6 +15,8 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
+import release_observations
+
 REPO = 'Itakello/mstefan-dev'
 PROJECT = 'proj_w1kqcgR7eY2EZhht'
 VOLUME = 'openship-mstefan-payload-data'
@@ -24,7 +26,6 @@ ACTIVATION = Path('/etc/mstefan-event-deploy/activation.json')
 PROBE_SOCKET = '/run/mstefan-event-deploy-probe.sock'
 PROBE_LIMIT = 32 * 1024
 SHA = re.compile(r'^[0-9a-f]{40}$')
-DEPLOYMENT = re.compile(r'^dep_[A-Za-z0-9_-]+$')
 LIMIT = 40 * 60
 PUBLIC = tuple('/' + locale + suffix for locale in ('en', 'it') for suffix in ('', '/projects', '/about'))
 PRIVATE = ('/admin', '/admin/login', '/api/users', '/api/users/first-register', '/api/globals/about?draft=true',
@@ -149,7 +150,7 @@ class Client:
     def baseline(self):
         project = self.ship('GET', '/api/projects/' + PROJECT)
         deployment_id = field(project, 'activeDeploymentId', 'active_deployment_id')
-        if not DEPLOYMENT.fullmatch(str(deployment_id)):
+        if not release_observations.valid_id(deployment_id):
             raise Blocked('active deployment invalid')
         record = self.record(deployment_id)
         sha = field(record, 'commitSha', 'commit_sha')
@@ -215,7 +216,7 @@ class Client:
     def submit(self, sha):
         result = self.ship('POST', '/api/deployments', {'projectId': PROJECT, 'branch': 'master', 'commitSha': sha, 'environment': 'production'})
         deployment_id = field(result, 'deployment_id')
-        if not DEPLOYMENT.fullmatch(str(deployment_id)):
+        if not release_observations.valid_id(deployment_id):
             raise Blocked('submitted deployment ID invalid')
         return deployment_id
 
@@ -302,7 +303,78 @@ def load(path):
     return state
 
 
+def release_ledger():
+    return os.environ.get('MSTEFAN_RELEASE_OBSERVATIONS')
+
+
+def register_release_ledger(state, path):
+    configured = release_ledger()
+    bound = state.get('release_observation_ledger')
+    if bound is not None:
+        if not isinstance(bound, str) or not Path(bound).is_absolute():
+            raise Blocked('invalid release observation binding')
+        try:
+            status = release_observations.capture_state(bound)
+            if configured != bound:
+                if status == 'ready':
+                    release_observations.pause(bound)
+                raise Blocked('release observation path changed or disabled')
+            if status == 'inactive':
+                if state['phase'] != 'idle':
+                    raise Blocked('inactive release observation binding requires idle controller')
+                release_observations.activate(bound)
+                status = 'ready'
+            if status == 'paused' or (status == 'pending' and state['phase'] in {'idle', 'prepared'}):
+                raise Blocked('release observation state requires reconciliation')
+        except (OSError, release_observations.ObservationError):
+            raise Blocked('release observation binding unavailable') from None
+        return
+    if not configured:
+        return
+    if state['phase'] != 'idle' or not Path(configured).is_absolute():
+        raise Blocked('release observation binding requires idle controller and absolute path')
+    try:
+        status = release_observations.capture_state(configured)
+        if status not in {'inactive', 'ready'}:
+            raise Blocked('release observation ledger not ready')
+    except (OSError, release_observations.ObservationError):
+        raise Blocked('release observation binding unavailable') from None
+    state['release_observation_ledger'] = configured
+    save(path, state)
+    if status == 'inactive':
+        try:
+            release_observations.activate(configured)
+        except (OSError, release_observations.ObservationError):
+            raise Blocked('release observation activation failed') from None
+
+
+def mark_release_pending():
+    ledger = release_ledger()
+    if ledger:
+        try:
+            release_observations.mark_pending(ledger)
+        except (OSError, release_observations.ObservationError):
+            raise Blocked('release observation admission failed') from None
+
+
+def capture_release(client, state, path):
+    pending = state.get('release_observation_pending')
+    if not pending:
+        return
+    ledger = release_ledger()
+    if not ledger or pending.get('id') != state.get('deployment_id') or pending.get('sha') != state.get('sha'):
+        raise Blocked('release observation marker mismatch')
+    try:
+        release_observations.record(ledger, client, pending['id'], pending['sha'],
+                                    pending['baselineSha'], pending['deployedAt'])
+    except (OSError, release_observations.ObservationError):
+        raise Blocked('release observation capture failed') from None
+    state.pop('release_observation_pending')
+    save(path, state)
+
+
 def tick(client, state, path, sha, run_id, attestation, now):
+    register_release_ledger(state, path)
     if state['phase'] == 'paused':
         raise Refused('controller paused; attended reconciliation required')
     if state['phase'] == 'submit_unknown':
@@ -335,6 +407,7 @@ def tick(client, state, path, sha, run_id, attestation, now):
         if client.baseline() != state['baseline']:
             raise Blocked('active baseline changed during writer verification')
         client.current_master(sha)
+        mark_release_pending()
         state['phase'] = 'submit_unknown'
         save(path, state)
         deployment_id = client.submit(sha)
@@ -342,9 +415,18 @@ def tick(client, state, path, sha, run_id, attestation, now):
         save(path, state)
     elif state['phase'] == 'observing':
         if client.observe(state['deployment_id'], sha):
+            if release_ledger():
+                if client.baseline() != {'id': state['deployment_id'], 'sha': sha}:
+                    raise Blocked('active release identity mismatch before capture')
+                state['release_observation_pending'] = {
+                    'id': state['deployment_id'], 'sha': sha,
+                    'baselineSha': state['baseline']['sha'],
+                    'deployedAt': release_observations.now_utc(),
+                }
             state['phase'] = 'smoke'
             save(path, state)
     elif state['phase'] == 'smoke':
+        capture_release(client, state, path)
         client.smoke(state['deployment_id'], sha, attestation)
         state.update(phase='idle', last_success=sha, last_deployment=state['deployment_id'])
         save(path, state)

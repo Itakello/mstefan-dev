@@ -1,0 +1,194 @@
+import json
+import tempfile
+import unittest
+from pathlib import Path
+from unittest.mock import patch
+
+import release_observations as ledger
+
+OLD, NEW = 'a' * 40, 'b' * 40
+
+
+class Client:
+    def __init__(self):
+        self.reply = {'status': 'ahead', 'base_commit': {'sha': OLD}, 'total_commits': 1,
+                      'commits': [{'sha': NEW, 'commit': {'committer': {'date': '2020-01-01T00:00:00Z'}}}]}
+        self.calls = []
+
+    def gh(self, path):
+        self.calls.append(path)
+        return self.reply
+
+
+class LedgerTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.path = Path(self.temp.name) / 'delivery' / 'releases.json'
+        self.client = Client()
+        self.assertTrue(ledger.init(self.path))
+        self.assertEqual(ledger.capture_state(self.path), 'inactive')
+        ledger.activate(self.path)
+
+    def data(self):
+        return json.loads(self.path.read_text())
+
+    def test_initializer_has_no_history_and_replay_is_idempotent(self):
+        self.assertEqual(self.data()['deployments'], [])
+        self.assertFalse(ledger.init(self.path))
+        ledger.mark_pending(self.path)
+        self.assertTrue(ledger.record(self.path, self.client, 'dep_new', NEW, OLD))
+        original = self.data()['deployments'][0]
+        self.assertEqual(original['classification'], 'unknown')
+        self.assertTrue(original['commitCoverageComplete'])
+        self.assertFalse(ledger.record(self.path, self.client, 'dep_new', NEW, OLD))
+        self.assertEqual(self.data()['deployments'], [original])
+        self.assertEqual(self.client.calls, ['/compare/' + OLD + '...' + NEW])
+
+    def test_incomplete_or_over_250_compare_keeps_lead_time_unknown(self):
+        self.client.reply['total_commits'] = 251
+        ledger.mark_pending(self.path)
+        ledger.record(self.path, self.client, 'dep_new', NEW, OLD)
+        row = self.data()['deployments'][0]
+        self.assertEqual(row['commits'], [])
+        self.assertFalse(row['commitCoverageComplete'])
+
+    def test_malformed_ledger_and_conflicting_replay_fail_closed(self):
+        ledger.mark_pending(self.path)
+        ledger.record(self.path, self.client, 'dep_new', NEW, OLD)
+        with self.assertRaises(ledger.ObservationError):
+            ledger.record(self.path, self.client, 'dep_new', OLD, OLD)
+        content = self.data()
+        content['deployments'].append(content['deployments'][0])
+        self.path.write_text(json.dumps(content))
+        with self.assertRaises(ledger.ObservationError):
+            ledger.mark_pending(self.path)
+
+    def test_classification_requires_incident_evidence(self):
+        ledger.mark_pending(self.path)
+        ledger.record(self.path, self.client, 'dep_new', NEW, OLD)
+        with self.assertRaises(ledger.ObservationError):
+            ledger.classify(self.path, 'dep_new', 'failed')
+        self.assertEqual(self.data()['deployments'][0]['classification'], 'unknown')
+        self.assertTrue(ledger.classify(self.path, 'dep_new', 'failed', ledger.now_utc()))
+        self.assertEqual(self.data()['deployments'][0]['classification'], 'failed')
+
+    def test_full_ledger_refuses_admission_without_changing_ready_file(self):
+        data = self.data()
+        data['deployments'] = [
+            {'id': f'dep_{index}', 'sha': NEW, 'baselineSha': OLD,
+             'deployedAt': data['coverageStartedAt'], 'classification': 'unknown',
+             'commits': [], 'commitCoverageComplete': False,
+             'incidentStartedAt': None, 'recoveredAt': None}
+            for index in range(ledger.MAX_DEPLOYMENTS)
+        ]
+        self.path.write_text(json.dumps(data))
+        before = self.path.read_bytes()
+        with self.assertRaisesRegex(ledger.ObservationError, 'cannot admit'):
+            ledger.mark_pending(self.path)
+        self.assertEqual(self.path.read_bytes(), before)
+        self.assertEqual(ledger.capture_state(self.path), 'ready')
+
+    def test_byte_reservation_refuses_admission_before_file_changes(self):
+        before = self.path.read_bytes()
+        with patch.object(ledger, 'MAX_BYTES', len(before) + ledger.MAX_RECORD_RESERVE - 1):
+            with self.assertRaisesRegex(ledger.ObservationError, 'cannot admit'):
+                ledger.mark_pending(self.path)
+        self.assertEqual(self.path.read_bytes(), before)
+        self.assertEqual(ledger.capture_state(self.path), 'ready')
+
+    def test_outstanding_enrichment_and_classification_space_blocks_admission(self):
+        self.client.reply['total_commits'] = 251
+        ledger.mark_pending(self.path)
+        ledger.record(self.path, self.client, 'dep_old', NEW, OLD)
+        before = self.path.read_bytes()
+        with patch.object(ledger, 'MAX_BYTES', len(before) + ledger.MAX_RECORD_RESERVE +
+                          ledger.MAX_ENRICH_GROWTH + ledger.MAX_CLASSIFY_GROWTH - 1):
+            with self.assertRaisesRegex(ledger.ObservationError, 'cannot admit'):
+                ledger.mark_pending(self.path)
+        self.assertEqual(self.path.read_bytes(), before)
+        self.assertEqual(ledger.capture_state(self.path), 'ready')
+
+    def test_outstanding_growth_bounds_maximum_enrichment_and_incident(self):
+        stamp = ledger.now_utc()
+        before = {'id': 'dep_old', 'sha': NEW, 'baselineSha': OLD,
+                  'deployedAt': stamp, 'classification': 'unknown', 'commits': [],
+                  'commitCoverageComplete': False, 'incidentStartedAt': None, 'recoveredAt': None}
+        enriched = dict(before, commits=[{'sha': f'{index:040x}', 'committedAt': stamp}
+                                         for index in range(ledger.MAX_COMMITS)],
+                        commitCoverageComplete=True)
+        after = dict(enriched, classification='failed-rework',
+                     incidentStartedAt=stamp, recoveredAt=stamp)
+        size = lambda row: len(json.dumps(row, separators=(',', ':'), sort_keys=True).encode())
+        self.assertLess(size(enriched) - size(before), ledger.MAX_ENRICH_GROWTH)
+        self.assertLess(size(after) - size(enriched), ledger.MAX_CLASSIFY_GROWTH)
+
+    def test_attended_root_write_preserves_existing_ledger_owner(self):
+        owner = self.path.stat()
+        with patch.object(ledger.os, 'geteuid', return_value=0), \
+             patch.object(ledger.os, 'fchown') as chown:
+            ledger.pause(self.path)
+        chown.assert_called_once()
+        self.assertEqual(chown.call_args.args[1:], (owner.st_uid, owner.st_gid))
+        self.assertEqual(ledger.capture_state(self.path), 'paused')
+
+    def test_unprivileged_mismatched_owner_cannot_replace_ledger(self):
+        before = self.path.read_bytes()
+        with patch.object(ledger.os, 'geteuid', return_value=self.path.stat().st_uid + 1):
+            with self.assertRaisesRegex(ledger.ObservationError, 'ownership mismatch'):
+                ledger.pause(self.path)
+        self.assertEqual(self.path.read_bytes(), before)
+        self.assertEqual(ledger.capture_state(self.path), 'ready')
+
+    def test_record_reserve_exceeds_largest_allowed_serialized_row(self):
+        stamp = ledger.now_utc()
+        row = {'id': 'dep_' + 'x' * (ledger.MAX_ID_BYTES - 4), 'sha': NEW, 'baselineSha': OLD,
+               'deployedAt': stamp, 'classification': 'failed-rework',
+               'commits': [{'sha': f'{index:040x}', 'committedAt': stamp}
+                           for index in range(ledger.MAX_COMMITS)],
+               'commitCoverageComplete': True, 'incidentStartedAt': stamp,
+               'recoveredAt': stamp}
+        self.assertLess(len(json.dumps(row, separators=(',', ':'), sort_keys=True).encode()) + 1,
+                        ledger.MAX_RECORD_RESERVE)
+
+    def test_incident_may_start_before_observation_within_coverage(self):
+        data = self.data()
+        data['coverageStartedAt'] = '2026-10-01T00:00:00.000000Z'
+        self.path.write_text(json.dumps(data))
+        ledger.mark_pending(self.path)
+        ledger.record(self.path, self.client, 'dep_delayed', NEW, OLD)
+        observed = self.data()['deployments'][0]['deployedAt']
+        incident = '2026-10-02T00:00:00.000000Z'
+        self.assertLess(incident, observed)
+        self.assertTrue(ledger.classify(self.path, 'dep_delayed', 'failed', incident, incident))
+        self.assertEqual(self.data()['deployments'][0]['incidentStartedAt'], incident)
+        with self.assertRaises(ledger.ObservationError):
+            ledger.classify(self.path, 'dep_delayed', 'failed', '2026-09-30T00:00:00.000000Z')
+
+    def test_id_acceptance_matches_bounded_provider_response(self):
+        self.assertTrue(ledger.valid_id('dep_' + 'x' * 121))
+        self.assertTrue(ledger.valid_id('dep_' + 'x' * (ledger.MAX_ID_BYTES - 4)))
+        self.assertFalse(ledger.valid_id('dep_' + 'x' * (ledger.MAX_ID_BYTES - 3)))
+
+    def test_activation_resets_coverage_only_for_new_inactive_ledger(self):
+        previous = self.data()['coverageStartedAt']
+        ledger.pause(self.path)
+        with self.assertRaises(ledger.ObservationError):
+            ledger.activate(self.path)
+        self.assertEqual(self.data()['coverageStartedAt'], previous)
+        fresh = Path(self.temp.name) / 'fresh' / 'releases.json'
+        ledger.init(fresh)
+        inactive = json.loads(fresh.read_text())
+        self.assertEqual(inactive['captureState'], 'inactive')
+        inactive.update(coverageStartedAt='2026-10-01T00:00:00.000000Z',
+                        updatedAt='2026-10-01T00:00:00.000000Z')
+        fresh.write_text(json.dumps(inactive))
+        ledger.activate(fresh)
+        active = json.loads(fresh.read_text())
+        self.assertEqual(active['captureState'], 'ready')
+        self.assertGreater(active['coverageStartedAt'], inactive['coverageStartedAt'])
+        self.assertEqual(active['deployments'], [])
+
+
+if __name__ == '__main__':
+    unittest.main()

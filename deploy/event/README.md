@@ -10,7 +10,7 @@ After deployment, provider record/build status and active deployment ID/commit m
 
 ## Host installation and activation proof
 
-Use protected 1Password transport before creating or transferring credentials. Install root-owned `controller.py`, `launch.py` and `volume_probe.py` in `/opt/mstefan-event-deploy`, `mstefan-event-deploy@.service` in `/etc/systemd/system`, and executable `trigger.py` as `/usr/local/sbin/mstefan-event-deploy-trigger`. Install `trigger.sudoers` root-owned mode 0440 in `/etc/sudoers.d`, and validate with `visudo -cf`. Install `mstefan-event-deploy-probe.socket` and `mstefan-event-deploy-probe@.service` in `/etc/systemd/system`. Reload systemd. Create an unprivileged service account `mstefan-event-deploy` and mode-0700 `/var/lib/mstefan-event-deploy` owned by that account. Enable the probe socket after the service group exists. Its fixed `/run/mstefan-event-deploy-probe.sock` endpoint is root-owned mode 0660, group `mstefan-event-deploy`. No TCP listener, Docker group membership or controller sudo permission is needed. Do not install a timer or a native provider webhook.
+Use protected 1Password transport before creating or transferring credentials. Install root-owned `controller.py`, `release_observations.py`, `launch.py` and `volume_probe.py` in `/opt/mstefan-event-deploy`, `mstefan-event-deploy@.service` in `/etc/systemd/system`, and executable `trigger.py` as `/usr/local/sbin/mstefan-event-deploy-trigger`. Install `trigger.sudoers` root-owned mode 0440 in `/etc/sudoers.d`, and validate with `visudo -cf`. Install `mstefan-event-deploy-probe.socket` and `mstefan-event-deploy-probe@.service` in `/etc/systemd/system`. Reload systemd. Create an unprivileged service account `mstefan-event-deploy` and mode-0700 `/var/lib/mstefan-event-deploy` owned by that account. Enable the probe socket after the service group exists. Its fixed `/run/mstefan-event-deploy-probe.sock` endpoint is root-owned mode 0660, group `mstefan-event-deploy`. No TCP listener, Docker group membership or controller sudo permission is needed. Do not install a timer or a native provider webhook.
 
 The root-owned mode-0600 `/etc/mstefan-event-deploy/controller.env` requires `OPENSHIP_TOKEN`. This public repository can use anonymous read-only GitHub metadata/tree requests; missing `GITHUB_TOKEN` sends no Authorization header, and rate-limit/API errors fail closed. If needed, supply an optional token with read-only Contents/Actions for this repository. Do not copy broad interactive GitHub credentials into this service. Limit Openship access to this project's reads and deployment submission where installed authorization supports it; verify actual installed scope before enabling. Keep credentials out of source, logs and command arguments.
 
@@ -28,6 +28,68 @@ The root probe validates the same non-writable activation file and uses only fix
 
 This observation does not lock Docker or detect arbitrary host processes writing directly to the volume. Native stop-first proof and exclusion of competing provider/host writers remain required; a race after the final observation cannot be ruled out by a read-only probe. The attestation contains no credentials or copied provider response. Recheck live configuration before each submission; repeat installed-API, stop-first and recovery proof after provider upgrades/configuration changes. Disable native project auto-deploy to avoid a competing deployment source.
 
+## Optional production release observations
+
+`release_observations.py` owns a separate sanitized delivery ledger. Installing it
+does not activate capture. After proving the installed controller's production
+path, initialize `/var/lib/mstefan-delivery/releases.json` as
+`mstefan-event-deploy` with
+`python3 /opt/mstefan-event-deploy/release_observations.py init /var/lib/mstefan-delivery/releases.json`, then set
+`MSTEFAN_RELEASE_OBSERVATIONS=/var/lib/mstefan-delivery/releases.json` in the
+protected controller environment. During attended setup, this command creates
+an `inactive` ledger with no deployments. An inactive
+ledger is unavailable to the aggregate reader. Create the directory owned by `mstefan-event-deploy`
+with mode 2750 and a dedicated reader group. The setgid directory makes the
+atomically replaced mode-0640 ledger readable by that group; grant group
+membership only to the verified aggregate reader, with no write access. The
+controller service user remains the sole writer. Preserve the directory and
+ledger across controller upgrades and rollback.
+
+With the controller idle, the next controller run validates the absolute ledger
+path and saves that exact path in durable controller state before activating a
+new inactive ledger. Activation sets `coverageStartedAt` to that time and makes
+the ledger ready. A crash between binding and activation leaves the ledger
+inactive; the bound controller resumes activation on its next idle run. A
+previously activated ready ledger retains its original coverage start. An
+operator-paused ledger is never activated through this setup path.
+Changing or removing the configured path later blocks the controller and pauses
+the old ledger if it is ready, so readers cannot report an empty or stale ready
+feed. Before removing the flag, explicitly pause the bound ledger while the
+configuration still points to it. Reconcile a pending capture first; a pending
+ledger is already unavailable to readers and cannot be paused as ready.
+
+With capture enabled, the ledger must durably enter `pending` before the
+production POST. A missing, paused, malformed or unwritable ledger blocks the
+POST. Once the exact submitted deployment is confirmed active with its SHA, the
+controller saves its deployment ID and observation time, then writes the release
+before public smoke. A smoke failure therefore leaves that release counted with
+classification `unknown`; an operator may later classify failure and recovery
+only from verified incident evidence. A crash after ledger write replays the
+same ID and timestamp without adding another release. An unresolved pending
+capture blocks the next production POST; reconcile the original deployment and
+ledger before clearing it. The controller never backfills previous or manually
+submitted deployments. `deployedAt` is the first durable observation of the
+confirmed active release, not a provider-reported activation timestamp; a
+controller interruption can therefore lengthen measured lead time. GitHub
+compare is bounded to 250 main-branch commits;
+if it is incomplete or unavailable, lead-time coverage remains unavailable.
+An incident backed by provider evidence may start before the controller's
+`deployedAt` observation, as long as it falls within active coverage. Deployment
+IDs follow the existing 1 MiB provider-response bound; the ledger reserves
+space for that maximum ID and 250 commits, plus future enrichment and incident
+classification of existing releases, before admitting a production POST.
+The reader and any dashboard must treat pending/paused capture, missing source,
+unclassified releases, and absent recovery evidence as Unknown, not zero.
+
+Before enabling, prove a controller-confirmed active production release, a
+failed-smoke release, a no-new-POST replay, and a pending-ledger refusal against
+the installed paths. `classify`, `enrich`, `pause`, `resume`, and `cancel-pending`
+are attended ledger commands; preserve a ledger copy and verify the exact
+deployment evidence before reconciling pending capture. Set the environment
+flag only after the initializer and reader have been checked. Removing the flag
+blocks further deployment and leaves the old ledger paused or pending until
+attended reconciliation.
+
 ## Manual proof, replay and pause
 
 Run `python3 -m unittest discover -s deploy/event -p 'test_*.py'` and workflow lint before installation. With automation still disabled, use a known current successful master push run and invoke the forced-command entrypoint manually. A fresh state may deploy; only an already-active matching SHA produces a health-checked no-op. Inspect the exact project, commit, deployment ID, active ID, public/private probes, native writer transition and service result. Replay the same SHA/run and verify zero new POSTs. Prove failure/pause and unknown-submission handling safely before enabling; offline tests alone do not establish installed behavior.
@@ -35,3 +97,12 @@ Run `python3 -m unittest discover -s deploy/event -p 'test_*.py'` and workflow l
 A 40-minute controller deadline, 45-minute systemd bound and 50-minute GitHub job bound prevent endless runs. GitHub Actions exposes controller/SSH failures; no Slack/email recipient is added. Expired proof, CI/config/schema mismatch, build failure, timeout or smoke failure pauses durable state and records the failed SHA. No automatic rollback or guessed recovery endpoint is called. Failed SHA replay is refused. A durable `submit_unknown` marker written before POST prevents duplication after a crash/timeout before the returned ID is saved.
 
 Pause future events by setting `MSTEFAN_EVENT_DEPLOY_ENABLED=false`. To stop an active run, identify the exact `mstefan-event-deploy@<SHA>-<run>.service` and stop that unit; preserve state and inspect provider activity, since stopping the observer does not cancel a submitted build. Inspect protected state and provider records before reconciliation. For unknown submission, locate the exact matching native deployment; never clear state and repost without proving whether submission occurred. Recovery remains human attended: establish actual installed restore operations, stop all writers, restore verified database/media/image as necessary, and repeat identity/privacy/health checks. Reconcile state only after proof; do not delete failure evidence to force an unattended retry.
+
+Before rolling back to controller code without release capture, disable the
+deployment trigger and stop any active controller unit; reconcile a submitted
+release and pending ledger first. While the capture-aware code and bound
+environment are still installed, run `release_observations.py pause` on the
+bound ledger as `mstefan-event-deploy` and verify the aggregate reader reports
+coverage unavailable. Only then restore the older controller. Keep the ledger
+and controller state for attended reconciliation; do not resume deployment
+triggers until release capture is restored and verified.
