@@ -29,6 +29,7 @@ class DockerFake:
         self.race = False
         self.process_rows = {}
         self.held_roots = {}
+        self.process_metadata = {}
 
     def get(self, path):
         self.calls.append(path)
@@ -59,7 +60,7 @@ class DockerFake:
                 rows.append(f'{number + 100} {number} 8:1 {os.path.realpath(MOUNTPOINT)} {mount["Destination"]}/payload-data {options} - ext4 /dev/test {options}')
         rows.extend(self.process_rows.get(container_id, []))
         raw = '\n'.join(rows) + '\n'
-        return p.MountTopology(raw), hashlib.sha256(raw.encode()).hexdigest()
+        return p.MountTopology(raw, container_view=True, stat_path=lambda path: self.process_metadata[path]), hashlib.sha256(raw.encode()).hexdigest()
 
 
 def topology_fixture(extra='', metadata=None):
@@ -157,6 +158,32 @@ class ProbeTests(unittest.TestCase):
                 with self.assertRaisesRegex(c.Blocked, 'too large'):
                     p.read_process_mountinfo(pid, A)
 
+    def test_deleted_file_proof_uses_pinned_process_and_detects_mount_race(self):
+        original_open = os.open
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'cgroup').write_text('0::/docker/' + A + '\n')
+            raw = ('10 1 8:2 / / rw - overlay overlay rw\n'
+                   '11 10 8:1 /opt/config//deleted /app/config ro - ext4 /dev/test rw\n')
+            (root / 'mountinfo').write_text(raw)
+            def open_proc(path, flags, *args, **kwargs):
+                return original_open(directory if path == '/proc/12345' else path, flags, *args, **kwargs)
+            metadata = SimpleNamespace(st_dev=os.makedev(8, 1), st_ino=700, st_mode=0o100444, st_nlink=0)
+            with patch.object(p.os, 'open', side_effect=open_proc), patch.object(p.os, 'stat', return_value=metadata) as stat_file:
+                _, first = p.read_process_mountinfo(12345, A)
+                self.assertEqual(stat_file.call_args.args, ('root/app/config',))
+                self.assertIsInstance(stat_file.call_args.kwargs['dir_fd'], int)
+                self.assertFalse(stat_file.call_args.kwargs['follow_symlinks'])
+                metadata.st_ino += 1
+                _, second = p.read_process_mountinfo(12345, A)
+                self.assertNotEqual(first, second)
+                def race(*args, **kwargs):
+                    (root / 'mountinfo').write_text(raw.replace(' ro - ', ' rw - '))
+                    return metadata
+                stat_file.side_effect = race
+                with self.assertRaisesRegex(c.Blocked, 'changed during file proof'):
+                    p.read_process_mountinfo(12345, A)
+
     def test_container_mount_change_between_snapshots_blocks(self):
         class ChangedMounts(DockerFake):
             def __init__(self):
@@ -170,6 +197,75 @@ class ProbeTests(unittest.TestCase):
 
         with self.assertRaisesRegex(c.Blocked, 'changed during probe'):
             p.probe(ChangedMounts())
+
+    def deleted_bind(self):
+        extra = record(B, 'read-only-deleted-file', rw=False)
+        extra['Mounts'][0].update(Type='bind', Name=None, Source='/opt/monitor/config.yaml', Destination='/app/config.yaml')
+        docker = DockerFake({A: record(), B: extra})
+        docker.held_roots[B, '/app/config.yaml'] = '/opt/monitor/config.yaml//deleted'
+        docker.process_metadata['/app/config.yaml'] = SimpleNamespace(st_dev=os.makedev(8, 1), st_ino=700, st_mode=0o100444, st_nlink=0)
+        return docker
+
+    def test_deleted_readonly_file_preserves_one_writer_without_reading_replacement(self):
+        docker = self.deleted_bind()
+        def canonical(path):
+            if path == '/opt/monitor/config.yaml':
+                raise FileNotFoundError(path)
+            return os.path.realpath(path)
+        topology = topology_fixture()
+        topology.canonical = canonical
+        result = p.probe(docker, topology_factory=lambda: topology)
+        self.assertEqual(result, writer_fixture())
+        client = c.Client({'OPENSHIP_TOKEN': 'fake'})
+        client.probe = lambda: result
+        client.volume_writer('dep_new', attestation())
+
+    def test_deleted_file_does_not_hide_second_writer(self):
+        docker = self.deleted_bind()
+        docker.process_rows[B] = [f'12 10 8:1 {os.path.realpath(MOUNTPOINT)} /unexpected rw - ext4 /dev/test rw']
+        result = p.probe(docker)
+        self.assertEqual(result['count'], 2)
+        client = c.Client({'OPENSHIP_TOKEN': 'fake'})
+        client.probe = lambda: result
+        with self.assertRaises(c.Blocked):
+            client.volume_writer('dep_new', attestation())
+
+    def test_deleted_file_unsafe_metadata_and_storage_roots_block(self):
+        for field, value in [('st_mode', 0o040555), ('st_mode', 0o120777), ('st_nlink', 1), ('st_dev', os.makedev(8, 3))]:
+            with self.subTest(field=field, value=value):
+                docker = self.deleted_bind()
+                setattr(docker.process_metadata['/app/config.yaml'], field, value)
+                with self.assertRaises(c.Blocked):
+                    p.probe(docker)
+        for root in (MOUNTPOINT, MOUNTPOINT + '/old.db', '/var/lib/docker/volumes', '/', '/opt/../opt/file', '/opt/file//deleted'):
+            with self.subTest(root=root):
+                docker = self.deleted_bind()
+                docker.held_roots[B, '/app/config.yaml'] = os.path.realpath(root) + '//deleted' if root in (MOUNTPOINT, MOUNTPOINT + '/old.db', '/var/lib/docker/volumes') else root + '//deleted'
+                with self.assertRaises(c.Blocked):
+                    p.probe(docker)
+
+    def test_deleted_mount_requires_readonly_kernel_and_docker_bind(self):
+        for field, value in [('RW', True), ('Type', 'volume')]:
+            with self.subTest(field=field):
+                docker = self.deleted_bind()
+                docker.records[B]['Mounts'][0][field] = value
+                with self.assertRaises(c.Blocked):
+                    p.probe(docker)
+        docker = self.deleted_bind()
+        docker.records[B]['Mounts'] = []
+        docker.process_rows[B] = ['11 10 8:1 /opt/monitor/config.yaml//deleted /app/config.yaml ro - ext4 /dev/test rw']
+        with self.assertRaisesRegex(c.Blocked, 'missing Docker'):
+            p.probe(docker)
+
+    def test_deleted_mount_stack_or_children_block(self):
+        for extra in ('12 11 8:1 /other /app/config.yaml ro - ext4 /dev/test rw',
+                      '12 10 8:1 /other /app/config.yaml ro - ext4 /dev/test rw',
+                      '12 11 8:1 /other /app/config.yaml/child rw - ext4 /dev/test rw'):
+            with self.subTest(extra=extra):
+                docker = self.deleted_bind()
+                docker.process_rows[B] = [extra]
+                with self.assertRaises(c.Blocked):
+                    p.probe(docker)
 
     def test_retained_bind_after_host_source_retarget_blocks_submission(self):
         stale = record(B, 'stale-host-source')
@@ -257,6 +353,16 @@ class KernelTopologyTests(unittest.TestCase):
                                   ('/host/root/run/docker/netns/ns1', 'ext4')):
             with self.subTest(point=point, filesystem=filesystem), self.assertRaises(c.Blocked):
                 p.MountTopology(base + f'11 10 0:4 net:[4026532591] {point} ro - {filesystem} none rw\n', container_view=True)
+
+    def test_deleted_syntax_is_container_ext4_root_only(self):
+        base = '10 1 8:2 / / rw - overlay overlay rw\n'
+        metadata = lambda path: SimpleNamespace(st_dev=os.makedev(8, 1), st_ino=700, st_mode=0o100444, st_nlink=0)
+        for root, point, fs, view in (('/opt/file//deleted', '/app/file', 'ext4', False),
+                                      ('/opt/file//deleted', '/app/file', 'tmpfs', True),
+                                      ('/opt/file', '/app/file//deleted', 'ext4', True),
+                                      ('/opt/file//deleted/child', '/app/file', 'ext4', True)):
+            with self.subTest(root=root, point=point, fs=fs, view=view), self.assertRaises(c.Blocked):
+                p.MountTopology(base + f'11 10 8:1 {root} {point} ro - {fs} /dev/test rw\n', container_view=view, stat_path=metadata)
 
     def test_visible_stacked_mount_unrelated_to_volume_allows_probe(self):
         binfmt = ('20 10 0:40 / /proc/sys/fs/binfmt_misc rw - autofs none rw\n'
