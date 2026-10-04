@@ -12,6 +12,6 @@ RuntimeMaxSec=10
 TimeoutStopSec=1
 NoNewPrivileges=true
 # Host mount topology and paths must remain in PID 1's mount namespace.
-# Required for metadata access through container /proc/<pid>/root.
-CapabilityBoundingSet=CAP_SYS_PTRACE
+# Required for container proc metadata and private host bind-source traversal.
+CapabilityBoundingSet=CAP_SYS_PTRACE CAP_DAC_READ_SEARCH
 RestrictAddressFamilies=AF_UNIX
