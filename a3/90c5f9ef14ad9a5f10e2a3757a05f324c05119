@@ -1,0 +1,25 @@
+deploy/event/README.md
+  s_22df7f252e44cb::t_e74d33116bc738 27
+deploy/event/mstefan-event-deploy-probe@.service
+  s_22df7f252e44cb::t_26ff222a95037d 15-16
+deploy/event/test_volume_probe.py
+  s_22df7f252e44cb::t_64599d98a419c9 32,63,161-186,201-269,357-366
+deploy/event/volume_probe.py
+  s_22df7f252e44cb::t_96912a4f62f99c 54,72,77-81,93-99,101-103,139-141,231-234,236-237,243-245,294-297,313-314
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a390c5f9ef14ad9a5f10e2a3757a05f324c05119",
+  "prompts": {},
+  "sessions": {
+    "s_22df7f252e44cb": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a10248-f23d-7bf0-b98c-0efcb9b4095b",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
