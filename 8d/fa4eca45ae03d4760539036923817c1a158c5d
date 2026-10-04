@@ -1,0 +1,24 @@
+e2e/not-found.smoke.spec.ts
+  s_0d46d53e6667c6::t_09fa523246c070 21,25
+  s_0d46d53e6667c6::t_db55fbb9b563a6 1-3,13-20,22-24,26-27,31-32
+  s_0d46d53e6667c6::t_43ec00a0834d26 70
+  s_0d46d53e6667c6::t_1fd6588ef2bd45 33-34
+scripts/visual-review/run-fixture.mjs
+  s_0d46d53e6667c6::t_9f9a6e3bb9aff5 62
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8dfa4eca45ae03d4760539036923817c1a158c5d",
+  "prompts": {},
+  "sessions": {
+    "s_0d46d53e6667c6": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fb033-ed4b-7e70-a575-d83199486769",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
