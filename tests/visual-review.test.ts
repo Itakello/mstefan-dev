@@ -40,10 +40,10 @@ test("supported agents exclude the stock healer", () => {
   assert.equal(existsSync(new URL("../.codex/agents/playwright_test_healer.toml", import.meta.url)), false);
 });
 
-test("review tests cannot silently suppress failures", () => {
+test("browser tests cannot silently suppress failures", () => {
   const reviewDirectory = new URL("../e2e/", import.meta.url);
   const reviewTests = readdirSync(reviewDirectory)
-    .filter((name) => name.endsWith(".review.spec.ts"));
+    .filter((name) => /\.(review|smoke)\.spec\.ts$/.test(name));
   const prohibited = ["test.skip", "test.fixme", "test.fail", "test.only", "expect.soft"];
 
   assert.notEqual(reviewTests.length, 0);
