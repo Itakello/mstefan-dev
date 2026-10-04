@@ -1,4 +1,5 @@
 import type { CaptureResult, PostHogConfig } from "posthog-js";
+import type { Locale } from "./i18n/config";
 
 export function doNotTrackEnabled() {
   if (typeof window === "undefined") return false;
@@ -21,8 +22,40 @@ export function isAnalyticsPage(url: URL) {
   );
 }
 
+export function getNotFoundAnalyticsLocale(url: URL, fallbackLocale?: Locale): Locale | null {
+  if (url.protocol !== "https:" || !["mstefan.dev", "www.mstefan.dev"].includes(url.hostname) || url.searchParams.has("preview")) return null;
+  const match = /^\/(en|it)\/[^/]+(?:\/.*)?$/.exec(url.pathname);
+  return match ? match[1] as Locale : (url.pathname !== "/" ? fallbackLocale ?? null : null);
+}
+
 export function sanitizeAnalyticsEvent(event: CaptureResult | null) {
-  if (isEmbeddedContext() || doNotTrackEnabled() || !event || !["$pageview", "$pageleave"].includes(event.event)) return null;
+  if (isEmbeddedContext() || doNotTrackEnabled() || !event) return null;
+
+  if (event.event === "page_not_found") {
+    try {
+      const url = new URL(event.properties.$current_url);
+      if (url.protocol !== "https:" || !["mstefan.dev", "www.mstefan.dev"].includes(url.hostname)) return null;
+      const match = /^\/(en|it)\/404$/.exec(url.pathname);
+      if (!match || event.properties.locale !== match[1]) return null;
+      const { token, distinct_id, $cookieless_mode, $process_person_profile } = event.properties;
+      if (typeof token !== "string" || !token || distinct_id !== "$posthog_cookieless" || $cookieless_mode !== true || $process_person_profile !== false) return null;
+      for (const key of Object.keys(event.properties)) delete event.properties[key];
+      event.properties.$current_url = `${url.origin}/${match[1]}/404`;
+      event.properties.locale = match[1];
+      event.properties.token = token;
+      event.properties.distinct_id = distinct_id;
+      event.properties.$cookieless_mode = true;
+      event.properties.$process_person_profile = false;
+      delete event.$set;
+      delete event.$set_once;
+      delete event.$unset;
+      return event;
+    } catch {
+      return null;
+    }
+  }
+
+  if (!["$pageview", "$pageleave"].includes(event.event)) return null;
 
   try {
     const url = new URL(event.properties.$current_url);

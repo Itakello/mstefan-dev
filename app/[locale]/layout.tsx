@@ -11,6 +11,7 @@ import { INITIAL_THEME_SCRIPT } from "@/lib/theme";
 import "../globals.css";
 
 export const dynamic = "force-dynamic";
+export const dynamicParams = false;
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://mstefan.dev"),

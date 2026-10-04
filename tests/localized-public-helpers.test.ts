@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readdirSync } from "node:fs";
 import test from "node:test";
 
 import { NextRequest } from "next/server";
@@ -54,6 +55,36 @@ test("the proxy persists explicit locales and leaves unsupported locale segments
 
   assert.equal(explicitResponse.cookies.get("site-locale")?.value, "it");
   assert.equal(unsupportedResponse.headers.get("location"), null);
+});
+
+test("the proxy replaces untrusted locale hints for missing pages", () => {
+  const explicit = proxy(new NextRequest("https://mstefan.dev/it/old-link", {
+    headers: { "x-site-locale": "en", "accept-language": "en" },
+  }));
+  const unprefixed = proxy(new NextRequest("https://mstefan.dev/old-link", {
+    headers: { "x-site-locale": "fr", "accept-language": "it" },
+  }));
+  const unsupported = proxy(new NextRequest("https://mstefan.dev/fr/missing", {
+    headers: { "x-site-locale": "en", cookie: "site-locale=it" },
+  }));
+  assert.equal(explicit.headers.get("x-middleware-request-x-site-locale"), "it");
+  assert.equal(unprefixed.headers.get("x-middleware-request-x-site-locale"), "it");
+  assert.equal(unsupported.headers.get("x-middleware-request-x-site-locale"), "it");
+  assert.equal(unprefixed.headers.get("x-middleware-rewrite"), "https://mstefan.dev/__site_not_found__/missing");
+});
+
+test("bare missing paths rewrite to one path without exposing query data or touching public files", () => {
+  for (const pathname of ["/old-link", "/old.html", "/fr"]) {
+    const result = proxy(new NextRequest(`https://mstefan.dev${pathname}?email=private@example.com`));
+    assert.equal(result.headers.get("x-middleware-rewrite"), "https://mstefan.dev/__site_not_found__/missing");
+    assert.equal(result.headers.get("location"), null);
+  }
+  for (const file of readdirSync(new URL("../public/", import.meta.url), { withFileTypes: true }).filter((entry) => entry.isFile())) {
+    const pathname = `/${file.name}`;
+    assert.equal(proxy(new NextRequest(`https://mstefan.dev${pathname}`)).headers.get("x-middleware-rewrite"), null, pathname);
+  }
+  assert.equal(proxy(new NextRequest("https://mstefan.dev/en/unknown")).headers.get("x-middleware-rewrite"), null);
+  assert.equal(proxy(new NextRequest("https://mstefan.dev/about")).headers.get("x-middleware-rewrite"), null);
 });
 
 test("the proxy redirects mixed-case locale prefixes and persists the canonical locale", () => {
