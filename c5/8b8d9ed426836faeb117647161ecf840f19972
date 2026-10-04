@@ -1,0 +1,29 @@
+deploy/event/test_controller.py
+  s_22df7f252e44cb::t_70f8070f7f882b 293-295
+  s_22df7f252e44cb::t_ff0a54f1262c7e 280-292,296-303
+  s_22df7f252e44cb::t_0dfe2d78c01936 279
+deploy/event/release_observations.py
+  s_22df7f252e44cb::t_6bf01a9a3961d7 150-155
+  s_22df7f252e44cb::t_fe0bcc1dce93b2 23-24,136-146
+deploy/event/test_release_observations.py
+  s_22df7f252e44cb::t_2b9297116f1d79 100-116,122,125-142
+  s_22df7f252e44cb::t_54915818b2b224 117-121,123-124
+deploy/event/README.md
+  s_22df7f252e44cb::t_c568fa5329d315 79-80,100-108
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c58b8d9ed426836faeb117647161ecf840f19972",
+  "prompts": {},
+  "sessions": {
+    "s_22df7f252e44cb": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a10248-f23d-7bf0-b98c-0efcb9b4095b",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
