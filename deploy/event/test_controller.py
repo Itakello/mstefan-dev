@@ -95,6 +95,24 @@ class FlowTests(unittest.TestCase):
         self.assertEqual(self.client.posts, 1)
         self.assertEqual(c.load(self.path)['last_success'], NEW)
 
+    def test_failed_sha_replay_only_verifies_a_healthy_already_active_release(self):
+        for active_sha, unhealthy in ((NEW, False), (OLD, False), (NEW, True)):
+            with self.subTest(active_sha=active_sha, unhealthy=unhealthy):
+                self.state = {'phase': 'idle', 'failed_shas': [NEW]}
+                self.client = Fake()
+                self.client.active = {'id': ID, 'sha': active_sha}
+                self.client.health_error = unhealthy
+                if active_sha == NEW and not unhealthy:
+                    self.run_flow()
+                    self.assertEqual(self.state['phase'], 'idle')
+                    self.assertEqual(self.state['last_success'], NEW)
+                else:
+                    with self.assertRaises(c.Blocked):
+                        self.run_flow()
+                    self.assertEqual(self.state['phase'], 'paused')
+                self.assertEqual(self.client.posts, 0)
+                self.assertEqual(self.state['failed_shas'], [NEW])
+
     def test_superseded_events_idle_and_prepared_do_not_pause_latest(self):
         for phase in ('idle', 'prepared'):
             with self.subTest(phase=phase):

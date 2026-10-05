@@ -384,8 +384,6 @@ def tick(client, state, path, sha, run_id, attestation, now):
     if state['phase'] != 'idle' and now >= state['deadline']:
         raise Blocked('deployment deadline exceeded')
     if state['phase'] == 'idle':
-        if sha in state['failed_shas']:
-            raise Blocked('failed SHA cannot retry unattended')
         client.gate(sha, run_id)
         client.activation(attestation, now)
         baseline = client.baseline()
@@ -395,6 +393,8 @@ def tick(client, state, path, sha, run_id, attestation, now):
             state.update(last_success=sha, last_deployment=baseline['id'])
             save(path, state)
             return
+        if sha in state['failed_shas']:
+            raise Blocked('failed SHA cannot retry unattended')
         client.compatible(baseline, sha)
         state.update(phase='prepared', sha=sha, run_id=run_id, baseline=baseline, deadline=now + LIMIT)
         save(path, state)
