@@ -9,7 +9,7 @@ import { LanguageSelector } from "@/components/LanguageSelector";
 import { getCopy, publicPagePaths, type PublicPage } from "@/lib/i18n/copy";
 import type { Locale } from "@/lib/i18n/config";
 import { localizedPath } from "@/lib/i18n/routing";
-import { cn } from "@/lib/utils";
+import clsx from "clsx";
 
 const pages: PublicPage[] = ["home", "projects", "about"];
 
@@ -56,7 +56,7 @@ export function Header({ locale }: { locale: Locale }) {
           <Link
             key={link.href}
             href={link.href}
-            className={cn(
+            className={clsx(
               "hover:text-[hsl(var(--accent))] transition-colors",
               pathname === link.href && "text-[hsl(var(--accent))]"
             )}
@@ -101,7 +101,7 @@ export function Header({ locale }: { locale: Locale }) {
               key={link.href}
               href={link.href}
               onClick={() => setMenuOpen(false)}
-              className={cn(
+              className={clsx(
                 "rounded-md px-3 py-2 no-underline transition-colors hover:bg-black/5 dark:hover:bg-white/10",
                 pathname === link.href && "text-[hsl(var(--accent))]",
               )}
