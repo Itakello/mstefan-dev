@@ -8,7 +8,7 @@ import { getCopy, type PublicPath } from "@/lib/i18n/copy";
 import { type Locale } from "@/lib/i18n/config";
 import { getLanguageMenuFocusIndex, shouldCloseLanguageMenuOnFocusLeave } from "@/lib/i18n/languageMenu";
 import { getPublicPathname, localizedPath } from "@/lib/i18n/routing";
-import { cn } from "@/lib/utils";
+import clsx from "clsx";
 
 function Flag({ locale }: { locale: Locale }) {
   if (locale === "it") {
@@ -129,13 +129,13 @@ export function LanguageSelector({ locale, compact = false }: { locale: Locale; 
           event.preventDefault();
           openMenu(event.key === "ArrowDown" ? 0 : localeOptions.length - 1);
         }}
-        className={cn(
+        className={clsx(
           "inline-flex items-center gap-2 rounded-md border border-black/10 px-2 py-1.5 text-sm transition-colors hover:border-black/20 dark:border-white/10 dark:hover:border-white/20",
           compact && "gap-1.5 px-1.5",
         )}
       >
         <Flag locale={locale} />
-        <span className={cn(compact && "sr-only")}>{copy.language[locale === "en" ? "English" : "Italiano"]}</span>
+        <span className={clsx(compact && "sr-only")}>{copy.language[locale === "en" ? "English" : "Italiano"]}</span>
         <ChevronDown className="size-3.5" aria-hidden="true" />
       </button>
       {open && (
