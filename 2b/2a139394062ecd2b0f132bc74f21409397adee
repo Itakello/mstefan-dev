@@ -1,0 +1,23 @@
+deploy/event/README.md
+  s_83f9ab876596ea::t_4129d5207227d9 97
+deploy/event/controller.py
+  s_83f9ab876596ea::t_02941765d8c7b0 396-397
+deploy/event/test_controller.py
+  s_83f9ab876596ea::t_523fed3ea3c69a 98-115
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2b2a139394062ecd2b0f132bc74f21409397adee",
+  "prompts": {},
+  "sessions": {
+    "s_83f9ab876596ea": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a10d5e-56b1-7b92-928f-33a42861b25b",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
