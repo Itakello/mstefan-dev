@@ -1,0 +1,29 @@
+.github/workflows/docs-updater.lock.yml
+  s_0a6ebbab095f8b::t_02c4a346a18864 1,124,809,815,1433,1439,1587
+.github/workflows/docs-updater.md
+  s_0a6ebbab095f8b::t_42c1e62b0757b6 18-19
+README.md
+  s_0a6ebbab095f8b::t_03167a36489172 143,145-146
+docs/automation/auto-documentation.md
+  s_0a6ebbab095f8b::t_cbf4cabcd15a59 19
+scripts/repository-technologies/codex-extractor.mjs
+  s_0a6ebbab095f8b::t_db58feeb226204 155-158,169-170
+tests/repository-technologies.test.ts
+  s_0a6ebbab095f8b::t_b3f7a6bc25cab8 514-535
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e7b447f7dc3063ab80c1a2ee54e879ed1989fc60",
+  "prompts": {},
+  "sessions": {
+    "s_0a6ebbab095f8b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a117b7-bd90-7651-a599-b0ef8890d689",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
