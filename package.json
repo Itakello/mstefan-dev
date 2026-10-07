@@ -22,17 +22,17 @@
     "@iconify/react": "^6.0.0",
     "@mdx-js/react": "^2.3.0",
     "@notionhq/client": "^2.2.15",
-    "@payloadcms/db-sqlite": "3.89.0",
-    "@payloadcms/live-preview-react": "3.89.0",
-    "@payloadcms/next": "3.89.0",
-    "@payloadcms/ui": "3.89.0",
+    "@payloadcms/db-sqlite": "3.90.0",
+    "@payloadcms/live-preview-react": "3.90.0",
+    "@payloadcms/next": "3.90.0",
+    "@payloadcms/ui": "3.90.0",
     "clsx": "^2.1.1",
     "graphql": "^16.14.2",
     "libsql": "0.4.7",
     "lucide-react": "^0.453.0",
     "motion": "^13.1.0",
-    "next": "16.3.6",
-    "payload": "3.89.0",
+    "next": "16.3.8",
+    "payload": "3.90.0",
     "pdfjs-dist": "^6.3.289",
     "posthog-js": "^1.434.15",
     "react": "19.3.0",
@@ -41,7 +41,7 @@
   },
   "devDependencies": {
     "@mdx-js/loader": "^2.3.0",
-    "@next/mdx": "16.3.6",
+    "@next/mdx": "16.3.8",
     "@playwright/test": "^1.62.1",
     "@tailwindcss/typography": "^0.5.10",
     "@types/node": "^20.12.12",
@@ -57,11 +57,12 @@
   "pnpm": {
     "overrides": {
       "nanoid": "3.3.18",
-      "sharp": "0.35.4",
+      "sharp": "0.35.5",
       "fast-uri": "3.1.8",
       "@esbuild-kit/core-utils>esbuild": "0.25.12",
       "monaco-editor>dompurify": "3.4.16",
-      "payload>undici": "7.29.1"
+      "payload>undici": "7.29.1",
+      "source-map-js": "1.2.2"
     }
   },
   "packageManager": "pnpm@10.14.0+sha512.ad27a79641b49c3e481a16a805baa71817a04bbe06a38d17e60e2eaee83f6a146c6a688125f5792e48dd5ba30e7da52a5cda4c3992b9ccf333f9ce223af84748",
