@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { DatabaseSync } from 'node:sqlite';
+import { migrations } from '../../migrations/index';
 
 for (const schemaVersion of ['initial', 'career', 'branch_graph', 'ongoing', 'photo']) {
 test(`preview ${schemaVersion} baseline preserves drafts and rejects unexpected schema`, async () => {
@@ -183,6 +184,7 @@ test('branch graph preview baseline preserves populated published and draft fiel
     assert.deepEqual(content().filter((table) => !['documents', 'career_jobs_documents', '_career_v_version_jobs_documents'].includes(table.name)).map((table) => ({ ...table, rows: table.rows.map((row) => {
       if (table.name === 'career_jobs' || table.name === '_career_v_version_jobs') { delete row.ongoing; delete row.photo_id; }
       if (table.name === 'media') delete row.alt;
+      if (table.name === 'users') delete row.reset_password_requested_at;
       if (table.name === 'payload_locked_documents_rels') delete row.documents_id;
       return row;
     }) })), currentContent, 'Migration after baseline changed existing branch fields');
@@ -395,7 +397,7 @@ test('Payload migration runner can remove and recreate the initial migration his
       assert.equal(result.status, 0, `${command}: ${result.stderr}\n${result.stdout}`);
       const database = new DatabaseSync(path.join(dataDir, '.payload-local.db'));
       try {
-        remainingMigrations = command === 'migrate' ? 6 : 0;
+        remainingMigrations = command === 'migrate' ? migrations.length : 0;
         if (remainingMigrations === 0) {
           assert.deepEqual(database.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").all(), []);
         } else {
@@ -481,5 +483,33 @@ test('deleting career photos clears published and draft references', async () =>
       DELETE FROM media WHERE id=1;`);
     assert.equal(db.prepare('SELECT photo_id FROM career_jobs').get()?.photo_id, null);
     assert.equal(db.prepare('SELECT photo_id FROM _career_v_version_jobs').get()?.photo_id, null);
+  } finally { db.close(); }
+});
+
+test('password-reset throttle migration preserves accounts and content and reverses only its column', async () => {
+  const { SQLiteSyncDialect } = await import('@payloadcms/db-sqlite/drizzle/sqlite-core');
+  const { up, down } = await import('../../migrations/20261007_211914_password_reset_throttle');
+  const dialect = new SQLiteSyncDialect();
+  const db = new DatabaseSync(':memory:');
+  const args = { db: { run: (query: Parameters<typeof dialect.sqlToQuery>[0]) => db.exec(dialect.sqlToQuery(query).sql) } };
+  const accounts = () => db.prepare('SELECT * FROM users').all();
+  const drafts = () => db.prepare('SELECT * FROM _about_v_locales').all();
+  try {
+    for (const migration of migrations.slice(0, migrations.findIndex(({ name }) => name === '20261007_211914_password_reset_throttle'))) await migration.up(args as unknown as Parameters<typeof up>[0]);
+    db.exec(`INSERT INTO users (id, email, reset_password_token, reset_password_expiration, login_attempts) VALUES (1, 'upgrade@example.invalid', 'synthetic-reset-token', '2026-10-08T00:00:00Z', 2);
+      INSERT INTO _about_v (id, version__status, latest) VALUES (1, 'draft', 1);
+      INSERT INTO _about_v_locales (version_title, _locale, _parent_id) VALUES ('preserved-private-title', 'it', 1);`);
+    const beforeAccounts = accounts();
+    const beforeDrafts = drafts();
+    await up(args as unknown as Parameters<typeof up>[0]);
+    assert.equal(accounts()[0].reset_password_requested_at, null);
+    assert.deepEqual(accounts().map(({ reset_password_requested_at, ...account }) => account), beforeAccounts.map((account) => ({ ...account })));
+    db.exec("UPDATE users SET reset_password_requested_at = '2026-10-07T21:00:00Z'");
+    assert.deepEqual(drafts(), beforeDrafts);
+    assert.deepEqual(db.prepare('PRAGMA foreign_key_check').all(), []);
+    await down(args as unknown as Parameters<typeof down>[0]);
+    assert.deepEqual(accounts(), beforeAccounts);
+    assert.deepEqual(drafts(), beforeDrafts);
+    assert.equal(db.prepare('PRAGMA integrity_check').get()!.integrity_check, 'ok');
   } finally { db.close(); }
 });
