@@ -511,7 +511,7 @@ test("rejects target text blobs above the 128 KiB per-file bound", async () => {
   await assert.rejects(buildRepositoryEvidence(repoDir, stdout.trim()), /bounded v1 limits at oversized\.txt/);
 });
 
-test("uses current models and rejects retired extraction model overrides", () => {
+test("uses current models and rejects unsupported extraction model overrides", () => {
   const options = { responsePath: "/tmp/response.json", temporaryDir: "/tmp/extractor" };
   const previousModel = process.env.REPOSITORY_TECHNOLOGIES_MODEL;
   try {
@@ -522,10 +522,11 @@ test("uses current models and rejects retired extraction model overrides", () =>
     process.env.REPOSITORY_TECHNOLOGIES_MODEL = "gpt-6-luna";
     const override = codexExecArguments(options);
     assert.equal(override[override.indexOf("--model") + 1], "gpt-6-luna");
-    for (const model of ["gpt-5.6-terra", "gpt-5.6-luna", "gpt-5.6-sol", "gpt-6-sol", "gpt-6-sol-latest"]) {
-      assert.throws(() => codexExecArguments({ ...options, model }), /Retired model/);
+    assert.equal(override.includes('model_reasoning_effort="medium"'), true);
+    for (const model of ["gpt-5.6-terra", "gpt-5.6-luna", "gpt-5.6-sol", "gpt-6-sol", "gpt-6-sol-latest", "gpt-4.1", "o3", "spark", "test-model"]) {
+      assert.throws(() => codexExecArguments({ ...options, model }), /Unsupported extraction model/);
       process.env.REPOSITORY_TECHNOLOGIES_MODEL = model;
-      assert.throws(() => codexExecArguments(options), /Retired model/);
+      assert.throws(() => codexExecArguments(options), /Unsupported extraction model/);
     }
   } finally {
     if (previousModel === undefined) delete process.env.REPOSITORY_TECHNOLOGIES_MODEL;
@@ -534,7 +535,7 @@ test("uses current models and rejects retired extraction model overrides", () =>
 });
 
 test("disables web search through the supported top-level Codex config", () => {
-  const args = codexExecArguments({ responsePath: "/tmp/response.json", temporaryDir: "/tmp/extractor", model: "test-model" });
+  const args = codexExecArguments({ responsePath: "/tmp/response.json", temporaryDir: "/tmp/extractor", model: "gpt-6-astra" });
 
   assert.equal(args.includes('web_search="disabled"'), true);
   assert.equal(args.some((argument, index) => argument === "--disable" && args[index + 1] === "web_search"), false);

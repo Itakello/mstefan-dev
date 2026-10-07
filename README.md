@@ -141,8 +141,8 @@ writes to Notion, GitHub, Stack, or another provider.
 
 This proposal flow is intentionally manual and local: it does not commit, publish, deploy,
 write to Notion, schedule itself, or receive webhooks. It uses `gpt-6.1-sol` by
-default; set `REPOSITORY_TECHNOLOGIES_MODEL` only when a different supported
-extraction model is warranted; GPT-5.6 and GPT-6 Sol overrides are rejected.
+default; `REPOSITORY_TECHNOLOGIES_MODEL` accepts only `gpt-6.1-sol`,
+`gpt-6-luna`, or `gpt-6-astra`, all with medium reasoning. Other models are rejected.
 A future hosted trigger should use the official
 Codex GitHub Action or a dedicated backend so repository-controlled wrapper code
 never receives the API key.
