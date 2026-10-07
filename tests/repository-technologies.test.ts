@@ -511,6 +511,28 @@ test("rejects target text blobs above the 128 KiB per-file bound", async () => {
   await assert.rejects(buildRepositoryEvidence(repoDir, stdout.trim()), /bounded v1 limits at oversized\.txt/);
 });
 
+test("uses current models and rejects retired extraction model overrides", () => {
+  const options = { responsePath: "/tmp/response.json", temporaryDir: "/tmp/extractor" };
+  const previousModel = process.env.REPOSITORY_TECHNOLOGIES_MODEL;
+  try {
+    delete process.env.REPOSITORY_TECHNOLOGIES_MODEL;
+    const args = codexExecArguments(options);
+    assert.equal(args[args.indexOf("--model") + 1], "gpt-6.1-sol");
+    assert.equal(args.includes('model_reasoning_effort="medium"'), true);
+    process.env.REPOSITORY_TECHNOLOGIES_MODEL = "gpt-6-luna";
+    const override = codexExecArguments(options);
+    assert.equal(override[override.indexOf("--model") + 1], "gpt-6-luna");
+    for (const model of ["gpt-5.6-terra", "gpt-5.6-luna", "gpt-5.6-sol", "gpt-6-sol", "gpt-6-sol-latest"]) {
+      assert.throws(() => codexExecArguments({ ...options, model }), /Retired model/);
+      process.env.REPOSITORY_TECHNOLOGIES_MODEL = model;
+      assert.throws(() => codexExecArguments(options), /Retired model/);
+    }
+  } finally {
+    if (previousModel === undefined) delete process.env.REPOSITORY_TECHNOLOGIES_MODEL;
+    else process.env.REPOSITORY_TECHNOLOGIES_MODEL = previousModel;
+  }
+});
+
 test("disables web search through the supported top-level Codex config", () => {
   const args = codexExecArguments({ responsePath: "/tmp/response.json", temporaryDir: "/tmp/extractor", model: "test-model" });
 

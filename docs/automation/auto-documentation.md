@@ -16,7 +16,7 @@ The pilot is manual-only. `.github/workflows/docs-updater.md` is the editable wo
 | Write scope | At most one draft pull request per run changing only `README.md` or `docs/**`, excluding this contract file; the pre-activation search prevents overlapping automation pull requests |
 | Merge authority | Human review and merge only |
 | PR authentication | The run-scoped `GITHUB_TOKEN` creates the draft pull request; a repository-scoped `GH_AW_CI_TRIGGER_TOKEN` may only push the extra empty commit that causes normal CI to run |
-| Model | Codex with `gpt-5.6-luna`; high reasoning is pinned; `max` requires evidence that high misses material documentation drift |
+| Model | Codex with `gpt-6-luna`; medium reasoning is pinned |
 | Per-run bounds | 20 minutes, 12 turns, and 200 AI credits |
 | Pilot duration | Runs stop after 2026-09-03 unless the workflow is explicitly recompiled and reviewed |
 | First-week budget | No more than two manual invocations before the 2026-08-11 review |
