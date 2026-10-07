@@ -5,8 +5,10 @@ import { ProjectCard } from "@/components/ProjectCard";
 import { StackCatalog } from "@/components/StackCatalog";
 import { getCopy } from "@/lib/i18n/copy";
 import { getLocalizedMetadata } from "@/lib/i18n/metadata";
+import { publicationEnvironment } from "@/lib/publicationEnvironment";
 import { isSupportedLocale } from "@/lib/i18n/routing";
 import { loadPublicProjects } from "@/lib/publicProjects";
+import { getNotionPublicationSnapshot } from "@/lib/notionPublicationSnapshot";
 import { projectPublicationView } from "@/lib/publicationPresentation";
 import { assertProjectStackCoverage } from "@/lib/stack";
 import { loadWebsiteStack } from "@/lib/websiteStack";
@@ -30,7 +32,13 @@ export default async function Home({ params, searchParams }: { params: Promise<{
   const careerPreview = preview && query.previewSource === "career";
   if (careerPreview) redirect(`/${locale}/about?preview=1&previewSource=career`);
   const content = await getPageContent("home", locale, preview);
-  const [{ projects, publication }, stackCatalog] = await Promise.all([loadPublicProjects(locale), loadWebsiteStack()]);
+  const snapshot = publicationEnvironment() === "production"
+    ? await getNotionPublicationSnapshot()
+    : null;
+  const [{ projects, publication }, stackCatalog] = await Promise.all([
+    loadPublicProjects(locale, snapshot ? { fetchProjects: async () => snapshot.projects } : undefined),
+    snapshot ? { status: "ready" as const, entries: snapshot.stack, message: null } : loadWebsiteStack(),
+  ]);
   if (stackCatalog.status === "ready") {
     assertProjectStackCoverage(publication.projects, stackCatalog.entries);
   }
@@ -49,6 +57,8 @@ export default async function Home({ params, searchParams }: { params: Promise<{
 
   const Content = preview ? HomeLivePreview : HomeContent;
   return (
+    <>
+    {snapshot && <span hidden data-publication-digest={snapshot.digest} data-publication-checked-at={snapshot.checkedAt} />}
     <Content
       content={content}
       locale={locale}
@@ -78,5 +88,6 @@ export default async function Home({ params, searchParams }: { params: Promise<{
         <StackCatalog entries={toolkitEntries} locale={locale} />
       )}
     />
+    </>
   );
 }

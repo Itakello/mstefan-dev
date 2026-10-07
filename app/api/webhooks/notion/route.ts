@@ -1,4 +1,5 @@
 import { revalidatePath, revalidateTag } from "next/cache";
+import { safelyObservePublication } from "@/lib/publicationObservation";
 
 import {
   encryptNotionVerificationToken,
@@ -50,6 +51,7 @@ export async function POST(request: Request) {
   const relevant = isPublicationNotionEvent(payload, sourceIds);
   if (!relevant) return Response.json({ accepted: true, invalidated: false });
 
+  await safelyObservePublication({ kind: "event" });
   revalidateTag(PUBLICATION_CACHE_TAG, { expire: 0 });
   for (const pattern of PUBLICATION_ROUTE_PATTERNS) {
     revalidatePath(pattern, "page");
