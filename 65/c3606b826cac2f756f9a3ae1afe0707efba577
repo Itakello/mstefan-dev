@@ -1,0 +1,23 @@
+README.md
+  s_0a6ebbab095f8b::t_5fad32e1af5cd5 144-145
+scripts/repository-technologies/codex-extractor.mjs
+  s_0a6ebbab095f8b::t_69b0306c09b61b 156-157
+tests/repository-technologies.test.ts
+  s_0a6ebbab095f8b::t_9908363ca1c1d6 514,525-527,529,538
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "65c3606b826cac2f756f9a3ae1afe0707efba577",
+  "prompts": {},
+  "sessions": {
+    "s_0a6ebbab095f8b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a117b7-bd90-7651-a599-b0ef8890d689",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
