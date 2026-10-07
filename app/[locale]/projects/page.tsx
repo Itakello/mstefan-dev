@@ -3,8 +3,10 @@ import { notFound } from "next/navigation";
 import { WorkExplorer } from "@/components/WorkExplorer";
 import { getCopy } from "@/lib/i18n/copy";
 import { getLocalizedMetadata } from "@/lib/i18n/metadata";
+import { publicationEnvironment } from "@/lib/publicationEnvironment";
 import { isSupportedLocale } from "@/lib/i18n/routing";
 import { loadPublicProjects } from "@/lib/publicProjects";
+import { getNotionPublicationSnapshot } from "@/lib/notionPublicationSnapshot";
 import { projectPublicationView } from "@/lib/publicationPresentation";
 import { assertProjectStackCoverage } from "@/lib/stack";
 import { loadWebsiteStack } from "@/lib/websiteStack";
@@ -22,7 +24,13 @@ export default async function ProjectsPage({ params }: { params: Promise<{ local
   const { locale } = await params;
   if (!isSupportedLocale(locale)) notFound();
   const content = getCopy(locale).projects;
-  const [{ projects, publication }, stackCatalog] = await Promise.all([loadPublicProjects(locale), loadWebsiteStack()]);
+  const snapshot = publicationEnvironment() === "production"
+    ? await getNotionPublicationSnapshot()
+    : null;
+  const [{ projects, publication }, stackCatalog] = await Promise.all([
+    loadPublicProjects(locale, snapshot ? { fetchProjects: async () => snapshot.projects } : undefined),
+    snapshot ? { status: "ready" as const, entries: snapshot.stack, message: null } : loadWebsiteStack(),
+  ]);
   if (stackCatalog.status === "ready") assertProjectStackCoverage(publication.projects, stackCatalog.entries);
   const items = workItemsFromProjects(projects);
   const publicationView = publication.message
@@ -30,7 +38,7 @@ export default async function ProjectsPage({ params }: { params: Promise<{ local
     : null;
 
   return (
-    <section aria-labelledby="public-projects-heading">
+    <section aria-labelledby="public-projects-heading" data-publication-digest={snapshot?.digest} data-publication-checked-at={snapshot?.checkedAt}>
       <h1 id="public-projects-heading" className="text-2xl font-semibold">{content.title}</h1>
       <p className="mt-2 text-sm text-black/70 dark:text-white/70">{content.description}</p>
 

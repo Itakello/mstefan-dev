@@ -27,9 +27,17 @@ const stackRows = [['TypeScript', 'Language', 'logos:typescript-icon'], ['Python
 function fixturePayload() {
   const mode = readFileSync(process.env.VISUAL_NOTION_FIXTURE_STATE, 'utf8').trim();
   if (mode === 'error') return { status: 503, body: { object: 'error', code: 'service_unavailable', message: 'Synthetic publication outage' } };
-  if (!['multiple', 'one', 'empty', 'dense'].includes(mode)) throw new Error('Unexpected publication fixture state');
+  if (!['multiple', 'one', 'empty', 'dense', 'publication', 'changedsummary', 'recovered'].includes(mode)) throw new Error('Unexpected publication fixture state');
   const denseRow = { ...fixtureRows[0], properties: { ...fixtureRows[0].properties, Tags: { multi_select: stackRows.map(row => ({ name: row.properties.Name.title[0].plain_text })) } } };
-  const rows = mode === 'dense' ? [denseRow] : mode === 'empty' ? [] : mode === 'one' ? fixtureRows.slice(0, 1) : fixtureRows;
+  const publicationRows = fixtureRows.map((row, index) => index === 0 ? { ...row, properties: { ...row.properties,
+    Name: { title: [{ plain_text: 'mstefan-dev' }] },
+    ...(mode === 'changedsummary' || mode === 'recovered' ? {
+      Summary: { rich_text: [{ plain_text: mode === 'changedsummary' ? 'Changed publication fixture.' : 'Recovered publication fixture.' }] },
+      'Summary IT': { rich_text: [{ plain_text: mode === 'changedsummary' ? 'Pubblicazione di prova aggiornata.' : 'Pubblicazione di prova ripristinata.' }] },
+    } : {}),
+  } } : row);
+  const rows = mode === 'dense' ? [denseRow] : mode === 'empty' ? [] : mode === 'one' ? fixtureRows.slice(0, 1)
+    : ['publication', 'changedsummary', 'recovered'].includes(mode) ? publicationRows : fixtureRows;
   return { status: 200, body: { object: 'list', results: rows, has_more: false, next_cursor: null } };
 }
 const provider = http.createServer((request, response) => {
