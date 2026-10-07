@@ -152,7 +152,10 @@ export async function buildRepositoryEvidence(repoDir, commitSha) {
   };
 }
 
-export function codexExecArguments({ responsePath, temporaryDir, model = process.env.REPOSITORY_TECHNOLOGIES_MODEL ?? "gpt-5.6-terra" }) {
+export function codexExecArguments({ responsePath, temporaryDir, model = process.env.REPOSITORY_TECHNOLOGIES_MODEL ?? "gpt-6.1-sol" }) {
+  if (!["gpt-6.1-sol", "gpt-6-luna", "gpt-6-astra"].includes(model)) {
+    throw new Error(`Unsupported extraction model ${model}; use gpt-6.1-sol, gpt-6-luna, or gpt-6-astra.`);
+  }
   return [
     "exec",
     "--ephemeral",
@@ -163,6 +166,8 @@ export function codexExecArguments({ responsePath, temporaryDir, model = process
     "unified_exec",
     "-c",
     'web_search="disabled"',
+    "-c",
+    'model_reasoning_effort="medium"',
     "--model",
     model,
     "--sandbox",

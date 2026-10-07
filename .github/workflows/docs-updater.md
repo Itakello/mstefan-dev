@@ -15,8 +15,8 @@ engine:
   # The leading space keeps v0.84.4 from joining this flag to the detection output path.
   args:
     - ' -c'
-    - 'model_reasoning_effort="high"'
-model: gpt-5.6-luna
+    - 'model_reasoning_effort="medium"'
+model: gpt-6-luna
 
 network: defaults
 
