@@ -1,0 +1,24 @@
+lib/websiteStack.ts
+  s_13dc7cecb7841a::t_4ccd1b2b8e5701 146-147
+tests/cms/publication.test.mts
+  s_13dc7cecb7841a::t_f8684cb2f922a1 170
+  s_13dc7cecb7841a::t_c3cd9e361a7af0 321-331
+tests/cms/offline-fetch.mjs
+  s_13dc7cecb7841a::t_c3cd9e361a7af0 14
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "aded629a0e1c8dcc124ef3d6138c75d472cd059c",
+  "prompts": {},
+  "sessions": {
+    "s_13dc7cecb7841a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0f844-411d-7183-a05d-044bcadb9b65",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
