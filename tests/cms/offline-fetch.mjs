@@ -11,7 +11,7 @@ globalThis.fetch = async (input, init) => {
     state.requests++;
     writeFileSync(statePath, JSON.stringify(state), { mode: 0o600 });
     if (state.mode === 'error') {
-      return new Response(null, { status: 503, headers: { 'retry-after': '0' } });
+      return new Response('Icon provider temporarily unavailable', { status: 503, headers: { 'retry-after': '0' } });
     }
     return new Response('<svg viewBox="0 0 24 24"><path fill="currentColor" d="M2 2h20v20H2z" /></svg>', {
       headers: { 'content-type': 'image/svg+xml' },

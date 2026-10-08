@@ -167,7 +167,7 @@ async function stop() {
 
 async function readObservation() {
   return JSON.parse(await readFile(path.join(dataDir, 'publication-health', 'state.json'), 'utf8')) as {
-    success: number; failure: number; event: number; digest: string; projects: number; stack: number;
+    success: number; failure: number; event: number; pending: number; digest: string; projects: number; stack: number;
   };
 }
 
@@ -318,4 +318,15 @@ test('production Notion changes, withdrawals, hard failures, and stale-cache rec
   assert.ok(projects.html.includes('Recovered publication fixture.'));
   assert.equal(await iconRequestCount(), validatedIconRequests, 'Persisted publication snapshot must render without revalidating icons during provider outage');
   assert.equal((await readObservation()).digest, observation.digest);
+
+  await sendPublicationEvent();
+  projects = await publicHtml('/en/projects');
+  assert.equal(projects.response.status, 500, 'An icon error with a cloned response body must fail promptly');
+  assert.ok((await readObservation()).failure > observation.success);
+  await setIconMode('ok');
+  await sendPublicationEvent();
+  projects = await publicHtml('/en/projects');
+  assert.equal(projects.response.status, 200);
+  assert.ok(projects.html.includes('Recovered publication fixture.'));
+  assert.equal((await readObservation()).pending, 0);
 });
