@@ -1,0 +1,19 @@
+scripts/visual-review/package-evidence.mjs
+  s_736f2427abf3d0::t_738ac969e40a97 34
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f091986731068ed370297fdeba34bf81db3fc2ea",
+  "prompts": {},
+  "sessions": {
+    "s_736f2427abf3d0": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12179-a131-7d42-8af2-c3343178f3fc",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
