@@ -13,7 +13,7 @@ test.describe("Public website review", () => {
     await writeFile(state, "multiple");
     await context.route("**/*", async route => {
       const url = new URL(route.request().url());
-      if (url.hostname === "example.com" && url.pathname.endsWith(".pdf")) {
+      if ((url.hostname === "example.com" && url.pathname.endsWith(".pdf")) || url.href === "https://arxiv.org/pdf/2410.07109") {
         await route.fulfill({ body: await readFile("tests/fixtures/research.pdf"), contentType: "application/pdf", headers: { "access-control-allow-origin": "*" } });
       } else if (["www.mstefan.dev", "mstefan.dev"].includes(url.hostname)) {
         const response = await route.fetch({ url: `${base}${url.pathname}${url.search}`, maxRedirects: 0 });
@@ -74,10 +74,10 @@ test.describe("Public website review", () => {
     await expect(modes.getByRole("button", { name: "Desktop", exact: true })).toHaveAttribute("aria-pressed", "true");
     const modeBox = await modes.boundingBox();
     const stackBox = await projectStack.boundingBox();
-    expect(modeBox && stackBox && modeBox.y >= stackBox.y + stackBox.height && Math.abs(modeBox.x + modeBox.width - stackBox.x - stackBox.width) < 2).toBeTruthy();
     const header = await page.getByRole("link", { name: "Visit website", exact: true }).boundingBox();
     const preview = await desktop.boundingBox();
     expect(header && preview && header.y + header.height < preview.y).toBeTruthy();
+    expect(modeBox && preview && stackBox && modeBox.y >= preview.y + preview.height && Math.abs(modeBox.x + modeBox.width - stackBox.x - stackBox.width) < 2).toBeTruthy();
     await page.locator("#playwright-review-step").evaluate(node => node.remove());
     await page.screenshot({ path: ".artifacts/playwright/work-desktop.png", fullPage: true });
     await modes.getByRole("button", { name: "Mobile", exact: true }).click();
@@ -86,8 +86,18 @@ test.describe("Public website review", () => {
     const mobileBox = await mobile.boundingBox();
     expect(mobileBox!.width / mobileBox!.height).toBeCloseTo(390 / 844, 2);
     expect(mobileBox!.width).toBeLessThanOrEqual(390);
+    for (const width of [1280, 900, 640, 360]) {
+      await page.setViewportSize({ width, height: 800 });
+      await modes.getByRole("button", { name: "Desktop", exact: true }).click();
+      const desktopHeight = (await desktop.boundingBox())!.height;
+      await modes.getByRole("button", { name: "Mobile", exact: true }).click();
+      const phone = (await mobile.boundingBox())!;
+      expect(phone.height).toBeCloseTo(desktopHeight, 0);
+      expect((phone.width - 2) / (phone.height - 2)).toBeCloseTo(390 / 844, 2);
+    }
     await expect(modes.getByRole("button", { name: "Mobile", exact: true })).toHaveAttribute("aria-pressed", "true");
     await expect(page.locator("iframe")).toHaveCount(0);
+    await page.setViewportSize({ width: 1280, height: 720 });
     await page.screenshot({ path: ".artifacts/playwright/work-phone.png", fullPage: true });
     await modes.getByRole("button", { name: "Desktop", exact: true }).click();
     await expect(desktop).toBeVisible();
@@ -99,17 +109,42 @@ test.describe("Public website review", () => {
     await expect(page).toHaveURL(/\/en\/projects$/);
     await expect(page.getByRole("link", { name: "Visit website", exact: true })).toBeVisible();
     await expect(page.getByRole("link", { name: "Source code", exact: true })).toHaveCount(0);
-    await page.goto("/en/projects?project=Automation%20tools");
+    await page.goto("/en/projects?project=LLM%20Interaction%20Simulator");
     await expect(page.getByRole("region", { name: "Research & materials", exact: true })).toBeVisible();
-    await expect(page.getByText("Coauthor · Published in Example Journal", { exact: true })).toBeVisible();
-    await expect(page.getByText("Tool · 2026", { exact: true })).toBeVisible();
-    const reader = page.getByRole("region", { name: "Automation tools: Document reader", exact: true });
+    await expect(page.getByRole("link", { name: "Co-author · I Want to Break Free! (TMLR, 2025)", exact: true })).toHaveAttribute("href", "https://arxiv.org/pdf/2410.07109");
+    await expect(page.getByRole("link", { name: "Source code", exact: true })).toHaveAttribute("href", "https://github.com/mobs-fbk/llm_interaction_simulator");
+    await expect(page.getByRole("heading", { name: "Accomplishments", exact: true })).toHaveCount(0);
+    for (const width of [1280, 360]) {
+      await page.setViewportSize({ width, height: 800 });
+      const accomplishment = (await page.getByText("Co-author · I Want to Break Free! (TMLR, 2025)", { exact: true }).locator("..").boundingBox())!;
+      const links = (await page.getByRole("link", { name: "Source code", exact: true }).boundingBox())!;
+      expect(accomplishment.height).toBeLessThanOrEqual(24);
+      expect(accomplishment.y + accomplishment.height).toBeLessThan(links.y);
+    }
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await expect(page.getByText("Research · 2024", { exact: true })).toBeVisible();
+    const reader = page.getByRole("region", { name: "LLM Interaction Simulator: Document reader", exact: true });
     await expect(reader.getByText("1 / 2", { exact: true })).toBeVisible();
     await expect(reader.getByRole("status")).toHaveCount(0);
     await expect(reader.getByText("Research paper first page", { exact: true })).toBeVisible();
-    await expect(reader.getByRole("link", { name: "Open PDF", exact: true })).toHaveAttribute("href", "https://example.com/research-paper.pdf");
+    const researchModes = page.getByRole("group", { name: "Research & materials", exact: true });
+    for (const width of [1280, 360]) {
+      await page.setViewportSize({ width, height: 800 });
+      for (const mode of ["Paper", "Slides"]) {
+        await researchModes.getByRole("button", { name: mode, exact: true }).click();
+        await expect(reader.getByRole("status")).toHaveCount(0);
+        const mediaBox = (await reader.boundingBox())!;
+        const toggleBox = (await researchModes.boundingBox())!;
+        expect(toggleBox.y).toBeGreaterThanOrEqual(mediaBox.y + mediaBox.height);
+        expect(Math.abs(toggleBox.x + toggleBox.width - mediaBox.x - mediaBox.width)).toBeLessThan(2);
+      }
+    }
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await researchModes.getByRole("button", { name: "Paper", exact: true }).click();
+    await expect(reader.getByRole("status")).toHaveCount(0);
+    await expect(reader.getByRole("link", { name: "Open PDF", exact: true })).toHaveAttribute("href", "https://arxiv.org/pdf/2410.07109");
     await reader.getByRole("button", { name: "Next page" }).click();
-    await expect(reader.getByRole("img", { name: "Automation tools · page 2", exact: true })).toBeVisible();
+    await expect(reader.getByRole("img", { name: "LLM Interaction Simulator · page 2", exact: true })).toBeVisible();
     await expect(reader.getByRole("status")).toHaveCount(0);
     await reader.getByRole("button", { name: "Zoom in" }).click();
     await expect(reader.getByText("125%", { exact: true })).toBeVisible();
@@ -133,7 +168,7 @@ test.describe("Public website review", () => {
     expect(await reader.evaluate(node => node.getBoundingClientRect().right <= window.innerWidth)).toBeTruthy();
     await page.screenshot({ path: ".artifacts/playwright/work-research-mobile.png", fullPage: true });
     await page.setViewportSize({ width: 1440, height: 1000 });
-    const repositoryStack = page.getByRole("complementary", { name: "Automation tools technologies grouped by category" });
+    const repositoryStack = page.getByRole("complementary", { name: "LLM Interaction Simulator technologies grouped by category" });
     await expect(repositoryStack.locator('summary[aria-label="Python · Language"]')).toBeVisible();
     await expect(repositoryStack.getByText("TypeScript", { exact: true })).toHaveCount(0);
     await expect(page.locator("iframe")).toHaveCount(0);
@@ -286,6 +321,9 @@ test.describe("Public website review", () => {
       const details = await page.locator("#selected-work-title").boundingBox();
       const panel = await stack.boundingBox();
       expect((await stack.locator("[data-work-stack-scroll]").boundingBox())?.height).toBeCloseTo(158, 0);
+      const section = await page.locator("section[aria-labelledby=selected-work-title]").boundingBox();
+      expect(panel && section && Math.abs(panel.x + panel.width - section.x - section.width) < 2).toBeTruthy();
+      await expect(stack.getByRole("heading", { name: "Stack", exact: true })).toHaveCSS("text-align", "right");
       expect(details && panel && (width >= 640 ? panel.x >= details.x + details.width && Math.abs(panel.y - details.y) < 2 : panel.y > details.y + details.height)).toBeTruthy();
       await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
       if (width === 900) await page.screenshot({ path: ".artifacts/playwright/work-stack-medium.png", fullPage: true });

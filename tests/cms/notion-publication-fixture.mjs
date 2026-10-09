@@ -10,17 +10,18 @@ import { urlToHttpOptions } from 'node:url';
 const fixtureRows = [
   ['mstefan.dev', 'https://www.mstefan.dev', 'Personal website fixture.', 'Sito personale di prova.'],
   ['The Karakal Times', 'https://www.thekarakaltimes.com', 'Client website fixture.', 'Sito cliente di prova.'],
-  ['Automation tools', null, 'Repository-only fixture.', 'Progetto di prova senza sito web.'],
+  ['LLM Interaction Simulator', null, 'Framework for simulating and analysing LLM interactions in hierarchical social settings.', 'Framework per simulare e analizzare le interazioni tra LLM in contesti sociali gerarchici.'],
 ].map(([name, website, en, it], index) => ({ id: `visual-project-${index}`, properties: {
-  Type: { type: "select", select: { name: index === 2 ? "Tool" : "Website" } },
-  Year: { number: 2026 }, Tags: { multi_select: (index === 2 ? ["Python"] : ["TypeScript", "Next.js", "React"]).map(name => ({ name })) },
+  Type: { type: "select", select: { name: index === 2 ? "Research" : "Website" } },
+  Year: { number: index === 2 ? 2024 : 2026 }, Tags: { multi_select: (index === 2 ? ["Python"] : ["TypeScript", "Next.js", "React"]).map(name => ({ name })) },
   Name: { title: [{ plain_text: name }] }, Status: { status: { name: 'Added' } },
   Summary: { rich_text: [{ plain_text: en }] }, 'Summary IT': { rich_text: [{ plain_text: it }] },
   URL: { url: index === 1 ? null : `https://github.com/fixture/project-${index}` }, 'Website URL': { type: 'url', url: website },
 } }));
-fixtureRows[2].properties['Paper URL'] = { type: 'url', url: 'https://example.com/research-paper.pdf' };
+fixtureRows[2].properties.URL = { url: 'https://github.com/mobs-fbk/llm_interaction_simulator' };
+fixtureRows[2].properties['Paper URL'] = { type: 'url', url: 'https://arxiv.org/pdf/2410.07109' };
 fixtureRows[2].properties['Slides URL'] = { type: 'url', url: 'https://example.com/research-slides.pdf' };
-fixtureRows[2].properties.Publication = { rich_text: [{ plain_text: 'Coauthor · Published in Example Journal' }] };
+fixtureRows[2].properties.Publication = { rich_text: [{ plain_text: 'Co-author · I Want to Break Free! (TMLR, 2025)' }] };
 const stackRows = [['TypeScript', 'Language', 'logos:typescript-icon'], ['Python', 'Language', 'logos:python'], ['Next.js', 'Framework', 'logos:nextjs-icon'], ['React', 'Library', 'logos:react'], ['React · DOM', 'Library', 'logos:react-router'], ['Node.js', 'Runtime', 'logos:nodejs-icon'], ['GitHub Actions', 'Infrastructure', 'logos:github-actions'], ['Notion', 'Integration', 'logos:notion-icon'], ['pnpm', 'CLI', 'logos:pnpm'], ['Tailwind CSS', 'Framework', 'logos:tailwindcss-icon'], ['MongoDB', 'Database', 'logos:mongodb-icon'], ['AWS', 'Cloud', 'logos:aws'], ['Docker', 'Infrastructure', 'logos:docker-icon']].map(([name, category, iconKey], index) => ({ id: `visual-stack-${index}`, properties: {
   Name: { title: [{ plain_text: name }] }, Category: { select: { name: category } }, 'Icon key': { rich_text: [{ plain_text: iconKey }] },
 } }));
