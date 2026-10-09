@@ -63,10 +63,17 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
     stackScroll.current?.querySelectorAll<HTMLDetailsElement>("details[open]").forEach(detail => { detail.open = false; });
   };
   useEffect(() => {
-    window.addEventListener("scroll", dismissStackLabel, true);
+    const handleScroll = (event: Event) => {
+      const focused = document.activeElement;
+      if (event.target === stackScroll.current && focused instanceof HTMLElement && focused.matches("summary") && stackScroll.current?.contains(focused)) {
+        const [name, category = ""] = focused.getAttribute("aria-label")!.split(" · ");
+        showStackLabel(focused, name, category);
+      } else dismissStackLabel();
+    };
+    window.addEventListener("scroll", handleScroll, true);
     window.addEventListener("resize", dismissStackLabel);
     return () => {
-      window.removeEventListener("scroll", dismissStackLabel, true);
+      window.removeEventListener("scroll", handleScroll, true);
       window.removeEventListener("resize", dismissStackLabel);
     };
   }, []);
@@ -135,7 +142,7 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
           {groups.length > 0 ? <aside aria-label={copy.projectCard.technologiesByCategory(selected.name)} className="relative self-start min-h-0 min-w-0 border-l border-black/10 dark:border-white/10">
             <div className="flex flex-col pl-3">
             <h3 className="text-xs font-semibold uppercase tracking-wider text-black/50 dark:text-white/50">Stack</h3>
-            <div ref={stackScroll} data-work-stack-scroll tabIndex={0} className="mt-3 h-[158px] overflow-auto overscroll-contain pr-1" onScroll={() => { updateStackOverflow(); dismissStackLabel(); }}>
+            <div ref={stackScroll} data-work-stack-scroll tabIndex={0} className="mt-3 h-[158px] overflow-auto overscroll-contain pr-1" onScroll={updateStackOverflow}>
             <ul className="grid min-w-max grid-flow-col auto-cols-[28px] items-start gap-2">
               {groups.map(group => <li key={group.category} aria-label={displayStackCategory(group.category, locale)}>
                 <details className="sticky top-0 z-10 mb-3 border-b border-black/10 bg-white pb-2 dark:border-white/10 dark:bg-black" onToggle={event => {
