@@ -1,0 +1,49 @@
+name: PR previews
+
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize, closed, ready_for_review]
+
+permissions: {}
+
+# One shared Worker allowlist; queue every PR event without interrupting writes.
+concurrency:
+  group: mstefan-pr-preview-lifecycle
+  cancel-in-progress: false
+  queue: max
+
+jobs:
+  preview:
+    if: vars.MSTEFAN_PR_PREVIEWS_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    permissions:
+      contents: read
+      pull-requests: read
+      deployments: write
+      id-token: write
+    steps:
+      - name: Check out trusted base controller
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Join the private OpenShip control network
+        uses: tailscale/github-action@780049a30b6ff5c378a9e7b389d15ece7a204888 # v4.1.3
+        with:
+          oauth-client-id: ${{ vars.MSTEFAN_PREVIEW_TS_CLIENT_ID }}
+          audience: ${{ vars.MSTEFAN_PREVIEW_TS_AUDIENCE }}
+          tags: tag:mstefan-preview-ci
+          use-cache: 'false'
+          log-mode: quiet
+      - name: Reconcile the live PR preview
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          OPENSHIP_TOKEN: ${{ secrets.MSTEFAN_PREVIEW_OPENSHIP_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.MSTEFAN_PREVIEW_CLOUDFLARE_TOKEN }}
+          PREVIEW_PAYLOAD_SECRET: ${{ secrets.MSTEFAN_PREVIEW_PAYLOAD_SECRET }}
+          OPENSHIP_PREVIEW_TEMPLATE_ID: ${{ vars.MSTEFAN_PREVIEW_TEMPLATE_ID }}
+        run: node scripts/pr-preview/controller.mjs
