@@ -19,9 +19,9 @@ function ScreenshotPreview({ url, title, mobile, unavailable }: { url: string; t
     if (image.current?.complete && image.current.naturalWidth === 0) setFailed(true);
   }, []);
   return failed ? <p role="status" className="text-sm text-black/60 dark:text-white/60">{unavailable}</p> : (
-    <div className="flex w-full justify-center">
+    <div className="flex aspect-[8/5] max-h-[min(620px,70svh)] w-full justify-center">
       <img ref={image} src={url} alt={title} width={mobile ? 390 : 1280} height={mobile ? 844 : 800}
-        className="h-auto w-auto max-h-[min(620px,70svh)] max-w-full rounded-xl border border-black/10 object-contain dark:border-white/15"
+        className="h-full w-auto max-w-full rounded-xl border border-black/10 object-contain dark:border-white/15"
         onError={() => setFailed(true)} />
     </div>
   );
@@ -109,14 +109,18 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
             <h2 id="selected-work-title" className="text-2xl font-semibold tracking-tight [overflow-wrap:anywhere]">{selected.name}</h2>
             {metadata.length > 0 && <p className="mt-2 text-xs text-black/55 dark:text-white/55">{metadata.join(" · ")}</p>}
             <p className="mt-3 max-w-2xl whitespace-pre-line text-sm leading-6 text-black/70 dark:text-white/70">{selected.description}</p>
+            {selected.publication && <p className="mt-3 flex min-w-0 items-center gap-2 text-sm text-black/65 dark:text-white/65">
+              <Trophy size={16} className="shrink-0 text-[hsl(var(--accent))]" aria-hidden />
+              {selected.paperUrl ? <a className="truncate underline underline-offset-4" href={selected.paperUrl} target="_blank" rel="noreferrer" title={selected.publication}>{selected.publication}</a> : <span className="truncate" title={selected.publication}>{selected.publication}</span>}
+            </p>}
             <div className="mt-4 flex flex-wrap gap-5">
               {visitUrl && <a className={linkClass} href={visitUrl} target="_blank" rel="noreferrer"><ExternalLink size={16} aria-hidden="true" />{copy.work.visit}</a>}
               {selected.sourceUrl && <a className={linkClass} href={selected.sourceUrl} target="_blank" rel="noreferrer"><Github size={16} aria-hidden="true" />{copy.work.source}</a>}
             </div>
           </div>
-          {groups.length > 0 ? <aside aria-label={copy.projectCard.technologiesByCategory(selected.name)} className="relative self-start min-h-0 min-w-0 border-l border-black/10 dark:border-white/10">
+          {groups.length > 0 ? <aside aria-label={copy.projectCard.technologiesByCategory(selected.name)} className="relative w-fit max-w-full justify-self-end self-start min-h-0 min-w-0">
             <div className="flex flex-col pl-3">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-black/50 dark:text-white/50">Stack</h3>
+            <h3 className="text-right text-xs font-semibold uppercase tracking-wider text-black/50 dark:text-white/50">Stack</h3>
             <div ref={stackScroll} data-work-stack-scroll tabIndex={0} className="mt-3 h-[158px] overflow-auto overscroll-contain pr-1" onScroll={updateStackOverflow}>
             <ul className="grid min-w-max grid-flow-col auto-cols-[28px] items-start gap-2">
               {groups.map(group => <li key={group.category} aria-label={displayStackCategory(group.category, locale)}>
@@ -152,24 +156,21 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
             </div>
           </aside> : stackCatalog.message && <p role="status" className="text-xs leading-5 text-black/55 dark:text-white/55">{copy.publication.stack[stackCatalog.message]}</p>}
         </div>
-        {selected.publication && <section aria-label={copy.work.accomplishments} className="mt-4 rounded-lg border border-black/10 p-3 dark:border-white/10">
-          <h3 className="flex items-center gap-2 text-sm font-semibold"><Trophy size={16} className="text-[hsl(var(--accent))]" aria-hidden />{copy.work.accomplishments}</h3>
-          <p className="mt-2 text-sm text-black/65 dark:text-white/65">{selected.publication}</p>
-        </section>}
         {(selected.paperUrl || selected.slidesUrl) && <section aria-label={copy.work.research} className="mt-4 border-t border-black/10 pt-4 dark:border-white/10">
           <h3 className="text-sm font-semibold">{copy.work.research}</h3>
           {(selected.paperUrl || selected.slidesUrl) && <>
-            <div role="group" aria-label={copy.work.research} className="mt-4 mb-4 inline-flex gap-1 rounded-lg border border-black/10 p-1 dark:border-white/15">
+            <DocumentPreview key={`${selected.id}-${documentKind}`} url={(documentKind === "slides" && selected.slidesUrl ? selected.slidesUrl : selected.paperUrl || selected.slidesUrl)!} title={selected.name} locale={locale} presentation={Boolean(selected.slidesUrl && (documentKind === "slides" || !selected.paperUrl))} />
+            <div role="group" aria-label={copy.work.research} className="mt-4 ml-auto flex w-fit gap-1 rounded-lg border border-black/10 p-1 dark:border-white/15">
               {([{ kind: "paper", url: selected.paperUrl, label: copy.work.paper, Icon: BookOpen }, { kind: "slides", url: selected.slidesUrl, label: copy.work.slides, Icon: Presentation }] as const).filter(resource => resource.url).map(resource => {
                 const active = (documentKind === "slides" && selected.slidesUrl ? "slides" : selected.paperUrl ? "paper" : "slides") === resource.kind;
                 return <button key={resource.kind} type="button" aria-pressed={active} onClick={() => setDocumentKind(resource.kind)} className={`inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-[hsl(var(--accent))] ${active ? "bg-[hsl(var(--accent))] text-white" : "hover:bg-black/5 dark:hover:bg-white/5"}`}><resource.Icon size={16} aria-hidden /><span>{resource.label}</span></button>;
               })}
             </div>
-            <DocumentPreview key={`${selected.id}-${documentKind}`} url={(documentKind === "slides" && selected.slidesUrl ? selected.slidesUrl : selected.paperUrl || selected.slidesUrl)!} title={selected.name} locale={locale} presentation={Boolean(selected.slidesUrl && (documentKind === "slides" || !selected.paperUrl))} />
           </>}
         </section>}
         {screenshotUrl && <div className="mt-7">
-            <div role="group" aria-label={copy.work.previewSize} className="mb-4 ml-auto flex w-fit gap-1 rounded-lg border border-black/10 p-1 dark:border-white/15">
+            <ScreenshotPreview key={screenshotUrl} url={screenshotUrl} title={`${mobile ? copy.work.mobile : copy.work.desktop}: ${copy.websites.previewTitle(selected.name)}`} mobile={mobile} unavailable={copy.websites.unavailable} />
+            <div role="group" aria-label={copy.work.previewSize} className="mt-4 ml-auto flex w-fit gap-1 rounded-lg border border-black/10 p-1 dark:border-white/15">
               {([{ mobile: false, label: copy.work.desktop, Icon: Monitor }, { mobile: true, label: copy.work.mobile, Icon: Smartphone }]).map(mode => (
                 <button key={mode.label} type="button" aria-pressed={mobile === mode.mobile} onClick={() => setMobile(mode.mobile)}
                   className={`inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-[hsl(var(--accent))] ${mobile === mode.mobile ? "bg-[hsl(var(--accent))] text-white" : "text-black/65 hover:bg-black/5 dark:text-white/65 dark:hover:bg-white/5"}`}>
@@ -177,7 +178,6 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
                 </button>
               ))}
             </div>
-            <ScreenshotPreview key={screenshotUrl} url={screenshotUrl} title={`${mobile ? copy.work.mobile : copy.work.desktop}: ${copy.websites.previewTitle(selected.name)}`} mobile={mobile} unavailable={copy.websites.unavailable} />
           </div>}
         {selected.url && !selected.preview && <p className="mt-6 text-sm text-black/60 dark:text-white/60">{copy.websites.linkOnly}</p>}
       </section>
