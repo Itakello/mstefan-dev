@@ -63,11 +63,16 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
     stackScroll.current?.querySelectorAll<HTMLDetailsElement>("details[open]").forEach(detail => { detail.open = false; });
   };
   useEffect(() => {
-    const handleScroll = (event: Event) => {
+    const handleScroll = () => {
+      const scroller = stackScroll.current;
       const focused = document.activeElement;
-      if (event.target === stackScroll.current && focused instanceof HTMLElement && focused.matches("summary") && stackScroll.current?.contains(focused)) {
-        const [name, category = ""] = focused.getAttribute("aria-label")!.split(" · ");
-        showStackLabel(focused, name, category);
+      if (scroller && focused instanceof HTMLElement && focused.matches("summary") && scroller.contains(focused)) {
+        const rect = focused.getBoundingClientRect();
+        const viewport = scroller.getBoundingClientRect();
+        if (rect.bottom > Math.max(0, viewport.top) && rect.top < Math.min(window.innerHeight, viewport.bottom) && rect.right > Math.max(0, viewport.left) && rect.left < Math.min(window.innerWidth, viewport.right)) {
+          const [name, category = ""] = focused.getAttribute("aria-label")!.split(" · ");
+          showStackLabel(focused, name, category);
+        } else dismissStackLabel();
       } else dismissStackLabel();
     };
     window.addEventListener("scroll", handleScroll, true);

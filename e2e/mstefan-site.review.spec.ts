@@ -318,6 +318,8 @@ test.describe("Public website review", () => {
     const lastName = (await lastIcon.getAttribute("aria-label"))!.split(" · ")[0];
     await expect(page.locator("[data-work-stack-label]")).toContainText(lastName);
     await expect.poll(() => scroller.evaluate(node => node.scrollLeft > 0)).toBe(true);
+    await scroller.evaluate(node => { node.scrollLeft = 0; });
+    await expect(page.locator("[data-work-stack-label]")).toHaveCount(0);
     await writeFile(state, "empty");
     await page.reload();
     await expect(page.locator('[data-project-publication-status="empty"]')).toBeVisible();
