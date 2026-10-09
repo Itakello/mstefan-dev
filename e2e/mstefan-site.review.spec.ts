@@ -299,6 +299,7 @@ test.describe("Public website review", () => {
     const scroller = stack.locator("[data-work-stack-scroll]");
     const columns = scroller.locator(":scope > ul > li");
     await expect(columns.first()).toHaveAttribute("aria-label", "Linguaggio");
+    await expect(columns.filter({ has: page.locator('summary[aria-label="Infrastruttura"]') })).toHaveCount(1);
     await expect(columns.last()).toHaveAttribute("aria-label", "Integrazione");
     await expect(columns.last().locator(":scope > details > summary")).toHaveAttribute("aria-label", "Integrazione");
     const language = columns.first().locator(":scope > details > summary");
