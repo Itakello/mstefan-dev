@@ -1,0 +1,40 @@
+components/cms/HomeContent.tsx
+  s_92487f60d945bb::t_124c8a257ccbde 39,61
+  s_92487f60d945bb::t_dd98943cdd3aca 40-48,51-52,54-60
+  s_92487f60d945bb::t_61349e4a907e83 19,21-23
+e2e/mstefan-site.review.spec.ts
+  s_92487f60d945bb::t_e41e2311c11155 158,163
+  s_92487f60d945bb::t_430ab1a57365b8 81,95,154,167,170,184,233
+components/cms/AboutContent.module.css
+  s_92487f60d945bb::t_61349e4a907e83 2
+components/WorkExplorer.tsx
+  s_92487f60d945bb::t_124c8a257ccbde 111,120
+components/cms/AboutContent.tsx
+  s_92487f60d945bb::t_124c8a257ccbde 33,35
+  s_92487f60d945bb::t_dd98943cdd3aca 36-38,40-58
+  s_92487f60d945bb::t_61349e4a907e83 30-32,34,59-60
+app/globals.css
+  s_92487f60d945bb::t_124c8a257ccbde 94-101
+  s_92487f60d945bb::t_61349e4a907e83 86-93,102-103
+tests/cms/lifecycle.test.mts
+  s_92487f60d945bb::t_5631dcad5e80df 477-480
+  s_92487f60d945bb::t_b7f0cbb083a674 281,283,286,483,511,517,535-536,575,610-612
+app/[locale]/projects/page.tsx
+  s_92487f60d945bb::t_61349e4a907e83 42-45
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1cd23bb371c471122d235a827e6aa25f82533ecb",
+  "prompts": {},
+  "sessions": {
+    "s_92487f60d945bb": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12180-f900-7701-98b8-f5626618739d",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
