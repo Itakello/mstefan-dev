@@ -60,7 +60,10 @@ test.describe("Public website review", () => {
     await typeScript.click();
     await expect(projectStack.locator("details[open]")).toHaveCount(1);
     await page.evaluate(() => window.scrollBy(0, 30));
+    await expect(page.locator("[data-work-stack-label]")).toContainText("TypeScript");
+    await typeScript.evaluate(node => window.scrollBy(0, node.getBoundingClientRect().bottom + 1));
     await expect(page.locator("[data-work-stack-label]")).toHaveCount(0);
+    await page.evaluate(() => window.scrollTo(0, 0));
     await expect(projectStack.getByText("Python", { exact: true })).toHaveCount(0);
     const desktop = page.frameLocator('iframe[title="Desktop: Interactive preview of mstefan.dev"]');
     const mobile = page.frameLocator('iframe[title="Mobile: Interactive preview of mstefan.dev"]');
