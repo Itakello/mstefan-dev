@@ -160,7 +160,7 @@ test.describe("Public website review", () => {
     await expect(aboutCareer.locator("[data-career-main-row]")).toHaveAttribute("aria-pressed", "true");
     const storyBox = await story.boundingBox();
     const careerBox = await aboutCareer.boundingBox();
-    expect(storyBox && careerBox && careerBox.x + careerBox.width <= storyBox.x).toBeTruthy();
+    expect(storyBox && careerBox && storyBox.x + storyBox.width <= careerBox.x).toBeTruthy();
     expect(storyBox && careerBox && Math.abs(storyBox.y - careerBox.y) < 1).toBeTruthy();
     await aboutCareer.locator("button[data-career-job]", { hasText: "Amazon" }).click();
     await expect(aboutCareer.locator("button[data-career-job]", { hasText: "Amazon" })).toHaveAttribute("aria-pressed", "true");

@@ -4,4 +4,8 @@
 .summary { white-space: pre-line; }
 .photo { margin: 2rem auto 0; width: 100%; max-width: 24rem; overflow: hidden; border-radius: 1rem; border: 1px solid #71717a33; }
 .explorer { min-width: 0; }
+@media (min-width: 1024px) {
+  .story { grid-column: 1; grid-row: 1; }
+  .explorer { grid-column: 2; grid-row: 1; }
+}
 .readStory { display: inline-block; margin-top: 1rem; font-size: .8rem; text-decoration: underline; text-underline-offset: 3px; }
