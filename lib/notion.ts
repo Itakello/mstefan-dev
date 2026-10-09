@@ -1,4 +1,5 @@
 import { PROJECT_TYPES, type ProjectType } from "@/lib/projectPublication";
+import { websitePreviewTargets } from "@/lib/websiteShowcase";
 import { Client } from "@notionhq/client";
 
 import type { Locale } from "@/lib/i18n/config";
@@ -16,6 +17,7 @@ export type NotionProject = {
   copy: Record<Locale, LocalizedProjectCopy>;
   url?: string;
   websiteUrl?: string;
+  previewUrls?: string[];
   paperUrl?: string;
   slidesUrl?: string;
   tags?: string[];
@@ -116,6 +118,14 @@ export function parseNotionProjectPage(page: any): NotionProject | null {
   if (website && (typeof website !== "object" || (website.type && website.type !== "url")
     || (website.url !== null && typeof website.url !== "string"))) return null;
   const websiteUrl = typeof website?.url === "string" ? website.url.trim() : undefined;
+  const previewProperty = properties["Preview URLs"];
+  if (previewProperty !== undefined && (!previewProperty || previewProperty.type !== "rich_text"
+    || !Array.isArray(previewProperty.rich_text)
+    || previewProperty.rich_text.some((item: any) => typeof item?.plain_text !== "string"))) return null;
+  let previewUrls = richText(previewProperty?.rich_text).split(/\r?\n/).map(value => value.trim()).filter(Boolean);
+  if (previewUrls.length) {
+    try { previewUrls = websitePreviewTargets({ websiteUrl, previewUrls }).slice(1); } catch { return null; }
+  }
   const resources: { paperUrl?: string; slidesUrl?: string } = {};
   for (const [property, key] of [["Paper URL", "paperUrl"], ["Slides URL", "slidesUrl"]] as const) {
     const value = properties[property];
@@ -149,6 +159,7 @@ export function parseNotionProjectPage(page: any): NotionProject | null {
     },
     url,
     ...(websiteUrl ? { websiteUrl } : {}),
+    ...(previewUrls.length ? { previewUrls } : {}),
     ...resources,
     tags: tags.length > 0 ? tags : undefined,
     language,
