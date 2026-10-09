@@ -1,0 +1,79 @@
+lib/i18n/copy.ts
+  s_736f2427abf3d0::t_f2554b92cf4eb1 73,168,269
+tests/cms/notion-publication-fixture.mjs
+  s_736f2427abf3d0::t_6be5927ddde59d 30,39-40
+lib/websiteShowcase.ts
+  s_736f2427abf3d0::t_f53dd2e16b0b8e 19
+  s_736f2427abf3d0::t_be73c05ed1838a 33
+  s_736f2427abf3d0::t_eb4bf8a7a605ed 63-67
+  s_736f2427abf3d0::t_a26a9581b48a22 6,34-35
+  s_736f2427abf3d0::t_f2554b92cf4eb1 8-16,18,20-21,23-31,45,62,68-70
+  s_736f2427abf3d0::t_bd20dc2473cbfe 32
+scripts/capture-website-previews.ts
+  s_736f2427abf3d0::t_ec3a768e5c8b4f 18-20,41-42
+  s_736f2427abf3d0::t_f36d802157dfb0 6,14-17,26-27
+  s_736f2427abf3d0::t_9ffc5c2c36a1bc 8,30
+lib/notion.ts
+  s_736f2427abf3d0::t_6be5927ddde59d 123-124
+  s_736f2427abf3d0::t_a26a9581b48a22 125,127,162
+  s_736f2427abf3d0::t_f2554b92cf4eb1 2,20,121-122,126,128
+tests/website-preview-network.test.ts
+  s_736f2427abf3d0::t_4c97642df8fa0c 1-14
+scripts/website-preview-network.ts
+  s_736f2427abf3d0::t_4c97642df8fa0c 1-2,4-6,8-21,30
+  s_736f2427abf3d0::t_2fc6dfb7b55a39 7
+  s_736f2427abf3d0::t_9ffc5c2c36a1bc 3,22-29
+tests/website-preview-verification.test.ts
+  s_736f2427abf3d0::t_ed211d9315e243 1-25
+tests/website-previews/network.test.mts
+  s_736f2427abf3d0::t_9ffc5c2c36a1bc 1-33
+README.md
+  s_736f2427abf3d0::t_f2554b92cf4eb1 67
+  s_736f2427abf3d0::t_e9e7f94152ed63 81
+  s_736f2427abf3d0::t_cd301145095598 79-80,82-85
+tests/website-showcase.test.ts
+  s_736f2427abf3d0::t_eb4bf8a7a605ed 166-176
+  s_736f2427abf3d0::t_6be5927ddde59d 7,126-148,150-165
+  s_736f2427abf3d0::t_f53dd2e16b0b8e 149
+scripts/visual-review/package-evidence.mjs
+  s_736f2427abf3d0::t_eb4bf8a7a605ed 34
+lib/publicProjects.ts
+  s_736f2427abf3d0::t_f2554b92cf4eb1 43
+app/[locale]/projects/page.tsx
+  s_736f2427abf3d0::t_1c1885d6674038 28-29,40
+  s_736f2427abf3d0::t_f2554b92cf4eb1 14,39,41-42
+components/WorkExplorer.tsx
+  s_736f2427abf3d0::t_be73c05ed1838a 92
+  s_736f2427abf3d0::t_f2554b92cf4eb1 33,91,101,174-179
+scripts/verify-website-previews.ts
+  s_736f2427abf3d0::t_ed211d9315e243 1-24
+.github/workflows/website-previews.yml
+  s_736f2427abf3d0::t_f100643c11267e 35-44
+  s_736f2427abf3d0::t_ed211d9315e243 64-68
+  s_736f2427abf3d0::t_ec3a768e5c8b4f 1-32,45-63,69-76
+  s_736f2427abf3d0::t_9ffc5c2c36a1bc 33-34
+lib/projectPublication.ts
+  s_736f2427abf3d0::t_f2554b92cf4eb1 12
+e2e/mstefan-site.review.spec.ts
+  s_736f2427abf3d0::t_1c1885d6674038 247,257,261
+  s_736f2427abf3d0::t_6be5927ddde59d 6-7,248-256,258-260,262-274
+  s_736f2427abf3d0::t_be74168b7611cf 275-276
+specs/mstefan-site-review.md
+  s_736f2427abf3d0::t_eb4bf8a7a605ed 28
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6651196284f2c5e64d29dd80bdf17dccff2d53ea",
+  "prompts": {},
+  "sessions": {
+    "s_736f2427abf3d0": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12179-a131-7d42-8af2-c3343178f3fc",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
