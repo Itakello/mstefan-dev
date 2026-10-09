@@ -2,11 +2,8 @@ import type { Locale } from "./i18n/config";
 import { isGitHubRepositoryUrl } from "./projectPresentation";
 import type { Project, ProjectType } from "./projectPublication";
 
-export const WEBSITE_PREVIEW_MAX_DEPTH = 3;
-
 const PERSONAL_SITE_ORIGIN = "https://www.mstefan.dev";
-const PRIVATE_PREVIEW_ORIGIN = "https://itakello-server.tailacf6a7.ts.net:10000";
-export type ShowcaseWebsite = { id: string; type?: ProjectType; url?: string; sourceUrl?: string; preview: boolean; name: string; description: string; shortDescription?: string; year?: string; paperUrl?: string; slidesUrl?: string; publication?: string; language?: string; tags?: string[] };
+export type ShowcaseWebsite = { id: string; type?: ProjectType; url?: string; sourceUrl?: string; preview: boolean; screenshots?: { desktop: string; mobile: string }; name: string; description: string; shortDescription?: string; year?: string; paperUrl?: string; slidesUrl?: string; publication?: string; language?: string; tags?: string[] };
 
 export function approvedWebsiteUrls(projects: readonly { websiteUrl?: string }[]): (string | undefined)[] {
   const seen = new Set<string>();
@@ -33,28 +30,18 @@ export function workItemsFromProjects(projects: readonly Project[]): ShowcaseWeb
     if (!websiteUrl) return { ...metadata, id: `project-${index}`,
       url: metadata.sourceUrl ? undefined : project.url, preview: false };
     const url = new URL(websiteUrl);
-    const preview = [PERSONAL_SITE_ORIGIN, "https://mstefan.dev"].includes(url.origin)
-      && url.pathname === "/" && !url.search && !url.hash;
-    return { ...metadata, id: url.href, url: url.href, preview };
+    return { ...metadata, id: url.href, url: url.href, preview: true };
   });
-}
-
-export function personalPreviewOrigin(hostname: string, currentOrigin: string) {
-  return hostname === "mstefan.dev" || hostname === "www.mstefan.dev" || currentOrigin === PRIVATE_PREVIEW_ORIGIN
-    ? currentOrigin
-    : PERSONAL_SITE_ORIGIN;
 }
 
 export function websitePreviewUrl(
   website: ShowcaseWebsite,
   locale: Locale,
-  personalSiteOrigin: string = website.url || PERSONAL_SITE_ORIGIN,
 ) {
   if (!website.url) return undefined;
   if (!website.preview) return website.url;
-  return `${personalSiteOrigin.replace(/\/$/, "")}/${locale}`;
-}
-
-export function canRenderWebsitePreview(depth: number) {
-  return depth < WEBSITE_PREVIEW_MAX_DEPTH;
+  const url = new URL(website.url);
+  const personalHomepage = [PERSONAL_SITE_ORIGIN, "https://mstefan.dev"].includes(url.origin)
+    && url.pathname === "/" && !url.search && !url.hash;
+  return website.preview && personalHomepage ? `${url.origin}/${locale}` : website.url;
 }

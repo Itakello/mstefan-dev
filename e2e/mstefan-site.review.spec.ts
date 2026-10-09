@@ -62,43 +62,33 @@ test.describe("Public website review", () => {
     await page.evaluate(() => window.scrollBy(0, 30));
     await expect(page.locator("[data-work-stack-label]")).toHaveCount(0);
     await expect(projectStack.getByText("Python", { exact: true })).toHaveCount(0);
-    const desktop = page.frameLocator('iframe[title="Desktop: Interactive preview of mstefan.dev"]');
-    const mobile = page.frameLocator('iframe[title="Mobile: Interactive preview of mstefan.dev"]');
+    const desktop = page.getByRole("img", { name: "Desktop: Screenshot of mstefan.dev", exact: true });
+    const mobile = page.getByRole("img", { name: "Mobile: Screenshot of mstefan.dev", exact: true });
     const modes = page.getByRole("group", { name: "Preview size" });
-    await expect(page.locator("iframe")).toHaveCount(1);
-    await expect(desktop.getByRole("heading", { level: 1, name: "I build AI systems for real work." })).toBeVisible();
+    await expect(page.locator("iframe")).toHaveCount(0);
+    await expect(desktop).toBeVisible();
+    await expect.poll(() => desktop.evaluate(node => (node as HTMLImageElement).naturalWidth)).toBe(1280);
     await expect(modes.getByRole("button", { name: "Desktop", exact: true })).toHaveAttribute("aria-pressed", "true");
-    const stageHeight = await page.locator("iframe").evaluate(node => node.parentElement?.parentElement?.getBoundingClientRect().height);
-    const frame = await page.locator("iframe").elementHandle().then(handle => handle?.contentFrame());
-    expect(await frame?.evaluate(() => window.innerWidth)).toBe(1280);
     const header = await page.getByRole("link", { name: "Visit website", exact: true }).boundingBox();
-    const preview = await page.locator("iframe").boundingBox();
+    const preview = await desktop.boundingBox();
     expect(header && preview && header.y + header.height < preview.y).toBeTruthy();
     await page.locator("#playwright-review-step").evaluate(node => node.remove());
     await page.screenshot({ path: ".artifacts/playwright/work-desktop.png", fullPage: true });
-    await desktop.getByRole("link", { name: "About", exact: true }).click();
-    await expect(desktop.locator("#career-story")).toHaveAttribute("aria-label", "About");
-    await expect(desktop.getByRole("heading", { level: 1, name: "master", exact: true })).toBeVisible();
     await modes.getByRole("button", { name: "Mobile", exact: true }).click();
-    await expect(page.locator("iframe")).toHaveCount(1);
-    await expect(mobile.locator("#career-story")).toHaveAttribute("aria-label", "About");
+    await expect(mobile).toBeVisible();
+    await expect.poll(() => mobile.evaluate(node => (node as HTMLImageElement).naturalWidth)).toBe(390);
+    const mobileBox = await mobile.boundingBox();
+    expect(mobileBox!.width / mobileBox!.height).toBeCloseTo(390 / 844, 2);
     await expect(modes.getByRole("button", { name: "Mobile", exact: true })).toHaveAttribute("aria-pressed", "true");
-    expect(await frame?.evaluate(() => window.innerWidth)).toBe(390);
-    const mobileGeometry = await page.locator("iframe").evaluate(node => ({
-      width: node.getBoundingClientRect().width,
-      availableWidth: node.parentElement?.parentElement?.getBoundingClientRect().width,
-    }));
-    expect(Math.abs(mobileGeometry.width - (mobileGeometry.availableWidth ?? 0))).toBeLessThan(2);
-    expect(await page.locator("iframe").evaluate(node => node.parentElement?.parentElement?.getBoundingClientRect().height)).toBe(stageHeight);
+    await expect(page.locator("iframe")).toHaveCount(0);
     await page.screenshot({ path: ".artifacts/playwright/work-phone.png", fullPage: true });
     await modes.getByRole("button", { name: "Desktop", exact: true }).click();
-    await expect(desktop.getByRole("heading", { level: 1, name: "master", exact: true })).toBeVisible();
-    expect(await frame?.evaluate(() => window.innerWidth)).toBe(1280);
+    await expect(desktop).toBeVisible();
     const clientSelection = page.getByRole("navigation", { name: "Choose a project" }).getByRole("button", { name: "Select The Karakal Times" });
     await clientSelection.focus();
     await page.keyboard.press("Enter");
     await expect(page.locator("iframe")).toHaveCount(0);
-    await expect(page.getByText("Explore the live website in a new tab.")).toBeVisible();
+    await expect(page.getByRole("img", { name: "Desktop: Screenshot of The Karakal Times", exact: true })).toBeVisible();
     await expect(page).toHaveURL(/\/en\/projects$/);
     await expect(page.getByRole("link", { name: "Visit website", exact: true })).toBeVisible();
     await expect(page.getByRole("link", { name: "Source code", exact: true })).toHaveCount(0);
@@ -144,7 +134,7 @@ test.describe("Public website review", () => {
     await expect(page.getByRole("link", { name: "Source code", exact: true })).toBeVisible();
     await expect(page.getByRole("link", { name: "Visit website", exact: true })).toHaveCount(0);
     await page.getByRole("button", { name: "Select mstefan.dev", exact: true }).click();
-    await expect(desktop.getByRole("heading", { level: 1, name: "I build AI systems for real work." })).toBeVisible();
+    await expect(desktop).toBeVisible();
     await showReviewStep(page, "2 · Work explorer and responsive preview toggle");
 
     // 3. Open About and verify its portrait and biography.
@@ -245,28 +235,18 @@ test.describe("Public website review", () => {
     expect(browserErrors, browserErrors.join("\n")).toEqual([]);
   });
 
-  test("Website previews stop after three same-origin ancestors", async ({ page }) => {
+  test("Missing screenshots retain the external visit link and recover on switching", async ({ page }) => {
+    await page.route("**/website-previews/**/en-desktop.png", route => route.fulfill({ status: 404, body: "" }));
     await page.goto("/en/websites");
     await expect(page).toHaveURL(/\/en\/projects$/);
-    await page.goto("https://www.mstefan.dev/en/projects");
     await page.getByRole("button", { name: "Select mstefan.dev", exact: true }).click();
-    let frame = page.mainFrame();
-    for (let depth = 1; depth <= 3; depth++) {
-      await expect(frame.locator("iframe")).toHaveCount(1);
-      await expect(frame.locator("iframe")).not.toHaveAttribute("sandbox");
-      const child = frame.locator('iframe[title="Desktop: Interactive preview of mstefan.dev"]').contentFrame();
-      await expect(child.getByRole("heading", { level: 1 })).toBeVisible();
-      const menu = child.getByRole("button", { name: "Open navigation", exact: true });
-      if (await menu.isVisible()) await menu.click();
-      await child.getByRole("link", { name: "Work", exact: true }).click();
-      await child.getByRole("button", { name: "Select mstefan.dev", exact: true }).click();
-      const actual = await frame.locator('iframe[title="Desktop: Interactive preview of mstefan.dev"]').elementHandle().then(handle => handle?.contentFrame());
-      if (!actual) throw new Error(`Missing preview frame at depth ${depth}`);
-      frame = actual;
-    }
-    await expect(frame.locator("iframe")).toHaveCount(0);
-    await expect(frame.getByRole("link", { name: "Visit website", exact: true })).toBeVisible();
-    await page.screenshot({ path: ".artifacts/playwright/gallery-depth-limit.png", fullPage: true });
+    await expect(page.getByRole("status")).toHaveText("Screenshot unavailable. You can still visit the website.");
+    await expect(page.locator("iframe")).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "Visit website", exact: true })).toHaveAttribute("href", "https://www.mstefan.dev/en");
+    await page.getByRole("group", { name: "Preview size" }).getByRole("button", { name: "Mobile", exact: true }).click();
+    const image = page.getByRole("img", { name: "Mobile: Screenshot of mstefan.dev", exact: true });
+    await expect.poll(() => image.evaluate(node => (node as HTMLImageElement).naturalWidth)).toBe(390);
+    await expect(page.getByRole("status")).toHaveCount(0);
   });
 
   test("Gallery handles one, empty, and unavailable publication states", async ({ page }) => {

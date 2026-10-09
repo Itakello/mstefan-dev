@@ -9,6 +9,7 @@
     "test:e2e": "playwright test --project=review",
     "start": "next start",
     "postbuild": "next-sitemap --config next-sitemap.config.mjs",
+    "capture:website-previews": "node --import tsx scripts/capture-website-previews.ts",
     "sync:notion": "node scripts/sync-github-to-notion.cjs",
     "check:notion-projects-schema": "tsx scripts/check-notion-projects-schema.ts",
     "extract:repository-technologies": "node scripts/repository-technologies/run.mjs",
