@@ -16,11 +16,11 @@ type Props = {
 export function HomeContent({ content, locale, selectedWork, toolkit }: Props) {
   return (
     <section className="space-y-10">
-      <header className="pt-4">
+      <header>
         <p className="text-sm text-black/60 dark:text-white/60">{content.eyebrow}</p>
-        <h1 className="mt-2 text-3xl font-bold tracking-tight">{content.title}</h1>
-        <p className="mt-4 max-w-prose text-black/70 dark:text-white/70">{content.introduction}</p>
-        <div className="mt-6 flex gap-3">
+        <h1 className="page-title mt-2">{content.title}</h1>
+        <p className="page-introduction">{content.introduction}</p>
+        <div className="mt-6 flex flex-wrap gap-3">
           <Link
             href={localizedPath(locale, "/projects")}
             className="rounded-xl bg-[hsl(var(--accent))] px-4 py-2 font-medium text-black no-underline hover:opacity-90"
@@ -36,27 +36,29 @@ export function HomeContent({ content, locale, selectedWork, toolkit }: Props) {
         </div>
       </header>
 
-      <section aria-labelledby="selected-work-heading">
-        <div className="flex items-end justify-between gap-4">
-          <div>
-            <h2 id="selected-work-heading" className="text-xl font-semibold">{content.selectedWork}</h2>
-            <p className="mt-2 text-sm text-black/60 dark:text-white/60">{content.selectedWorkDescription}</p>
+      <div className="page-columns">
+        <section className="page-content lg:col-start-2 lg:row-start-1" aria-labelledby="selected-work-heading">
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <h2 id="selected-work-heading" className="text-xl font-semibold">{content.selectedWork}</h2>
+              <p className="mt-2 text-sm leading-6 text-black/60 dark:text-white/60">{content.selectedWorkDescription}</p>
+            </div>
+            <Link href={localizedPath(locale, "/projects")} className="shrink-0 text-sm font-medium">
+              {content.allProjects}
+            </Link>
           </div>
-          <Link href={localizedPath(locale, "/projects")} className="shrink-0 text-sm font-medium">
-            {content.allProjects}
-          </Link>
-        </div>
 
-        {selectedWork}
-      </section>
+          {selectedWork}
+        </section>
 
-      <section className="border-y border-black/10 py-5 dark:border-white/10" aria-labelledby="toolkit-heading">
-        <h2 id="toolkit-heading" className="text-xl font-semibold">{content.toolkit}</h2>
-        <p className="mt-2 max-w-xl text-sm leading-6 text-black/60 dark:text-white/60">{content.toolkitDescription}</p>
-        <div className="mt-4">
-          {toolkit}
-        </div>
-      </section>
+        <section className="min-w-0 border-t border-black/10 pt-8 dark:border-white/10 lg:col-start-1 lg:row-start-1 lg:border-0 lg:pt-0" aria-labelledby="toolkit-heading">
+          <h2 id="toolkit-heading" className="text-xl font-semibold">{content.toolkit}</h2>
+          <p className="mt-2 max-w-xl text-sm leading-6 text-black/60 dark:text-white/60">{content.toolkitDescription}</p>
+          <div className="mt-4">
+            {toolkit}
+          </div>
+        </section>
+      </div>
     </section>
   );
 }
