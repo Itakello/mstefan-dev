@@ -278,12 +278,12 @@ test('career admin live preview keeps About text intact and locale drafts privat
     await expect(iframe).toHaveAttribute('src', /previewSource=career/);
     const preview = page.frameLocator('iframe');
     await expect(preview.locator('#career-story')).toHaveAttribute('aria-label', 'en-published-from-ui');
-    await expect(preview.getByRole('heading', { level: 1 })).toHaveText('master');
+    await expect(preview.locator('#career-story').getByRole('heading', { level: 2 })).toHaveText('master');
     await preview.getByRole('region', { name: 'Career', exact: true }).locator('button[data-career-job]').first().click();
-    await expect(preview.getByRole('heading', { level: 1 })).toHaveText('master');
+    await expect(preview.locator('#career-story').getByRole('heading', { level: 2 })).toHaveText('master');
     await page.locator('#field-jobs__0__summary').fill('Unsaved career live preview');
     await expect(preview.getByText('Unsaved career live preview', { exact: true })).toBeVisible();
-    await expect(preview.getByRole('heading', { level: 1 })).toHaveText('Amazon');
+    await expect(preview.locator('#career-story').getByRole('heading', { level: 2 })).toHaveText('Amazon');
     const publicPage = await request('/en/about');
     assert.ok(!(await publicPage.text()).includes('Unsaved career live preview'));
     const saveDraft = page.waitForResponse((response) => response.request().method() === 'POST' && response.url().includes('/api/globals/career') && response.url().includes('draft=true'));
@@ -474,10 +474,13 @@ test('nested career branches share junctions and synchronize graph and Experienc
     const centeredPhotoOffset = () => page.locator('#career-story').evaluate((story) => {
       const container = story.getBoundingClientRect();
       const photo = story.querySelector('figure')!.getBoundingClientRect();
-      return Math.abs((container.left + container.right - photo.left - photo.right) / 2);
+      const style = getComputedStyle(story);
+      const left = container.left + parseFloat(style.borderLeftWidth) + parseFloat(style.paddingLeft);
+      const right = container.right - parseFloat(style.borderRightWidth) - parseFloat(style.paddingRight);
+      return Math.abs((left + right - photo.left - photo.right) / 2);
     });
     await expect(page.locator('#career-story')).toHaveAttribute('aria-label', 'en-published-from-ui');
-    await expect(page.locator('#career-story h1')).toHaveText('master');
+    await expect(page.locator('#career-story h2')).toHaveText('master');
     await expect(page.locator('#career-story img')).toHaveAttribute('src', '/profile-photo.jpg');
     await expect(page.getByRole('link', { name: /Read story/i })).toHaveCount(0);
     await expect(graph.locator('[data-career-label]')).toHaveCount(0);
@@ -505,13 +508,13 @@ test('nested career branches share junctions and synchronize graph and Experienc
     await reader.getByRole('button', { name: 'Zoom in' }).click();
     await expect(reader.getByText('125%')).toBeVisible();
     await graph.locator('button[data-career-job]', { hasText: 'work/next' }).click();
-    await expect(page.locator('#career-story h1')).toHaveText('H');
+    await expect(page.locator('#career-story h2')).toHaveText('H');
     await expect(page.locator('#career-story img')).toHaveCount(0);
     await expect(page.locator('#career-story [data-pdf-document]')).toBeVisible();
     await expect(page.getByRole('link', { name: /H · View documents/i })).toHaveAttribute('href', '#career-story');
     await expect(page.getByRole('link', { name: /Read story/i })).toHaveCount(0);
     await projectTitle.click();
-    await expect(page.locator('#career-story h1')).toHaveText('F');
+    await expect(page.locator('#career-story h2')).toHaveText('F');
 
     assert.ok(await page.locator('#career-story img').evaluate((image) => (image as HTMLImageElement).complete && (image as HTMLImageElement).naturalWidth > 0));
     await page.setViewportSize({ width: 1440, height: 900 });
@@ -529,8 +532,8 @@ test('nested career branches share junctions and synchronize graph and Experienc
     await expect(page.getByRole('link', { name: /Read story/i })).toHaveCount(0);
     assert.ok((await centeredPhotoOffset()) < 2, 'Profile photo should be centered on desktop');
     await expect(mainline).toHaveAttribute('aria-pressed', 'true');
-    await expect(page.locator('#career-story').getByRole('heading', { level: 1 })).toHaveText('master');
-    await expect(page.locator('#career-story h1 svg[aria-hidden="true"]')).toHaveCount(1);
+    await expect(page.locator('#career-story').getByRole('heading', { level: 2 })).toHaveText('master');
+    await expect(page.locator('#career-story h2 svg[aria-hidden="true"]')).toHaveCount(1);
     await expect(mainRow).toContainText('master');
     await expect(mainline).toHaveAttribute('aria-label', 'master: Full-stack developer');
     await projectTitle.click();
@@ -569,7 +572,7 @@ test('nested career branches share junctions and synchronize graph and Experienc
     const emptyStory = graph.locator('button[data-career-job]', { hasText: 'work/company' }).filter({ hasNotText: 'work/company/project' });
     await emptyStory.click();
     await expect(emptyStory).toHaveAttribute('aria-pressed', 'true');
-    await expect(page.locator('#career-story h1')).toHaveText('master');
+    await expect(page.locator('#career-story h2')).toHaveText('master');
     await expect(page.locator('#career-story img')).toHaveAttribute('src', '/profile-photo.jpg');
     await expect(page.getByRole('link', { name: /Read story/i })).toHaveCount(0);
     await page.setViewportSize({ width: 320, height: 800 });
@@ -604,8 +607,9 @@ test('authenticated previews load only the active source draft', { timeout: 60_0
       const expectPageTitle = async (title: string) => {
         if (slug === 'about') {
           await expect(page.locator('#career-story')).toHaveAttribute('aria-label', title);
-          await expect(page.locator('#career-story h1')).toHaveText('master');
-        } else await expect(page.getByRole('heading', { level: 1 })).toHaveText(title);
+          await expect(page.locator('#career-story h2')).toHaveText('master');
+        }
+        await expect(page.getByRole('heading', { level: 1 })).toHaveText(title);
       };
       const pathname = slug === 'home' ? '/en' : '/en/about';
       if (slug === 'about') {

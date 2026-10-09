@@ -108,7 +108,7 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
   const metadata = [selected.type ? copy.work.types[selected.type] : undefined, selected.year, groups.length ? undefined : selected.language].filter(Boolean);
   const linkClass = "inline-flex items-center gap-2 text-sm font-medium";
   return (
-    <div className="mt-8 grid min-w-0 gap-8 lg:grid-cols-[288px_minmax(0,1fr)] lg:gap-6">
+    <div className="page-columns mt-10">
       <nav aria-label={copy.work.selectorLabel} className="max-h-64 overflow-y-auto lg:max-h-[760px]">
         {items.map(item => <button key={item.id} type="button" onClick={() => { setSelectedId(item.id); setDocumentKind("paper"); }}
           aria-label={copy.websites.selectSite(item.name)} aria-current={item.id === selected.id ? "true" : undefined}
@@ -117,7 +117,7 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
           <span className="mt-1 block text-sm leading-5 text-black/60 dark:text-white/60">{item.shortDescription || item.description}</span>
         </button>)}
       </nav>
-      <section aria-labelledby="selected-work-title" className="min-w-0 lg:border-l lg:border-black/10 lg:pl-6 dark:lg:border-white/10">
+      <section aria-labelledby="selected-work-title" className="page-content">
         <div className={`grid ${hasStackColumn ? "grid-cols-[minmax(0,1fr)_112px] gap-4 sm:gap-6" : "grid-cols-1"}`}>
           <div className="min-w-0">
             <h2 id="selected-work-title" className="text-2xl font-semibold tracking-tight [overflow-wrap:anywhere]">{selected.name}</h2>

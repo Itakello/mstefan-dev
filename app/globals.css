@@ -83,6 +83,24 @@ a {
   @apply mx-auto max-w-3xl px-6 sm:max-w-4xl lg:max-w-6xl;
 }
 
+@layer components {
+  .page-title {
+    @apply text-3xl font-bold tracking-tight;
+  }
+
+  .page-introduction {
+    @apply mt-4 max-w-prose leading-7 text-black/70 dark:text-white/70;
+  }
+
+  .page-columns {
+    @apply grid min-w-0 gap-8 lg:grid-cols-[320px_minmax(0,1fr)];
+  }
+
+  .page-content {
+    @apply min-w-0 lg:border-l lg:border-black/10 lg:pl-8 dark:lg:border-white/10;
+  }
+}
+
 /* Prose defaults */
 .prose {
   --tw-prose-body: var(--page-text);

@@ -27,32 +27,37 @@ export function AboutContent({ content, career, locale }: Props) {
   const readStory = locale === "it" ? "Leggi la storia ↓" : "Read story ↓";
   const viewDocuments = locale === "it" ? "Vedi i documenti ↓" : "View documents ↓";
   return (
-    <div className={styles.layout}>
-      <div className={styles.explorer}>
-        <CareerGraph career={career} locale={locale} expanded showDetails={false} onSelectionChange={select} />
-        {selected && <a className={styles.readStory} href="#career-story">{selected.company} · {selected.summary?.trim() ? readStory : viewDocuments}</a>}
-      </div>
-      <section id="career-story" className={styles.story} aria-label={selected?.company || content.title}>
-        <div aria-live="polite" aria-atomic="true">
-          <Prose>
-            {selected ? <>
-              <p className={styles.branch} style={{ color: selected.color }}><BranchIcon /><span>{selected.branchName}</span></p>
-              <h1>{selected.company}</h1>
-              <p>{selected.role}</p>
-              {selected.summary && <p className={styles.summary}>{selected.summary}</p>}
-            </> : <>
-              <h1 className={styles.branch} style={{ color: career.mainlineColor || "#25b8f3" }}><BranchIcon /><span>master</span></h1>
-              <p>{content.firstParagraph}</p>
-              <p>{content.secondParagraph}</p>
-            </>}
-          </Prose>
+    <section aria-labelledby="about-heading" className="space-y-10">
+      <header>
+        <h1 id="about-heading" className="page-title">{content.title}</h1>
+        <p className="page-introduction">{content.firstParagraph}</p>
+      </header>
+      <div className="page-columns">
+        <div className={styles.explorer}>
+          <CareerGraph career={career} locale={locale} expanded showDetails={false} onSelectionChange={select} />
+          {selected && <a className={styles.readStory} href="#career-story">{selected.company} · {selected.summary?.trim() ? readStory : viewDocuments}</a>}
         </div>
-        {photoURL && <figure className={styles.photo}>
-          <Image src={photoURL} alt={imageAlt} width={photo?.width || 1530} height={photo?.height || 2054} unoptimized className="h-auto w-full" />
-        </figure>}
-        {documents.map((document) => document.file && typeof document.file === "object" && document.file.url && <PdfPreview key={document.id || document.file.id} title={document.title} url={document.file.url} filename={document.file.filename} locale={locale} />)}
-      </section>
-    </div>
+        <section id="career-story" className={`page-content ${styles.story}`} aria-label={selected?.company || content.title}>
+          <div aria-live="polite" aria-atomic="true">
+            <Prose>
+              {selected ? <>
+                <p className={styles.branch} style={{ color: selected.color }}><BranchIcon /><span>{selected.branchName}</span></p>
+                <h2 className="!mt-0 !text-2xl tracking-tight">{selected.company}</h2>
+                <p>{selected.role}</p>
+                {selected.summary && <p className={styles.summary}>{selected.summary}</p>}
+              </> : <>
+                <h2 className={styles.branch} style={{ color: career.mainlineColor || "#25b8f3" }}><BranchIcon /><span>master</span></h2>
+                <p>{content.secondParagraph}</p>
+              </>}
+            </Prose>
+          </div>
+          {photoURL && <figure className={styles.photo}>
+            <Image src={photoURL} alt={imageAlt} width={photo?.width || 1530} height={photo?.height || 2054} unoptimized className="h-auto w-full" />
+          </figure>}
+          {documents.map((document) => document.file && typeof document.file === "object" && document.file.url && <PdfPreview key={document.id || document.file.id} title={document.title} url={document.file.url} filename={document.file.filename} locale={locale} />)}
+        </section>
+      </div>
+    </section>
   );
 }
 

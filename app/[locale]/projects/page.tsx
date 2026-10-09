@@ -39,8 +39,10 @@ export default async function ProjectsPage({ params }: { params: Promise<{ local
 
   return (
     <section aria-labelledby="public-projects-heading" data-publication-digest={snapshot?.digest} data-publication-checked-at={snapshot?.checkedAt}>
-      <h1 id="public-projects-heading" className="text-2xl font-semibold">{content.title}</h1>
-      <p className="mt-2 text-sm text-black/70 dark:text-white/70">{content.description}</p>
+      <header>
+        <h1 id="public-projects-heading" className="page-title">{content.title}</h1>
+        <p className="page-introduction">{content.description}</p>
+      </header>
 
       {publicationView && (
         <p
