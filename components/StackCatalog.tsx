@@ -24,7 +24,7 @@ const categoryIcons: Record<string, string> = {
   database: "lucide:database",
   cloud: "lucide:cloud",
   platform: "lucide:cloud-cog",
-  saas: "lucide:blocks",
+  saas: "lucide:plug",
   cli: "lucide:square-terminal",
   integration: "lucide:plug",
 };
