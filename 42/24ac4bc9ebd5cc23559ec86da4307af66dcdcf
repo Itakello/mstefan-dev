@@ -1,0 +1,19 @@
+tests/cms/notion-publication-fixture.mjs
+  s_3d62814d501f60::t_f83fa00f1cde6b 24
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4224ac4bc9ebd5cc23559ec86da4307af66dcdcf",
+  "prompts": {},
+  "sessions": {
+    "s_3d62814d501f60": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1217b-75c8-73f1-a1fc-1b64ca9ec9eb",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
