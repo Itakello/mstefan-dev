@@ -1,0 +1,47 @@
+lib/i18n/copy.ts
+  s_3d62814d501f60::t_1f2b37e06ce61f 78,170,172,270,272
+lib/websiteShowcase.ts
+  s_3d62814d501f60::t_1f2b37e06ce61f 6,33,43-46
+e2e/mstefan-site.review.spec.ts
+  s_3d62814d501f60::t_1f2b37e06ce61f 68-69,71-73,79,84-88,90,93,98,144,245-246,250-274
+  s_3d62814d501f60::t_c8bcf983a312e3 312-322
+package.json
+  s_3d62814d501f60::t_1f2b37e06ce61f 12
+scripts/visual-review/package-evidence.mjs
+  s_3d62814d501f60::t_1f2b37e06ce61f 34
+specs/mstefan-site-review.md
+  s_3d62814d501f60::t_1f2b37e06ce61f 13,20,27
+scripts/capture-website-previews.ts
+  s_3d62814d501f60::t_1f2b37e06ce61f 1-46
+tests/website-showcase.test.ts
+  s_3d62814d501f60::t_1f2b37e06ce61f 8,24,41-42,44,116-123
+  s_3d62814d501f60::t_9e1a522088659b 124
+app/[locale]/projects/page.tsx
+  s_3d62814d501f60::t_1f2b37e06ce61f 13,36-37
+lib/websiteScreenshots.ts
+  s_3d62814d501f60::t_1f2b37e06ce61f 1-8
+components/WorkExplorer.tsx
+  s_3d62814d501f60::t_1f2b37e06ce61f 13,15-17,19,21-25,50,90,123,127,139,171,180-181
+  s_3d62814d501f60::t_021f9a679f0661 184
+README.md
+  s_3d62814d501f60::t_1f2b37e06ce61f 66,78
+  s_3d62814d501f60::t_62cf81880ddfd7 79
+tests/cms/notion-publication-fixture.mjs
+  s_3d62814d501f60::t_2f55f10e92a601 24
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1947a49a508461067e39617fdae97a827dd1239f",
+  "prompts": {},
+  "sessions": {
+    "s_3d62814d501f60": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1217b-75c8-73f1-a1fc-1b64ca9ec9eb",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
