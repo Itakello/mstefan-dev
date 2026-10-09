@@ -10,6 +10,7 @@ import { getNotionPublicationSnapshot } from "@/lib/notionPublicationSnapshot";
 import { projectPublicationView } from "@/lib/publicationPresentation";
 import { assertProjectStackCoverage } from "@/lib/stack";
 import { loadWebsiteStack } from "@/lib/websiteStack";
+import { websiteScreenshotPaths } from "@/lib/websiteScreenshots";
 import { workItemsFromProjects } from "@/lib/websiteShowcase";
 
 export const revalidate = 86_400;
@@ -32,7 +33,8 @@ export default async function ProjectsPage({ params }: { params: Promise<{ local
     snapshot ? { status: "ready" as const, entries: snapshot.stack, message: null } : loadWebsiteStack(),
   ]);
   if (stackCatalog.status === "ready") assertProjectStackCoverage(publication.projects, stackCatalog.entries);
-  const items = workItemsFromProjects(projects);
+  const items = workItemsFromProjects(projects).map(item => item.preview && item.url
+    ? { ...item, screenshots: websiteScreenshotPaths(item.url, locale) } : item);
   const publicationView = publication.message
     ? projectPublicationView(locale, publication.message)
     : null;

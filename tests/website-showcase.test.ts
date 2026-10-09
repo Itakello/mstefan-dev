@@ -2,12 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
-  canRenderWebsitePreview,
-  personalPreviewOrigin,
   workItemsFromProjects,
-  WEBSITE_PREVIEW_MAX_DEPTH,
   websitePreviewUrl,
 } from "../lib/websiteShowcase";
+import { websiteScreenshotPaths } from "../lib/websiteScreenshots";
 import { loadPublicProjects } from "../lib/publicProjects";
 import { parseNotionProjectPage } from "../lib/notion";
 
@@ -23,27 +21,12 @@ test("showcase websites use unique secure public URLs", () => {
   assert.equal(new Set(urls).size, urls.length);
   assert.ok(urls.every((url) => url?.startsWith("https://")));
   assert.equal(showcaseWebsites[0].preview, true);
-  assert.equal(showcaseWebsites[1].preview, false);
+  assert.equal(showcaseWebsites[1].preview, true);
 });
 
 test("the personal website preview stays in the selected locale", () => {
   assert.equal(websitePreviewUrl(showcaseWebsites[0], "it"), "https://www.mstefan.dev/it");
-  assert.equal(websitePreviewUrl(showcaseWebsites[0], "en", "http://127.0.0.1:3107"), "http://127.0.0.1:3107/en");
   assert.equal(websitePreviewUrl(showcaseWebsites[1], "it"), "https://www.thekarakaltimes.com/");
-  assert.equal(websitePreviewUrl(showcaseWebsites[1], "en", "http://127.0.0.1:3107"), "https://www.thekarakaltimes.com/");
-});
-
-test("preview builds embed the live personal site instead of an unconfigured preview homepage", () => {
-  assert.equal(personalPreviewOrigin("127.0.0.1", "http://127.0.0.1:3000"), "https://www.mstefan.dev");
-  assert.equal(personalPreviewOrigin("mstefan-dev-preview.vercel.app", "https://mstefan-dev-preview.vercel.app"), "https://www.mstefan.dev");
-  assert.equal(personalPreviewOrigin("www.mstefan.dev", "https://www.mstefan.dev"), "https://www.mstefan.dev");
-  assert.equal(personalPreviewOrigin("itakello-server.tailacf6a7.ts.net", "https://itakello-server.tailacf6a7.ts.net:10000"), "https://itakello-server.tailacf6a7.ts.net:10000");
-  assert.equal(personalPreviewOrigin("itakello-server.tailacf6a7.ts.net", "https://itakello-server.tailacf6a7.ts.net:9443"), "https://www.mstefan.dev");
-});
-
-test("recursive previews stop at the configured depth", () => {
-  assert.equal(canRenderWebsitePreview(WEBSITE_PREVIEW_MAX_DEPTH - 1), true);
-  assert.equal(canRenderWebsitePreview(WEBSITE_PREVIEW_MAX_DEPTH), false);
 });
 
 test("gallery membership and copy derive exclusively from approved publication records", () => {
@@ -55,10 +38,10 @@ test("gallery membership and copy derive exclusively from approved publication r
   assert.equal(workItemsFromProjects([{ ...project, shortSummary: "Localized short.", websiteUrl: "https://example.com" }])[0].shortDescription, "Localized short.");
 });
 
-test("only the personal site root can be embedded", () => {
-  assert.equal(showcaseWebsites[1].preview, false);
+test("secure website URLs enable screenshots without embedding", () => {
+  assert.equal(showcaseWebsites[1].preview, true);
   for (const url of ["https://www.thekarakaltimes.com.evil.test", "https://www.thekarakaltimes.com/about", "https://mstefan.dev.evil.test", "https://www.mstefan.dev:8443", "https://www.mstefan.dev/admin", "https://www.mstefan.dev?preview=1"]) {
-    assert.equal(workItemsFromProjects([{ ...project, websiteUrl: url }])[0].preview, false, url);
+    assert.equal(workItemsFromProjects([{ ...project, websiteUrl: url }])[0].preview, true, url);
   }
   for (const url of ["javascript:alert(1)", "http://example.com", "https://user:password@example.com", "bad-url"]) {
     assert.throws(() => workItemsFromProjects([{ ...project, websiteUrl: url }]), /website URL/);
@@ -129,4 +112,13 @@ test("legacy non-GitHub project URLs remain visit links without enabling embeddi
   }
   const item = workItemsFromProjects([{ ...project, url: "https://legacy.example.com", websiteUrl: "https://current.example.com" }])[0];
   assert.equal(item.url, "https://current.example.com/");
+});
+
+test("screenshot assets normalize URL identity and separate locale and viewport", () => {
+  const english = websiteScreenshotPaths("https://example.com", "en");
+  assert.deepEqual(english, websiteScreenshotPaths("https://example.com/", "en"));
+  assert.notEqual(english.desktop, english.mobile);
+  assert.notEqual(english.desktop, websiteScreenshotPaths("https://example.com", "it").desktop);
+  assert.notEqual(english.desktop, websiteScreenshotPaths("https://example.com/other", "en").desktop);
+  assert.match(english.desktop, /^\/website-previews\/[a-f0-9]{64}\/en-desktop\.png$/);
 });

@@ -63,7 +63,7 @@ Notion database expected properties (create these columns):
 - `Name` (title)
 - `Type` (select, optional: Website, App, Tool, Research; absent or unselected types are omitted, other values fail publication)
 - `URL` (url)
-- `Website URL` (url, optional public website; supplies Work visit links and previews for permitted website origins)
+- `Website URL` (url, optional public website; supplies Work visit links and screenshot targets)
 - `Paper URL` / `Slides URL` (url, optional HTTPS research resources; blank values are omitted, nonblank invalid or credential-bearing URLs fail publication)
 - `Publication` / `Publication IT` (rich_text, optional publication credit in each locale; no translation fallback)
 - `Summary` (rich_text, required English long summary)
@@ -74,6 +74,8 @@ Notion database expected properties (create these columns):
 - `Language` (multi_select)
 - `Year` (number)
 - `Status` (status: "To Add", "Added", "Removed")
+
+Work displays static homepage screenshots with desktop/mobile switching; visitors use the separate Visit website link to interact with a site. Screenshot targets come from approved Notion `Website URL` values. Run `pnpm exec playwright install chromium` once, then `pnpm capture:website-previews` with the Notion environment configured to refresh the images under `public/website-previews/`. To refresh one site, pass its HTTPS URL to the command. Captures use light theme at 1280 × 800 and 390 × 844; the personal homepage follows the selected language. Review and commit the generated images to ship them. Capture failures retain the previous image and fail the command; missing images show an unavailable message. Refresh is manual, with no browser or screenshot service in the production runtime.
 
 Paper and slides URLs are rendered as PDFs inside Work, with page navigation, zoom, and selectable text. Use public PDF sources that allow cross-origin reading (CORS), such as raw GitHub files or arXiv. GitHub blob links are converted to raw content for the reader. Hosts that require sign-in, block CORS, or serve a non-PDF retain an external Open PDF link when the inline preview is unavailable.
 

@@ -74,9 +74,8 @@ type SiteCopy = {
   websites: {
     selectSite: (title: string) => string;
     previewTitle: (title: string) => string;
-    loading: string;
     linkOnly: string;
-    depthLimit: string;
+    unavailable: string;
   };
   about: { title: string; firstParagraph: string; secondParagraph: string; imageAlt: string };
   og: { description: string };
@@ -168,10 +167,9 @@ export const copy = {
     work: { types: { Website: "Website", App: "App", Tool: "Tool", Research: "Research" }, previewSize: "Preview size", selectorLabel: "Choose a project", desktop: "Desktop", mobile: "Mobile", source: "Source code", visit: "Visit website", research: "Research & materials", accomplishments: "Accomplishments", paper: "Paper", slides: "Slides" },
     websites: {
       selectSite: (title) => `Select ${title}`,
-      previewTitle: (title) => `Interactive preview of ${title}`,
-      loading: "Preparing the live preview…",
+      previewTitle: (title) => `Screenshot of ${title}`,
       linkOnly: "Explore the live website in a new tab.",
-      depthLimit: "You reached the third website inside the website. The live preview stops here so the recursion stays intentional.",
+      unavailable: "Screenshot unavailable. You can still visit the website.",
 
     },
     about: {
@@ -269,10 +267,9 @@ export const copy = {
     work: { types: { Website: "Sito web", App: "App", Tool: "Strumento", Research: "Ricerca" }, previewSize: "Dimensione anteprima", selectorLabel: "Scegli un progetto", desktop: "Desktop", mobile: "Mobile", source: "Codice sorgente", visit: "Visita il sito", research: "Ricerca e materiali", accomplishments: "Risultati", paper: "Paper", slides: "Slide" },
     websites: {
       selectSite: (title) => `Seleziona ${title}`,
-      previewTitle: (title) => `Anteprima interattiva di ${title}`,
-      loading: "Preparo l'anteprima live…",
+      previewTitle: (title) => `Screenshot di ${title}`,
       linkOnly: "Esplora il sito live in una nuova scheda.",
-      depthLimit: "Hai raggiunto il terzo sito dentro il sito. L'anteprima live si ferma qui, così la ricorsione resta intenzionale.",
+      unavailable: "Screenshot non disponibile. Puoi comunque visitare il sito.",
 
     },
     about: {

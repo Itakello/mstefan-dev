@@ -10,42 +10,19 @@ import { displayStackCategory, groupStackEntries, projectStackLabels, resolvePro
 import type { WebsiteStackState } from "@/lib/websiteStack";
 import { getCopy } from "@/lib/i18n/copy";
 import type { Locale } from "@/lib/i18n/config";
-import { canRenderWebsitePreview, personalPreviewOrigin, type ShowcaseWebsite, websitePreviewUrl } from "@/lib/websiteShowcase";
+import { type ShowcaseWebsite, websitePreviewUrl } from "@/lib/websiteShowcase";
 
-function ancestorDepth() {
-  let current: Window = window;
-  let depth = 0;
-  while (current.parent !== current) {
-    try {
-      if (current.parent.location.origin !== current.location.origin) break;
-      depth++;
-      current = current.parent;
-    } catch { break; }
-  }
-  return depth;
-}
-
-function ResponsivePreview({ url, title, mobile, sandbox }: { url: string; title: string; mobile: boolean; sandbox?: string }) {
-  const container = useRef<HTMLDivElement>(null);
-  const [available, setAvailable] = useState({ width: 0, height: 0 });
-  const width = mobile ? 390 : 1280;
-  const scale = mobile ? Math.min(1, available.width / width) : Math.min(1, available.width / width, available.height / 800);
-  const height = mobile && scale > 0 ? available.height / scale : 800;
+function ScreenshotPreview({ url, title, mobile, unavailable }: { url: string; title: string; mobile: boolean; unavailable: string }) {
+  const image = useRef<HTMLImageElement>(null);
+  const [failed, setFailed] = useState(false);
   useEffect(() => {
-    const element = container.current;
-    if (!element) return;
-    const observer = new ResizeObserver(([entry]) => setAvailable({ width: entry.contentRect.width, height: entry.contentRect.height }));
-    observer.observe(element);
-    return () => observer.disconnect();
+    if (image.current?.complete && image.current.naturalWidth === 0) setFailed(true);
   }, []);
-  return (
-    <div ref={container} className="relative w-full" style={{ height: "min(620px, 70svh)" }}>
-      <div className="absolute left-1/2 overflow-hidden rounded-xl border border-black/10 bg-white dark:border-white/15 dark:bg-black"
-        style={{ width: width * scale, height: height * scale, transform: "translateX(-50%)" }}>
-        <iframe src={url} title={title} width={width} height={height}
-          className="block origin-top-left border-0" style={{ width, height, transform: `scale(${scale})` }}
-          referrerPolicy="strict-origin-when-cross-origin" sandbox={sandbox} />
-      </div>
+  return failed ? <p role="status" className="text-sm text-black/60 dark:text-white/60">{unavailable}</p> : (
+    <div className="flex w-full justify-center">
+      <img ref={image} src={url} alt={title} width={mobile ? 390 : 1280} height={mobile ? 844 : 800}
+        className="h-auto w-auto max-h-[min(620px,70svh)] max-w-full rounded-xl border border-black/10 object-contain dark:border-white/15"
+        onError={() => setFailed(true)} />
     </div>
   );
 }
@@ -70,8 +47,7 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
         const rect = focused.getBoundingClientRect();
         const viewport = scroller.getBoundingClientRect();
         if (rect.bottom > Math.max(0, viewport.top) && rect.top < Math.min(window.innerHeight, viewport.bottom) && rect.right > Math.max(0, viewport.left) && rect.left < Math.min(window.innerWidth, viewport.right)) {
-          const [name, category = ""] = focused.getAttribute("aria-label")!.split(" · ");
-          showStackLabel(focused, name, category);
+          showStackLabel(focused, focused.dataset.stackName!, focused.dataset.stackCategory ?? "");
         } else dismissStackLabel();
       } else dismissStackLabel();
     };
@@ -93,16 +69,10 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
   };
   const [selectedId, setSelectedId] = useState(items[0]?.id);
   const selected = items.find(item => item.id === selectedId) || items[0];
-  const [parentOrigin, setParentOrigin] = useState("");
-  const [depth, setDepth] = useState<number | null>(null);
-  const [origin, setOrigin] = useState(personalPreviewOrigin("", ""));
   useEffect(() => {
     const requested = new URLSearchParams(window.location.search).get("project");
     const initial = items.find(item => item.id === requested || item.name === requested);
     if (initial) setSelectedId(initial.id);
-    setDepth(ancestorDepth());
-    setParentOrigin(window.location.origin);
-    setOrigin(personalPreviewOrigin(window.location.hostname, window.location.origin));
   }, []);
   useEffect(() => {
     const element = stackScroll.current;
@@ -117,7 +87,7 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
     return () => observer.disconnect();
   }, [selected?.id, stackCatalog]);
   if (!selected) return null;
-  const previewUrl = websitePreviewUrl(selected, locale, origin);
+  const screenshotUrl = selected.screenshots?.[mobile ? "mobile" : "desktop"];
   const visitUrl = websitePreviewUrl(selected, locale);
   const groups = groupStackEntries(resolveProjectStack(projectStackLabels(selected), stackCatalog.entries));
   const hasStackColumn = groups.length > 0 || Boolean(stackCatalog.message);
@@ -150,11 +120,11 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
             <div ref={stackScroll} data-work-stack-scroll tabIndex={0} className="mt-3 h-[158px] overflow-auto overscroll-contain pr-1" onScroll={updateStackOverflow}>
             <ul className="grid min-w-max grid-flow-col auto-cols-[28px] items-start gap-2">
               {groups.map(group => <li key={group.category} aria-label={displayStackCategory(group.category, locale)}>
-                <details className="sticky top-0 z-10 mb-3 border-b border-black/10 bg-white pb-2 dark:border-white/10 dark:bg-black" onToggle={event => {
+                <details className="mb-3 border-b border-black/10 bg-white pb-2 dark:border-white/10 dark:bg-black" onToggle={event => {
                   if (event.currentTarget.open) showStackLabel(event.currentTarget, displayStackCategory(group.category, locale), "");
                   else setStackLabel(null);
                 }} onMouseLeave={event => { if (!event.currentTarget.open) setStackLabel(null); }}>
-                  <summary aria-label={displayStackCategory(group.category, locale)} onMouseEnter={event => showStackLabel(event.currentTarget, displayStackCategory(group.category, locale), "")}
+                  <summary data-stack-name={displayStackCategory(group.category, locale)} aria-label={displayStackCategory(group.category, locale)} onMouseEnter={event => showStackLabel(event.currentTarget, displayStackCategory(group.category, locale), "")}
                     onFocus={event => showStackLabel(event.currentTarget, displayStackCategory(group.category, locale), "")}
                     onBlur={() => setStackLabel(null)} className="grid size-7 cursor-pointer list-none place-items-center rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-[hsl(var(--accent))] [&::-webkit-details-marker]:hidden">
                     <StackCategoryIcon category={group.category} className="size-5 opacity-80" />
@@ -166,7 +136,7 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
                   if (event.currentTarget.open) showStackLabel(event.currentTarget, entry.name, displayStackCategory(group.category, locale));
                   else setStackLabel(null);
                 }} onMouseLeave={event => { if (!event.currentTarget.open) setStackLabel(null); }}>
-                  <summary aria-label={`${entry.name} · ${displayStackCategory(group.category, locale)}`} onMouseEnter={event => showStackLabel(event.currentTarget, entry.name, displayStackCategory(group.category, locale))}
+                  <summary data-stack-name={entry.name} data-stack-category={displayStackCategory(group.category, locale)} aria-label={`${entry.name} · ${displayStackCategory(group.category, locale)}`} onMouseEnter={event => showStackLabel(event.currentTarget, entry.name, displayStackCategory(group.category, locale))}
                     onFocus={event => showStackLabel(event.currentTarget, entry.name, displayStackCategory(group.category, locale))}
                     onBlur={() => setStackLabel(null)} className="flex cursor-pointer list-none rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-[hsl(var(--accent))] [&::-webkit-details-marker]:hidden">
                     <StackBadge item={entry} label={false} compact />
@@ -198,8 +168,7 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
             <DocumentPreview key={`${selected.id}-${documentKind}`} url={(documentKind === "slides" && selected.slidesUrl ? selected.slidesUrl : selected.paperUrl || selected.slidesUrl)!} title={selected.name} locale={locale} presentation={Boolean(selected.slidesUrl && (documentKind === "slides" || !selected.paperUrl))} />
           </>}
         </section>}
-        {selected.preview && previewUrl && (depth === null || !parentOrigin ? <p role="status" className="mt-6 text-sm">{copy.websites.loading}</p>
-          : canRenderWebsitePreview(depth) ? <div className="mt-7">
+        {screenshotUrl && <div className="mt-7">
             <div role="group" aria-label={copy.work.previewSize} className="mb-4 ml-auto flex w-fit gap-1 rounded-lg border border-black/10 p-1 dark:border-white/15">
               {([{ mobile: false, label: copy.work.desktop, Icon: Monitor }, { mobile: true, label: copy.work.mobile, Icon: Smartphone }]).map(mode => (
                 <button key={mode.label} type="button" aria-pressed={mobile === mode.mobile} onClick={() => setMobile(mode.mobile)}
@@ -208,11 +177,11 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
                 </button>
               ))}
             </div>
-            <ResponsivePreview key={selected.id} url={previewUrl} title={`${mobile ? copy.work.mobile : copy.work.desktop}: ${copy.websites.previewTitle(selected.name)}`} mobile={mobile} sandbox={new URL(previewUrl).origin === parentOrigin ? undefined : "allow-scripts allow-same-origin allow-forms allow-popups"} />
-          </div> : <p className="mt-6 text-sm text-black/60 dark:text-white/60">{copy.websites.depthLimit}</p>)}
+            <ScreenshotPreview key={screenshotUrl} url={screenshotUrl} title={`${mobile ? copy.work.mobile : copy.work.desktop}: ${copy.websites.previewTitle(selected.name)}`} mobile={mobile} unavailable={copy.websites.unavailable} />
+          </div>}
         {selected.url && !selected.preview && <p className="mt-6 text-sm text-black/60 dark:text-white/60">{copy.websites.linkOnly}</p>}
       </section>
-      {stackLabel && createPortal(<span data-work-stack-label aria-hidden className="fixed z-50 max-w-40 rounded-md border border-black/10 bg-white px-2 py-1 text-xs shadow-md dark:border-white/15 dark:bg-zinc-900" style={{ right: stackLabel.right, top: stackLabel.top }}>
+      {stackLabel && createPortal(<span data-work-stack-label aria-hidden className="pointer-events-none fixed z-50 max-w-40 rounded-md border border-black/10 bg-white px-2 py-1 text-xs shadow-md dark:border-white/15 dark:bg-zinc-900" style={{ right: stackLabel.right, top: stackLabel.top }}>
         <span className="block font-medium">{stackLabel.name}</span>
         {stackLabel.category && <span className="block text-black/55 dark:text-white/55">{stackLabel.category}</span>}
       </span>, document.body)}
