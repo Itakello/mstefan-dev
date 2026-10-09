@@ -68,6 +68,9 @@ test.describe("Public website review", () => {
     await expect(page.locator("iframe")).toHaveCount(1);
     await expect(desktop.getByRole("heading", { level: 1, name: "I build AI systems for real work." })).toBeVisible();
     await expect(modes.getByRole("button", { name: "Desktop", exact: true })).toHaveAttribute("aria-pressed", "true");
+    const modeBox = await modes.boundingBox();
+    const stackBox = await projectStack.boundingBox();
+    expect(modeBox && stackBox && modeBox.y >= stackBox.y + stackBox.height && Math.abs(modeBox.x + modeBox.width - stackBox.x - stackBox.width) < 2).toBeTruthy();
     const stageHeight = await page.locator("iframe").evaluate(node => node.parentElement?.parentElement?.getBoundingClientRect().height);
     const frame = await page.locator("iframe").elementHandle().then(handle => handle?.contentFrame());
     expect(await frame?.evaluate(() => window.innerWidth)).toBe(1280);
@@ -88,7 +91,7 @@ test.describe("Public website review", () => {
       width: node.getBoundingClientRect().width,
       availableWidth: node.parentElement?.parentElement?.getBoundingClientRect().width,
     }));
-    expect(Math.abs(mobileGeometry.width - (mobileGeometry.availableWidth ?? 0))).toBeLessThan(2);
+    expect(Math.abs(mobileGeometry.width - Math.min(390, mobileGeometry.availableWidth ?? 0))).toBeLessThan(2);
     expect(await page.locator("iframe").evaluate(node => node.parentElement?.parentElement?.getBoundingClientRect().height)).toBe(stageHeight);
     await page.screenshot({ path: ".artifacts/playwright/work-phone.png", fullPage: true });
     await modes.getByRole("button", { name: "Desktop", exact: true }).click();
@@ -280,8 +283,8 @@ test.describe("Public website review", () => {
       await page.setViewportSize({ width, height: 800 });
       const details = await page.locator("#selected-work-title").boundingBox();
       const panel = await stack.boundingBox();
-      expect(await stack.locator("[data-work-stack-scroll]").evaluate(node => node.clientHeight)).toBe(158);
-      expect(details && panel && panel.x >= details.x + details.width && Math.abs(panel.y - details.y) < 2).toBeTruthy();
+      expect((await stack.locator("[data-work-stack-scroll]").boundingBox())?.height).toBeCloseTo(158, 0);
+      expect(details && panel && (width >= 640 ? panel.x >= details.x + details.width && Math.abs(panel.y - details.y) < 2 : panel.y > details.y + details.height)).toBeTruthy();
       await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
       if (width === 900) await page.screenshot({ path: ".artifacts/playwright/work-stack-medium.png", fullPage: true });
     }
@@ -292,20 +295,29 @@ test.describe("Public website review", () => {
     await writeFile(state, "dense");
     await page.reload();
     const scroller = stack.locator("[data-work-stack-scroll]");
-    await expect.poll(() => scroller.evaluate(node => node.scrollHeight > node.clientHeight)).toBe(true);
-    const visibleFifthRow = await stack.locator("summary").nth(8).evaluate(node => {
-      const viewport = node.closest("[data-work-stack-scroll]")!.getBoundingClientRect();
-      const icon = node.getBoundingClientRect();
-      return Math.max(0, Math.min(icon.bottom, viewport.bottom) - Math.max(icon.top, viewport.top));
-    });
-    expect(visibleFifthRow).toBeCloseTo(14, 0);
-    await scroller.evaluate(node => { node.scrollTop = node.scrollHeight; });
+    const columns = scroller.locator(":scope > ul > li");
+    await expect(columns.first()).toHaveAttribute("aria-label", "Linguaggio");
+    const language = columns.first().locator(":scope > details > summary");
+    await language.hover();
+    await expect(page.locator("[data-work-stack-label]")).toHaveText("Linguaggio");
+    await language.focus();
+    await expect(page.locator("[data-work-stack-label]")).toHaveText("Linguaggio");
+    await language.click();
+    await expect(columns.first().locator(":scope > details")).toHaveAttribute("open", "");
+    await expect(page.locator("[data-work-stack-label]")).toHaveText("Linguaggio");
+    const languageItems = columns.first().locator(":scope > ul summary");
+    await expect(languageItems).toHaveCount(1);
+    const headerBox = await language.boundingBox();
+    const itemBox = await languageItems.first().boundingBox();
+    expect(headerBox && itemBox && itemBox.y > headerBox.y && Math.abs(itemBox.x - headerBox.x) < 1).toBeTruthy();
+    await page.setViewportSize({ width: 640, height: 800 });
+    await expect.poll(() => scroller.evaluate(node => node.scrollWidth > node.clientWidth)).toBe(true);
     const lastIcon = stack.locator("summary").last();
     await lastIcon.focus();
     await expect(lastIcon).toBeVisible();
     const lastName = (await lastIcon.getAttribute("aria-label"))!.split(" · ")[0];
-    await expect(page.getByText(lastName, { exact: true }).last()).toBeVisible();
-    await expect.poll(() => scroller.evaluate(node => node.scrollTop > 0)).toBe(true);
+    await expect(page.locator("[data-work-stack-label]")).toContainText(lastName);
+    await expect.poll(() => scroller.evaluate(node => node.scrollLeft > 0)).toBe(true);
     await writeFile(state, "empty");
     await page.reload();
     await expect(page.locator('[data-project-publication-status="empty"]')).toBeVisible();
