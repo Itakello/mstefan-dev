@@ -1,0 +1,45 @@
+lib/i18n/copy.ts
+  s_736f2427abf3d0::t_29c3a8217ef9db 78,169,171,268,270
+app/[locale]/projects/page.tsx
+  s_736f2427abf3d0::t_29c3a8217ef9db 13,36-37
+components/WorkExplorer.tsx
+  s_736f2427abf3d0::t_29c3a8217ef9db 12,14-18,20,71,137,146-147
+  s_736f2427abf3d0::t_5a754760be74f6 19
+lib/websiteShowcase.ts
+  s_736f2427abf3d0::t_29c3a8217ef9db 6,33,43-46
+README.md
+  s_736f2427abf3d0::t_a2afbf8193c08f 66,78
+  s_736f2427abf3d0::t_352de7f3b1928c 79
+e2e/mstefan-site.review.spec.ts
+  s_736f2427abf3d0::t_8a535a3d749598 65-66,68-70,73,78-79,83,86,91,137
+  s_736f2427abf3d0::t_5a754760be74f6 80-81
+  s_736f2427abf3d0::t_7c69fef2199dba 238-239,243-249
+scripts/capture-website-previews.ts
+  s_736f2427abf3d0::t_9b48c42c7efa9d 1-19,21-27,33-46
+  s_736f2427abf3d0::t_77307de2b6dcd6 20,28-32
+package.json
+  s_736f2427abf3d0::t_a2afbf8193c08f 12
+specs/mstefan-site-review.md
+  s_736f2427abf3d0::t_7c69fef2199dba 27
+  s_736f2427abf3d0::t_80ab7499547076 13,20
+lib/websiteScreenshots.ts
+  s_736f2427abf3d0::t_c237a382dc3f08 1-8
+tests/website-showcase.test.ts
+  s_736f2427abf3d0::t_9178a89f226cdc 8,24,41-42,44,116-124
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "86b58c8ba1d71fce5aa1cbea08dde3625701a89b",
+  "prompts": {},
+  "sessions": {
+    "s_736f2427abf3d0": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12179-a131-7d42-8af2-c3343178f3fc",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
