@@ -249,6 +249,24 @@ test.describe("Public website review", () => {
     await expect(page.getByRole("status")).toHaveCount(0);
   });
 
+  test("Screenshot failures before hydration show the unavailable message", async ({ page }) => {
+    await writeFile(process.env.VISUAL_NOTION_FIXTURE_STATE!, "one");
+    const scripts: import("@playwright/test").Route[] = [];
+    const deferScript = (route: import("@playwright/test").Route) => { scripts.push(route); };
+    await page.route("**/*.js", deferScript);
+    await page.route("**/website-previews/**", route => route.fulfill({ status: 404, body: "" }));
+    await page.goto("/en/projects", { waitUntil: "commit" });
+    const image = page.getByRole("img", { name: "Desktop: Screenshot of mstefan.dev", exact: true });
+    await expect.poll(() => image.evaluate(node => {
+      const image = node as HTMLImageElement;
+      return image.complete && image.naturalWidth === 0;
+    })).toBe(true);
+    await page.unroute("**/*.js", deferScript);
+    await Promise.all(scripts.map(route => route.continue()));
+    await expect(page.getByRole("status")).toHaveText("Screenshot unavailable. You can still visit the website.");
+    await expect(page.getByRole("link", { name: "Visit website", exact: true })).toBeVisible();
+  });
+
   test("Gallery handles one, empty, and unavailable publication states", async ({ page }) => {
     const state = process.env.VISUAL_NOTION_FIXTURE_STATE;
     if (!state) throw new Error("Missing publication fixture state");

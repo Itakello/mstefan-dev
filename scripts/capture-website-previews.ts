@@ -23,7 +23,7 @@ try {
         try {
           const page = await context.newPage();
           const target = websitePreviewUrl({ id: url, url, preview: true, name: "", description: "" }, locale)!;
-          const response = await page.goto(target, { waitUntil: "networkidle", timeout: 30_000 });
+          const response = await page.goto(target, { waitUntil: "load", timeout: 30_000 });
           if (!response?.ok()) throw new Error(`Capture failed: ${response?.status() ?? "no response"}`);
           await page.evaluate(() => Promise.race([
             Promise.all([document.fonts.ready, ...[...document.images]

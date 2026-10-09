@@ -24,7 +24,7 @@
 
 ### Gallery boundaries
 
-- Verify website previews are static desktop/mobile screenshots with no iframe. Missing images retain the external visit link and recover when switching to an available capture.
+- Verify website previews are static desktop/mobile screenshots with no iframe. Missing images, including failures before hydration, retain the external visit link and recover when switching to an available capture.
 - Exercise multiple, one, empty, and failed synthetic publication states; empty/error states never invent gallery entries.
 - Verify the 360px gallery viewport has no horizontal overflow, bilingual navigation, light/dark themes, and zero browser errors in the primary journey.
 - This proves the production build against controlled records. Configured live Notion schema/membership and deployed public behavior require separate evidence.

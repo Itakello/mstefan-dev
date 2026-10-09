@@ -12,10 +12,14 @@ import type { Locale } from "@/lib/i18n/config";
 import { type ShowcaseWebsite, websitePreviewUrl } from "@/lib/websiteShowcase";
 
 function ScreenshotPreview({ url, title, mobile, unavailable }: { url: string; title: string; mobile: boolean; unavailable: string }) {
+  const image = useRef<HTMLImageElement>(null);
   const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    if (image.current?.complete && image.current.naturalWidth === 0) setFailed(true);
+  }, []);
   return failed ? <p role="status" className="text-sm text-black/60 dark:text-white/60">{unavailable}</p> : (
     <div className="flex w-full justify-center">
-      <img src={url} alt={title} width={mobile ? 390 : 1280} height={mobile ? 844 : 800}
+      <img ref={image} src={url} alt={title} width={mobile ? 390 : 1280} height={mobile ? 844 : 800}
         className="h-auto w-auto max-h-[min(620px,70svh)] max-w-full rounded-xl border border-black/10 object-contain dark:border-white/15"
         onError={() => setFailed(true)} />
     </div>
