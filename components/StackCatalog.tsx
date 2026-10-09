@@ -24,15 +24,17 @@ const categoryIcons: Record<string, string> = {
   database: "lucide:database",
   cloud: "lucide:cloud",
   platform: "lucide:cloud-cog",
-  saas: "lucide:blocks",
+  infrastructure: "lucide:cloud-cog",
+  saas: "lucide:plug",
   cli: "lucide:square-terminal",
+  integration: "lucide:plug",
 };
 
-export function StackCategoryIcon({ category }: { category: string }) {
+export function StackCategoryIcon({ category, className = "size-3.5 opacity-65" }: { category: string; className?: string }) {
   return (
     <Icon
       icon={categoryIcons[category.toLowerCase()] ?? "lucide:box"}
-      className="size-3.5 opacity-65"
+      className={className}
       aria-hidden
     />
   );

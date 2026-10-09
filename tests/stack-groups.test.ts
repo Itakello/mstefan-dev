@@ -14,8 +14,17 @@ test("uses locale-specific category labels without changing source categories", 
   assert.equal(displayStackCategory("Platform", "en"), "Infrastructure");
   assert.equal(displayStackCategory("SaaS", "en"), "Integration");
   assert.equal(displayStackCategory("Platform", "it"), "Infrastruttura");
+  assert.equal(displayStackCategory("Infrastructure", "en"), "Infrastructure");
+  assert.equal(displayStackCategory("Infrastructure", "it"), "Infrastruttura");
   assert.equal(displayStackCategory("Language", "it"), "Linguaggio");
   assert.equal(displayStackCategory("Untranslated", "it"), "Untranslated");
+});
+
+test("labels both provider integration categories consistently", () => {
+  for (const category of ["SaaS", "Integration"]) {
+    assert.equal(displayStackCategory(category, "en"), "Integration");
+    assert.equal(displayStackCategory(category, "it"), "Integrazione");
+  }
 });
 
 test("formats project dates for the requested locale", () => {
