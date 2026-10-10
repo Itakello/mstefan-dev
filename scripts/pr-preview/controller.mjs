@@ -16,6 +16,8 @@ const SHA = /^[0-9a-f]{40}$/;
 const ID = /^[a-zA-Z0-9_-]+$/;
 const budget = 30 * 60 * 1000;
 const interval = 15_000;
+const maxOpenShipReadRetries = 2;
+const maxOpenShipRetryDelay = 60_000;
 const allowedEnv = new Set(['PAYLOAD_SECRET', 'PAYLOAD_DATA_DIR', 'NODE_ENV', 'SITE_DEPLOYMENT']);
 const inFlight = new Set(['pending', 'queued', 'building', 'deploying', 'reconciling']);
 const assert = (condition, message) => { if (!condition) throw new Error(message); };
@@ -569,13 +571,35 @@ export async function runPreview({ number, templateId, seed, gh, ship, cf, probe
   }
 }
 
-export function clients(env, fetcher = fetch) {
+export function clients(env, fetcher = fetch, sleep = ms => new Promise(resolve => setTimeout(resolve, ms))) {
   for (const name of ['GITHUB_TOKEN', 'OPENSHIP_TOKEN', 'CLOUDFLARE_API_TOKEN']) assert(env[name], `${name} missing`);
-  async function request(url, token, method = 'GET', body, timeout = 15_000, accept = 'application/json') {
-    const response = await fetcher(url, { method, headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), Accept: accept,
-      ...(body === undefined || body instanceof FormData ? {} : { 'Content-Type': 'application/json' }) },
-      body: body === undefined ? undefined : body instanceof FormData ? body : JSON.stringify(body),
-      redirect: 'error', signal: AbortSignal.timeout(timeout) });
+  async function request(url, token, method = 'GET', body, timeout = 15_000, accept = 'application/json', retry429 = false) {
+    let response;
+    for (let retry = 0; ; retry++) {
+      response = await fetcher(url, { method, headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), Accept: accept,
+        ...(body === undefined || body instanceof FormData ? {} : { 'Content-Type': 'application/json' }) },
+        body: body === undefined ? undefined : body instanceof FormData ? body : JSON.stringify(body),
+        redirect: 'error', signal: AbortSignal.timeout(timeout) });
+      if (!retry429 || response.status !== 429 || retry >= maxOpenShipReadRetries) break;
+      const retryAfter = response.headers.get('Retry-After');
+      let delay = maxOpenShipRetryDelay;
+      if (retryAfter !== null) {
+        const value = retryAfter.trim();
+        if (/^\d+$/.test(value)) delay = Number(value) * 1000;
+        else if (/^[A-Za-z]{3}, \d{2} [A-Za-z]{3} \d{4} \d{2}:\d{2}:\d{2} GMT$/.test(value)) {
+          const date = Date.parse(value);
+          if (!Number.isFinite(date) || new Date(date).toUTCString() !== value)
+            throw new Error('OpenShip rate limit response contained invalid Retry-After');
+          delay = Math.max(0, date - Date.now());
+        } else {
+          throw new Error('OpenShip rate limit response contained invalid Retry-After');
+        }
+      }
+      if (!Number.isSafeInteger(delay) || delay > maxOpenShipRetryDelay)
+        throw new Error('OpenShip rate limit delay exceeds retry bound');
+      await response.body?.cancel();
+      await sleep(delay);
+    }
     assert(response.ok, `Provider request failed (${response.status})`);
     const raw = await response.text();
     assert(raw.length < 2 * 1024 * 1024, 'Provider response too large');
@@ -600,7 +624,7 @@ export function clients(env, fetcher = fetch) {
     async ship(name, args) {
       const result = await request('https://openship.mstefan.dev/api/mcp', env.OPENSHIP_TOKEN, 'POST', {
         jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name, arguments: { ...args, organizationId: ORG } },
-      }, name === 'post_domains_by_id_verify' ? 120_000 : 15_000);
+      }, name === 'post_domains_by_id_verify' ? 120_000 : 15_000, 'application/json', /^get_[a-z0-9_]+$/.test(name));
       assert(!result.error && !result.result?.isError, 'OpenShip MCP call failed');
       try { return JSON.parse(result.result.content[0].text); } catch { throw new Error('OpenShip MCP response invalid'); }
     },

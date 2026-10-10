@@ -837,6 +837,71 @@ test('MCP transport fixes workspace scope and refuses provider error payloads', 
   await assert.rejects(failed.ship('get_projects', {}), /^Error: OpenShip MCP call failed$/);
 });
 
+test('OpenShip retries only read-only GET tools after bounded HTTP 429 delays', async () => {
+  const env = { GITHUB_TOKEN: 'fake-gh', OPENSHIP_TOKEN: 'fake-ship', CLOUDFLARE_API_TOKEN: 'fake-cf' };
+  const delays = [];
+  const requests = [];
+  const api = clients(env, async (url, options) => {
+    requests.push({ url, options });
+    return requests.length === 1
+      ? new Response(null, { status: 429, headers: { 'Retry-After': '2' } })
+      : Response.json({ jsonrpc: '2.0', result: { content: [{ type: 'text', text: '{"data":[]}' }] } });
+  }, async ms => delays.push(ms));
+  assert.deepEqual(await api.ship('get_projects_by_id', { id: 'project-a' }), { data: [] });
+  assert.equal(requests.length, 2);
+  assert.ok(requests.every(({ options }) => options.method === 'POST'));
+  assert.equal(JSON.parse(requests[0].options.body).params.name, 'get_projects_by_id');
+  assert.deepEqual(delays, [2000]);
+
+  const defaults = [];
+  let defaultRequests = 0;
+  const defaultDelay = clients(env, async () => {
+    defaultRequests++;
+    return defaultRequests === 1
+      ? new Response(null, { status: 429 })
+      : Response.json({ result: { content: [{ type: 'text', text: '{"ok":true}' }] } });
+  }, async ms => defaults.push(ms));
+  assert.deepEqual(await defaultDelay.ship('get_projects', {}), { ok: true });
+  assert.deepEqual(defaults, [60_000]);
+
+  const dateDelays = [];
+  let dateRequests = 0;
+  const dated = clients(env, async () => ++dateRequests === 1
+    ? new Response(null, { status: 429, headers: { 'Retry-After': 'Sun, 06 Nov 1994 08:49:37 GMT' } })
+    : Response.json({ result: { content: [{ type: 'text', text: '{"ok":true}' }] } }),
+  async ms => dateDelays.push(ms));
+  assert.deepEqual(await dated.ship('get_projects', {}), { ok: true });
+  assert.deepEqual(dateDelays, [0]);
+
+  let exhaustedRequests = 0;
+  const exhaustedDelays = [];
+  const exhausted = clients(env, async () => {
+    exhaustedRequests++;
+    return new Response(null, { status: 429, headers: { 'Retry-After': '0' } });
+  }, async ms => exhaustedDelays.push(ms));
+  await assert.rejects(exhausted.ship('get_projects', {}), /Provider request failed \(429\)/);
+  assert.equal(exhaustedRequests, 3);
+  assert.deepEqual(exhaustedDelays, [0, 0]);
+
+  let mutationRequests = 0;
+  const mutation = clients(env, async () => {
+    mutationRequests++;
+    return new Response(null, { status: 429, headers: { 'Retry-After': '0' } });
+  }, async () => assert.fail('mutation must not be retried'));
+  await assert.rejects(mutation.ship('post_projects', {}), /Provider request failed \(429\)/);
+  assert.equal(mutationRequests, 1);
+
+  for (const [header, message] of [['later', /invalid Retry-After/], ['Sun, 99 Nov 1994 08:49:37 GMT', /invalid Retry-After/], ['61', /exceeds retry bound/]]) {
+    let attempts = 0;
+    const invalid = clients(env, async () => {
+      attempts++;
+      return new Response(null, { status: 429, headers: { 'Retry-After': header } });
+    }, async () => assert.fail('invalid retry delay must not sleep'));
+    await assert.rejects(invalid.ship('get_projects', {}), message);
+    assert.equal(attempts, 1);
+  }
+});
+
 test('trusted workflow never checks out PR code; shared allowlist writes serialize with queued events', async () => {
   const workflow = await readFile(new URL('../../.github/workflows/pr-previews.yml', import.meta.url), 'utf8');
   assert.match(workflow, /pull_request_target:/);
