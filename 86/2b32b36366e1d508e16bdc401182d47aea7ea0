@@ -1,0 +1,23 @@
+scripts/pr-preview/controller.mjs
+  s_a491d7bd628a32::t_e6c76553740240 19-20,577-582,584-602,627
+  s_a491d7bd628a32::t_0a0f5c2236b210 574,576,583
+scripts/pr-preview/controller.test.mjs
+  s_a491d7bd628a32::t_19ec6e5de28c80 840-866,876-893,895-904
+  s_a491d7bd628a32::t_6b13ebb1133d4f 867-875,894
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "862b32b36366e1d508e16bdc401182d47aea7ea0",
+  "prompts": {},
+  "sessions": {
+    "s_a491d7bd628a32": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12188-c82e-7d43-a904-df8756013a38",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
