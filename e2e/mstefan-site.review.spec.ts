@@ -405,6 +405,7 @@ test.describe("Public website review", () => {
     expect(headerBox && itemBox && itemBox.y > headerBox.y && Math.abs(itemBox.x - headerBox.x) < 1).toBeTruthy();
     await page.setViewportSize({ width: 640, height: 800 });
     await expect.poll(() => scroller.evaluate(node => node.scrollWidth > node.clientWidth)).toBe(true);
+    await expect(scroller).toHaveAttribute("tabindex", "0");
     const lastIcon = stack.locator("summary").last();
     await lastIcon.focus();
     await expect(lastIcon).toBeVisible();
@@ -415,6 +416,7 @@ test.describe("Public website review", () => {
     await expect(page.locator("[data-work-stack-label]")).toHaveCount(0);
     await page.setViewportSize({ width: 320, height: 800 });
     await expect.poll(() => scroller.evaluate(node => node.scrollWidth <= node.clientWidth + 1 && node.scrollHeight <= node.clientHeight + 1)).toBe(true);
+    await expect(scroller).toHaveJSProperty("tabIndex", -1);
     const firstCategory = await columns.first().boundingBox();
     const lastCategory = await columns.last().boundingBox();
     expect(firstCategory && lastCategory && lastCategory.y > firstCategory.y).toBeTruthy();
