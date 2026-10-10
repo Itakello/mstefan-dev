@@ -37,7 +37,7 @@ export default async function ProjectsPage({ params }: { params: Promise<{ local
   if (stackCatalog.status === "ready") assertProjectStackCoverage(publication.projects, stackCatalog.entries);
   const items = workItemsFromProjects(projects).map(item => item.preview && item.url
     ? { ...item, screenshotPages: websitePreviewTargets({ websiteUrl: item.url, previewUrls: item.previewUrls }).map((url, index) => ({
-      url, label: index === 0 ? copy.work.homepage : pageLabels[new URL(url).pathname.replace(/^\/(en|it)(?=\/|$)/, "")] || new URL(url).pathname,
+      url, label: (index === 0 ? copy.work.homepage : pageLabels[new URL(url).pathname.replace(/^\/(en|it)(?=\/|$)/, "")] || new URL(url).pathname) + new URL(url).search,
       screenshots: websiteScreenshotPaths(url, locale, snapshot ? "https://previews.mstefan.dev" : ""),
     })) } : item);
   const publicationView = publication.message

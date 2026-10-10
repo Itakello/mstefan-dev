@@ -1,6 +1,6 @@
 import { lookup } from "node:dns/promises";
 import { BlockList, isIP } from "node:net";
-import type { BrowserContext } from "@playwright/test";
+import type { BrowserContext, Page } from "@playwright/test";
 
 const privateNetworks = new BlockList();
 for (const [address, prefix] of [["0.0.0.0", 8], ["10.0.0.0", 8], ["100.64.0.0", 10], ["127.0.0.0", 8], ["169.254.0.0", 16], ["172.16.0.0", 12], ["192.168.0.0", 16], ["198.18.0.0", 15], ["224.0.0.0", 4], ["240.0.0.0", 4]] as const) privateNetworks.addSubnet(address, prefix, "ipv4");
@@ -27,4 +27,17 @@ export async function configurePreviewNetwork(context: BrowserContext) {
     const allowed = await isPublicPreviewRequest(route.request().url()).catch(() => false);
     await (allowed ? route.continue() : route.abort("blockedbyclient"));
   });
+}
+
+export async function configurePreviewPageNetwork(page: Page) {
+  const session = await page.context().newCDPSession(page);
+  // Chromium pauses every redirect hop; Playwright routes only the initial request.
+  session.on("Fetch.requestPaused", async ({ requestId, request }) => {
+    const allowed = await isPublicPreviewRequest(request.url).catch(() => false);
+    await session.send(allowed ? "Fetch.continueRequest" : "Fetch.failRequest", allowed
+      ? { requestId }
+      : { requestId, errorReason: "BlockedByClient" })
+      .catch(() => page.close().catch(() => {}));
+  });
+  await session.send("Fetch.enable", { patterns: [{ urlPattern: "*", requestStage: "Request" }] });
 }

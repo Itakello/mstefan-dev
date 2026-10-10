@@ -32,16 +32,26 @@ jobs:
       - run: pnpm exec playwright install --with-deps chromium
       - name: Verify browser network boundaries
         run: node --test --import tsx tests/website-previews/*.test.mts
-      - name: Block private TCP destinations on the disposable runner
+      - name: Block private destinations on the disposable runner
         shell: bash
         run: |
           set -euo pipefail
           for network in 0.0.0.0/8 10.0.0.0/8 100.64.0.0/10 127.0.0.0/8 169.254.0.0/16 172.16.0.0/12 192.168.0.0/16 198.18.0.0/15 224.0.0.0/4 240.0.0.0/4; do
             sudo iptables -I OUTPUT -p tcp -d "$network" -j REJECT
+            sudo iptables -I OUTPUT -p udp -d "$network" -j REJECT
           done
           for network in ::/128 ::1/128 fc00::/7 fe80::/10 ff00::/8; do
             sudo ip6tables -I OUTPUT -p tcp -d "$network" -j REJECT
+            sudo ip6tables -I OUTPUT -p udp -d "$network" -j REJECT
           done
+          # Preserve DNS only to the runner's configured resolvers.
+          while read -r resolver; do
+            if [[ "$resolver" == *:* ]]; then
+              sudo ip6tables -I OUTPUT -p udp -d "$resolver" --dport 53 -j ACCEPT
+            else
+              sudo iptables -I OUTPUT -p udp -d "$resolver" --dport 53 -j ACCEPT
+            fi
+          done < <(awk '$1 == "nameserver" { print $2 }' /etc/resolv.conf)
       - name: Capture approved Notion pages
         env:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}

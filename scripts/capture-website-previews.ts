@@ -5,7 +5,7 @@ import { supportedLocales } from "../lib/i18n/config";
 import { fetchProjectsFromNotion } from "../lib/notion";
 import { approvedWebsiteUrls, websitePreviewTargets, websitePreviewUrl } from "../lib/websiteShowcase";
 import { websiteScreenshotPaths } from "../lib/websiteScreenshots";
-import { configurePreviewNetwork } from "./website-preview-network";
+import { configurePreviewNetwork, configurePreviewPageNetwork } from "./website-preview-network";
 
 // Explicit URLs refresh assets only; Notion still controls gallery membership.
 const supplied = process.argv.slice(2);
@@ -29,6 +29,7 @@ try {
         try {
           await configurePreviewNetwork(context);
           const page = await context.newPage();
+          await configurePreviewPageNetwork(page);
           const target = websitePreviewUrl({ id: url, url, preview: true, name: "", description: "" }, locale)!;
           const response = await page.goto(target, { waitUntil: "load", timeout: 30_000 });
           if (!response?.ok()) throw new Error(`Capture failed: ${response?.status() ?? "no response"}`);
