@@ -154,3 +154,32 @@ test('stale source run exits before writing any status on the current head', asy
     assert.equal(calls.some(call=>call.method==='POST' || call.url.includes('/statuses')),false);
   } finally { rmSync(directory,{recursive:true,force:true}); }
 });
+
+test('manual dispatch reaches bounded acceptance with automatic requests paused', async () => {
+  const { mkdtempSync, writeFileSync, rmSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const { join } = await import('node:path');
+  const directory=mkdtempSync(join(tmpdir(),'visual-dispatch-test-'));
+  try {
+    for (const eventName of ['workflow_dispatch','workflow_run']) {
+      const event=join(directory,'event.json');
+      writeFileSync(event,JSON.stringify(eventName === 'workflow_dispatch' ? {inputs:{source_run_id:'7'}} : {workflow_run:{id:7}}));
+      const urls=[];
+      await assert.rejects(main({env:{GITHUB_REPOSITORY:repository,GITHUB_TOKEN:'opaque',GITHUB_EVENT_PATH:event,GITHUB_EVENT_NAME:eventName,GITHUB_RUN_ATTEMPT:'1',ENABLED:'false'},fetcher:async (url,options) => {
+        urls.push(url);
+        let response;
+        if (options.method === 'POST') response={};
+        else if (url.endsWith('/actions/runs/7')) response=run;
+        else if (url.endsWith('/pulls/1')) response={...pr,changed_files:1,labels:[]};
+        else if (url.includes('/statuses?')) response=[];
+        else if (url.includes('/pulls/1/files?')) response=[{filename:'components/Header.tsx',additions:1,deletions:1}];
+        // Stop the attended route at its next independent spending guard.
+        else if (url.includes('/actions/workflows/ai-visual-review.yml/runs?')) response={total_count:6,workflow_runs:[]};
+        else throw new Error('Unexpected test endpoint');
+        return new Response(JSON.stringify(response));
+      }}),eventName === 'workflow_dispatch' ? /Rolling 24h run cap/ : /Automatic AI review disabled/);
+      assert.equal(urls.some(url=>url.includes('/actions/workflows/ai-visual-review.yml/runs?')),eventName === 'workflow_dispatch');
+      assert.equal(urls.some(url=>url.startsWith('https://api.openai.com')),false);
+    }
+  } finally { rmSync(directory,{recursive:true,force:true}); }
+});

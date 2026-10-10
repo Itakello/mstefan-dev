@@ -135,7 +135,7 @@ export async function main({env = process.env, fetcher = fetch} = {}) {
     ensure(files.length === pr.changed_files && files.length < 300, 'PR file inventory truncated');
     const decision = classifyVisualReview(files.flatMap(file => [file.filename,...(file.previous_filename ? [file.previous_filename] : [])]),{force:pr.labels.some(label => label.name === 'visual-review')});
     if (!decision.run) { await status('success',decision.reason); return; }
-    ensure(env.ENABLED === 'true','AI review disabled; activation proof required');
+    ensure(env.ENABLED === 'true' || env.GITHUB_EVENT_NAME === 'workflow_dispatch','Automatic AI review disabled; activation proof required');
     ensure(env.GITHUB_RUN_ATTEMPT === '1','Reruns do not issue another model request');
     const runs = await github(`/actions/workflows/ai-visual-review.yml/runs?created=%3E%3D${encodeURIComponent(new Date(Date.now()-86400000).toISOString())}&per_page=100`);
     ensure(runs.total_count <= 5 && runs.workflow_runs.length === runs.total_count,'Rolling 24h run cap reached or truncated');
