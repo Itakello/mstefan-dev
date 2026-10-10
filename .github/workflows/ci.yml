@@ -145,6 +145,8 @@ jobs:
           node-version: 24
       - run: pnpm install --frozen-lockfile
       - run: pnpm test
+      - name: Verify isolated PR preview lifecycle
+        run: node --test scripts/pr-preview/*.test.mjs
       - name: Verify Payload backup and replay
         run: python3 -m unittest discover -s deploy/payload-production -p 'test_backup.py'
       - name: Verify guarded event deployment
