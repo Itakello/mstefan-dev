@@ -67,7 +67,8 @@ for (const mode of modes) {
       await expectDrawnIcons(workGitHub);
       const githubShape = await workGitHub.innerHTML();
       await expect(page.locator('footer [data-brand-icon="github"]')).toHaveJSProperty("innerHTML", githubShape);
-      await page.getByRole("button", { name: "Select mstefan.dev", exact: true }).click();
+      if (mode.name === "mobile") await page.getByRole("combobox", { name: "Choose a project" }).selectOption({ label: "mstefan.dev" });
+      else await page.getByRole("button", { name: "Select mstefan.dev", exact: true }).click();
       await expectTransparentBadges(page);
       const workScroll = await scrollStyle(page.locator("[data-work-stack-scroll]"));
       await stablePage(page);
@@ -78,8 +79,10 @@ for (const mode of modes) {
       await page.goto("/en/about");
       await expect(page.getByRole("heading", { level: 1, name: "master" })).toBeVisible();
       await stablePage(page);
-      const careerScroll = page.getByRole("region", { name: /^Graph\./ });
-      expect(await scrollStyle(careerScroll)).toEqual(workScroll);
+      if (mode.name === "desktop") {
+        const careerScroll = page.getByRole("region", { name: /^Graph\./ });
+        expect(await scrollStyle(careerScroll)).toEqual(workScroll);
+      } else await expect(page.getByRole("region", { name: /^Graph\./, includeHidden: true })).toBeHidden();
       await compareScreenshot(page, `about-${mode.name}-${theme}.png`, testInfo, {
         fullPage: true, animations: "disabled", mask: [page.locator("footer p")],
       }, 100);
@@ -102,9 +105,9 @@ for (const mode of modes) {
       await expectTransparentBadges(page);
       await stablePage(page);
       if (mode.name === "mobile") {
-        const scrollRight = page.getByRole("button", { name: "Scroll technologies right", exact: true });
-        await expect(scrollRight).toHaveCSS("opacity", "1");
-        await expectDrawnIcons(scrollRight.locator("svg"));
+        const toolkit = page.getByRole("region", { name: "Toolkit", exact: true });
+        await expect(toolkit.getByRole("button", { name: /Scroll technologies/ })).toHaveCount(0);
+        await expect.poll(() => toolkit.locator(".stack-shelf").evaluate(node => node.scrollWidth <= node.clientWidth + 1)).toBe(true);
       }
       await compareScreenshot(page, `home-${mode.name}-${theme}.png`, testInfo, {
         fullPage: true, animations: "disabled", mask: [page.locator("footer p")],

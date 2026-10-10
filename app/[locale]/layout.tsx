@@ -40,9 +40,9 @@ export default async function LocaleLayout({
       </head>
       <body>
         <WebsiteAnalytics projectToken={process.env.POSTHOG_PROJECT_TOKEN} />
-        <div className="container">
+        <div className="container flex min-h-svh flex-col">
           <Header locale={locale} />
-          <main className="py-10">{children}</main>
+          <main className="flex-1 py-10">{children}</main>
           <Footer locale={locale} />
         </div>
       </body>

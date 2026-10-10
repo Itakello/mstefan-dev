@@ -72,3 +72,15 @@
 .list:not(:has(.detail)) { height: var(--career-viewport-height); display: flex; flex-direction: column; }
 .list:not(:has(.detail)) .titleList { min-height: 0; max-height: none; flex: 1; }
 .list:not(:has(.detail)) .mainRow { flex-shrink: 0; }
+
+@media (max-width: 639px) {
+  .browser[id="career"] .toolbar, .browser[id="career"] .header, .browser[id="career"] .tree { display: none; }
+  .browser[id="career"] .body { display: block; }
+  .browser[id="career"] .list { height: auto; }
+  .browser[id="career"] .titleList { overflow: visible; max-height: none; }
+  .browser[id="career"] .row { border-top: 1px solid var(--surface-border); padding: 16px; }
+  .browser[id="career"] .badge { display: none; }
+  .browser[id="career"] .jobTitle { font-size: 16px; font-weight: 600; }
+  .browser[id="career"] .jobRole { font-size: 14px; }
+  .browser[id="career"] .period { font-size: 12px; }
+}

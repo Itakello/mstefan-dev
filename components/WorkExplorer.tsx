@@ -96,14 +96,21 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
   const hasStackColumn = groups.length > 0 || Boolean(stackCatalog.message);
   const metadata = [selected.type ? copy.work.types[selected.type] : undefined, selected.year, groups.length ? undefined : selected.language].filter(Boolean);
   const linkClass = "inline-flex items-center gap-2 text-sm font-medium";
+  const selectProject = (id: string) => { setSelectedId(id); setDocumentKind("paper"); setPageIndex(0); };
   return (
     <div className="mt-8 grid min-w-0 gap-8 lg:grid-cols-[288px_minmax(0,1fr)] lg:gap-6">
-      <nav aria-label={copy.work.selectorLabel} className="max-h-64 overflow-y-auto overscroll-contain lg:max-h-[760px]">
-        {items.map(item => <button key={item.id} type="button" onClick={() => { setSelectedId(item.id); setDocumentKind("paper"); setPageIndex(0); }}
+      <label className="block min-w-0 text-sm font-medium lg:hidden">
+        {copy.work.selectorLabel}
+        <select value={selected.id} onChange={event => selectProject(event.target.value)} className="mt-2 block w-full min-w-0 rounded-lg border border-[var(--surface-border)] bg-[var(--page-bg)] px-3 py-3 text-base text-[var(--page-text)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[hsl(var(--accent))]">
+          {items.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
+        </select>
+      </label>
+      <nav aria-label={copy.work.selectorLabel} className="hidden self-start lg:block">
+        {items.map(item => <button key={item.id} type="button" onClick={() => selectProject(item.id)}
           aria-label={copy.websites.selectSite(item.name)} aria-current={item.id === selected.id ? "true" : undefined}
-          className={`block w-full border-b border-black/10 px-4 py-4 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[hsl(var(--accent))] dark:border-white/10 ${item.id === selected.id ? "border-l-4 border-l-[hsl(var(--accent))] bg-[hsl(var(--accent)/0.05)]" : "hover:bg-black/[0.03] dark:hover:bg-white/5"}`}>
-          <span className="flex flex-wrap items-center gap-2"><span className="font-semibold">{item.name}</span>{item.type && <span className="rounded-full border border-black/10 px-2 py-0.5 text-[10px] font-medium text-black/60 dark:border-white/15 dark:text-white/60">{copy.work.types[item.type]}</span>}</span>
-          <span className="mt-1 block text-sm leading-5 text-black/60 dark:text-white/60">{item.shortDescription || item.description}</span>
+          className={`block w-full border-b border-black/10 px-4 py-3 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[hsl(var(--accent))] dark:border-white/10 ${item.id === selected.id ? "border-l-4 border-l-[hsl(var(--accent))] bg-[hsl(var(--accent)/0.05)]" : "hover:bg-black/[0.03] dark:hover:bg-white/5"}`}>
+          <span className="flex flex-wrap items-center gap-2"><span className="font-semibold [overflow-wrap:anywhere]">{item.name}</span>{item.type && <span className="rounded-full border border-black/10 px-2 py-0.5 text-[10px] font-medium text-black/60 dark:border-white/15 dark:text-white/60">{copy.work.types[item.type]}</span>}</span>
+          <span className="mt-1 line-clamp-1 text-sm leading-5 text-black/60 dark:text-white/60">{item.shortDescription || item.description}</span>
         </button>)}
       </nav>
       <section aria-labelledby="selected-work-title" className="min-w-0 lg:border-l lg:border-black/10 lg:pl-6 dark:lg:border-white/10">
