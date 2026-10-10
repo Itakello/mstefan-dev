@@ -114,6 +114,7 @@ function fixture(options = {}) {
         if (name === 'patch_projects_by_id_env') { vars = args.body.upserts.map(v => ({ ...v, value: v.isSecret ? '********' : v.value })); return { data: vars }; }
         if (name === 'get_deployments_by_id') return { data: structuredClone(args.id === gatewayRecord?.id ? gatewayRecord : record) };
         if (name === 'get_deployments_by_id_build') {
+          if (args.id === priorRecord?.id) return { deployment_id: priorRecord.id, project_id: priorRecord.projectId, deploymentStatus: priorRecord.status, completionPending: false, cancellationPending: false };
           if (args.id === gatewayRecord?.id) return { deployment_id: gatewayRecord.id, project_id: gateway.id, deploymentStatus: gatewayRecord.status, completionPending: false, cancellationPending: false };
           const pending = (options.cancelTransportError && !options.cancelCompleted) || cancels < (options.pendingCancels ?? 0);
           return { deployment_id: record.id, project_id: child.id, deploymentStatus: record.status,
@@ -986,4 +987,56 @@ test('gateway cleanup failure still stops the independent owned app and never cl
   assert.equal(f.gateway.enabled, false);
   assert.equal(f.project.enabled, false);
   assert.ok(!f.calls.some(c => c.body?.state === 'inactive'));
+});
+
+
+test('historical ready workers require durable completion before app reuse or submission', async () => {
+  const f = fixture({ existing: true });
+  const old = withOlderWorker(f, 'app', 'ready');
+  const ship = f.args.ship;
+  let checks = 0;
+  f.args.ship = async (name, args) => {
+    const result = await ship(name, args);
+    if (name === 'get_deployments_by_id_build' && args.id === old.id) {
+      checks++;
+      result.completionPending = checks < 3;
+      if (checks === 2) f.project.activeDeploymentId = old.id;
+    }
+    return result;
+  };
+  assert.equal((await runPreview(f.args)).state, 'ready');
+  assert.ok(checks >= 3);
+  assert.equal(f.calls.filter(c => c.name === 'post_deployments').length, 1);
+  assert.ok(!f.calls.some(c => c.name === 'post_deployments_by_id_cancel' && c.args.id === old.id));
+});
+
+test('older native ready responses without a completion lease fail closed rather than guessing from inactive status', async () => {
+  for (const target of ['app', 'gateway']) {
+    const f = fixture({ existing: true, gateway: gatewayProject });
+    const old = withOlderWorker(f, target, 'ready');
+    const ship = f.args.ship;
+    f.args.ship = async (name, args) => {
+      const result = await ship(name, args);
+      if (name === 'get_deployments_by_id_build' && args.id === old.id) { delete result.completionPending; result.is_active = false; }
+      return result;
+    };
+    await assert.rejects(runPreview(f.args), /does not expose ready-worker completion proof/);
+    assert.equal(f.active, '7');
+    if (target === 'gateway') assert.equal(f.gateway.enabled, false);
+    assert.ok(!f.calls.some(c => c.name === 'post_deployments_build_access' || c.body?.state === 'success'));
+  }
+});
+
+test('ready-worker lease that never completes blocks all new submissions within a shared bound', async () => {
+  const f = fixture({ existing: true });
+  const old = withOlderWorker(f, 'app', 'ready');
+  const ship = f.args.ship;
+  f.args.ship = async (name, args) => {
+    const result = await ship(name, args);
+    if (name === 'get_deployments_by_id_build' && args.id === old.id) result.completionPending = true;
+    return result;
+  };
+  await assert.rejects(runPreview(f.args), /ready worker did not finish within five minutes/);
+  assert.equal(f.active, '7');
+  assert.ok(!f.calls.some(c => ['post_deployments', 'post_deployments_build_access'].includes(c.name) || c.body?.state === 'success'));
 });

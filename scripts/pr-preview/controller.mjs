@@ -202,9 +202,15 @@ export async function runPreview({ number, templateId, seed, gh, ship, cf, probe
       if (inFlight.has(record.status) || (record.status === 'cancelled' && !await settled(record.id, 'cancelled', target))) {
         await cancel(record.id, target, deadline);
       }
+      if (record.status === 'ready') {
+        while (!await settled(record.id, 'ready', target)) {
+          assert(now() < deadline, 'Previous ready worker did not finish within five minutes');
+          await sleep(interval);
+        }
+      }
     }
     for (const record of await history(target, environment)) {
-      assert(!inFlight.has(record.status) && (record.status !== 'cancelled' || await settled(record.id, 'cancelled', target)),
+      assert(!inFlight.has(record.status) && (!['cancelled', 'ready'].includes(record.status) || await settled(record.id, record.status, target)),
         'Previous preview worker still active');
     }
   }
@@ -251,6 +257,7 @@ export async function runPreview({ number, templateId, seed, gh, ship, cf, probe
   async function settled(id, status, target = project) {
     const build = await ship('get_deployments_by_id_build', { id });
     assert(build?.deployment_id === id && build.project_id === target.id, 'Preview worker identity mismatch');
+    if (status === 'ready') assert(typeof build.completionPending === 'boolean', 'OpenShip does not expose ready-worker completion proof');
     return build.deploymentStatus === status && (status === 'cancelled'
       ? build.cancellationPending === false && (build.completionPending === false || build.completionPending === undefined)
       : build.completionPending === false);
