@@ -99,6 +99,7 @@ function fixture(options = {}) {
             meta: { serverId: project.serverId, runtimeMode: 'docker', composeServices: options.missingGatewaySnapshot ? undefined
               : (options.gatewaySnapshot ?? [{ ...gatewayService(42), commandArgv: null, everDeployed: false }]).map(presentService) } };
           gateway.activeDeploymentId = gatewayRecord.id;
+          if (gatewayRecord.status === 'ready') { gateway.enabled = true; gateway.disabledAt = null; }
           if (options.gatewaySubmissionError) throw new Error('Lost gateway response');
           return { success: true, project_id: gateway.id, deployment_id: gatewayRecord.id };
         }
@@ -402,7 +403,8 @@ test('uncertain submission cannot reuse old history or leave an unverified previ
   f.record.status = 'building';
   await assert.rejects(runPreview(f.args), /submission could not be reconciled within one minute/);
   assert.equal(f.calls.filter(c => c.name === 'post_deployments').length, 1);
-  assert.ok(f.calls.filter(c => c.name === 'get_projects_by_id_deployments').length <= 5);
+  const submit = f.calls.findIndex(c => c.name === 'post_deployments');
+  assert.ok(f.calls.slice(submit + 1).filter(c => c.name === 'get_projects_by_id_deployments').length <= 4);
   assert.equal(f.active, '7');
   assert.ok(!f.calls.some(c => c.body?.state === 'success' || c.provider === 'probe'));
 });
@@ -848,4 +850,113 @@ test('trusted workflow never checks out PR code; shared allowlist writes seriali
   assert.match(workflow, /ping: 100\.111\.250\.54/);
   assert.match(workflow, /audience: \$\{\{ vars.MSTEFAN_PREVIEW_TS_AUDIENCE \}\}/);
   assert.doesNotMatch(workflow, /oauth-secret:/);
+});
+
+
+test('retained invalid gateway stays stopped before validation and never enables its old release', async () => {
+  for (const enabled of [false, true]) {
+    const f = fixture({ existing: true, gateway: { ...gatewayProject, enabled, activeDeploymentId: 'dep_old_gateway', disabledAt: enabled ? null : '2026-10-09' },
+      gatewayService: { ...gatewayService(42), id: 'svc_gateway', projectId: gatewayProject.id, image: 'nginx:latest' } });
+    await assert.rejects(runPreview(f.args), /Gateway service recipe changed/);
+    assert.equal(f.gateway.enabled, false);
+    assert.ok(!f.calls.some(c => c.name === 'post_projects_by_id_enable' && c.args.id === gatewayProject.id));
+    assert.ok(!f.calls.some(c => c.name === 'post_deployments_build_access' || c.body?.state === 'success'));
+    assert.deepEqual(f.project.volumes, ['data:/data']);
+  }
+});
+
+test('gateway promotion enables only the newly verified release after the old runtime is stopped', async () => {
+  const f = fixture({ gateway: { ...gatewayProject, enabled: false, activeDeploymentId: 'dep_old_gateway', disabledAt: '2026-10-09' } });
+  assert.equal((await runPreview(f.args)).state, 'ready');
+  const stop = f.calls.findIndex(c => c.name === 'post_projects_by_id_disable' && c.args.id === gatewayProject.id);
+  const submit = f.calls.findIndex(c => c.name === 'post_deployments_build_access');
+  assert.ok(stop >= 0 && stop < submit);
+  assert.ok(!f.calls.some(c => c.name === 'post_projects_by_id_enable' && c.args.id === gatewayProject.id));
+  assert.equal(f.gateway.activeDeploymentId, 'dep_gateway');
+  assert.equal(f.gateway.enabled, true);
+});
+
+test('gateway submission with no recoverable ID still stops the owned retained gateway', async () => {
+  const f = fixture({ gateway: { ...gatewayProject, activeDeploymentId: 'dep_old_gateway' } });
+  const ship = f.args.ship;
+  f.args.ship = async (name, args) => {
+    if (name === 'post_deployments_build_access') throw new Error('Unknown acceptance');
+    return ship(name, args);
+  };
+  await assert.rejects(runPreview(f.args), /Gateway submission outcome unknown/);
+  assert.equal(f.gateway.enabled, false);
+  assert.equal(f.active, '7');
+});
+
+test('unexpected public app domains stop the retained app without deleting its database or expanding domain permissions', async () => {
+  const f = fixture({ existing: true, appDomains: [{ id: 'dom_unexpected', projectId: child.id, hostname: 'unexpected.mstefan.dev' }] });
+  await assert.rejects(runPreview(f.args), /Unexpected preview origin domain/);
+  assert.equal(f.project.enabled, false);
+  assert.equal(f.active, '7');
+  assert.deepEqual(f.project.volumes, ['data:/data']);
+  assert.ok(!f.calls.some(c => c.name === 'delete_domains_by_id' || c.name === 'post_projects_by_id_enable' || c.body?.state === 'success'));
+});
+
+function withOlderWorker(f, target, status = 'building', activationWins = false) {
+  const old = { id: `dep_older_${target}`, projectId: target === 'app' ? child.id : gatewayProject.id,
+    environment: target === 'app' ? 'preview' : 'production', commitSha: 'b'.repeat(40), status };
+  const ship = f.args.ship;
+  f.args.ship = async (name, args) => {
+    if (name === 'get_projects_by_id_deployments' && args.id === old.projectId) {
+      const result = await ship(name, args);
+      return { ...result, data: [...result.data, { ...old }], total: result.total + 1 };
+    }
+    if (args.id === old.id) {
+      f.calls.push({ provider: 'ship', name, args });
+      if (name === 'post_deployments_by_id_cancel') {
+        old.status = activationWins ? 'ready' : 'cancelled';
+        if (activationWins) { (target === 'app' ? f.project : f.gateway).activeDeploymentId = old.id; throw new Error('Activation won'); }
+        return { success: true, pending: false, status: 'cancelled' };
+      }
+      if (name === 'get_deployments_by_id_build') return { deployment_id: old.id, project_id: old.projectId,
+        deploymentStatus: old.status, completionPending: false, cancellationPending: false };
+      if (name === 'get_deployments_by_id') return { data: { ...f.record, ...old } };
+    }
+    return ship(name, args);
+  };
+  return old;
+}
+
+test('older app and gateway workers settle before reuse or replacement submission', async () => {
+  for (const existing of [false, true]) {
+    const f = fixture({ existing, gateway: gatewayProject });
+    const app = withOlderWorker(f, 'app');
+    const gateway = withOlderWorker(f, 'gateway');
+    assert.equal((await runPreview(f.args)).state, 'ready');
+    assert.equal(app.status, 'cancelled');
+    assert.equal(gateway.status, 'cancelled');
+    const appCancel = f.calls.findIndex(c => c.name === 'post_deployments_by_id_cancel' && c.args.id === app.id);
+    const appWrite = f.calls.findIndex(c => c.name === 'patch_projects_by_id_env');
+    const gatewayCancel = f.calls.findIndex(c => c.name === 'post_deployments_by_id_cancel' && c.args.id === gateway.id);
+    const gatewaySubmit = f.calls.findIndex(c => c.name === 'post_deployments_build_access');
+    assert.ok(appCancel >= 0 && appCancel < appWrite && gatewayCancel >= 0 && gatewayCancel < gatewaySubmit);
+    assert.equal(f.calls.filter(c => c.name === 'post_deployments').length, existing ? 0 : 1);
+  }
+});
+
+test('an older worker winning activation invalidates same-SHA reuse and requires a fresh selected release', async () => {
+  const f = fixture({ existing: true });
+  withOlderWorker(f, 'app', 'building', true);
+  assert.equal((await runPreview(f.args)).state, 'ready');
+  assert.equal(f.calls.filter(c => c.name === 'post_deployments').length, 1);
+  assert.equal(f.project.activeDeploymentId, f.record.id);
+});
+
+test('active release drift after public probing withdraws publication and stops the gateway', async () => {
+  const f = fixture({ existing: true });
+  const probe = f.args.probe;
+  f.args.probe = async (...args) => {
+    const result = await probe(...args);
+    if (args[1]) f.project.activeDeploymentId = 'dep_unselected';
+    return result;
+  };
+  await assert.rejects(runPreview(f.args), /Selected preview releases changed/);
+  assert.equal(f.active, '7');
+  assert.equal(f.gateway.enabled, false);
+  assert.ok(!f.calls.some(c => c.body?.state === 'success'));
 });

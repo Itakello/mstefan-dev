@@ -85,7 +85,7 @@ export async function runPreview({ number, templateId, seed, gh, ship, cf, probe
   const gatewaySlug = `mstefan-pr-preview-gateway-${number}`;
   let gateway;
   let gatewaySubmittedId;
-  let gatewayServiceId;
+  let gatewayCleanup = false;
 
   function validateGateway(row, runtime = true) {
     assert(row && typeof row.id === 'string' && ID.test(row.id) && row.id !== PRODUCTION && row.id !== templateId && row.id !== project?.id
@@ -196,6 +196,29 @@ export async function runPreview({ number, templateId, seed, gh, ship, cf, probe
       && containers.every(c => services.some(s => s.id === c.serviceId) && c.status === 'stopped' && c.duplicates?.length === 0), 'Gateway container still active');
   }
 
+  async function settleHistory(target = project, environment = 'preview') {
+    const deadline = now() + 5 * 60 * 1000;
+    for (const record of await history(target, environment)) {
+      if (inFlight.has(record.status) || (record.status === 'cancelled' && !await settled(record.id, 'cancelled', target))) {
+        await cancel(record.id, target, deadline);
+      }
+    }
+    for (const record of await history(target, environment)) {
+      assert(!inFlight.has(record.status) && (record.status !== 'cancelled' || await settled(record.id, 'cancelled', target)),
+        'Previous preview worker still active');
+    }
+  }
+
+  async function disableApp() {
+    await ship('post_projects_by_id_disable', { id: project.id });
+    const disabled = validateProject(data(await ship('get_projects_by_id', { id: project.id })), template, number);
+    if (disabled.activeDeploymentId) {
+      assert(disabled.enabled === false && disabled.disabledAt, 'Preview runtime disable unverified');
+      const info = data(await ship('get_deployments_by_id_info', { id: disabled.activeDeploymentId }));
+      assert(['stopped', 'exited', 'missing'].includes(info?.status), 'Preview container still active');
+    }
+  }
+
   async function close(publicRevoked = false) {
     if (!publicRevoked) await revokePublic();
     gateway ??= await findGateway();
@@ -203,30 +226,12 @@ export async function runPreview({ number, templateId, seed, gh, ship, cf, probe
       const services = (await ship('get_projects_by_id_services', { id: gateway.id })).services;
       assert(Array.isArray(services) && services.length <= 1, 'Gateway service list changed');
       services.forEach(validateGatewayService);
-      for (const record of await history(gateway, 'production')) {
-        if (inFlight.has(record.status) || (record.status === 'cancelled' && !await settled(record.id, 'cancelled', gateway))) await cancel(record.id, gateway);
-      }
+      await settleHistory(gateway, 'production');
       await disableGateway(services);
     }
     if (project) {
-      let complete = false;
-      for (let page = 1; page <= 10; page++) {
-        const history = await ship('get_projects_by_id_deployments', { id: project.id, query: { environment: 'preview', perPage: 100, page } });
-        assert(Array.isArray(history.data) && Number.isSafeInteger(history.total), 'OpenShip deployment history invalid');
-        for (const record of history.data) {
-          assert(record.projectId === project.id && record.environment === 'preview' && ID.test(record.id), 'Preview cleanup release mismatch');
-          if (inFlight.has(record.status) || (record.status === 'cancelled' && !await settled(record.id, 'cancelled'))) await cancel(record.id);
-        }
-        if (page * 100 >= history.total) { complete = true; break; }
-      }
-      assert(complete, 'OpenShip deployment history exceeds cleanup bound');
-      await ship('post_projects_by_id_disable', { id: project.id });
-      const disabled = validateProject(data(await ship('get_projects_by_id', { id: project.id })), template, number);
-      if (disabled.activeDeploymentId) {
-        assert(disabled.enabled === false && disabled.disabledAt, 'Preview runtime disable unverified');
-        const info = data(await ship('get_deployments_by_id_info', { id: disabled.activeDeploymentId }));
-        assert(['stopped', 'exited', 'missing'].includes(info?.status), 'Preview container still active');
-      }
+      await settleHistory();
+      await disableApp();
     }
     for (let page = 1; page <= 10; page++) {
       const deployments = await gh('GET', `/repos/${REPO}/deployments?environment=${envName}&per_page=100&page=${page}`);
@@ -249,8 +254,7 @@ export async function runPreview({ number, templateId, seed, gh, ship, cf, probe
       : build.completionPending === false);
   }
 
-  async function cancel(id, target = project) {
-    const deadline = now() + 5 * 60 * 1000;
+  async function cancel(id, target = project, deadline = now() + 5 * 60 * 1000) {
     while (now() < deadline) {
       let outcome;
       try { outcome = await ship('post_deployments_by_id_cancel', { id }); }
@@ -314,11 +318,16 @@ export async function runPreview({ number, templateId, seed, gh, ship, cf, probe
       await ship('patch_projects_by_id', { id: isolated.id, body: { routeStrategy: 'loopback-port', readiness: template.readiness } });
       project = validateProject(data(await ship('get_projects_by_id', { id: isolated.id })), template, number);
     }
+    const appDomains = data(await ship('get_domains', { query: { projectId: project.id } }));
+    if (!(Array.isArray(appDomains) && appDomains.every(d => d.projectId === project.id && d.hostname === origin && typeof d.id === 'string' && ID.test(d.id)))) {
+      try { await settleHistory(); }
+      finally { await disableApp(); }
+      throw new Error('Unexpected preview origin domain');
+    }
+    await settleHistory();
+    project = validateProject(data(await ship('get_projects_by_id', { id: project.id })), template, number);
     const appServices = (await ship('get_projects_by_id_services', { id: project.id })).services;
     assert(Array.isArray(appServices) && appServices.length === 0, 'Unexpected preview app services');
-    const appDomains = data(await ship('get_domains', { query: { projectId: project.id } }));
-    assert(Array.isArray(appDomains) && appDomains.every(d => d.projectId === project.id && d.hostname === origin && typeof d.id === 'string' && ID.test(d.id)),
-      'Unexpected preview origin domain');
     for (const domain of appDomains) await ship('delete_domains_by_id', { id: domain.id });
     await ship('patch_projects_by_id', { id: project.id, body: { publicEndpoints: [] } });
     assert(data(await ship('get_domains', { query: { projectId: project.id } }))?.length === 0, 'Preview public route removal unverified');
@@ -400,10 +409,13 @@ export async function runPreview({ number, templateId, seed, gh, ship, cf, probe
       if (created) gateway = validateGateway(data(await ship('get_projects_by_id', { id: validateGateway(created).id })));
       assert(gateway, 'Gateway creation unverified');
     }
-    if (gateway.enabled === false) await ship('post_projects_by_id_enable', { id: gateway.id });
+    gatewayCleanup = true;
+    await settleHistory(gateway, 'production');
     const recipe = gatewayService(number);
     let services = (await ship('get_projects_by_id_services', { id: gateway.id })).services;
-    assert(Array.isArray(services) && services.length <= 1, 'Gateway service list changed');
+    assert(Array.isArray(services) && services.every(s => s.projectId === gateway.id && typeof s.id === 'string' && ID.test(s.id)), 'Gateway service identity mismatch');
+    await disableGateway(services);
+    assert(services.length <= 1, 'Gateway service list changed');
     if (!services.length) {
       try { await ship('post_projects_by_id_services', { id: gateway.id, body: recipe }); }
       catch { /* Reconcile an uncertain response from the owned collection. */ }
@@ -411,7 +423,6 @@ export async function runPreview({ number, templateId, seed, gh, ship, cf, probe
       assert(Array.isArray(services) && services.length === 1, 'Gateway service creation unverified');
     }
     const service = validateGatewayService(services[0]);
-    gatewayServiceId = service.id;
     const varsBefore = (await ship('get_projects_by_id_services_by_serviceId_env', { id: gateway.id, serviceId: service.id, query: { environment: 'production' } })).vars;
     assert(Array.isArray(varsBefore) && varsBefore.every(v => [ORIGIN_TOKEN_ENV, 'NGINX_ENVSUBST_FILTER'].includes(v.key))
       && varsBefore.length <= 2 && new Set(varsBefore.map(v => v.key)).size === varsBefore.length, 'Unexpected gateway service variables');
@@ -502,12 +513,25 @@ export async function runPreview({ number, templateId, seed, gh, ship, cf, probe
       assert(await probe(`https://${origin}/en/about`, false, { expectedStatus: 404 }), 'Preview origin authentication boundary unverified');
       return true;
     });
+    async function selectedReleases() {
+      await settleHistory();
+      await settleHistory(gateway, 'production');
+      const liveApp = validateProject(data(await ship('get_projects_by_id', { id: project.id })), template, number);
+      const liveGateway = validateGateway(data(await ship('get_projects_by_id', { id: gateway.id })));
+      const selected = data(await ship('get_deployments_by_id', { id: deploymentId }));
+      assert(liveApp.activeDeploymentId === deploymentId && liveGateway.activeDeploymentId === gatewaySubmittedId
+        && liveApp.enabled === true && liveGateway.enabled === true && selected?.id === deploymentId
+        && selected.projectId === project.id && selected.environment === 'preview' && selected.commitSha === sha && selected.status === 'ready',
+        'Selected preview releases changed');
+    }
     await current();
+    await selectedReleases();
     if (!await customDomain()) await cf('PUT', domainsPath, { hostname, service: WORKER, environment: 'production', zone_id: ZONE });
     assert(await customDomain(), 'Preview hostname write unverified');
     await active(true);
     await wait(() => probe(`https://${hostname}/en/about`, true));
     await current();
+    await selectedReleases();
     await gh('POST', statusPath, { state: 'success', environment_url: `https://${hostname}`, description: 'Preview ready', auto_inactive: true });
     return { state: 'ready', url: `https://${hostname}`, sha, projectId: project.id };
   } catch (error) {
@@ -516,12 +540,13 @@ export async function runPreview({ number, templateId, seed, gh, ship, cf, probe
     } finally {
       try { await active(false); }
       finally {
-        if (gatewaySubmittedId) {
-          const release = data(await ship('get_deployments_by_id', { id: gatewaySubmittedId }));
-          assert(release?.id === gatewaySubmittedId && release.projectId === gateway.id, 'Gateway cleanup identity mismatch');
-          try {
-            if (inFlight.has(release.status) || (release.status === 'cancelled' && !await settled(release.id, 'cancelled', gateway))) await cancel(release.id, gateway);
-          } finally { await disableGateway([{ id: gatewayServiceId }]); }
+        if (gatewayCleanup) {
+          try { await settleHistory(gateway, 'production'); }
+          finally {
+            const services = (await ship('get_projects_by_id_services', { id: gateway.id })).services;
+            assert(Array.isArray(services) && services.every(s => s.projectId === gateway.id && typeof s.id === 'string' && ID.test(s.id)), 'Gateway cleanup service identity mismatch');
+            await disableGateway(services);
+          }
         }
         if (submittedId) {
           const record = data(await ship('get_deployments_by_id', { id: submittedId }));
