@@ -1,0 +1,85 @@
+.github/workflows/pr-previews.yml
+  s_a491d7bd628a32::t_4a1103529b96ad 26,29
+  s_a491d7bd628a32::t_7552e3245efa43 40
+scripts/pr-preview/controller.mjs
+  s_a491d7bd628a32::t_f8d5f80769307d 336
+  s_a491d7bd628a32::t_8c18122aba3a61 101,468-469,472,476,486-487,503-507
+  s_a491d7bd628a32::t_5ae8aadf27a7fe 95-96,100,375-376,382,425,429,451
+  s_a491d7bd628a32::t_3b5cb2b9baa3b5 106-108,113-117,193-195,202,204-206,400,456-459,461
+  s_a491d7bd628a32::t_abad1111113f3a 43,305-312
+  s_a491d7bd628a32::t_38a58a3ea0c257 19,165-166,168-170,172-182,332-335,337-348,364
+  s_a491d7bd628a32::t_49e1f2b4daa00b 551,553,555
+  s_a491d7bd628a32::t_cd2dc04bf5d5a3 109,402-403,405-406,409-410
+  s_a491d7bd628a32::t_b70e49a2759e6c 4
+  s_a491d7bd628a32::t_03d0089ff1aa38 5,453-455,460
+  s_a491d7bd628a32::t_255db4ab1f5ec7 110-112
+  s_a491d7bd628a32::t_2ace0390246cf7 126-127
+  s_a491d7bd628a32::t_5b7b56dadadb6a 501-502,508-510,512-513
+  s_a491d7bd628a32::t_7e5c4f3607cdfa 471,473,480-481
+  s_a491d7bd628a32::t_c1fb38f767e5ca 99,207,290,377-381,383-399,401,404,407-408,411-424,426-428,430-450,452
+  s_a491d7bd628a32::t_9b7ba2744e1a04 56-65,89-94,97-98,102-104,118-125,128-132,136-140,145-147,149-150,164,167,171,191-192,196-201,203,241,243,248,255,257-258,263
+  s_a491d7bd628a32::t_12be952e9ae7fa 511
+  s_a491d7bd628a32::t_e35d644d37027c 105
+  s_a491d7bd628a32::t_b02087e17aae36 462
+scripts/pr-preview/edge.mjs
+  s_a491d7bd628a32::t_65c18f914d67f9 19,29-32
+scripts/pr-preview/gateway.mjs
+  s_a491d7bd628a32::t_2120ecb9a43105 1-16,18-66
+  s_a491d7bd628a32::t_45687e64aa3cf9 17
+scripts/pr-preview/gateway.test.mjs
+  s_a491d7bd628a32::t_2120ecb9a43105 1-22,24-26,28-47
+  s_a491d7bd628a32::t_ceba156d58820d 23
+  s_a491d7bd628a32::t_0e58020f54d653 27
+scripts/pr-preview/README.md
+  s_a491d7bd628a32::t_a7515eeafcb07e 7,13
+  s_a491d7bd628a32::t_9b7925d0810f18 3
+  s_a491d7bd628a32::t_9eb7103d37211d 11
+scripts/pr-preview/controller.test.mjs
+  s_a491d7bd628a32::t_3b5cb2b9baa3b5 86
+  s_a491d7bd628a32::t_4a1103529b96ad 692-693
+  s_a491d7bd628a32::t_5ae8aadf27a7fe 11
+  s_a491d7bd628a32::t_e5e25430fadfa5 145,337-378,387-394,415
+  s_a491d7bd628a32::t_2ace0390246cf7 253-258
+  s_a491d7bd628a32::t_04476184e6071d 4,35-41,53,72-77,88,93-97,100-103,113,115,121,131,140,153-156,175-176,184-186
+  s_a491d7bd628a32::t_eb3277c5c7dba6 291-304
+  s_a491d7bd628a32::t_5b7b56dadadb6a 132,395-414
+  s_a491d7bd628a32::t_08403bd41f5903 20-22,195-203,206-216,218-233,243-252,259-269,313-334,336
+  s_a491d7bd628a32::t_c04919d4ac8642 27-28,78,85,99,282,285
+  s_a491d7bd628a32::t_6327c7e5584897 335
+  s_a491d7bd628a32::t_12be952e9ae7fa 379-386
+  s_a491d7bd628a32::t_e51a730ea508cf 270-281,283-284,286-290
+  s_a491d7bd628a32::t_bef9fe339ff305 452
+  s_a491d7bd628a32::t_7e5c4f3607cdfa 79-84,217,234-242
+  s_a491d7bd628a32::t_f8d5f80769307d 34,46-48,120,122-129,141-144,146-151,698
+  s_a491d7bd628a32::t_b70e49a2759e6c 305-312
+  s_a491d7bd628a32::t_03d0089ff1aa38 5,87,98
+  s_a491d7bd628a32::t_cd2dc04bf5d5a3 89-92,204-205
+  s_a491d7bd628a32::t_44dfcaabcd5c0a 416
+scripts/pr-preview/edge.test.mjs
+  s_a491d7bd628a32::t_65c18f914d67f9 4,6,54,61,69-73
+  s_a3d57fd6983d88::t_01228640be2de4 74-76
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "439c6cb037367ab46f84749e7925de2bc809d76b",
+  "prompts": {},
+  "sessions": {
+    "s_a3d57fd6983d88": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a125dc-d51e-7583-9ad7-4135793b24dc",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    },
+    "s_a491d7bd628a32": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12188-c82e-7d43-a904-df8756013a38",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
