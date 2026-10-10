@@ -1,0 +1,25 @@
+app/[locale]/projects/page.tsx
+  s_736f2427abf3d0::t_094fffff5bbcf9 41
+tests/website-showcase.test.ts
+  s_736f2427abf3d0::t_2255c9d5d7a25b 125-128
+README.md
+  s_736f2427abf3d0::t_683cbdaf77c6e9 79
+lib/websiteScreenshots.ts
+  s_736f2427abf3d0::t_094fffff5bbcf9 4,6
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "52f8b41ff26bbb32ecdf3cec71496e9f0a9ea710",
+  "prompts": {},
+  "sessions": {
+    "s_736f2427abf3d0": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12179-a131-7d42-8af2-c3343178f3fc",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
