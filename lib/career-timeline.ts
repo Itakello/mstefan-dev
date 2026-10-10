@@ -24,7 +24,29 @@ function roundedElbow(from: number, to: number, y: number, radius: number): stri
   return `A${radius} ${radius} 0 0 ${sweep} ${from + direction * radius} ${y - radius} H${to - direction * radius} A${radius} ${radius} 0 0 ${1 - sweep} ${to} ${y - 2 * radius}`;
 }
 
+function laneSpan(entry: TimelineEntry, mainX: number) {
+  return {
+    start: entry.forkY - (entry.forkX === mainX ? entry.forkRadius : 0),
+    end: entry.headY + (entry.mergeX === mainX ? entry.mergeRadius : 0),
+  };
+}
+
 export function layoutCareerTimeline(jobs: TimelineJob[], now: number, spacing = 24, availableWidth?: number) {
+  const original = buildCareerTimeline(jobs, now, spacing, availableWidth);
+  const compact = buildCareerTimeline(jobs, now, spacing, availableWidth, original.entries.map((entry) => laneSpan(entry, original.mainX)));
+  // Shared junctions can shorten elbows; only keep reuse that fits the final geometry.
+  for (const entry of compact.entries) {
+    for (const other of compact.entries) {
+      if (!entry.dated || !other.dated || entry.index >= other.index || entry.lane !== other.lane) continue;
+      const a = laneSpan(entry, compact.mainX);
+      const b = laneSpan(other, compact.mainX);
+      if (a.end - 3 <= b.start && b.end - 3 <= a.start) return original;
+    }
+  }
+  return compact;
+}
+
+function buildCareerTimeline(jobs: TimelineJob[], now: number, spacing: number, availableWidth?: number, geometry?: { start: number; end: number }[]) {
   if (!Number.isFinite(now)) throw new Error('A valid current date is required.');
   spacing = Number.isFinite(spacing) ? Math.max(18, Math.min(64, spacing)) : 24;
   const dates = jobs.map((job, index) => {
@@ -74,9 +96,11 @@ export function layoutCareerTimeline(jobs: TimelineJob[], now: number, spacing =
   for (const entry of dated) {
     const minimum = parents[entry.index] === null ? 1 : lanes.get(parents[entry.index]!)! + 1;
     let lane = minimum;
-    while (occupiedUntil[lane] !== undefined && occupiedUntil[lane] >= entry.start!) lane++;
+    const previous = geometry?.[entry.index];
+    const forkY = previous?.start ?? yAt(entry.start!);
+    while (occupiedUntil[lane] !== undefined && occupiedUntil[lane] <= forkY + (geometry ? 3 : 0)) lane++;
     lanes.set(entry.index, lane);
-    occupiedUntil[lane] = entry.end!;
+    occupiedUntil[lane] = previous?.end ?? yAt(entry.end!);
   }
   [...undated].sort((a, b) => a.key.localeCompare(b.key) || a.index - b.index)
     .forEach((entry, index) => lanes.set(entry.index, index + 1));
