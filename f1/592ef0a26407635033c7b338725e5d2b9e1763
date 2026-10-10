@@ -1,0 +1,36 @@
+scripts/website-preview-network.ts
+  s_736f2427abf3d0::t_e0047744944975 32-42,48
+.github/workflows/website-previews.yml
+  s_736f2427abf3d0::t_e0047744944975 87
+README.md
+  s_736f2427abf3d0::t_0ffca7e176d9dd 81
+scripts/capture-website-previews.ts
+  s_736f2427abf3d0::t_e0047744944975 32,35
+tests/website-preview-network.test.ts
+  s_736f2427abf3d0::t_441b26e6cc09f9 3,15-27
+  s_a3d57fd6983d88::t_488fac483c2e60 28
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f1592ef0a26407635033c7b338725e5d2b9e1763",
+  "prompts": {},
+  "sessions": {
+    "s_736f2427abf3d0": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12179-a131-7d42-8af2-c3343178f3fc",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    },
+    "s_a3d57fd6983d88": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a125dc-d51e-7583-9ad7-4135793b24dc",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
