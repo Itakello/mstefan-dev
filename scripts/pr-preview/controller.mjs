@@ -2,6 +2,7 @@ import { createHmac } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 import { isDeepStrictEqual } from 'node:util';
+import { isIP } from 'node:net';
 import { GATEWAY_IMAGE, gatewayService, ORIGIN_TOKEN_ENV } from './gateway.mjs';
 
 const REPO = 'Itakello/mstefan-dev';
@@ -69,7 +70,7 @@ function validateVars(vars) {
     'Unexpected preview environment variables');
 }
 
-export async function runPreview({ number, templateId, seed, gh, ship, cf, probe, now = Date.now, sleep = ms => new Promise(resolve => setTimeout(resolve, ms)) }) {
+export async function runPreview({ number, templateId, seed, gh, ship, cf, probe, dnsReady, now = Date.now, sleep = ms => new Promise(resolve => setTimeout(resolve, ms)) }) {
   assert(Number.isSafeInteger(number) && number > 0, 'PR number invalid');
   const prPath = `/repos/${REPO}/pulls/${number}`;
   let pr = await gh('GET', prPath);
@@ -485,6 +486,7 @@ export async function runPreview({ number, templateId, seed, gh, ship, cf, probe
     assert(originDomain?.projectId === gateway.id && originDomain.hostname === origin && ID.test(originDomain.id)
       && originDomain.serviceId === service.id && originDomain.targetPort === 8080
       && originDomain.externalIngress === false, 'Origin domain identity mismatch');
+    await wait(() => dnsReady(origin));
     await ship('post_domains_by_id_verify', { id: originDomain.id });
     const routing = await ship('post_projects_by_id_routing_retry', { id: gateway.id });
     assert(routing?.ok === true, 'Preview origin routing refresh failed');
@@ -535,8 +537,8 @@ export async function runPreview({ number, templateId, seed, gh, ship, cf, probe
 
 export function clients(env, fetcher = fetch) {
   for (const name of ['GITHUB_TOKEN', 'OPENSHIP_TOKEN', 'CLOUDFLARE_API_TOKEN']) assert(env[name], `${name} missing`);
-  async function request(url, token, method = 'GET', body, timeout = 15_000) {
-    const response = await fetcher(url, { method, headers: { Authorization: `Bearer ${token}`, Accept: 'application/json',
+  async function request(url, token, method = 'GET', body, timeout = 15_000, accept = 'application/json') {
+    const response = await fetcher(url, { method, headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), Accept: accept,
       ...(body === undefined || body instanceof FormData ? {} : { 'Content-Type': 'application/json' }) },
       body: body === undefined ? undefined : body instanceof FormData ? body : JSON.stringify(body),
       redirect: 'error', signal: AbortSignal.timeout(timeout) });
@@ -546,6 +548,18 @@ export function clients(env, fetcher = fetch) {
     try { return JSON.parse(raw); } catch { throw new Error('Provider response invalid'); }
   }
   return {
+    async dnsReady(hostname) {
+      try {
+        const answers = await Promise.all(['https://dns.google/resolve', 'https://cloudflare-dns.com/dns-query'].flatMap(url =>
+          [1, 28].map(async type => {
+            const result = await request(`${url}?name=${encodeURIComponent(hostname)}&type=${type}`, undefined, 'GET', undefined, 5000, 'application/dns-json');
+            return result.Status === 0 && result.Question?.length === 1
+              && result.Question[0].name.replace(/\.$/, '') === hostname && result.Question[0].type === type
+              && (type === 28 || result.Answer?.some(row => row.name.replace(/\.$/, '') === hostname && row.type === 1 && isIP(row.data) === 4));
+          })));
+        return answers.every(Boolean);
+      } catch { return false; }
+    },
     gh: (method, path, body) => request(`https://api.github.com${path}`, env.GITHUB_TOKEN, method, body),
     async ship(name, args) {
       const result = await request('https://openship.mstefan.dev/api/mcp', env.OPENSHIP_TOKEN, 'POST', {

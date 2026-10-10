@@ -54,6 +54,7 @@ function fixture(options = {}) {
     args: {
       number: 42, templateId: template.id, seed: 'test-seed-for-previews-'.repeat(3),
       now: () => clock, sleep: async ms => { clock += ms; },
+      dnsReady: async () => true,
       async gh(method, path, body) {
         calls.push({ provider: 'gh', method, path, body });
         if (path.includes('/pulls/')) return structuredClone(pr);
@@ -666,6 +667,46 @@ test('native TLS must be active: external TLS state times out and cannot publish
   assert.ok(!f.calls.some(c => c.method === 'PUT' || c.body?.state === 'success'));
   assert.ok(f.calls.some(c => c.body?.state === 'error'));
   assert.ok(f.calls.filter(c => c.name === 'get_domains_by_id').length <= 120);
+});
+
+test('certificate issuance waits for DNS propagation and never retries issuance while DNS is pending', async () => {
+  for (const ready of [true, false]) {
+    const f = fixture();
+    let reads = 0;
+    f.args.dnsReady = async hostname => {
+      assert.equal(hostname, 'preview-origin-pr-42.mstefan.dev');
+      reads++;
+      assert.ok(!f.calls.some(c => c.name === 'post_domains_by_id_verify'));
+      return ready && reads > 2;
+    };
+    if (ready) {
+      assert.equal((await runPreview(f.args)).state, 'ready');
+      assert.equal(reads, 3);
+      assert.equal(f.calls.filter(c => c.name === 'post_domains_by_id_verify').length, 1);
+    } else {
+      await assert.rejects(runPreview(f.args), /timed out/);
+      assert.equal(f.gateway.enabled, false);
+      assert.ok(!f.calls.some(c => c.name === 'post_domains_by_id_verify' || c.body?.state === 'success'));
+    }
+  }
+});
+
+test('public DNS gate requires both resolver views and accepts AAAA NODATA without credentials', async () => {
+  const hostname = 'preview-origin-pr-42.mstefan.dev';
+  for (const failure of [null, 'NXDOMAIN', 'malformed']) {
+    const api = clients({ GITHUB_TOKEN: 'fake-gh', OPENSHIP_TOKEN: 'fake-ship', CLOUDFLARE_API_TOKEN: 'fake-cf' }, async (url, options) => {
+      assert.equal(options.headers.Authorization, undefined);
+      assert.equal(options.headers.Accept, 'application/dns-json');
+      const parsed = new URL(url);
+      assert.equal(parsed.searchParams.get('name'), hostname);
+      const type = Number(parsed.searchParams.get('type'));
+      if (parsed.hostname === 'dns.google' && failure === 'NXDOMAIN') return Response.json({ Status: 3 });
+      if (parsed.hostname === 'dns.google' && failure === 'malformed') return Response.json({ Status: 0 });
+      return Response.json({ Status: 0, Question: [{ name: `${hostname}.`, type }],
+        ...(type === 1 ? { Answer: [{ name: hostname, type: 1, data: '188.114.97.3' }] } : {}) });
+    });
+    assert.equal(await api.dnsReady(hostname), failure === null);
+  }
 });
 
 test('saved active TLS state does not override a failed native certificate observation', async () => {
