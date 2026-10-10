@@ -1,0 +1,21 @@
+README.md
+  s_736f2427abf3d0::t_33d5971f72db50 83,85
+.github/workflows/website-previews.yml
+  s_736f2427abf3d0::t_33d5971f72db50 5
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2c18260989b6af2f8a40d19d5561b88af4c0bd48",
+  "prompts": {},
+  "sessions": {
+    "s_736f2427abf3d0": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12179-a131-7d42-8af2-c3343178f3fc",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
