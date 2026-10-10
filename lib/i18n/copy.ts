@@ -45,8 +45,6 @@ type SiteCopy = {
     projectCategory: string;
     showMore: (count: number, category: string) => string;
     hideMore: (count: number, category: string) => string;
-    scrollLeft: string;
-    scrollRight: string;
     toolkitTechnologiesByCategory: string;
     technologyList: (names: string) => string;
   };
@@ -132,8 +130,6 @@ export const copy = {
       projectCategory: "project",
       showMore: (count, category) => `Show ${count} more ${category} ${count === 1 ? "technology" : "technologies"}`,
       hideMore: (count, category) => `Hide ${count} ${category} ${count === 1 ? "technology" : "technologies"}`,
-      scrollLeft: "Scroll technologies left",
-      scrollRight: "Scroll technologies right",
       toolkitTechnologiesByCategory: "Toolkit technologies grouped by category",
       technologyList: (names) => `Technologies: ${names}`,
     },
@@ -233,8 +229,6 @@ export const copy = {
         ? `Mostra 1 altra tecnologia ${category}`
         : `Mostra altre ${count} tecnologie ${category}`,
       hideMore: (count, category) => `Nascondi ${count} ${count === 1 ? "tecnologia" : "tecnologie"} ${category}`,
-      scrollLeft: "Scorri le tecnologie verso sinistra",
-      scrollRight: "Scorri le tecnologie verso destra",
       toolkitTechnologiesByCategory: "Strumenti: tecnologie raggruppate per categoria",
       technologyList: (names) => `Tecnologie: ${names}`,
     },

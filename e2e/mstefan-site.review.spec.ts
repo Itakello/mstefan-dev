@@ -46,6 +46,9 @@ test.describe("Public website review", () => {
     await expect(page.getByRole("heading", { level: 1, name: "I build AI systems for real work." })).toBeVisible();
     await expect(page.getByRole("heading", { level: 2, name: "Selected work" })).toBeVisible();
     await expect(page.getByRole("region", { name: "Career", exact: true })).toHaveCount(0);
+    const toolkit = page.getByRole("region", { name: "Toolkit", exact: true });
+    await expect(toolkit.getByRole("button", { name: /Scroll technologies/ })).toHaveCount(0);
+    await expect.poll(() => toolkit.locator(".stack-shelf").evaluate(node => node.scrollWidth <= node.clientWidth + 1)).toBe(true);
     await showReviewStep(page, "1 · English home and selected work");
 
     // 2. Select work and browse the independent desktop and phone previews.
@@ -54,6 +57,7 @@ test.describe("Public website review", () => {
     await expect(page.getByRole("heading", { level: 1, name: "My work" })).toBeVisible();
 
     await page.getByRole("button", { name: "Select mstefan.dev", exact: true }).click();
+    await expect.poll(() => page.getByRole("navigation", { name: "Choose a project" }).evaluate(node => node.scrollHeight <= node.clientHeight + 1)).toBe(true);
     await expect(page.getByRole("button", { name: "Select mstefan.dev", exact: true }).getByText("Website", { exact: true })).toBeVisible();
     const projectStack = page.getByRole("complementary", { name: "mstefan.dev technologies grouped by category" });
     const typeScript = projectStack.locator('summary[aria-label="TypeScript · Language"]');
@@ -90,6 +94,15 @@ test.describe("Public website review", () => {
     expect(mobileBox!.width).toBeLessThanOrEqual(390);
     for (const width of [1280, 900, 640, 360]) {
       await page.setViewportSize({ width, height: 800 });
+      if (width < 1024) {
+        const picker = page.getByRole("combobox", { name: "Choose a project" });
+        await expect(picker).toBeVisible();
+        await picker.selectOption({ label: "The Karakal Times" });
+        await expect(page.locator("#selected-work-title")).toHaveText("The Karakal Times");
+        await picker.selectOption({ label: "mstefan.dev" });
+        await expect(page.locator("#selected-work-title")).toHaveText("mstefan.dev");
+        await expect(page.getByRole("navigation", { name: "Choose a project" })).toBeHidden();
+      }
       await modes.getByRole("button", { name: "Desktop", exact: true }).click();
       const desktopHeight = (await desktop.boundingBox())!.height;
       await modes.getByRole("button", { name: "Mobile", exact: true }).click();
@@ -239,22 +252,23 @@ test.describe("Public website review", () => {
 
     await page.setViewportSize({ width: 360, height: 800 });
     await page.goto("/en");
+    await expect.poll(() => toolkit.locator(".stack-shelf").evaluate(node => node.scrollWidth <= node.clientWidth + 1)).toBe(true);
     await expect(page.locator("footer > div")).toHaveCSS("flex-direction", "column");
     await expect(page.getByRole("region", { name: "Career", exact: true })).toHaveCount(0);
     await page.goto("/en/about");
     const mobileCareer = page.getByRole("region", { name: "Career", exact: true });
     await expect(mobileCareer).toBeVisible();
     await expect(mobileCareer.getByText("Dates not provided").first()).toBeVisible();
-    const mobileBranch = mobileCareer.locator('svg [data-career-branch]');
+    const mobileBranch = mobileCareer.locator('button[data-career-job]');
     await mobileBranch.focus();
     await mobileBranch.press("Enter");
     await expect(mobileBranch).toHaveAttribute("aria-pressed", "true");
     await expect(mobileCareer.locator('button[data-career-job]')).toHaveAttribute("aria-pressed", "true");
-    await expect.poll(() => mobileCareer.locator('[aria-label^="Graph."]').evaluate((tree) => {
-      const main = tree.querySelector('circle')!.getBoundingClientRect();
-      const viewport = tree.getBoundingClientRect();
-      return main.left >= viewport.left && main.right <= viewport.right;
-    })).toBe(true);
+    await expect(mobileCareer.locator('[aria-label^="Graph."]')).toBeHidden();
+    await expect.poll(() => mobileCareer.evaluate(node => [...node.querySelectorAll("*")].every(element => {
+      const style = getComputedStyle(element);
+      return !/auto|scroll/.test(style.overflowY) || element.scrollHeight <= element.clientHeight + 1;
+    }))).toBe(true);
     await page.screenshot({ path: ".artifacts/playwright/career-about-keyboard-mobile.png", fullPage: true });
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
     await page.goto("/en/about");
@@ -262,7 +276,7 @@ test.describe("Public website review", () => {
     const mobileExplorer = page.getByRole("region", { name: "Career", exact: true });
     const mobileStoryBox = await mobileStory.boundingBox();
     const mobileExplorerBox = await mobileExplorer.boundingBox();
-    expect(mobileStoryBox && mobileExplorerBox && mobileExplorerBox.y + mobileExplorerBox.height <= mobileStoryBox.y).toBeTruthy();
+    expect(mobileStoryBox && mobileExplorerBox && mobileStoryBox.y + mobileStoryBox.height <= mobileExplorerBox.y).toBeTruthy();
     await mobileExplorer.locator("button[data-career-job]", { hasText: "Amazon" }).click();
     await expect(mobileStory.getByRole("heading", { level: 1, name: "master" })).toBeVisible();
     await expect(page.getByRole("link", { name: /Read story/ })).toHaveCount(0);

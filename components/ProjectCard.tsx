@@ -114,8 +114,8 @@ export function ProjectCard({
           aria-hidden={isOpen}
           inert={isOpen}
         >
-          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 pb-3">
-            <p className="line-clamp-2 min-w-0 text-sm leading-5 text-black/65 dark:text-white/65">
+          <div className="grid items-center gap-3 pb-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-4">
+            <p className="min-w-0 max-w-prose text-sm leading-5 text-black/65 dark:text-white/65">
               {projectPreviewSummary({ summary, shortSummary })}
             </p>
             {technologies.length > 0 && (
