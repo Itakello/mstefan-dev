@@ -1,0 +1,36 @@
+scripts/pr-preview/controller.test.mjs
+  s_a491d7bd628a32::t_c460d96f276e75 120-121,128,385
+  s_a491d7bd628a32::t_dfd0a5b8f098d5 231,233-236,240-264
+  s_ca9b05cd06e974::t_51a8b06b66a2b9 265
+scripts/pr-preview/README.md
+  s_a491d7bd628a32::t_2ed10bc024eb3f 30-33,35-39
+  s_a491d7bd628a32::t_d4aa4ca74bf7e1 34
+scripts/pr-preview/controller.mjs
+  s_a491d7bd628a32::t_5561e8f5f3c4d4 81-82,86,178,186-198,207,272-281,411,496-499,518-520
+  s_a491d7bd628a32::t_6f1363304945bd 212-214
+  s_a491d7bd628a32::t_c460d96f276e75 162-165
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "7582e44230cffb1efb29cfeac92d856697792660",
+  "prompts": {},
+  "sessions": {
+    "s_a491d7bd628a32": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12188-c82e-7d43-a904-df8756013a38",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    },
+    "s_ca9b05cd06e974": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a125e2-8a12-72c0-9b0f-65ad915684a2",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
