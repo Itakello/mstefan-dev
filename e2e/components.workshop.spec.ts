@@ -92,7 +92,7 @@ for (const theme of ["light", "dark"] as const) {
       await expect.poll(() => scroller.evaluate(node => node.scrollTop)).toBeGreaterThan(0);
 
       await story(page, "workshop-careergraph--expanded", theme);
-      const job = page.getByRole("button", { name: /work\/platform/ }).first();
+      const job = page.getByRole("button", { name: /Sample Platform Team/ }).first();
       await job.focus();
       await job.press("Enter");
       await expect(page.getByText("Built a small internal planning tool", { exact: false })).toBeVisible();
