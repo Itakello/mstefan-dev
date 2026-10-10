@@ -22,6 +22,16 @@ async function stablePage(page: Page) {
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
 }
 
+async function expectTransparentBadges(page: Page) {
+  const badges = page.locator(".stack-badge-icon:visible");
+  await expect.poll(() => badges.count()).toBeGreaterThan(0);
+  for (const badge of await badges.all()) {
+    await expectDrawnIcons(badge.locator("svg"));
+    await expect(badge).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+    await expect(badge).toHaveCSS("border-top-width", "0px");
+  }
+}
+
 async function scrollStyle(scroller: Locator) {
   return scroller.evaluate(node => {
     const style = getComputedStyle(node);
@@ -40,7 +50,7 @@ test.beforeEach(async ({ context }) => installOfflineReview(context));
 
 for (const mode of modes) {
   for (const theme of ["light", "dark"] as const) {
-    test(`${mode.name} ${theme}: Work, About and footer remain consistent`, async ({ page }) => {
+    test(`${mode.name} ${theme}: Home, Work, About and footer remain consistent`, async ({ page }) => {
       await page.setViewportSize({ width: mode.width, height: mode.height });
       await page.emulateMedia({ colorScheme: theme, reducedMotion: "reduce" });
       await page.addInitScript(value => localStorage.setItem("theme", value), theme);
@@ -53,13 +63,7 @@ for (const mode of modes) {
       const githubShape = await workGitHub.innerHTML();
       await expect(page.locator('footer [data-brand-icon="github"]')).toHaveJSProperty("innerHTML", githubShape);
       await page.getByRole("button", { name: "Select mstefan.dev", exact: true }).click();
-      const badges = page.locator(".stack-badge-icon");
-      await expect.poll(() => badges.count()).toBeGreaterThan(0);
-      for (const badge of await badges.all()) {
-        await expectDrawnIcons(badge.locator("svg"));
-        await expect(badge).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
-        await expect(badge).toHaveCSS("border-top-width", "0px");
-      }
+      await expectTransparentBadges(page);
       const workScroll = await scrollStyle(page.locator("[data-work-stack-scroll]"));
       await stablePage(page);
       await expect.soft(page).toHaveScreenshot(`work-${mode.name}-${theme}.png`, {
@@ -90,6 +94,11 @@ for (const mode of modes) {
       const cardGitHub = page.locator('main [data-brand-icon="github"]');
       await expectDrawnIcons(cardGitHub);
       for (const icon of await cardGitHub.all()) await expect(icon).toHaveJSProperty("innerHTML", githubShape);
+      await expectTransparentBadges(page);
+      await stablePage(page);
+      await expect.soft(page).toHaveScreenshot(`home-${mode.name}-${theme}.png`, {
+        fullPage: true, animations: "disabled", maxDiffPixels: 100, mask: [page.locator("footer p")],
+      });
     });
   }
 }
