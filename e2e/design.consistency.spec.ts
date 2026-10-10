@@ -101,6 +101,11 @@ for (const mode of modes) {
       for (const icon of await cardGitHub.all()) await expect(icon).toHaveJSProperty("innerHTML", githubShape);
       await expectTransparentBadges(page);
       await stablePage(page);
+      if (mode.name === "mobile") {
+        const scrollRight = page.getByRole("button", { name: "Scroll technologies right", exact: true });
+        await expect(scrollRight).toHaveCSS("opacity", "1");
+        await expectDrawnIcons(scrollRight.locator("svg"));
+      }
       await compareScreenshot(page, `home-${mode.name}-${theme}.png`, testInfo, {
         fullPage: true, animations: "disabled", mask: [page.locator("footer p")],
       }, 100);
