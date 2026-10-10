@@ -1,0 +1,21 @@
+tests/cms/lifecycle.test.mts
+  s_a3d57fd6983d88::t_2fad1037c8ef50 473,481
+e2e/mstefan-site.review.spec.ts
+  s_a3d57fd6983d88::t_2fad1037c8ef50 212-216
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "fe3ae612ec391e37fe44a0b9416065a0e4a52adb",
+  "prompts": {},
+  "sessions": {
+    "s_a3d57fd6983d88": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a125dc-d51e-7583-9ad7-4135793b24dc",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
