@@ -209,6 +209,11 @@ test.describe("Public website review", () => {
     const careerBox = await aboutCareer.boundingBox();
     expect(storyBox && careerBox && storyBox.x + storyBox.width <= careerBox.x).toBeTruthy();
     expect(storyBox && careerBox && Math.abs(storyBox.y - careerBox.y) < 1).toBeTruthy();
+    for (const width of [640, 900]) {
+      await page.setViewportSize({ width, height: 900 });
+      await expect.poll(() => story.evaluate(node => node.getBoundingClientRect().bottom <= document.querySelector("#career")!.getBoundingClientRect().top)).toBe(true);
+    }
+    await page.setViewportSize({ width: 1440, height: 1000 });
     await aboutCareer.locator("button[data-career-job]", { hasText: "Amazon" }).click();
     await expect(aboutCareer.locator("button[data-career-job]", { hasText: "Amazon" })).toHaveAttribute("aria-pressed", "true");
     await expect(story.getByRole("heading", { level: 1, name: "master" })).toBeVisible();

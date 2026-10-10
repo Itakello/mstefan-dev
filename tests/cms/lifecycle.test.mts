@@ -470,7 +470,7 @@ test('nested career branches share junctions and synchronize graph and Experienc
   assert.deepEqual(Buffer.from(await publishedDocument.arrayBuffer()), pdfBytes);
   const browser = await chromium.launch({ headless: true });
   try {
-    const page = await browser.newPage({ viewport: { width: 1000, height: 900 } });
+    const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
     await page.goto(`${base}/en/about#career`);
     const graph = page.getByRole('region', { name: 'Career', exact: true });
     const project = graph.locator('[data-career-branch][aria-label^="work/company/project:"]');
@@ -478,7 +478,7 @@ test('nested career branches share junctions and synchronize graph and Experienc
     const projectTitle = graph.locator('button[data-career-job]', { hasText: 'work/company/project' });
     const careerBounds = () => graph.evaluate(element => { const box = element.getBoundingClientRect(); return { top: box.top + window.scrollY, height: box.height }; });
     const initialCareerBounds = await careerBounds();
-    assert.ok(await graph.evaluate(element => element.getBoundingClientRect().bottom <= document.querySelector('#career-story')!.getBoundingClientRect().top), 'Career should precede the selected story');
+    assert.ok(await graph.evaluate(element => document.querySelector('#career-story')!.getBoundingClientRect().right <= element.getBoundingClientRect().left), 'Desktop story should be beside the career graph');
     const centeredPhotoOffset = () => page.locator('#career-story').evaluate((story) => {
       const container = story.getBoundingClientRect();
       const photo = story.querySelector('figure')!.getBoundingClientRect();
