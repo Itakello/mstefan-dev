@@ -78,6 +78,20 @@ const modes = [
 
 test.beforeEach(async ({ context }) => installOfflineReview(context));
 
+test("official Iconify API fallbacks return the same pinned artwork offline", async ({ page }) => {
+  await page.goto("/en/about");
+  const artwork = await page.evaluate(async () => Promise.all(
+    ["api.iconify.design", "api.simplesvg.com", "api.unisvg.com"].map(async host => {
+      const response = await fetch(`https://${host}/simple-icons.json?icons=github`);
+      if (!response.ok) throw new Error(`Icon fixture failed: ${host}`);
+      return response.json();
+    }),
+  ));
+  expect(artwork[0].icons.github.body).toContain("<path");
+  expect(artwork[1]).toEqual(artwork[0]);
+  expect(artwork[2]).toEqual(artwork[0]);
+});
+
 for (const mode of modes) {
   for (const theme of ["light", "dark"] as const) {
     test(`${mode.name} ${theme}: Home, Work, About and footer remain consistent`, async ({ page }, testInfo) => {
