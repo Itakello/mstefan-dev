@@ -3,6 +3,7 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import test from "node:test";
 
 import { classifyVisualReview } from "../scripts/visual-review/classify.mjs";
+import { iconFixtureResponse } from "../e2e/offline-review";
 
 test("runs for conservative UI-impacting paths", () => {
   const result = classifyVisualReview([
@@ -43,8 +44,8 @@ test("supported agents exclude the stock healer", () => {
 test("browser tests cannot silently suppress failures", () => {
   const reviewDirectory = new URL("../e2e/", import.meta.url);
   const reviewTests = readdirSync(reviewDirectory)
-    .filter((name) => /\.(review|smoke)\.spec\.ts$/.test(name));
-  const prohibited = ["test.skip", "test.fixme", "test.fail", "test.only", "expect.soft"];
+    .filter((name) => /\.(review|smoke|consistency)\.spec\.ts$/.test(name));
+  const prohibited = ["test.skip", "test.fixme", "test.fail", "test.only"];
 
   assert.notEqual(reviewTests.length, 0);
   for (const file of reviewTests) {
@@ -52,7 +53,26 @@ test("browser tests cannot silently suppress failures", () => {
     for (const token of prohibited) {
       assert.equal(source.includes(token), false, `${token} is prohibited in ${file}`);
     }
+    for (const assertion of source.matchAll(/expect\.soft\([^\n]*?\)\.(\w+)/g)) {
+      assert.equal(assertion[1], "toHaveScreenshot", `Only failing screenshot assertions may accumulate evidence in ${file}`);
+    }
   }
+});
+
+test("offline icon fixture serves genuine pinned artwork and refuses missing icons", async () => {
+  const brands = await iconFixtureResponse(new URL("https://api.iconify.design/simple-icons.json?icons=github,linkedin,x"));
+  assert.deepEqual(Object.keys(brands.icons), ["github", "linkedin", "x"]);
+  for (const icon of Object.values(brands.icons)) assert.match(icon.body, /<path\b/);
+  const alias = await iconFixtureResponse(new URL("https://api.iconify.design/lucide.json?icons=code-2"));
+  assert.match(alias.icons["code-2"].body, /<path\b/);
+  await assert.rejects(iconFixtureResponse(new URL("https://api.iconify.design/simple-icons.json?icons=unrecorded-brand")), /Missing official visual icon fixture/);
+  await assert.rejects(iconFixtureResponse(new URL("https://api.iconify.design/unknown.json?icons=github")), /Missing official visual icon collection/);
+});
+
+test("pinned artwork changes require visual review", () => {
+  assert.equal(classifyVisualReview(["tests/fixtures/visual-icons/simple-icons.json"]).run, true);
+  assert.equal(classifyVisualReview(["DESIGN.md"]).run, true);
+  assert.equal(classifyVisualReview(["AGENTS.md"]).run, true);
 });
 
 test("CMS persistence and request-boundary changes require browser review", () => {

@@ -1,32 +1,14 @@
 // spec: specs/mstefan-site-review.md
 // seed: e2e/seed.ts
 
-import { readFile, writeFile } from "node:fs/promises";
+import { writeFile } from "node:fs/promises";
+import { installOfflineReview } from "./offline-review";
 
 import { expect, showReviewStep, test } from "./seed";
 
 test.describe("Public website review", () => {
   test.beforeEach(async ({ context }) => {
-    const base = process.env.PLAYWRIGHT_BASE_URL;
-    const state = process.env.VISUAL_NOTION_FIXTURE_STATE;
-    if (!base || !state) throw new Error("The isolated offline publication fixture is required");
-    await writeFile(state, "multiple");
-    await context.route("**/*", async route => {
-      const url = new URL(route.request().url());
-      if ((url.hostname === "example.com" && url.pathname.endsWith(".pdf")) || url.href === "https://arxiv.org/pdf/2410.07109") {
-        await route.fulfill({ body: await readFile("tests/fixtures/research.pdf"), contentType: "application/pdf", headers: { "access-control-allow-origin": "*" } });
-      } else if (["www.mstefan.dev", "mstefan.dev"].includes(url.hostname)) {
-        const response = await route.fetch({ url: `${base}${url.pathname}${url.search}`, maxRedirects: 0 });
-        await route.fulfill({ response });
-      } else if (url.hostname === "api.iconify.design") {
-        const prefix = url.pathname.split("/")[1].replace(/\.json$/, "");
-        await route.fulfill({ json: { prefix, icons: {}, not_found: (url.searchParams.get("icons") || "").split(",") } });
-      } else if (url.origin === new URL(base).origin) {
-        await route.continue();
-      } else {
-        throw new Error(`Unexpected external browser request: ${url.hostname}`);
-      }
-    });
+    await installOfflineReview(context);
   });
   test("Review the primary bilingual visitor journey", async ({ page }) => {
     const browserErrors: string[] = [];

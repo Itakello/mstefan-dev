@@ -204,14 +204,6 @@ a {
   transition: margin 160ms ease, transform 160ms ease, z-index 0s;
 }
 
-.stack-hand-card .stack-badge-icon {
-  background: rgb(255 255 255);
-}
-
-.dark .stack-hand-card .stack-badge-icon {
-  background: rgb(10 10 10);
-}
-
 .stack-hidden-cards {
   display: inline-flex;
   align-items: center;

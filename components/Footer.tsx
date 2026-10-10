@@ -1,6 +1,7 @@
 "use client";
 
 import { IconLink } from "@/components/IconLink";
+import { BrandIcon } from "@/components/BrandIcon";
 import { BRAND_ICON_CLASS } from "@/lib/iconStyles";
 import { getCopy } from "@/lib/i18n/copy";
 import type { Locale } from "@/lib/i18n/config";
@@ -24,21 +25,17 @@ export function Footer({ locale }: { locale: Locale }) {
           <IconLink
             href="https://github.com/Itakello"
             label="GitHub"
-            icon={<Icon icon="simple-icons:github" className={BRAND_ICON_CLASS} aria-hidden />}
+            icon={<BrandIcon brand="github" />}
           />
           <IconLink
             href="https://www.linkedin.com/in/itakello/"
             label="LinkedIn"
-            icon={<Icon icon="logos:linkedin-icon" className={BRAND_ICON_CLASS} aria-hidden />}
+            icon={<BrandIcon brand="linkedin" />}
           />
           <IconLink
             href="https://x.com/itakello"
             label="X"
-            icon={(
-              <span className={`grid ${BRAND_ICON_CLASS} place-items-center rounded-[3px] bg-black text-white`}>
-                <Icon icon="ri:twitter-x-fill" className="size-[11px]" aria-hidden />
-              </span>
-            )}
+            icon={<BrandIcon brand="x" />}
           />
         </div>
       </div>
