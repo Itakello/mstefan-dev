@@ -1,0 +1,33 @@
+components/WorkExplorer.tsx
+  s_92487f60d945bb::t_f95cd4147ce697 9,99
+components/ProjectCard.tsx
+  s_92487f60d945bb::t_f95cd4147ce697 9,95
+lib/iconStyles.ts
+  s_92487f60d945bb::t_f95cd4147ce697 2
+components/IconLink.tsx
+  s_92487f60d945bb::t_f95cd4147ce697 2,20,22,30,32
+DESIGN.md
+  s_92487f60d945bb::t_f95cd4147ce697 22
+e2e/design.consistency.spec.ts
+  s_92487f60d945bb::t_f95cd4147ce697 25-49,81-94,107,140,146
+e2e/offline-review.ts
+  s_92487f60d945bb::t_f95cd4147ce697 42-43
+tailwind.config.ts
+  s_92487f60d945bb::t_f95cd4147ce697 9
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2266776ec81bd5dd7fde8180a753a50a32a2ce5d",
+  "prompts": {},
+  "sessions": {
+    "s_92487f60d945bb": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12180-f900-7701-98b8-f5626618739d",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
