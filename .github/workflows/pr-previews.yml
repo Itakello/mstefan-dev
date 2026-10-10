@@ -23,10 +23,10 @@ jobs:
       deployments: write
       id-token: write
     steps:
-      - name: Check out trusted base controller
+      - name: Check out trusted default-branch controller
         uses: actions/checkout@v7
         with:
-          ref: ${{ github.event.pull_request.base.sha }}
+          ref: ${{ github.sha }}
           persist-credentials: false
       - uses: actions/setup-node@v7
         with:
@@ -37,6 +37,7 @@ jobs:
           oauth-client-id: ${{ vars.MSTEFAN_PREVIEW_TS_CLIENT_ID }}
           audience: ${{ vars.MSTEFAN_PREVIEW_TS_AUDIENCE }}
           tags: tag:mstefan-preview-ci
+          ping: 100.111.250.54
           use-cache: 'false'
           log-mode: quiet
       - name: Reconcile the live PR preview

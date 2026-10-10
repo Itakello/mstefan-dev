@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import worker from "./edge.mjs";
+import { createHmac } from "node:crypto";
 
-const env = { ACTIVE_PRS: "12, 34" };
+const env = { ACTIVE_PRS: "12, 34", ORIGIN_AUTH_KEY: "a".repeat(64) };
 const request = (host, options = {}) => new Request(`https://${host}${options.path ?? "/"}`, {
   ...options,
   headers: { host, ...options.headers },
@@ -50,17 +51,26 @@ test("routes only to the matching preview origin, strips credentials, and preser
     assert.equal(init.headers.get("cache-control"), "no-store");
     assert.equal(init.headers.get("rsc"), "1");
     assert.equal(init.headers.get("range"), "bytes=0-9");
+    assert.equal(init.headers.get("x-preview-origin-token"), createHmac("sha256", env.ORIGIN_AUTH_KEY).update("pr-12").digest("hex"));
     assert.equal(init.redirect, "manual");
     assert.deepEqual(init.cf, { cacheTtl: 0, cacheEverything: false });
     return new Response("ok");
   }, async () => {
     const response = await worker.fetch(request("pr-12.preview.mstefan.dev", {
       path: "/a/b?x=1",
-      headers: { authorization: "secret", cookie: "session=x", "x-forwarded-host": "production.test", rsc: "1", range: "bytes=0-9" },
+      headers: { authorization: "secret", cookie: "session=x", "x-forwarded-host": "production.test", "x-preview-origin-token": "forged", rsc: "1", range: "bytes=0-9" },
     }), env);
     assert.equal(await response.text(), "ok");
     assert.equal(response.headers.get("cache-control"), "no-store");
     assert.equal(response.headers.get("x-robots-tag"), "noindex");
+  });
+});
+
+test("fails closed when the origin credential is absent or malformed", async () => {
+  await withFetch(() => assert.fail("must not fetch"), async () => {
+    for (const key of [undefined, "", "invalid"]) {
+      assert.equal((await worker.fetch(request("pr-12.preview.mstefan.dev"), { ACTIVE_PRS: "12", ORIGIN_AUTH_KEY: key })).status, 502);
+    }
   });
 });
 

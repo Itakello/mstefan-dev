@@ -16,6 +16,7 @@ export default {
     const active = new Set((env.ACTIVE_PRS ?? "").split(",").map((pr) => pr.trim()));
     if (!match || !active.has(match[1])) return response("Not found", 404);
     if (request.method !== "GET" && request.method !== "HEAD") return response("Method not allowed", 405);
+    if (!/^[a-f0-9]{64}$/.test(env.ORIGIN_AUTH_KEY ?? "")) return response("Preview unavailable", 502);
 
     const origin = `https://preview-origin-pr-${match[1]}.mstefan.dev`;
     const headers = new Headers(request.headers);
@@ -25,6 +26,10 @@ export default {
     }
 
     try {
+      const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(env.ORIGIN_AUTH_KEY), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+      const signature = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(`pr-${match[1]}`));
+      const token = [...new Uint8Array(signature)].map(byte => byte.toString(16).padStart(2, "0")).join("");
+      headers.set("X-Preview-Origin-Token", token);
       const upstream = await fetch(`${origin}${url.pathname}${url.search}`, {
         method: request.method,
         headers,
