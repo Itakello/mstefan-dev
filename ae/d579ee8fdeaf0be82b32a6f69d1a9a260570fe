@@ -1,0 +1,25 @@
+deploy/event/README.md
+  s_92487f60d945bb::t_65eaea5333e6ed 9
+tests/cms/lifecycle.test.mts
+  s_92487f60d945bb::t_65eaea5333e6ed 78,82,135-144,147,149-152,175-176,180-181,183,215-216,221,290,497,527,617,625-626,633,656
+components/cms/AboutContent.tsx
+  s_92487f60d945bb::t_65eaea5333e6ed 11,32
+deploy/payload-production/README.md
+  s_92487f60d945bb::t_65eaea5333e6ed 15
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "aed579ee8fdeaf0be82b32a6f69d1a9a260570fe",
+  "prompts": {},
+  "sessions": {
+    "s_92487f60d945bb": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12180-f900-7701-98b8-f5626618739d",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
