@@ -267,6 +267,8 @@ export async function runPreview({ number, templateId, seed, gh, ship, cf, probe
     assert(originDomain?.projectId === project.id && originDomain.hostname === origin && ID.test(originDomain.id)
       && originDomain.externalIngress === false, 'Origin domain identity mismatch');
     await ship('post_domains_by_id_verify', { id: originDomain.id });
+    const routing = await ship('post_projects_by_id_routing_retry', { id: project.id });
+    assert(routing?.ok === true, 'Preview origin routing refresh failed');
     await wait(async () => {
       const tls = data(await ship('get_domains_by_id', { id: originDomain.id }));
       assert(tls?.projectId === project.id && tls.hostname === origin && tls.externalIngress === false, 'Origin TLS identity mismatch');

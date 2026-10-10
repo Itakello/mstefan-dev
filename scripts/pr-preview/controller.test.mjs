@@ -29,6 +29,7 @@ function fixture(options = {}) {
   let vars = options.vars ?? [];
   let clock = 0;
   let cancels = 0;
+  let routingReady = false;
   const record = { id: 'dep_preview', organizationId: org, projectId: child.id, commitSha: sha, environment: 'preview', status: 'ready',
     meta: { organizationId: org, runtimeMode: 'docker', build: 'dockerfile', source: 'git', workload: 'web', port: 3000, volumes: ['data:/data'] } };
   if (options.existing) project.activeDeploymentId = record.id;
@@ -88,6 +89,11 @@ function fixture(options = {}) {
           Object.assign(domain, { verified: true, sslStatus: options.tls === false ? 'external' : 'active', sslExpiresAt: '2099-01-01T00:00:00Z' });
           return { verified: true };
         }
+        if (name === 'post_projects_by_id_routing_retry') {
+          const result = options.routingResult ?? { ok: true };
+          routingReady = result.ok === true;
+          return result;
+        }
         if (name === 'get_domains_by_id') return { data: structuredClone(domain) };
         if (name === 'post_domains_by_id_verify_ssl') return { data: { domain: domain.hostname, sslStatus: domain.sslStatus,
           expiresAt: domain.sslExpiresAt, verified: options.sslVerified !== false } };
@@ -105,7 +111,10 @@ function fixture(options = {}) {
         if (method === 'DELETE') { custom = null; return null; }
         throw new Error('Unexpected mock Cloudflare call');
       },
-      async probe(url) { calls.push({ provider: 'probe', url }); return options.probe !== false; },
+      async probe(url) {
+        calls.push({ provider: 'probe', url });
+        return options.probe !== false && (!options.requireRouting || routingReady);
+      },
     },
   };
 }
@@ -138,6 +147,25 @@ test('signing keys differ between PRs and the seed is never the runtime value', 
   assert.notEqual(payloadSecret(seed, 1), seed);
   assert.equal(payloadSecret(seed, 1).length, 64);
   assert.throws(() => payloadSecret('short', 1), /at least 32/);
+});
+
+test('newly verified origin is routed before readiness and publication', async () => {
+  const f = fixture({ requireRouting: true });
+  assert.equal((await runPreview(f.args)).state, 'ready');
+  const verify = f.calls.findIndex(c => c.name === 'post_domains_by_id_verify');
+  const repair = f.calls.findIndex(c => c.name === 'post_projects_by_id_routing_retry');
+  const probe = f.calls.findIndex(c => c.provider === 'probe');
+  assert.ok(verify < repair && repair < probe);
+  assert.deepEqual(f.calls[repair].args, { id: child.id });
+});
+
+test('rejected or malformed routing repair prevents preview publication', async () => {
+  for (const routingResult of [{ ok: false }, { ok: 'true' }]) {
+    const f = fixture({ requireRouting: true, routingResult });
+    await assert.rejects(runPreview(f.args), /origin routing refresh failed/);
+    assert.ok(!f.calls.some(c => c.provider === 'probe' || c.method === 'PUT' || c.body?.state === 'success'));
+    assert.ok(f.calls.some(c => c.body?.state === 'error'));
+  }
 });
 
 test('native child routing and readiness defaults are configured only after isolation validation', async () => {
