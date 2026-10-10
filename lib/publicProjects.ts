@@ -40,6 +40,7 @@ export function selectPublicProjectLocale(project: NotionProject, locale: Locale
     ...(localizedCopy.shortSummary ? { shortSummary: localizedCopy.shortSummary } : {}),
     ...(project.url ? { url: project.url } : {}),
     ...(project.websiteUrl ? { websiteUrl: project.websiteUrl } : {}),
+    ...(project.previewUrls ? { previewUrls: project.previewUrls } : {}),
     ...(project.paperUrl ? { paperUrl: project.paperUrl } : {}),
     ...(project.slidesUrl ? { slidesUrl: project.slidesUrl } : {}),
     ...(localizedCopy.publication ? { publication: localizedCopy.publication } : {}),

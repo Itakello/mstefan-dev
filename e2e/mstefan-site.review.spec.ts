@@ -3,6 +3,8 @@
 
 import { readFile, writeFile } from "node:fs/promises";
 
+import { websiteScreenshotPaths } from "../lib/websiteScreenshots";
+
 import { expect, showReviewStep, test } from "./seed";
 
 test.describe("Public website review", () => {
@@ -275,6 +277,36 @@ test.describe("Public website review", () => {
     await expect(page.locator("footer > div")).toHaveCSS("flex-direction", "row");
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
     expect(browserErrors, browserErrors.join("\n")).toEqual([]);
+  });
+
+  test("Preview pages support selection, both sizes, and localized homepage labels", async ({ page }) => {
+    await writeFile(process.env.VISUAL_NOTION_FIXTURE_STATE!, "pages");
+    await page.route("**/website-previews/**", async route => {
+      const mobile = route.request().url().includes("-mobile.png");
+      const paths = websiteScreenshotPaths("https://www.mstefan.dev", "en");
+      await route.fulfill({ body: await readFile(`public${paths[mobile ? "mobile" : "desktop"]}`), contentType: "image/png" });
+    });
+    await page.goto("/en/projects");
+    const selector = page.getByRole("combobox", { name: "Preview page", exact: true });
+    await expect(selector).toHaveValue("0");
+    await expect(selector.getByRole("option")).toHaveText(["Homepage", "About", "Work"]);
+    const image = page.getByRole("img", { name: "Desktop: Screenshot of mstefan.dev", exact: true });
+    const homepage = await image.getAttribute("src");
+    await selector.focus();
+    await selector.selectOption("1");
+    await expect(selector).toHaveValue("1");
+    await expect(image).toHaveAttribute("src", websiteScreenshotPaths("https://www.mstefan.dev/en/about", "en").desktop);
+    expect(await image.getAttribute("src")).not.toBe(homepage);
+    await page.getByRole("group", { name: "Preview size" }).getByRole("button", { name: "Mobile", exact: true }).click();
+    await expect(page.getByRole("img", { name: "Mobile: Screenshot of mstefan.dev", exact: true })).toHaveAttribute("src", websiteScreenshotPaths("https://www.mstefan.dev/en/about", "en").mobile);
+    await selector.selectOption("2");
+    await expect(page.getByRole("img", { name: "Mobile: Screenshot of mstefan.dev", exact: true })).toHaveAttribute("src", websiteScreenshotPaths("https://www.mstefan.dev/en/projects", "en").mobile);
+    await page.getByRole("button", { name: "Select The Karakal Times", exact: true }).click();
+    await expect(selector).toHaveCount(0);
+    await page.getByRole("button", { name: "Select mstefan.dev", exact: true }).click();
+    await expect(selector).toHaveValue("0");
+    await page.goto("/it/projects");
+    await expect(page.getByRole("combobox", { name: "Pagina anteprima", exact: true }).getByRole("option").first()).toHaveText("Pagina iniziale");
   });
 
   test("Missing screenshots retain the external visit link and recover on switching", async ({ page }) => {
