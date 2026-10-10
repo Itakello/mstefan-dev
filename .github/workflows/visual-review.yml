@@ -2,7 +2,7 @@ name: Visual review
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened, labeled, unlabeled]
+    types: [opened, synchronize, reopened, edited, labeled, unlabeled]
 
 concurrency:
   group: visual-review-${{ github.event.pull_request.number }}
@@ -75,6 +75,7 @@ jobs:
         if: always()
         env:
           VISUAL_REVIEW_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          VISUAL_REVIEW_BASE_SHA: ${{ github.event.pull_request.base.sha }}
           VISUAL_REVIEW_PR_NUMBER: ${{ github.event.pull_request.number }}
           VISUAL_REVIEW_SOURCE: isolated-production-fixture-private-offline
         run: node scripts/visual-review/package-evidence.mjs
