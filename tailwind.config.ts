@@ -6,6 +6,7 @@ export default {
   content: [
     "./app/**/*.{ts,tsx,mdx}",
     "./components/**/*.{ts,tsx}",
+    "./lib/iconStyles.ts",
     "./content/**/*.{ts,tsx,mdx}"
   ],
   theme: {

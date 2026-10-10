@@ -39,8 +39,8 @@ export async function installOfflineReview(context: BrowserContext) {
     } else if (["www.mstefan.dev", "mstefan.dev"].includes(url.hostname)) {
       const response = await route.fetch({ url: `${base}${url.pathname}${url.search}`, maxRedirects: 0 });
       await route.fulfill({ response });
-    } else if (url.hostname === "api.iconify.design") {
-      await route.fulfill({ json: await iconFixtureResponse(url) });
+    } else if (["api.iconify.design", "api.simplesvg.com", "api.unisvg.com"].includes(url.hostname)) {
+      await route.fulfill({ json: await iconFixtureResponse(url), headers: { "access-control-allow-origin": "*" } });
     } else if (url.origin === new URL(base).origin) {
       await route.continue();
     } else {
