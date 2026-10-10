@@ -1,0 +1,46 @@
+components/cms/AboutContent.module.css
+  s_a3d57fd6983d88::t_085c5edeebbae0 9-12
+components/cms/AboutContent.tsx
+  s_a3d57fd6983d88::t_25a5091ed582d7 27-28
+  s_a3d57fd6983d88::t_085c5edeebbae0 51-54
+tests/cms/lifecycle.test.mts
+  s_a3d57fd6983d88::t_9935117f0f0d4c 328-333,371-372,378,585-586
+  s_a3d57fd6983d88::t_57030297645894 572
+app/globals.css
+  s_a3d57fd6983d88::t_51c29807f90414 133-135,140-142
+  s_a3d57fd6983d88::t_25a5091ed582d7 153
+components/StackCatalog.tsx
+  s_a3d57fd6983d88::t_3b25f7ee8c3638 176-194
+  s_a3d57fd6983d88::t_51c29807f90414 4
+components/CareerGraph.module.css
+  s_a3d57fd6983d88::t_085c5edeebbae0 75-86
+app/[locale]/layout.tsx
+  s_a3d57fd6983d88::t_4e2e6c9723c3b7 43,45
+components/WorkExplorer.tsx
+  s_a3d57fd6983d88::t_085c5edeebbae0 98,101-108,110-112
+components/CareerGraph.tsx
+  s_a3d57fd6983d88::t_35d2c77422633a 129-130
+e2e/mstefan-site.review.spec.ts
+  s_a3d57fd6983d88::t_57030297645894 255
+  s_a3d57fd6983d88::t_9935117f0f0d4c 49-51,60,97-105,262,267-271,279
+components/ProjectCard.tsx
+  s_a3d57fd6983d88::t_4e2e6c9723c3b7 117-118
+specs/mstefan-site-review.md
+  s_a3d57fd6983d88::t_362cff8708b522 19-21
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1fcae252844449b29fdb1796ee2b75ff4b76e2b0",
+  "prompts": {},
+  "sessions": {
+    "s_a3d57fd6983d88": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a125dc-d51e-7583-9ad7-4135793b24dc",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
