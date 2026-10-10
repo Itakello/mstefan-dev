@@ -1,0 +1,21 @@
+DESIGN.md
+  s_ca9b05cd06e974::t_5cf162eeeeddeb 35
+e2e/design.consistency.spec.ts
+  s_ca9b05cd06e974::t_f0654db832ef75 59
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "95605904d7edcf5fde2cd151502cbf8d50cee3a4",
+  "prompts": {},
+  "sessions": {
+    "s_ca9b05cd06e974": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a125e2-8a12-72c0-9b0f-65ad915684a2",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
