@@ -353,10 +353,11 @@ test.describe("Public website review", () => {
       await page.setViewportSize({ width, height: 800 });
       const details = await page.locator("#selected-work-title").boundingBox();
       const panel = await stack.boundingBox();
-      expect((await stack.locator("[data-work-stack-scroll]").boundingBox())?.height).toBeCloseTo(158, 0);
+      if (width >= 640) expect((await stack.locator("[data-work-stack-scroll]").boundingBox())?.height).toBeCloseTo(158, 0);
       const section = await page.locator("section[aria-labelledby=selected-work-title]").boundingBox();
       expect(panel && section && Math.abs(panel.x + panel.width - section.x - section.width) < 2).toBeTruthy();
-      await expect(stack.getByRole("heading", { name: "Stack", exact: true })).toHaveCSS("text-align", "right");
+      await expect(stack.getByRole("heading", { name: "Stack", exact: true })).toHaveCSS("text-align", width >= 640 ? "right" : "left");
+      if (width < 640) expect(panel && section && Math.abs(panel.x - section.x) < 2).toBeTruthy();
       expect(details && panel && (width >= 640 ? panel.x >= details.x + details.width && Math.abs(panel.y - details.y) < 2 : panel.y > details.y + details.height)).toBeTruthy();
       await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
       if (width === 900) await page.screenshot({ path: ".artifacts/playwright/work-stack-medium.png", fullPage: true });
@@ -412,6 +413,11 @@ test.describe("Public website review", () => {
     await expect.poll(() => scroller.evaluate(node => node.scrollLeft > 0)).toBe(true);
     await scroller.evaluate(node => { node.scrollLeft = 0; });
     await expect(page.locator("[data-work-stack-label]")).toHaveCount(0);
+    await page.setViewportSize({ width: 320, height: 800 });
+    await expect.poll(() => scroller.evaluate(node => node.scrollWidth <= node.clientWidth + 1 && node.scrollHeight <= node.clientHeight + 1)).toBe(true);
+    const firstCategory = await columns.first().boundingBox();
+    const lastCategory = await columns.last().boundingBox();
+    expect(firstCategory && lastCategory && lastCategory.y > firstCategory.y).toBeTruthy();
     await writeFile(state, "empty");
     await page.reload();
     await expect(page.locator('[data-project-publication-status="empty"]')).toBeVisible();

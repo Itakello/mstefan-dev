@@ -129,11 +129,11 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
               {selected.sourceUrl && <a className={linkClass} href={selected.sourceUrl} target="_blank" rel="noreferrer"><BrandIcon brand="github" />{copy.work.source}</a>}
             </div>
           </div>
-          {groups.length > 0 ? <aside aria-label={copy.projectCard.technologiesByCategory(selected.name)} className="relative w-fit max-w-full justify-self-end self-start min-h-0 min-w-0">
-            <div className="flex flex-col pl-3">
-            <h3 className="text-right text-xs font-semibold uppercase tracking-wider text-black/50 dark:text-white/50">Stack</h3>
-            <div ref={stackScroll} data-work-stack-scroll tabIndex={0} className="mt-3 h-[158px] overflow-auto overscroll-contain pr-1" onScroll={updateStackOverflow}>
-            <ul className="grid min-w-max grid-flow-col auto-cols-[28px] items-start gap-2">
+          {groups.length > 0 ? <aside aria-label={copy.projectCard.technologiesByCategory(selected.name)} className="relative w-full max-w-full self-start min-h-0 min-w-0 sm:w-fit sm:justify-self-end">
+            <div className="flex flex-col sm:pl-3">
+            <h3 className="text-left text-xs font-semibold uppercase tracking-wider text-black/50 dark:text-white/50 sm:text-right">Stack</h3>
+            <div ref={stackScroll} data-work-stack-scroll tabIndex={0} className="mt-3 overflow-visible overscroll-contain sm:h-[158px] sm:overflow-auto sm:pr-1" onScroll={updateStackOverflow}>
+            <ul className="grid grid-cols-[repeat(auto-fill,28px)] items-start gap-2 sm:min-w-max sm:grid-flow-col sm:auto-cols-[28px] sm:grid-cols-none">
               {groups.map(group => <li key={group.category} aria-label={displayStackCategory(group.category, locale)}>
                 <details className="mb-3 border-b border-black/10 pb-2 dark:border-white/10" onToggle={event => {
                   if (event.currentTarget.open) showStackLabel(event.currentTarget, displayStackCategory(group.category, locale), "");
