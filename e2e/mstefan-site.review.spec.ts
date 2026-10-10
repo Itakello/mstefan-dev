@@ -280,7 +280,7 @@ test.describe("Public website review", () => {
     expect(browserErrors, browserErrors.join("\n")).toEqual([]);
   });
 
-  test("Preview pages support selection, both sizes, and localized homepage labels", async ({ page }) => {
+  test("Preview page arrows cycle both ways, preserve sizes, and reset across projects", async ({ page }) => {
     await writeFile(process.env.VISUAL_NOTION_FIXTURE_STATE!, "pages");
     await page.route("**/website-previews/**", async route => {
       const mobile = route.request().url().includes("-mobile.png");
@@ -288,26 +288,54 @@ test.describe("Public website review", () => {
       await route.fulfill({ body: await readFile(`public${paths[mobile ? "mobile" : "desktop"]}`), contentType: "image/png" });
     });
     await page.goto("/en/projects");
-    const selector = page.getByRole("combobox", { name: "Preview page", exact: true });
-    await expect(selector).toHaveValue("0");
-    await expect(selector.getByRole("option")).toHaveText(["Homepage", "About", "Work"]);
+    await expect(page.getByRole("combobox", { name: "Preview page", exact: true })).toHaveCount(0);
+    const controls = page.getByRole("group", { name: "Preview page", exact: true });
+    const next = controls.getByRole("button", { name: "Next preview page", exact: true });
+    const previous = controls.getByRole("button", { name: "Previous preview page", exact: true });
+    await expect(controls).toContainText("Homepage1 / 3");
     const image = page.getByRole("img", { name: "Desktop: Screenshot of mstefan.dev", exact: true });
-    const homepage = await image.getAttribute("src");
-    await selector.focus();
-    await selector.selectOption("1");
-    await expect(selector).toHaveValue("1");
+    const imageBox = await image.boundingBox();
+    const controlBox = await controls.boundingBox();
+    expect(controlBox!.y).toBeGreaterThanOrEqual(imageBox!.y + imageBox!.height);
+    await next.focus();
+    await next.press("Enter");
+    await expect(controls).toContainText("About2 / 3");
     await expect(image).toHaveAttribute("src", websiteScreenshotPaths("https://www.mstefan.dev/en/about", "en").desktop);
-    expect(await image.getAttribute("src")).not.toBe(homepage);
     await page.getByRole("group", { name: "Preview size" }).getByRole("button", { name: "Mobile", exact: true }).click();
-    await expect(page.getByRole("img", { name: "Mobile: Screenshot of mstefan.dev", exact: true })).toHaveAttribute("src", websiteScreenshotPaths("https://www.mstefan.dev/en/about", "en").mobile);
-    await selector.selectOption("2");
-    await expect(page.getByRole("img", { name: "Mobile: Screenshot of mstefan.dev", exact: true })).toHaveAttribute("src", websiteScreenshotPaths("https://www.mstefan.dev/en/projects", "en").mobile);
+    const mobileImage = page.getByRole("img", { name: "Mobile: Screenshot of mstefan.dev", exact: true });
+    await expect(mobileImage).toHaveAttribute("src", websiteScreenshotPaths("https://www.mstefan.dev/en/about", "en").mobile);
+    await next.click();
+    await expect(controls).toContainText("Work3 / 3");
+    await expect(mobileImage).toHaveAttribute("src", websiteScreenshotPaths("https://www.mstefan.dev/en/projects", "en").mobile);
+    await next.click();
+    await expect(controls).toContainText("Homepage1 / 3");
+    await previous.click();
+    await expect(controls).toContainText("Work3 / 3");
+    await page.screenshot({ path: ".artifacts/playwright/preview-arrows-desktop-light.png", fullPage: true });
     await page.getByRole("button", { name: "Select The Karakal Times", exact: true }).click();
-    await expect(selector).toHaveCount(0);
+    await expect(controls).toHaveCount(0);
     await page.getByRole("button", { name: "Select mstefan.dev", exact: true }).click();
-    await expect(selector).toHaveValue("0");
+    await expect(controls).toContainText("Homepage1 / 3");
     await page.goto("/it/projects");
-    await expect(page.getByRole("combobox", { name: "Pagina anteprima", exact: true }).getByRole("option").first()).toHaveText("Pagina iniziale");
+    const italian = page.getByRole("group", { name: "Pagina anteprima", exact: true });
+    await expect(italian).toContainText("Pagina iniziale1 / 3");
+    await italian.getByRole("button", { name: "Pagina anteprima successiva", exact: true }).click();
+    await expect(italian).toContainText("Profilo2 / 3");
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.getByRole("button", { name: "Cambia tema", exact: true }).click();
+    await expect(page.locator("html")).toHaveClass(/dark/);
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+    await italian.getByRole("button", { name: "Pagina anteprima precedente", exact: true }).click();
+    await expect(italian).toContainText("Pagina iniziale1 / 3");
+    await page.screenshot({ path: ".artifacts/playwright/preview-arrows-mobile-dark.png", fullPage: true });
+    await writeFile(process.env.VISUAL_NOTION_FIXTURE_STATE!, "longpages");
+    await page.reload();
+    await italian.getByRole("button", { name: "Pagina anteprima successiva", exact: true }).click();
+    await expect(italian).toContainText("a".repeat(100));
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+    await expect(italian.getByRole("button", { name: "Pagina anteprima precedente", exact: true })).toBeInViewport();
+    await expect(italian.getByRole("button", { name: "Pagina anteprima successiva", exact: true })).toBeInViewport();
+    await page.screenshot({ path: ".artifacts/playwright/preview-arrows-mobile-long-label.png", fullPage: true });
   });
 
   test("Missing screenshots retain the external visit link and recover on switching", async ({ page }) => {
