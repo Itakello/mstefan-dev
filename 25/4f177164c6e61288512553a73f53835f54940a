@@ -1,0 +1,27 @@
+README.md
+  s_736f2427abf3d0::t_b374e9e25904f2 79
+components/WorkExplorer.tsx
+  s_736f2427abf3d0::t_3be77cccabd623 3,93,184-187,189-203
+e2e/mstefan-site.review.spec.ts
+  s_736f2427abf3d0::t_29b25e626c996d 323
+  s_736f2427abf3d0::t_1322539387cd8a 320-322
+  s_736f2427abf3d0::t_0a87b589539221 324-326
+lib/i18n/copy.ts
+  s_736f2427abf3d0::t_b374e9e25904f2 71,164,263
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "254f177164c6e61288512553a73f53835f54940a",
+  "prompts": {},
+  "sessions": {
+    "s_736f2427abf3d0": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12179-a131-7d42-8af2-c3343178f3fc",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
