@@ -84,6 +84,7 @@ jobs:
         env:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
           NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
+          KARAKAL_PREVIEW_BYPASS_SECRET: ${{ secrets.KARAKAL_PREVIEW_BYPASS_SECRET }}
           WEBSITE_PREVIEW_OUTPUT_DIR: ${{ runner.temp }}/website-previews
         run: pnpm capture:website-previews
       - name: Publish successful captures

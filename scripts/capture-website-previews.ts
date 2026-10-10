@@ -29,10 +29,10 @@ try {
         try {
           await configurePreviewNetwork(context);
           const page = await context.newPage();
-          await configurePreviewPageNetwork(page);
+          await configurePreviewPageNetwork(page, process.env.KARAKAL_PREVIEW_BYPASS_SECRET);
           const target = websitePreviewUrl({ id: url, url, preview: true, name: "", description: "" }, locale)!;
           const response = await page.goto(target, { waitUntil: "load", timeout: 30_000 });
-          if (!response?.ok()) throw new Error(`Capture failed: ${response?.status() ?? "no response"}`);
+          if (!response?.ok()) throw new Error(`Capture failed for ${target}: ${response?.status() ?? "no response"}`);
           await page.evaluate(() => Promise.race([
             Promise.all([document.fonts.ready, ...[...document.images]
               .filter(image => image.loading !== "lazy").map(image => image.decode())]),

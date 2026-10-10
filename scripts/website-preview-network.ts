@@ -29,13 +29,23 @@ export async function configurePreviewNetwork(context: BrowserContext) {
   });
 }
 
-export async function configurePreviewPageNetwork(page: Page) {
+export function previewRequestHeaders(url: string, headers: Record<string, string>, bypassSecret?: string) {
+  const target = new URL(url);
+  const safeHeaders = Object.fromEntries(Object.entries(headers).filter(([name]) => name.toLowerCase() !== "x-vercel-protection-bypass"));
+  if (bypassSecret && !target.username && !target.password
+    && ["https://www.thekarakaltimes.com", "https://thekarakaltimes.com"].includes(target.origin)) {
+    safeHeaders["x-vercel-protection-bypass"] = bypassSecret;
+  }
+  return Object.entries(safeHeaders).map(([name, value]) => ({ name, value }));
+}
+
+export async function configurePreviewPageNetwork(page: Page, bypassSecret?: string) {
   const session = await page.context().newCDPSession(page);
   // Chromium pauses every redirect hop; Playwright routes only the initial request.
   session.on("Fetch.requestPaused", async ({ requestId, request }) => {
     const allowed = await isPublicPreviewRequest(request.url).catch(() => false);
     await session.send(allowed ? "Fetch.continueRequest" : "Fetch.failRequest", allowed
-      ? { requestId }
+      ? { requestId, headers: previewRequestHeaders(request.url, request.headers, bypassSecret) }
       : { requestId, errorReason: "BlockedByClient" })
       .catch(() => page.close().catch(() => {}));
   });
