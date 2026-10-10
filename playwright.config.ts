@@ -16,6 +16,7 @@ export default defineConfig({
   fullyParallel: false,
   forbidOnly: true,
   retries: 0,
+  updateSnapshots: "none",
   workers: 1,
   reporter: [
     ["line"],
@@ -37,5 +38,6 @@ export default defineConfig({
   projects: [
     { name: "review", testMatch: "**/*.review.spec.ts", use: { browserName: "chromium" } },
     { name: "smoke", testMatch: "**/*.smoke.spec.ts", use: { browserName: "chromium" } },
+    { name: "consistency", testMatch: "**/*.consistency.spec.ts", use: { browserName: "chromium", video: "off" } },
   ],
 });

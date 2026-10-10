@@ -1,10 +1,11 @@
 "use client";
 
-import { BookOpen, Presentation, ChevronDown, ChevronRight, ExternalLink, Github, Monitor, Smartphone, Trophy } from "lucide-react";
+import { BookOpen, Presentation, ChevronDown, ChevronRight, ExternalLink, Monitor, Smartphone, Trophy } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { DocumentPreview } from "@/components/DocumentPreview";
 import { StackBadge } from "@/components/StackBadge";
+import { BrandIcon } from "@/components/BrandIcon";
 import { StackCategoryIcon } from "@/components/StackCatalog";
 import { displayStackCategory, groupStackEntries, projectStackLabels, resolveProjectStack } from "@/lib/stack";
 import type { WebsiteStackState } from "@/lib/websiteStack";
@@ -40,22 +41,22 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
     setStackLabel(null);
     stackScroll.current?.querySelectorAll<HTMLDetailsElement>("details[open]").forEach(detail => { detail.open = false; });
   };
-  useEffect(() => {
-    const handleScroll = () => {
-      const scroller = stackScroll.current;
-      const focused = document.activeElement;
-      if (scroller && focused instanceof HTMLElement && focused.matches("summary") && scroller.contains(focused)) {
-        const rect = focused.getBoundingClientRect();
-        const viewport = scroller.getBoundingClientRect();
-        if (rect.bottom > Math.max(0, viewport.top) && rect.top < Math.min(window.innerHeight, viewport.bottom) && rect.right > Math.max(0, viewport.left) && rect.left < Math.min(window.innerWidth, viewport.right)) {
-          showStackLabel(focused, focused.dataset.stackName!, focused.dataset.stackCategory ?? "");
-        } else dismissStackLabel();
+  const updateStackLabel = () => {
+    const scroller = stackScroll.current;
+    const focused = document.activeElement;
+    if (scroller && focused instanceof HTMLElement && focused.matches("summary") && scroller.contains(focused)) {
+      const rect = focused.getBoundingClientRect();
+      const viewport = scroller.getBoundingClientRect();
+      if (rect.bottom > Math.max(0, viewport.top) && rect.top < Math.min(window.innerHeight, viewport.bottom) && rect.right > Math.max(0, viewport.left) && rect.left < Math.min(window.innerWidth, viewport.right)) {
+        showStackLabel(focused, focused.dataset.stackName!, focused.dataset.stackCategory ?? "");
       } else dismissStackLabel();
-    };
-    window.addEventListener("scroll", handleScroll, true);
+    } else dismissStackLabel();
+  };
+  useEffect(() => {
+    window.addEventListener("scroll", updateStackLabel, true);
     window.addEventListener("resize", dismissStackLabel);
     return () => {
-      window.removeEventListener("scroll", handleScroll, true);
+      window.removeEventListener("scroll", updateStackLabel, true);
       window.removeEventListener("resize", dismissStackLabel);
     };
   }, []);
@@ -100,7 +101,7 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
     <div className="mt-8 grid min-w-0 gap-8 lg:grid-cols-[288px_minmax(0,1fr)] lg:gap-6">
       <label className="block min-w-0 text-sm font-medium lg:hidden">
         {copy.work.selectorLabel}
-        <select value={selected.id} onChange={event => selectProject(event.target.value)} className="mt-2 block w-full min-w-0 rounded-lg border border-black/15 bg-white px-3 py-3 text-base text-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-[hsl(var(--accent))] dark:border-white/15 dark:bg-black dark:text-white">
+        <select value={selected.id} onChange={event => selectProject(event.target.value)} className="mt-2 block w-full min-w-0 rounded-lg border border-[var(--surface-border)] bg-[var(--page-bg)] px-3 py-3 text-base text-[var(--page-text)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[hsl(var(--accent))]">
           {items.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
         </select>
       </label>
@@ -124,7 +125,7 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
             </p>}
             <div className="mt-4 flex flex-wrap gap-5">
               {visitUrl && <a className={linkClass} href={visitUrl} target="_blank" rel="noreferrer"><ExternalLink size={16} aria-hidden="true" />{copy.work.visit}</a>}
-              {selected.sourceUrl && <a className={linkClass} href={selected.sourceUrl} target="_blank" rel="noreferrer"><Github size={16} aria-hidden="true" />{copy.work.source}</a>}
+              {selected.sourceUrl && <a className={linkClass} href={selected.sourceUrl} target="_blank" rel="noreferrer"><BrandIcon brand="github" />{copy.work.source}</a>}
             </div>
           </div>
           {groups.length > 0 ? <aside aria-label={copy.projectCard.technologiesByCategory(selected.name)} className="relative w-fit max-w-full justify-self-end self-start min-h-0 min-w-0">
@@ -133,10 +134,10 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
             <div ref={stackScroll} data-work-stack-scroll tabIndex={0} className="mt-3 h-[158px] overflow-auto overscroll-contain pr-1" onScroll={updateStackOverflow}>
             <ul className="grid min-w-max grid-flow-col auto-cols-[28px] items-start gap-2">
               {groups.map(group => <li key={group.category} aria-label={displayStackCategory(group.category, locale)}>
-                <details className="mb-3 border-b border-black/10 bg-white pb-2 dark:border-white/10 dark:bg-black" onToggle={event => {
+                <details className="mb-3 border-b border-black/10 pb-2 dark:border-white/10" onToggle={event => {
                   if (event.currentTarget.open) showStackLabel(event.currentTarget, displayStackCategory(group.category, locale), "");
-                  else setStackLabel(null);
-                }} onMouseLeave={event => { if (!event.currentTarget.open) setStackLabel(null); }}>
+                  else updateStackLabel();
+                }} onMouseLeave={event => { if (!event.currentTarget.open) updateStackLabel(); }}>
                   <summary data-stack-name={displayStackCategory(group.category, locale)} aria-label={displayStackCategory(group.category, locale)} onMouseEnter={event => showStackLabel(event.currentTarget, displayStackCategory(group.category, locale), "")}
                     onFocus={event => showStackLabel(event.currentTarget, displayStackCategory(group.category, locale), "")}
                     onBlur={() => setStackLabel(null)} className="grid size-7 cursor-pointer list-none place-items-center rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-[hsl(var(--accent))] [&::-webkit-details-marker]:hidden">
@@ -147,8 +148,8 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
               {group.entries.map(entry => <li key={entry.name}>
                 <details className="group relative" onToggle={event => {
                   if (event.currentTarget.open) showStackLabel(event.currentTarget, entry.name, displayStackCategory(group.category, locale));
-                  else setStackLabel(null);
-                }} onMouseLeave={event => { if (!event.currentTarget.open) setStackLabel(null); }}>
+                  else updateStackLabel();
+                }} onMouseLeave={event => { if (!event.currentTarget.open) updateStackLabel(); }}>
                   <summary data-stack-name={entry.name} data-stack-category={displayStackCategory(group.category, locale)} aria-label={`${entry.name} · ${displayStackCategory(group.category, locale)}`} onMouseEnter={event => showStackLabel(event.currentTarget, entry.name, displayStackCategory(group.category, locale))}
                     onFocus={event => showStackLabel(event.currentTarget, entry.name, displayStackCategory(group.category, locale))}
                     onBlur={() => setStackLabel(null)} className="flex cursor-pointer list-none rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-[hsl(var(--accent))] [&::-webkit-details-marker]:hidden">
@@ -160,8 +161,8 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
               </li>)}
             </ul>
             </div>
-            {moreStackColumns && <div aria-hidden className="pointer-events-none absolute bottom-0 right-0 top-7 flex w-5 items-center justify-end bg-gradient-to-l from-white to-transparent dark:from-black"><ChevronRight size={14} /></div>}
-            {moreStack && <div aria-hidden className="pointer-events-none absolute bottom-0 left-3 right-0 flex h-6 items-end justify-center bg-gradient-to-t from-white to-transparent dark:from-black"><ChevronDown size={14} /></div>}
+            {moreStackColumns && <div aria-hidden className="pointer-events-none absolute bottom-0 right-0 top-7 flex w-5 items-center justify-end bg-gradient-to-l from-[var(--page-bg)] to-transparent"><ChevronRight size={14} /></div>}
+            {moreStack && <div aria-hidden className="pointer-events-none absolute bottom-0 left-3 right-0 flex h-6 items-end justify-center bg-gradient-to-t from-[var(--page-bg)] to-transparent"><ChevronDown size={14} /></div>}
             </div>
           </aside> : stackCatalog.message && <p role="status" className="text-xs leading-5 text-black/55 dark:text-white/55">{copy.publication.stack[stackCatalog.message]}</p>}
         </div>

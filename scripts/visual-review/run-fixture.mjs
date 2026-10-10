@@ -9,8 +9,9 @@ import path from 'node:path';
 const dataDir = await mkdtemp(path.join(tmpdir(), 'payload-visual-review-'));
 const smokeOnly = process.argv.includes('--smoke');
 const reuseBuild = process.argv.includes('--reuse-build');
-if (process.argv.slice(2).some((arg) => !['--smoke', '--reuse-build'].includes(arg)) || (reuseBuild && !smokeOnly)) {
-  throw new Error('Usage: run-fixture.mjs [--smoke [--reuse-build]]');
+const updateSnapshots = process.argv.includes('--update-snapshots');
+if (process.argv.slice(2).some((arg) => !['--smoke', '--reuse-build', '--update-snapshots'].includes(arg)) || (updateSnapshots && smokeOnly)) {
+  throw new Error('Usage: run-fixture.mjs [--smoke] [--reuse-build] [--update-snapshots]');
 }
 const environment = {
   ...process.env, NODE_ENV: 'production', PAYLOAD_DATA_DIR: dataDir,
@@ -59,7 +60,7 @@ try {
     await new Promise((resolve) => setTimeout(resolve, 500));
   }
   if (!ready) throw new Error(`Production fixture startup timed out: ${serverLog}`);
-  await run(['node_modules/@playwright/test/cli.js', 'test', smokeOnly ? '--project=smoke' : '--project=review'], 180_000);
+  await run(['node_modules/@playwright/test/cli.js', 'test', ...(smokeOnly ? ['--project=smoke'] : ['--project=review', '--project=consistency']), ...(updateSnapshots ? ['--update-snapshots'] : [])], 300_000);
 } finally {
   if (server && server.exitCode === null) {
     const exited = once(server, 'exit');

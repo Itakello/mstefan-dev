@@ -10,8 +10,8 @@
 .header > span:last-child { text-align: center; border-left: 1px solid var(--surface-border); }
 .body { display: grid; grid-template-columns: minmax(0, 1fr) var(--rail-width); align-items: start; }
 .list { min-width: 0; }
-.titleList { max-height: 200px; overflow: auto; overscroll-behavior: contain; scrollbar-color: var(--page-muted) var(--surface-bg); }
-.tree { height: var(--career-viewport-height); overflow: auto; overscroll-behavior: contain; border-left: 1px solid var(--surface-border); scrollbar-color: var(--page-muted) var(--surface-bg); }
+.titleList { max-height: 200px; overflow: auto; overscroll-behavior: contain; }
+.tree { height: var(--career-viewport-height); overflow: auto; overscroll-behavior: contain; border-left: 1px solid var(--surface-border); }
 .tree:focus-visible { outline: 2px solid var(--career-main); outline-offset: -2px; }
 .row, .mainRow { display: flex; flex-direction: column; justify-content: center; gap: 7px; min-height: 76px; width: 100%; padding: 15px 20px; text-align: left; }
 .mainRow { flex-direction: row; align-items: center; justify-content: flex-start; flex-wrap: wrap; min-height: 64px; font-size: 13px; color: var(--page-muted); }
