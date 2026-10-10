@@ -8,6 +8,7 @@ import { PdfPreview } from "@/components/PdfPreview";
 import { BranchIcon, CareerGraph } from "@/components/CareerGraph";
 import type { Career } from "@/payload-types";
 import type { Locale } from "@/lib/i18n/config";
+import { getCopy } from "@/lib/i18n/copy";
 import type { PageContent } from "@/lib/cms/types";
 import styles from "./AboutContent.module.css";
 
@@ -28,7 +29,7 @@ export function AboutContent({ content, career, locale }: Props) {
   const viewDocuments = locale === "it" ? "Vedi i documenti" : "View documents";
   return (
     <div className={styles.layout}>
-      <section id="career-story" className={styles.story} aria-label={selected?.company || content.title}>
+      <section id="career-story" className={styles.story} aria-label={selected?.company || getCopy(locale).nav.about}>
         <div aria-live="polite" aria-atomic="true">
           <Prose>
             {selected ? <>
