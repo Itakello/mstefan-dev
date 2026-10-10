@@ -179,7 +179,7 @@ test('manual dispatch reaches bounded acceptance with automatic requests paused'
         return new Response(JSON.stringify(response));
       }}),eventName === 'workflow_dispatch' ? /Rolling 24h run cap/ : /Automatic AI review disabled/);
       assert.equal(urls.some(url=>url.includes('/actions/workflows/ai-visual-review.yml/runs?')),eventName === 'workflow_dispatch');
-      assert.equal(urls.some(url=>url.startsWith('https://api.openai.com')),false);
+      assert.equal(urls.some(url=>new URL(url).origin === 'https://api.openai.com'),false);
     }
   } finally { rmSync(directory,{recursive:true,force:true}); }
 });
