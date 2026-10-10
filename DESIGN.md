@@ -19,6 +19,7 @@ Use the existing system sans font for content and monospace for Career's branch 
 - Artwork and its layout wrapper are transparent: no decorative background tile, border, or clipping mask around a logo. Preserve intrinsic brand geometry such as TypeScript's square.
 - Comparable marks render at 16px through `BRAND_ICON_CLASS`. Layout and interaction targets may be larger; a small glyph must not shrink the clickable target.
 - Contact and repository buttons may retain their shared interactive surface and hover feedback. Those are button boundaries, not baked-in logo backgrounds.
+- Equivalent icon links use `ICON_LINK_COLOR_CLASS`: black at 65% in light mode, white at 65% in dark mode, and full text color on hover or visible keyboard focus. Icons inherit their link's color without an extra opacity layer; adjacent labels share it. Technology logos retain their official artwork colors.
 
 ## Surfaces and scrolling
 
