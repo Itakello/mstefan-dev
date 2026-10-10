@@ -6,6 +6,7 @@ import { createPortal } from "react-dom";
 import { DocumentPreview } from "@/components/DocumentPreview";
 import { StackBadge } from "@/components/StackBadge";
 import { BrandIcon } from "@/components/BrandIcon";
+import { ICON_LINK_COLOR_CLASS } from "@/lib/iconStyles";
 import { StackCategoryIcon } from "@/components/StackCatalog";
 import { displayStackCategory, groupStackEntries, projectStackLabels, resolveProjectStack } from "@/lib/stack";
 import type { WebsiteStackState } from "@/lib/websiteStack";
@@ -95,7 +96,7 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
   const groups = groupStackEntries(resolveProjectStack(projectStackLabels(selected), stackCatalog.entries));
   const hasStackColumn = groups.length > 0 || Boolean(stackCatalog.message);
   const metadata = [selected.type ? copy.work.types[selected.type] : undefined, selected.year, groups.length ? undefined : selected.language].filter(Boolean);
-  const linkClass = "inline-flex items-center gap-2 text-sm font-medium";
+  const linkClass = `inline-flex items-center gap-2 text-sm font-medium ${ICON_LINK_COLOR_CLASS}`;
   const selectProject = (id: string) => { setSelectedId(id); setDocumentKind("paper"); setPageIndex(0); };
   return (
     <div className="mt-8 grid min-w-0 gap-8 lg:grid-cols-[288px_minmax(0,1fr)] lg:gap-6">
