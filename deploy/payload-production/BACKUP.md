@@ -24,6 +24,8 @@ python3 -m unittest discover -s deploy/payload-production -p 'test_backup.py' -v
 
 ## Prepare an on-demand staging refresh
 
+See [Website environments](ENVIRONMENTS.md) for the environment boundaries, Notion reconciliation, deployment cutover and recovery procedure.
+
 `staging_restore.py` prepares a new offline volume; it does not switch deployments. Stop all existing staging writers and checkpoint its SQLite database first. Nonempty WAL/SHM/journal sidecars are refused. Create a new empty caller-owned target directory outside production, existing staging, and backup directories, without group/world write permission. Use absolute paths without symlinks.
 
 ```sh
