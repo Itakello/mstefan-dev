@@ -389,7 +389,7 @@ export async function runPreview({ number, templateId, seed, gh, ship, cf, probe
       let created;
       try {
         created = data(await ship('post_projects', { body: {
-          name: `PR ${number} preview gateway`, slug: gatewaySlug, ...(project.serverId ? { serverId: project.serverId } : {}), gitProvider: 'none',
+          name: `mstefan PR preview gateway ${number}`, slug: gatewaySlug, ...(project.serverId ? { serverId: project.serverId } : {}), gitProvider: 'none',
           framework: 'docker-compose', projectType: 'services', sourceKind: 'image', buildKind: 'prebuilt',
           hasBuild: false, hasServer: true, port: 8080, volumes: [], publicEndpoints: [], routeStrategy: 'loopback-port',
         } }));

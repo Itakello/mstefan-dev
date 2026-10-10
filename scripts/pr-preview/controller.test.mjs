@@ -72,7 +72,7 @@ function fixture(options = {}) {
         if (name === 'get_projects') return { data: gateway ? [structuredClone(gateway)] : [], total: gateway ? 1 : 0, page: args.query.page, perPage: 100 };
         if (name === 'get_projects_by_id') return { data: structuredClone(args.id === template.id ? template : args.id === gateway?.id ? gateway : project) };
         if (name === 'post_projects') {
-          gateway = { ...args.body, id: 'proj_gateway', organizationId: org, runtimeMode: 'docker', autoDeploy: false, enabled: true };
+          gateway = { ...args.body, slug: args.body.name.toLowerCase().replaceAll(' ', '-'), id: 'proj_gateway', organizationId: org, runtimeMode: 'docker', autoDeploy: false, enabled: true };
           return { data: structuredClone(gateway) };
         }
         if (name === 'get_projects_by_id_services') return { services: args.id === project?.id ? options.appServices ?? [] : gatewaySvc ? [presentService(gatewaySvc)] : [] };
