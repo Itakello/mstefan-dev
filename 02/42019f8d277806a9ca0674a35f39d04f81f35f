@@ -1,0 +1,26 @@
+lib/career-timeline.ts
+  s_010799367a456c::t_576e9116eb9c5a 27-33,36,41-43,49,100-101,103
+  s_010799367a456c::t_c61e0ea69cba8a 35,37-40,44-48,99
+components/CareerGraph.tsx
+  s_010799367a456c::t_b6cea3896cda5a 181
+components/CareerGraph.module.css
+  s_010799367a456c::t_5c0d7290255d44 41-42
+tests/career-timeline.test.ts
+  s_010799367a456c::t_8e84c9c29b2efd 147,420-452
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0242019f8d277806a9ca0674a35f39d04f81f35f",
+  "prompts": {},
+  "sessions": {
+    "s_010799367a456c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1282a-038e-7652-8a7a-c5197bbdad36",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
