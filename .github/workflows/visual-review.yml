@@ -72,7 +72,7 @@ jobs:
         run: node scripts/visual-review/run-fixture.mjs
 
       - name: Run component workshop comparisons and interactions
-        if: always()
+        if: ${{ !cancelled() }}
         id: workshop
         continue-on-error: true
         run: pnpm test:workshop
