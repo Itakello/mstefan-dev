@@ -545,6 +545,8 @@ export function clients(env, fetcher = fetch) {
     assert(response.ok, `Provider request failed (${response.status})`);
     const raw = await response.text();
     assert(raw.length < 2 * 1024 * 1024, 'Provider response too large');
+    if (raw === '' && method === 'DELETE' && url.startsWith(`https://api.cloudflare.com/client/v4/accounts/${ACCOUNT}/workers/domains/`))
+      return { success: true };
     try { return JSON.parse(raw); } catch { throw new Error('Provider response invalid'); }
   }
   return {

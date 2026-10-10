@@ -709,6 +709,17 @@ test('public DNS gate requires both resolver views and accepts AAAA NODATA witho
   }
 });
 
+test('Cloudflare hostname removal accepts its empty success response without accepting empty reads or failed deletes', async () => {
+  const path = '/accounts/17adf7cbee8c9709bd3ffb656890f985/workers/domains/owned-domain';
+  const env = { GITHUB_TOKEN: 'fake-gh', OPENSHIP_TOKEN: 'fake-ship', CLOUDFLARE_API_TOKEN: 'fake-cf' };
+  const api = clients(env, async () => new Response(null, { status: 200 }));
+  assert.equal(await api.cf('DELETE', path), undefined);
+  await assert.rejects(api.cf('GET', path), /Provider response invalid/);
+  await assert.rejects(api.cf('DELETE', '/zones/owned-zone/dns_records/owned-record'), /Provider response invalid/);
+  const denied = clients(env, async () => new Response(null, { status: 403 }));
+  await assert.rejects(denied.cf('DELETE', path), /Provider request failed \(403\)/);
+});
+
 test('saved active TLS state does not override a failed native certificate observation', async () => {
   const f = fixture({ sslVerified: false });
   await assert.rejects(runPreview(f.args), /timed out/);
