@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
+import { classifyVisualReview } from '../scripts/visual-review/classify.mjs';
 import { REQUIRED, main, baseRequiresWorkshop, verifyDiff, verifyRevision, verifyEvidence, reviewResult, requestBody, modelReview, alreadyAttempted } from '../scripts/visual-review/ai-review.mjs';
 const repository = 'owner/repo';
 const pr = {state:'open',number:1,head:{sha:'head'},base:{sha:'base',repo:{full_name:repository}}};
@@ -182,4 +183,61 @@ test('manual dispatch reaches bounded acceptance with automatic requests paused'
       assert.equal(urls.some(url=>new URL(url).origin === 'https://api.openai.com'),false);
     }
   } finally { rmSync(directory,{recursive:true,force:true}); }
+});
+
+test('retarget invalidates old same-head approval; unchanged tuple preserves claim and final result', async () => {
+  const { mkdtempSync, writeFileSync, rmSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const { join } = await import('node:path');
+  const directory=mkdtempSync(join(tmpdir(),'visual-invalidation-test-'));
+  try {
+    const event=join(directory,'event.json');
+    // The event payload is stale: literal live PR data must own the tuple.
+    writeFileSync(event,JSON.stringify({action:'edited',pull_request:{number:1,head:{sha:'stale'},base:{sha:'stale'}}}));
+    for (const previous of [
+      {state:'success',description:'PR1 oldbase: complete review'},
+      {state:'success',description:'PR1 base: complete review'},
+      {state:'pending',description:'PR1 base: request claimed; no retries'},
+      {state:'error',description:'PR1 base: Automatic AI review disabled'},
+    ]) {
+      const writes=[];
+      await main({invalidate:true,env:{GITHUB_REPOSITORY:repository,GITHUB_TOKEN:'opaque',GITHUB_EVENT_PATH:event,GITHUB_EVENT_NAME:'pull_request_target'},fetcher:async (url,options) => {
+        if(options.method==='POST') {writes.push({url,...JSON.parse(options.body)}); return new Response('{}');}
+        return new Response(JSON.stringify(url.endsWith('/pulls/1') ? pr : [{context:'AI visual review',...previous}]));
+      }});
+      if(previous.description.includes('oldbase')) {
+        assert.equal(writes.length,1); assert.equal(writes[0].state,'pending');
+        assert.match(writes[0].url,/\/statuses\/head$/); assert.match(writes[0].description,/^PR1 base: /);
+      } else assert.deepEqual(writes,[]);
+    }
+  } finally {rmSync(directory,{recursive:true,force:true});}
+});
+test('trusted current failed/cancelled producer writes error; stale failed producer writes nothing', async () => {
+  const { mkdtempSync, writeFileSync, rmSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const { join } = await import('node:path');
+  const directory=mkdtempSync(join(tmpdir(),'visual-producer-failure-test-'));
+  try {
+    const event=join(directory,'event.json');writeFileSync(event,JSON.stringify({workflow_run:{id:7}}));
+    for(const conclusion of ['failure','cancelled']) for(const stale of [false,true]) for(const untrusted of [false,true]) {
+      const writes=[];
+      await assert.rejects(main({env:{GITHUB_REPOSITORY:repository,GITHUB_TOKEN:'opaque',GITHUB_EVENT_PATH:event},fetcher:async (url,options) => {
+        if(options.method==='POST') {writes.push({url,...JSON.parse(options.body)});return new Response('{}');}
+        return new Response(JSON.stringify(url.endsWith('/actions/runs/7') ? {...run,conclusion,...(untrusted ? {event:'workflow_dispatch'} : {})} : stale ? {...pr,base:{...pr.base,sha:'new-base'}} : pr));
+      }}),untrusted ? /Untrusted/ : stale ? /Stale/ : /Current visual producer ended/);
+      assert.equal(writes.length,stale || untrusted ? 0 : 1);
+      if(!stale && !untrusted) {assert.equal(writes[0].state,'error');assert.match(writes[0].description,new RegExp(conclusion));}
+    }
+  } finally {rmSync(directory,{recursive:true,force:true});}
+});
+test('pending workflow has separate concurrency and only default-branch code without model credential', () => {
+  const workflow=readFileSync(new URL('../.github/workflows/ai-visual-review-pending.yml',import.meta.url),'utf8');
+  assert.match(workflow,/pull_request_target:/);
+  assert.match(workflow,/types: \[opened, synchronize, reopened, edited\]/);
+  assert.match(workflow,/group: ai-visual-review-pending-/);
+  assert.match(workflow,/ref: \$\{\{ github.event.repository.default_branch \}\}/);
+  assert.match(workflow,/statuses: write/);
+  assert.equal(classifyVisualReview(['.github/workflows/ai-visual-review-pending.yml']).run,true);
+  assert.equal(classifyVisualReview(['.github/workflows/docs-updater.md']).run,false);
+  for(const forbidden of ['head.sha','pnpm install','npm install','OPENAI_API_KEY']) assert.equal(workflow.includes(forbidden),false,forbidden);
 });
