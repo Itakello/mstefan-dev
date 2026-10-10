@@ -1,0 +1,19 @@
+.github/PR_POLICY.md
+  s_de30abe7d3d3f7::t_16f6f85e3adcb0 31,33-37
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "28e6f4b723fb858a5b25545eeff8746b0d779393",
+  "prompts": {},
+  "sessions": {
+    "s_de30abe7d3d3f7": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12771-e424-73e2-a593-6bfcae66ddfd",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
