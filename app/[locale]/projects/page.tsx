@@ -26,7 +26,7 @@ export default async function ProjectsPage({ params }: { params: Promise<{ local
   if (!isSupportedLocale(locale)) notFound();
   const content = getCopy(locale).projects;
   const copy = getCopy(locale);
-  const pageLabels: Record<string, string> = { "/projects": copy.nav.projects, "/about": copy.nav.about, "/karakal": "The Karakal Times" };
+  const pageLabels: Record<string, string> = { "/projects": copy.nav.projects, "/about": copy.nav.about, "/karakal": "The Karakal Times", "/yoga": "The Yoga Times" };
   const snapshot = publicationEnvironment() === "production"
     ? await getNotionPublicationSnapshot()
     : null;
