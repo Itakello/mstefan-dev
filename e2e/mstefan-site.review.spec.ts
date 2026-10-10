@@ -2,31 +2,15 @@
 // seed: e2e/seed.ts
 
 import { readFile, writeFile } from "node:fs/promises";
+import { installOfflineReview } from "./offline-review";
+
+import { websiteScreenshotPaths } from "../lib/websiteScreenshots";
 
 import { expect, showReviewStep, test } from "./seed";
 
 test.describe("Public website review", () => {
   test.beforeEach(async ({ context }) => {
-    const base = process.env.PLAYWRIGHT_BASE_URL;
-    const state = process.env.VISUAL_NOTION_FIXTURE_STATE;
-    if (!base || !state) throw new Error("The isolated offline publication fixture is required");
-    await writeFile(state, "multiple");
-    await context.route("**/*", async route => {
-      const url = new URL(route.request().url());
-      if ((url.hostname === "example.com" && url.pathname.endsWith(".pdf")) || url.href === "https://arxiv.org/pdf/2410.07109") {
-        await route.fulfill({ body: await readFile("tests/fixtures/research.pdf"), contentType: "application/pdf", headers: { "access-control-allow-origin": "*" } });
-      } else if (["www.mstefan.dev", "mstefan.dev"].includes(url.hostname)) {
-        const response = await route.fetch({ url: `${base}${url.pathname}${url.search}`, maxRedirects: 0 });
-        await route.fulfill({ response });
-      } else if (url.hostname === "api.iconify.design") {
-        const prefix = url.pathname.split("/")[1].replace(/\.json$/, "");
-        await route.fulfill({ json: { prefix, icons: {}, not_found: (url.searchParams.get("icons") || "").split(",") } });
-      } else if (url.origin === new URL(base).origin) {
-        await route.continue();
-      } else {
-        throw new Error(`Unexpected external browser request: ${url.hostname}`);
-      }
-    });
+    await installOfflineReview(context);
   });
   test("Review the primary bilingual visitor journey", async ({ page }) => {
     const browserErrors: string[] = [];
@@ -44,6 +28,9 @@ test.describe("Public website review", () => {
     await expect(page.getByRole("heading", { level: 1, name: "I build AI systems for real work." })).toBeVisible();
     await expect(page.getByRole("heading", { level: 2, name: "Selected work" })).toBeVisible();
     await expect(page.getByRole("region", { name: "Career", exact: true })).toHaveCount(0);
+    const toolkit = page.getByRole("region", { name: "Toolkit", exact: true });
+    await expect(toolkit.getByRole("button", { name: /Scroll technologies/ })).toHaveCount(0);
+    await expect.poll(() => toolkit.locator(".stack-shelf").evaluate(node => node.scrollWidth <= node.clientWidth + 1)).toBe(true);
     await showReviewStep(page, "1 · English home and selected work");
 
     // 2. Select work and browse the independent desktop and phone previews.
@@ -52,6 +39,7 @@ test.describe("Public website review", () => {
     await expect(page.getByRole("heading", { level: 1, name: "My work" })).toBeVisible();
 
     await page.getByRole("button", { name: "Select mstefan.dev", exact: true }).click();
+    await expect.poll(() => page.getByRole("navigation", { name: "Choose a project" }).evaluate(node => node.scrollHeight <= node.clientHeight + 1)).toBe(true);
     await expect(page.getByRole("button", { name: "Select mstefan.dev", exact: true }).getByText("Website", { exact: true })).toBeVisible();
     const projectStack = page.getByRole("complementary", { name: "mstefan.dev technologies grouped by category" });
     const typeScript = projectStack.locator('summary[aria-label="TypeScript · Language"]');
@@ -88,6 +76,15 @@ test.describe("Public website review", () => {
     expect(mobileBox!.width).toBeLessThanOrEqual(390);
     for (const width of [1280, 900, 640, 360]) {
       await page.setViewportSize({ width, height: 800 });
+      if (width < 1024) {
+        const picker = page.getByRole("combobox", { name: "Choose a project" });
+        await expect(picker).toBeVisible();
+        await picker.selectOption({ label: "The Karakal Times" });
+        await expect(page.locator("#selected-work-title")).toHaveText("The Karakal Times");
+        await picker.selectOption({ label: "mstefan.dev" });
+        await expect(page.locator("#selected-work-title")).toHaveText("mstefan.dev");
+        await expect(page.getByRole("navigation", { name: "Choose a project" })).toBeHidden();
+      }
       await modes.getByRole("button", { name: "Desktop", exact: true }).click();
       const desktopHeight = (await desktop.boundingBox())!.height;
       await modes.getByRole("button", { name: "Mobile", exact: true }).click();
@@ -194,6 +191,11 @@ test.describe("Public website review", () => {
     const careerBox = await aboutCareer.boundingBox();
     expect(storyBox && careerBox && storyBox.x + storyBox.width <= careerBox.x).toBeTruthy();
     expect(storyBox && careerBox && Math.abs(storyBox.y - careerBox.y) < 1).toBeTruthy();
+    for (const width of [640, 900]) {
+      await page.setViewportSize({ width, height: 900 });
+      await expect.poll(() => story.evaluate(node => node.getBoundingClientRect().bottom <= document.querySelector("#career")!.getBoundingClientRect().top)).toBe(true);
+    }
+    await page.setViewportSize({ width: 1440, height: 1000 });
     await aboutCareer.locator("button[data-career-job]", { hasText: "Amazon" }).click();
     await expect(aboutCareer.locator("button[data-career-job]", { hasText: "Amazon" })).toHaveAttribute("aria-pressed", "true");
     await expect(story.getByRole("heading", { level: 1, name: "master" })).toBeVisible();
@@ -237,22 +239,23 @@ test.describe("Public website review", () => {
 
     await page.setViewportSize({ width: 360, height: 800 });
     await page.goto("/en");
+    await expect.poll(() => toolkit.locator(".stack-shelf").evaluate(node => node.scrollWidth <= node.clientWidth + 1)).toBe(true);
     await expect(page.locator("footer > div")).toHaveCSS("flex-direction", "column");
     await expect(page.getByRole("region", { name: "Career", exact: true })).toHaveCount(0);
     await page.goto("/en/about");
     const mobileCareer = page.getByRole("region", { name: "Career", exact: true });
     await expect(mobileCareer).toBeVisible();
     await expect(mobileCareer.getByText("Dates not provided").first()).toBeVisible();
-    const mobileBranch = mobileCareer.locator('svg [data-career-branch]');
+    const mobileBranch = mobileCareer.locator('button[data-career-job]');
     await mobileBranch.focus();
     await mobileBranch.press("Enter");
     await expect(mobileBranch).toHaveAttribute("aria-pressed", "true");
     await expect(mobileCareer.locator('button[data-career-job]')).toHaveAttribute("aria-pressed", "true");
-    await expect.poll(() => mobileCareer.locator('[aria-label^="Graph."]').evaluate((tree) => {
-      const main = tree.querySelector('circle')!.getBoundingClientRect();
-      const viewport = tree.getBoundingClientRect();
-      return main.left >= viewport.left && main.right <= viewport.right;
-    })).toBe(true);
+    await expect(mobileCareer.locator('[aria-label^="Graph."]')).toBeHidden();
+    await expect.poll(() => mobileCareer.evaluate(node => [...node.querySelectorAll("*")].every(element => {
+      const style = getComputedStyle(element);
+      return !/auto|scroll/.test(style.overflowY) || element.scrollHeight <= element.clientHeight + 1;
+    }))).toBe(true);
     await page.screenshot({ path: ".artifacts/playwright/career-about-keyboard-mobile.png", fullPage: true });
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
     await page.goto("/en/about");
@@ -260,7 +263,7 @@ test.describe("Public website review", () => {
     const mobileExplorer = page.getByRole("region", { name: "Career", exact: true });
     const mobileStoryBox = await mobileStory.boundingBox();
     const mobileExplorerBox = await mobileExplorer.boundingBox();
-    expect(mobileStoryBox && mobileExplorerBox && mobileExplorerBox.y + mobileExplorerBox.height <= mobileStoryBox.y).toBeTruthy();
+    expect(mobileStoryBox && mobileExplorerBox && mobileStoryBox.y + mobileStoryBox.height <= mobileExplorerBox.y).toBeTruthy();
     await mobileExplorer.locator("button[data-career-job]", { hasText: "Amazon" }).click();
     await expect(mobileStory.getByRole("heading", { level: 1, name: "master" })).toBeVisible();
     await expect(page.getByRole("link", { name: /Read story/ })).toHaveCount(0);
@@ -275,6 +278,36 @@ test.describe("Public website review", () => {
     await expect(page.locator("footer > div")).toHaveCSS("flex-direction", "row");
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
     expect(browserErrors, browserErrors.join("\n")).toEqual([]);
+  });
+
+  test("Preview pages support selection, both sizes, and localized homepage labels", async ({ page }) => {
+    await writeFile(process.env.VISUAL_NOTION_FIXTURE_STATE!, "pages");
+    await page.route("**/website-previews/**", async route => {
+      const mobile = route.request().url().includes("-mobile.png");
+      const paths = websiteScreenshotPaths("https://www.mstefan.dev", "en");
+      await route.fulfill({ body: await readFile(`public${paths[mobile ? "mobile" : "desktop"]}`), contentType: "image/png" });
+    });
+    await page.goto("/en/projects");
+    const selector = page.getByRole("combobox", { name: "Preview page", exact: true });
+    await expect(selector).toHaveValue("0");
+    await expect(selector.getByRole("option")).toHaveText(["Homepage", "About", "Work"]);
+    const image = page.getByRole("img", { name: "Desktop: Screenshot of mstefan.dev", exact: true });
+    const homepage = await image.getAttribute("src");
+    await selector.focus();
+    await selector.selectOption("1");
+    await expect(selector).toHaveValue("1");
+    await expect(image).toHaveAttribute("src", websiteScreenshotPaths("https://www.mstefan.dev/en/about", "en").desktop);
+    expect(await image.getAttribute("src")).not.toBe(homepage);
+    await page.getByRole("group", { name: "Preview size" }).getByRole("button", { name: "Mobile", exact: true }).click();
+    await expect(page.getByRole("img", { name: "Mobile: Screenshot of mstefan.dev", exact: true })).toHaveAttribute("src", websiteScreenshotPaths("https://www.mstefan.dev/en/about", "en").mobile);
+    await selector.selectOption("2");
+    await expect(page.getByRole("img", { name: "Mobile: Screenshot of mstefan.dev", exact: true })).toHaveAttribute("src", websiteScreenshotPaths("https://www.mstefan.dev/en/projects", "en").mobile);
+    await page.getByRole("button", { name: "Select The Karakal Times", exact: true }).click();
+    await expect(selector).toHaveCount(0);
+    await page.getByRole("button", { name: "Select mstefan.dev", exact: true }).click();
+    await expect(selector).toHaveValue("0");
+    await page.goto("/it/projects");
+    await expect(page.getByRole("combobox", { name: "Pagina anteprima", exact: true }).getByRole("option").first()).toHaveText("Pagina iniziale");
   });
 
   test("Missing screenshots retain the external visit link and recover on switching", async ({ page }) => {
@@ -353,7 +386,12 @@ test.describe("Public website review", () => {
     await frameworkItems.nth(1).click();
     await expect(page.locator("[data-work-stack-label]")).toContainText("Tailwind CSS");
     const separatedName = stack.locator('summary[aria-label="React · DOM · Libreria"]');
-    await separatedName.focus();
+    await separatedName.evaluate(async node => {
+      node.closest("[data-work-stack-scroll]")!.querySelectorAll<HTMLDetailsElement>("details[open]").forEach(detail => { detail.open = false; });
+      (node as HTMLElement).focus();
+      await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+    });
+    await expect(page.locator("[data-work-stack-label]")).toContainText("React · DOM");
     await page.evaluate(() => window.scrollBy(0, 10));
     await expect(page.locator("[data-work-stack-label]")).toContainText("React · DOM");
     await expect(page.locator("[data-work-stack-label]")).toContainText("Libreria");

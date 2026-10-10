@@ -325,6 +325,12 @@ test('career admin live preview keeps About text intact and locale drafts privat
     await expect(amazon).toHaveAttribute('aria-pressed', 'true');
     await expect(page.getByText('Amazon fixture details', { exact: true })).toBeVisible();
     await expect(page.getByText('Education fixture details', { exact: true })).toHaveCount(0);
+    await expect(graph.getByRole('region', { name: 'Graph. Time moves upward.', exact: true })).toBeHidden();
+    await expect.poll(() => graph.evaluate(element => [...element.querySelectorAll('*')].every(node => {
+      const style = getComputedStyle(node);
+      return !/auto|scroll/.test(style.overflowY) || node.scrollHeight <= node.clientHeight + 1;
+    }))).toBe(true);
+    await page.setViewportSize({ width: 1280, height: 800 });
     const branches = graph.locator('svg [data-career-branch]');
     await expect(branches).toHaveCount(2);
     const educationBranch = graph.locator('[data-career-branch][aria-label^="education/test-university:"]');
@@ -362,12 +368,14 @@ test('career admin live preview keeps About text intact and locale drafts privat
       { branchName: 'work/undated-fixture', company: 'Undated fixture', role: 'Test role', summary: 'Undated fixture details', color: '#d568fc' },
     ] }, '&publishSpecificLocale=en');
     await page.reload();
+    await page.setViewportSize({ width: 320, height: 800 });
+    await expect(graph.locator('button[data-career-job]').first()).toContainText('Amazon');
     assert.ok(Number(await educationBranch.locator('[data-career-head]').getAttribute('cy')) > Number(await amazonBranch.locator('[data-career-head]').getAttribute('cy')), 'Later dates must appear above earlier dates despite title order');
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), 'Career page overflows at 320px');
-    await page.setViewportSize({ width: 1000, height: 800 });
+    await page.setViewportSize({ width: 1280, height: 800 });
     const tree = graph.getByRole('region', { name: 'Graph. Time moves upward.', exact: true });
     assert.ok(await tree.evaluate((element) => element.scrollHeight > element.clientHeight), 'Long history must scroll inside the tree');
-    await graph.locator('button[data-career-job]').first().click();
+    await graph.locator('button[data-career-job]', { hasText: 'education/test-university' }).click();
     await tree.scrollIntoViewIfNeeded();
     await tree.hover();
     const scrollToPath = await tree.evaluate((element) => element.scrollTop);
@@ -462,7 +470,7 @@ test('nested career branches share junctions and synchronize graph and Experienc
   assert.deepEqual(Buffer.from(await publishedDocument.arrayBuffer()), pdfBytes);
   const browser = await chromium.launch({ headless: true });
   try {
-    const page = await browser.newPage({ viewport: { width: 1000, height: 900 } });
+    const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
     await page.goto(`${base}/en/about#career`);
     const graph = page.getByRole('region', { name: 'Career', exact: true });
     const project = graph.locator('[data-career-branch][aria-label^="work/company/project:"]');
@@ -470,7 +478,7 @@ test('nested career branches share junctions and synchronize graph and Experienc
     const projectTitle = graph.locator('button[data-career-job]', { hasText: 'work/company/project' });
     const careerBounds = () => graph.evaluate(element => { const box = element.getBoundingClientRect(); return { top: box.top + window.scrollY, height: box.height }; });
     const initialCareerBounds = await careerBounds();
-    assert.ok(await graph.evaluate(element => element.getBoundingClientRect().bottom <= document.querySelector('#career-story')!.getBoundingClientRect().top), 'Career should precede the selected story');
+    assert.ok(await graph.evaluate(element => document.querySelector('#career-story')!.getBoundingClientRect().right <= element.getBoundingClientRect().left), 'Desktop story should be beside the career graph');
     const centeredPhotoOffset = () => page.locator('#career-story').evaluate((story) => {
       const container = story.getBoundingClientRect();
       const photo = story.querySelector('figure')!.getBoundingClientRect();
@@ -561,7 +569,7 @@ test('nested career branches share junctions and synchronize graph and Experienc
     const junction = await branchB.locator('circle').first().evaluate((dot) => ({ x: dot.getAttribute('cx'), y: dot.getAttribute('cy') }));
     const baseDots = await graph.locator('[data-career-branch] circle[r="4.5"]').evaluateAll((dots, { x, y }) => dots.filter((dot) => dot.getAttribute('cx') === x && dot.getAttribute('cy') === y).map((dot) => dot.getAttribute('fill')), junction);
     assert.equal(baseDots.at(-1), '#ffaa66', 'Closest lane must paint the shared base dot');
-    await graph.locator('button[data-career-job]').first().click();
+    await graph.locator('button[data-career-job]', { hasText: 'education/university' }).filter({ hasNotText: 'internship' }).click();
     await branchB.locator('circle').first().click();
     await expect(branchC).toHaveAttribute('aria-pressed', 'true');
     await branchB.locator('circle').first().click();
@@ -574,8 +582,8 @@ test('nested career branches share junctions and synchronize graph and Experienc
     await expect(page.getByRole('link', { name: /Read story/i })).toHaveCount(0);
     await page.setViewportSize({ width: 320, height: 800 });
     await expect(graph.locator('[data-career-label]')).toHaveCount(0);
-    await project.focus();
-    await project.press('Enter');
+    await projectTitle.focus();
+    await projectTitle.press('Enter');
     await expect(project).toHaveAttribute('aria-pressed', 'true');
     assert.ok((await centeredPhotoOffset()) < 2, 'Experience photo should be centered on mobile');
     await expect(page.getByRole('link', { name: /F · Read story/i })).toHaveAttribute('href', '#career-story');

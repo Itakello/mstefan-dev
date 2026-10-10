@@ -45,8 +45,6 @@ type SiteCopy = {
     projectCategory: string;
     showMore: (count: number, category: string) => string;
     hideMore: (count: number, category: string) => string;
-    scrollLeft: string;
-    scrollRight: string;
     toolkitTechnologiesByCategory: string;
     technologyList: (names: string) => string;
   };
@@ -70,7 +68,7 @@ type SiteCopy = {
   };
   projects: { title: string; description: string };
   notFound: { title: string; description: string; home: string; projects: string };
-  work: { types: { Website: string; App: string; Tool: string; Research: string }; previewSize: string; selectorLabel: string; desktop: string; mobile: string; source: string; visit: string; research: string; accomplishments: string; paper: string; slides: string };
+  work: { types: { Website: string; App: string; Tool: string; Research: string }; previewSize: string; previewPage: string; homepage: string; selectorLabel: string; desktop: string; mobile: string; source: string; visit: string; research: string; accomplishments: string; paper: string; slides: string };
   websites: {
     selectSite: (title: string) => string;
     previewTitle: (title: string) => string;
@@ -132,8 +130,6 @@ export const copy = {
       projectCategory: "project",
       showMore: (count, category) => `Show ${count} more ${category} ${count === 1 ? "technology" : "technologies"}`,
       hideMore: (count, category) => `Hide ${count} ${category} ${count === 1 ? "technology" : "technologies"}`,
-      scrollLeft: "Scroll technologies left",
-      scrollRight: "Scroll technologies right",
       toolkitTechnologiesByCategory: "Toolkit technologies grouped by category",
       technologyList: (names) => `Technologies: ${names}`,
     },
@@ -165,7 +161,7 @@ export const copy = {
     },
     projects: { title: "My work", description: "Explore the projects, websites and tools I build." },
     notFound: { title: "This page isn't here.", description: "The link may be broken, or the page may have moved. You can head back home or explore my work.", home: "Go home", projects: "Explore projects" },
-    work: { types: { Website: "Website", App: "App", Tool: "Tool", Research: "Research" }, previewSize: "Preview size", selectorLabel: "Choose a project", desktop: "Desktop", mobile: "Mobile", source: "Source code", visit: "Visit website", research: "Research & materials", accomplishments: "Accomplishments", paper: "Paper", slides: "Slides" },
+    work: { types: { Website: "Website", App: "App", Tool: "Tool", Research: "Research" }, previewSize: "Preview size", previewPage: "Preview page", homepage: "Homepage", selectorLabel: "Choose a project", desktop: "Desktop", mobile: "Mobile", source: "Source code", visit: "Visit website", research: "Research & materials", accomplishments: "Accomplishments", paper: "Paper", slides: "Slides" },
     websites: {
       selectSite: (title) => `Select ${title}`,
       previewTitle: (title) => `Screenshot of ${title}`,
@@ -233,8 +229,6 @@ export const copy = {
         ? `Mostra 1 altra tecnologia ${category}`
         : `Mostra altre ${count} tecnologie ${category}`,
       hideMore: (count, category) => `Nascondi ${count} ${count === 1 ? "tecnologia" : "tecnologie"} ${category}`,
-      scrollLeft: "Scorri le tecnologie verso sinistra",
-      scrollRight: "Scorri le tecnologie verso destra",
       toolkitTechnologiesByCategory: "Strumenti: tecnologie raggruppate per categoria",
       technologyList: (names) => `Tecnologie: ${names}`,
     },
@@ -266,7 +260,7 @@ export const copy = {
     },
     projects: { title: "I miei lavori", description: "Esplora i progetti, i siti web e gli strumenti che realizzo." },
     notFound: { title: "Questa pagina non c’è.", description: "Il link potrebbe essere errato o la pagina potrebbe essere stata spostata. Puoi tornare alla home o esplorare i miei lavori.", home: "Torna alla home", projects: "Esplora i progetti" },
-    work: { types: { Website: "Sito web", App: "App", Tool: "Strumento", Research: "Ricerca" }, previewSize: "Dimensione anteprima", selectorLabel: "Scegli un progetto", desktop: "Desktop", mobile: "Mobile", source: "Codice sorgente", visit: "Visita il sito", research: "Ricerca e materiali", accomplishments: "Risultati", paper: "Paper", slides: "Slide" },
+    work: { types: { Website: "Sito web", App: "App", Tool: "Strumento", Research: "Ricerca" }, previewSize: "Dimensione anteprima", previewPage: "Pagina anteprima", homepage: "Pagina iniziale", selectorLabel: "Scegli un progetto", desktop: "Desktop", mobile: "Mobile", source: "Codice sorgente", visit: "Visita il sito", research: "Ricerca e materiali", accomplishments: "Risultati", paper: "Paper", slides: "Slide" },
     websites: {
       selectSite: (title) => `Seleziona ${title}`,
       previewTitle: (title) => `Screenshot di ${title}`,

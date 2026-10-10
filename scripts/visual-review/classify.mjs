@@ -2,6 +2,8 @@ import { appendFileSync, readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
 const exactPaths = new Set([
+  "AGENTS.md",
+  "DESIGN.md",
   ".github/workflows/visual-review.yml",
   "middleware.ts",
   "proxy.ts",
@@ -32,6 +34,7 @@ const pathPrefixes = [
   "public/",
   "scripts/visual-review/",
   "specs/",
+  "tests/fixtures/visual-icons/",
 ];
 
 export function isUiImpactingPath(path) {

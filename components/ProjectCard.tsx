@@ -1,6 +1,7 @@
 "use client";
 
 import { Icon } from "@iconify/react";
+import { BrandIcon } from "@/components/BrandIcon";
 import { motion } from "motion/react";
 import { useId, useMemo, useState } from "react";
 
@@ -96,11 +97,7 @@ export function ProjectCard({
               ? copy.projectCard.viewRepository(title)
               : copy.projectCard.viewProject(title)}
           >
-            <Icon
-              icon={githubRepositoryUrl ? "simple-icons:github" : "lucide:external-link"}
-              className={BRAND_ICON_CLASS}
-              aria-hidden
-            />
+            {githubRepositoryUrl ? <BrandIcon brand="github" /> : <Icon icon="lucide:external-link" className={BRAND_ICON_CLASS} aria-hidden />}
           </a>
         )}
       </div>
@@ -114,8 +111,8 @@ export function ProjectCard({
           aria-hidden={isOpen}
           inert={isOpen}
         >
-          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 pb-3">
-            <p className="line-clamp-2 min-w-0 text-sm leading-5 text-black/65 dark:text-white/65">
+          <div className="grid items-center gap-3 pb-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-4">
+            <p className="min-w-0 max-w-prose text-sm leading-5 text-black/65 dark:text-white/65 sm:line-clamp-2">
               {projectPreviewSummary({ summary, shortSummary })}
             </p>
             {technologies.length > 0 && (

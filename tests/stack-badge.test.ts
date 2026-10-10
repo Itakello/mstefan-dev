@@ -30,3 +30,9 @@ test("contains every Stack graphic inside the square icon area", () => {
   assert.equal(renderedGraphicClass(externalIconEntry, true), "size-4 object-contain");
   assert.equal(renderedGraphicClass(externalIconEntry, false), "size-4 object-contain");
 });
+
+test("does not add a surface or border around technology artwork", () => {
+  const badge = StackBadge({ item: iconifyEntry, compact: true }) as ReactElement<any>;
+  const wrapper = Children.toArray(badge.props.children)[0] as ReactElement<any>;
+  assert.doesNotMatch(wrapper.props.className, /(?:bg-|border|overflow-hidden)/);
+});

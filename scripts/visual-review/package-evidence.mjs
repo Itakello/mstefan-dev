@@ -31,7 +31,7 @@ const metadata = {
 writeFileSync(join(evidenceDirectory, "metadata.json"), `${JSON.stringify(metadata, null, 2)}\n`);
 
 const videos = findFiles(resultsDirectory, ".webm").sort();
-const expectedRecordings = 4;
+const expectedRecordings = 5;
 if (videos.length !== expectedRecordings) {
   throw new Error(`Expected ${expectedRecordings} review videos, received ${videos.length}.`);
 }

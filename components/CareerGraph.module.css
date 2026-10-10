@@ -10,8 +10,8 @@
 .header > span:last-child { text-align: center; border-left: 1px solid var(--surface-border); }
 .body { display: grid; grid-template-columns: minmax(0, 1fr) var(--rail-width); align-items: start; }
 .list { min-width: 0; }
-.titleList { max-height: 200px; overflow: auto; overscroll-behavior: contain; scrollbar-color: var(--page-muted) var(--surface-bg); }
-.tree { height: var(--career-viewport-height); overflow: auto; overscroll-behavior: contain; border-left: 1px solid var(--surface-border); scrollbar-color: var(--page-muted) var(--surface-bg); }
+.titleList { max-height: 200px; overflow: auto; overscroll-behavior: contain; }
+.tree { height: var(--career-viewport-height); overflow: auto; overscroll-behavior: contain; border-left: 1px solid var(--surface-border); }
 .tree:focus-visible { outline: 2px solid var(--career-main); outline-offset: -2px; }
 .row, .mainRow { display: flex; flex-direction: column; justify-content: center; gap: 7px; min-height: 76px; width: 100%; padding: 15px 20px; text-align: left; }
 .mainRow { flex-direction: row; align-items: center; justify-content: flex-start; flex-wrap: wrap; min-height: 64px; font-size: 13px; color: var(--page-muted); }
@@ -72,3 +72,15 @@
 .list:not(:has(.detail)) { height: var(--career-viewport-height); display: flex; flex-direction: column; }
 .list:not(:has(.detail)) .titleList { min-height: 0; max-height: none; flex: 1; }
 .list:not(:has(.detail)) .mainRow { flex-shrink: 0; }
+
+@media (max-width: 639px) {
+  .browser[id="career"] .toolbar, .browser[id="career"] .header, .browser[id="career"] .tree { display: none; }
+  .browser[id="career"] .body { display: block; }
+  .browser[id="career"] .list { height: auto; }
+  .browser[id="career"] .titleList { overflow: visible; max-height: none; }
+  .browser[id="career"] .row { border-top: 1px solid var(--surface-border); padding: 16px; }
+  .browser[id="career"] .badge { display: none; }
+  .browser[id="career"] .jobTitle { font-size: 16px; font-weight: 600; }
+  .browser[id="career"] .jobRole { font-size: 14px; }
+  .browser[id="career"] .period { font-size: 12px; }
+}

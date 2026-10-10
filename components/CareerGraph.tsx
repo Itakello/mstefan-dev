@@ -126,8 +126,8 @@ export function CareerGraph({ career, locale, expanded = false, onSelectionChang
           <div className={styles.list}>
             <button ref={(element) => { if (element) titles.current.set(MAIN_KEY, element); else titles.current.delete(MAIN_KEY); }} data-career-main-row data-highlighted={highlighted(MAIN_KEY)} {...interaction(MAIN_KEY)} type="button" onClick={() => select(MAIN_KEY)} aria-pressed={mainSelected} className={styles.mainRow}><span className={styles.mainBadge}><BranchIcon />master</span><span>{content.main}</span></button>
             <div ref={titleList} className={styles.titleList}>
-            {jobs.map((job, index) => {
-              const key = timeline.entries[index].key;
+            {[...timeline.entries].sort((a, b) => a.headY - b.headY || (b.start ?? 0) - (a.start ?? 0)).map(({ key, index }) => {
+              const job = jobs[index];
               return <button key={key} ref={(element) => { if (element) titles.current.set(key, element); else titles.current.delete(key); }} data-career-job data-highlighted={highlighted(key)} {...interaction(key)} type="button" onClick={() => select(key)} aria-pressed={activeKey === key} className={styles.row} style={{ "--branch-color": job.color } as CSSProperties}>
                 <span className={styles.jobTitle}><span className={styles.badge}><BranchIcon /><span>{job.branchName}</span></span><span>{job.company}</span></span>
                 <span className={styles.jobRole}>{job.role}</span>

@@ -1,10 +1,11 @@
 "use client";
 
-import { BookOpen, Presentation, ChevronDown, ChevronRight, ExternalLink, Github, Monitor, Smartphone, Trophy } from "lucide-react";
+import { BookOpen, Presentation, ChevronDown, ChevronRight, ExternalLink, Monitor, Smartphone, Trophy } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { DocumentPreview } from "@/components/DocumentPreview";
 import { StackBadge } from "@/components/StackBadge";
+import { BrandIcon } from "@/components/BrandIcon";
 import { StackCategoryIcon } from "@/components/StackCatalog";
 import { displayStackCategory, groupStackEntries, projectStackLabels, resolveProjectStack } from "@/lib/stack";
 import type { WebsiteStackState } from "@/lib/websiteStack";
@@ -30,6 +31,7 @@ function ScreenshotPreview({ url, title, mobile, unavailable }: { url: string; t
 export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; items: ShowcaseWebsite[]; stackCatalog: WebsiteStackState }) {
   const copy = getCopy(locale);
   const [documentKind, setDocumentKind] = useState<"paper" | "slides">("paper");
+  const [pageIndex, setPageIndex] = useState(0);
   const [mobile, setMobile] = useState(false);
   const stackScroll = useRef<HTMLDivElement>(null);
   const [moreStack, setMoreStack] = useState(false);
@@ -39,22 +41,22 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
     setStackLabel(null);
     stackScroll.current?.querySelectorAll<HTMLDetailsElement>("details[open]").forEach(detail => { detail.open = false; });
   };
-  useEffect(() => {
-    const handleScroll = () => {
-      const scroller = stackScroll.current;
-      const focused = document.activeElement;
-      if (scroller && focused instanceof HTMLElement && focused.matches("summary") && scroller.contains(focused)) {
-        const rect = focused.getBoundingClientRect();
-        const viewport = scroller.getBoundingClientRect();
-        if (rect.bottom > Math.max(0, viewport.top) && rect.top < Math.min(window.innerHeight, viewport.bottom) && rect.right > Math.max(0, viewport.left) && rect.left < Math.min(window.innerWidth, viewport.right)) {
-          showStackLabel(focused, focused.dataset.stackName!, focused.dataset.stackCategory ?? "");
-        } else dismissStackLabel();
+  const updateStackLabel = () => {
+    const scroller = stackScroll.current;
+    const focused = document.activeElement;
+    if (scroller && focused instanceof HTMLElement && focused.matches("summary") && scroller.contains(focused)) {
+      const rect = focused.getBoundingClientRect();
+      const viewport = scroller.getBoundingClientRect();
+      if (rect.bottom > Math.max(0, viewport.top) && rect.top < Math.min(window.innerHeight, viewport.bottom) && rect.right > Math.max(0, viewport.left) && rect.left < Math.min(window.innerWidth, viewport.right)) {
+        showStackLabel(focused, focused.dataset.stackName!, focused.dataset.stackCategory ?? "");
       } else dismissStackLabel();
-    };
-    window.addEventListener("scroll", handleScroll, true);
+    } else dismissStackLabel();
+  };
+  useEffect(() => {
+    window.addEventListener("scroll", updateStackLabel, true);
     window.addEventListener("resize", dismissStackLabel);
     return () => {
-      window.removeEventListener("scroll", handleScroll, true);
+      window.removeEventListener("scroll", updateStackLabel, true);
       window.removeEventListener("resize", dismissStackLabel);
     };
   }, []);
@@ -87,20 +89,28 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
     return () => observer.disconnect();
   }, [selected?.id, stackCatalog]);
   if (!selected) return null;
-  const screenshotUrl = selected.screenshots?.[mobile ? "mobile" : "desktop"];
+  const selectedPage = selected.screenshotPages?.[pageIndex] || selected.screenshotPages?.[0];
+  const screenshotUrl = selectedPage?.screenshots[mobile ? "mobile" : "desktop"];
   const visitUrl = websitePreviewUrl(selected, locale);
   const groups = groupStackEntries(resolveProjectStack(projectStackLabels(selected), stackCatalog.entries));
   const hasStackColumn = groups.length > 0 || Boolean(stackCatalog.message);
   const metadata = [selected.type ? copy.work.types[selected.type] : undefined, selected.year, groups.length ? undefined : selected.language].filter(Boolean);
   const linkClass = "inline-flex items-center gap-2 text-sm font-medium";
+  const selectProject = (id: string) => { setSelectedId(id); setDocumentKind("paper"); setPageIndex(0); };
   return (
     <div className="mt-8 grid min-w-0 gap-8 lg:grid-cols-[288px_minmax(0,1fr)] lg:gap-6">
-      <nav aria-label={copy.work.selectorLabel} className="max-h-64 overflow-y-auto lg:max-h-[760px]">
-        {items.map(item => <button key={item.id} type="button" onClick={() => { setSelectedId(item.id); setDocumentKind("paper"); }}
+      <label className="block min-w-0 text-sm font-medium lg:hidden">
+        {copy.work.selectorLabel}
+        <select value={selected.id} onChange={event => selectProject(event.target.value)} className="mt-2 block w-full min-w-0 rounded-lg border border-[var(--surface-border)] bg-[var(--page-bg)] px-3 py-3 text-base text-[var(--page-text)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[hsl(var(--accent))]">
+          {items.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
+        </select>
+      </label>
+      <nav aria-label={copy.work.selectorLabel} className="hidden self-start lg:block">
+        {items.map(item => <button key={item.id} type="button" onClick={() => selectProject(item.id)}
           aria-label={copy.websites.selectSite(item.name)} aria-current={item.id === selected.id ? "true" : undefined}
-          className={`block w-full border-b border-black/10 px-4 py-4 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[hsl(var(--accent))] dark:border-white/10 ${item.id === selected.id ? "border-l-4 border-l-[hsl(var(--accent))] bg-[hsl(var(--accent)/0.05)]" : "hover:bg-black/[0.03] dark:hover:bg-white/5"}`}>
-          <span className="flex flex-wrap items-center gap-2"><span className="font-semibold">{item.name}</span>{item.type && <span className="rounded-full border border-black/10 px-2 py-0.5 text-[10px] font-medium text-black/60 dark:border-white/15 dark:text-white/60">{copy.work.types[item.type]}</span>}</span>
-          <span className="mt-1 block text-sm leading-5 text-black/60 dark:text-white/60">{item.shortDescription || item.description}</span>
+          className={`block w-full border-b border-black/10 px-4 py-3 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[hsl(var(--accent))] dark:border-white/10 ${item.id === selected.id ? "border-l-4 border-l-[hsl(var(--accent))] bg-[hsl(var(--accent)/0.05)]" : "hover:bg-black/[0.03] dark:hover:bg-white/5"}`}>
+          <span className="flex flex-wrap items-center gap-2"><span className="font-semibold [overflow-wrap:anywhere]">{item.name}</span>{item.type && <span className="rounded-full border border-black/10 px-2 py-0.5 text-[10px] font-medium text-black/60 dark:border-white/15 dark:text-white/60">{copy.work.types[item.type]}</span>}</span>
+          <span className="mt-1 line-clamp-1 text-sm leading-5 text-black/60 dark:text-white/60">{item.shortDescription || item.description}</span>
         </button>)}
       </nav>
       <section aria-labelledby="selected-work-title" className="min-w-0 lg:border-l lg:border-black/10 lg:pl-6 dark:lg:border-white/10">
@@ -115,7 +125,7 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
             </p>}
             <div className="mt-4 flex flex-wrap gap-5">
               {visitUrl && <a className={linkClass} href={visitUrl} target="_blank" rel="noreferrer"><ExternalLink size={16} aria-hidden="true" />{copy.work.visit}</a>}
-              {selected.sourceUrl && <a className={linkClass} href={selected.sourceUrl} target="_blank" rel="noreferrer"><Github size={16} aria-hidden="true" />{copy.work.source}</a>}
+              {selected.sourceUrl && <a className={linkClass} href={selected.sourceUrl} target="_blank" rel="noreferrer"><BrandIcon brand="github" />{copy.work.source}</a>}
             </div>
           </div>
           {groups.length > 0 ? <aside aria-label={copy.projectCard.technologiesByCategory(selected.name)} className="relative w-fit max-w-full justify-self-end self-start min-h-0 min-w-0">
@@ -124,10 +134,10 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
             <div ref={stackScroll} data-work-stack-scroll tabIndex={0} className="mt-3 h-[158px] overflow-auto overscroll-contain pr-1" onScroll={updateStackOverflow}>
             <ul className="grid min-w-max grid-flow-col auto-cols-[28px] items-start gap-2">
               {groups.map(group => <li key={group.category} aria-label={displayStackCategory(group.category, locale)}>
-                <details className="mb-3 border-b border-black/10 bg-white pb-2 dark:border-white/10 dark:bg-black" onToggle={event => {
+                <details className="mb-3 border-b border-black/10 pb-2 dark:border-white/10" onToggle={event => {
                   if (event.currentTarget.open) showStackLabel(event.currentTarget, displayStackCategory(group.category, locale), "");
-                  else setStackLabel(null);
-                }} onMouseLeave={event => { if (!event.currentTarget.open) setStackLabel(null); }}>
+                  else updateStackLabel();
+                }} onMouseLeave={event => { if (!event.currentTarget.open) updateStackLabel(); }}>
                   <summary data-stack-name={displayStackCategory(group.category, locale)} aria-label={displayStackCategory(group.category, locale)} onMouseEnter={event => showStackLabel(event.currentTarget, displayStackCategory(group.category, locale), "")}
                     onFocus={event => showStackLabel(event.currentTarget, displayStackCategory(group.category, locale), "")}
                     onBlur={() => setStackLabel(null)} className="grid size-7 cursor-pointer list-none place-items-center rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-[hsl(var(--accent))] [&::-webkit-details-marker]:hidden">
@@ -138,8 +148,8 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
               {group.entries.map(entry => <li key={entry.name}>
                 <details className="group relative" onToggle={event => {
                   if (event.currentTarget.open) showStackLabel(event.currentTarget, entry.name, displayStackCategory(group.category, locale));
-                  else setStackLabel(null);
-                }} onMouseLeave={event => { if (!event.currentTarget.open) setStackLabel(null); }}>
+                  else updateStackLabel();
+                }} onMouseLeave={event => { if (!event.currentTarget.open) updateStackLabel(); }}>
                   <summary data-stack-name={entry.name} data-stack-category={displayStackCategory(group.category, locale)} aria-label={`${entry.name} · ${displayStackCategory(group.category, locale)}`} onMouseEnter={event => showStackLabel(event.currentTarget, entry.name, displayStackCategory(group.category, locale))}
                     onFocus={event => showStackLabel(event.currentTarget, entry.name, displayStackCategory(group.category, locale))}
                     onBlur={() => setStackLabel(null)} className="flex cursor-pointer list-none rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-[hsl(var(--accent))] [&::-webkit-details-marker]:hidden">
@@ -151,8 +161,8 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
               </li>)}
             </ul>
             </div>
-            {moreStackColumns && <div aria-hidden className="pointer-events-none absolute bottom-0 right-0 top-7 flex w-5 items-center justify-end bg-gradient-to-l from-white to-transparent dark:from-black"><ChevronRight size={14} /></div>}
-            {moreStack && <div aria-hidden className="pointer-events-none absolute bottom-0 left-3 right-0 flex h-6 items-end justify-center bg-gradient-to-t from-white to-transparent dark:from-black"><ChevronDown size={14} /></div>}
+            {moreStackColumns && <div aria-hidden className="pointer-events-none absolute bottom-0 right-0 top-7 flex w-5 items-center justify-end bg-gradient-to-l from-[var(--page-bg)] to-transparent"><ChevronRight size={14} /></div>}
+            {moreStack && <div aria-hidden className="pointer-events-none absolute bottom-0 left-3 right-0 flex h-6 items-end justify-center bg-gradient-to-t from-[var(--page-bg)] to-transparent"><ChevronDown size={14} /></div>}
             </div>
           </aside> : stackCatalog.message && <p role="status" className="text-xs leading-5 text-black/55 dark:text-white/55">{copy.publication.stack[stackCatalog.message]}</p>}
         </div>
@@ -169,6 +179,12 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
           </>}
         </section>}
         {screenshotUrl && <div className="mt-7">
+            {selected.screenshotPages && selected.screenshotPages.length > 1 && <label className="mb-4 flex items-center gap-3 text-sm">
+              {copy.work.previewPage}
+              <select value={pageIndex} onChange={event => setPageIndex(Number(event.target.value))} className="min-w-0 rounded-lg border border-black/10 bg-transparent px-3 py-2 dark:border-white/15">
+                {selected.screenshotPages.map((page, index) => <option key={page.url} value={index}>{page.label}</option>)}
+              </select>
+            </label>}
             <ScreenshotPreview key={screenshotUrl} url={screenshotUrl} title={`${mobile ? copy.work.mobile : copy.work.desktop}: ${copy.websites.previewTitle(selected.name)}`} mobile={mobile} unavailable={copy.websites.unavailable} />
             <div role="group" aria-label={copy.work.previewSize} className="mt-4 ml-auto flex w-fit gap-1 rounded-lg border border-black/10 p-1 dark:border-white/15">
               {([{ mobile: false, label: copy.work.desktop, Icon: Monitor }, { mobile: true, label: copy.work.mobile, Icon: Smartphone }]).map(mode => (

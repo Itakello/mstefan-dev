@@ -109,7 +109,6 @@ test("localized copy and metadata expose the Italian page contract", () => {
   assert.equal(italianCopy.projectCard.viewProject("Progetto"), "Visita il progetto Progetto");
   assert.equal(italianCopy.projectCard.technologiesByCategory("Progetto"), "Tecnologie di Progetto raggruppate per categoria");
   assert.equal(italianCopy.projectCard.started("mar 2024"), "Iniziato mar 2024");
-  assert.equal(italianCopy.stack.scrollLeft, "Scorri le tecnologie verso sinistra");
   assert.equal(getCopy("en").stack.showMore(1, "framework"), "Show 1 more framework technology");
   assert.equal(getCopy("en").stack.hideMore(1, "framework"), "Hide 1 framework technology");
   assert.equal(italianCopy.stack.showMore(1, "framework"), "Mostra 1 altra tecnologia framework");

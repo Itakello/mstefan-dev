@@ -129,45 +129,17 @@ a {
   overflow: hidden;
 }
 
-.stack-shelf-shell {
-  position: relative;
-}
-
-.stack-shelf {
-  overflow-x: auto;
-  overflow-y: hidden;
-  overscroll-behavior-inline: contain;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-
-.stack-shelf::-webkit-scrollbar {
-  display: none;
-}
-
 .stack-shelf-track {
-  display: flex;
-  min-width: max-content;
-  align-items: flex-start;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 8rem), 1fr));
+  align-items: start;
   gap: 1.25rem;
   padding: 0.125rem 0 0.25rem;
 }
 
-.stack-shelf-group {
-  flex: none;
-  min-width: max-content;
-  border-left: 1px solid rgb(0 0 0 / 0.1);
-  padding-left: 1.25rem;
-}
-
-.stack-shelf-group:first-child {
-  border-left: 0;
-  padding-left: 0;
-}
-
-.dark .stack-shelf-group {
-  border-left-color: rgb(255 255 255 / 0.1);
-}
+.stack-shelf-group { min-width: 0; }
+.stack-shelf .stack-hand { flex-wrap: wrap; row-gap: .5rem; }
+.stack-shelf .stack-hidden-cards:not([hidden]) { display: contents; }
 
 .stack-shelf-heading {
   display: flex;
@@ -178,7 +150,7 @@ a {
   font-size: 0.75rem;
   font-weight: 500;
   line-height: 1rem;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .dark .stack-shelf-heading {
@@ -202,14 +174,6 @@ a {
   transform: translateY(var(--stack-card-offset)) rotate(var(--stack-card-rotation));
   transform-origin: 50% 80%;
   transition: margin 160ms ease, transform 160ms ease, z-index 0s;
-}
-
-.stack-hand-card .stack-badge-icon {
-  background: rgb(255 255 255);
-}
-
-.dark .stack-hand-card .stack-badge-icon {
-  background: rgb(10 10 10);
 }
 
 .stack-hidden-cards {
@@ -321,65 +285,8 @@ a {
   }
 }
 
-.stack-shelf-arrow {
-  position: absolute;
-  top: 2.25rem;
-  z-index: 40;
-  display: grid;
-  width: 1.75rem;
-  height: 1.75rem;
-  place-items: center;
-  border: 1px solid rgb(0 0 0 / 0.12);
-  border-radius: 9999px;
-  background: rgb(255 255 255 / 0.94);
-  color: rgb(0 0 0 / 0.72);
-  box-shadow: 0 0.125rem 0.5rem rgb(0 0 0 / 0.12);
-  opacity: 1;
-  transition: opacity 140ms ease, transform 140ms ease;
-}
-
-.stack-shelf-arrow:hover {
-  transform: scale(1.06);
-}
-
-.stack-shelf-arrow:disabled {
-  opacity: 0;
-  pointer-events: none;
-}
-
-.stack-shelf-arrow svg {
-  width: 0.875rem;
-  height: 0.875rem;
-}
-
-.stack-shelf-arrow-left {
-  left: 0.125rem;
-}
-
-.stack-shelf-arrow-right {
-  right: 0.125rem;
-}
-
-.dark .stack-shelf-arrow {
-  border-color: rgb(255 255 255 / 0.14);
-  background: rgb(18 18 18 / 0.94);
-  color: rgb(255 255 255 / 0.82);
-  box-shadow: 0 0.125rem 0.5rem rgb(0 0 0 / 0.32);
-}
-
-@media (max-width: 639px) {
-  .stack-shelf-track {
-    gap: 1rem;
-  }
-
-  .stack-shelf-group {
-    padding-left: 1rem;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .stack-hand-card,
-  .stack-shelf-arrow,
   .stack-overflow-card {
     transition: none;
   }
