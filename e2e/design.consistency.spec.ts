@@ -22,6 +22,31 @@ async function stablePage(page: Page) {
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
 }
 
+async function expectIconLinkColors(page: Page, icons: Locator, theme: "light" | "dark") {
+  const neutral = theme === "light" ? "rgba(0, 0, 0, 0.65)" : "rgba(255, 255, 255, 0.65)";
+  const active = theme === "light" ? "rgb(0, 0, 0)" : "rgb(255, 255, 255)";
+  for (const icon of await icons.all()) {
+    const link = icon.locator("xpath=ancestor::a");
+    await expect(icon).toHaveCSS("color", neutral);
+    expect(await icon.evaluate(node => {
+      for (let parent: Element | null = node; parent; parent = parent.parentElement) {
+        if (getComputedStyle(parent).opacity !== "1") return false;
+        if (parent.tagName === "A") break;
+      }
+      return true;
+    })).toBe(true);
+    await link.hover();
+    await expect(icon).toHaveCSS("color", active);
+    await page.mouse.move(0, 0);
+    await page.keyboard.press("Tab");
+    await link.focus();
+    await expect(link).toBeFocused();
+    await expect(icon).toHaveCSS("color", active);
+    await link.press("Tab");
+    await page.evaluate(() => (document.activeElement as HTMLElement)?.blur());
+  }
+}
+
 async function expectTransparentBadges(page: Page) {
   const badges = page.locator(".stack-badge-icon:visible");
   await expect.poll(() => badges.count()).toBeGreaterThan(0);
@@ -65,6 +90,7 @@ for (const mode of modes) {
       else await expect(page.locator("html")).not.toHaveClass(/\bdark\b/);
       const workGitHub = page.getByRole("link", { name: "Source code", exact: true }).locator('[data-brand-icon="github"]');
       await expectDrawnIcons(workGitHub);
+      await expectIconLinkColors(page, workGitHub.locator("xpath=ancestor::div[1]").locator("a svg"), theme);
       const githubShape = await workGitHub.innerHTML();
       await expect(page.locator('footer [data-brand-icon="github"]')).toHaveJSProperty("innerHTML", githubShape);
       if (mode.name === "mobile") await page.getByRole("combobox", { name: "Choose a project" }).selectOption({ label: "mstefan.dev" });
@@ -97,11 +123,13 @@ for (const mode of modes) {
         const link = icon.locator("..");
         await expect(link).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
       }
+      await expectIconLinkColors(page, footer.locator("svg"), theme);
       await writeFile(process.env.VISUAL_NOTION_FIXTURE_STATE!, "publication");
       await page.goto("/en");
       const cardGitHub = page.locator('main [data-brand-icon="github"]');
       await expectDrawnIcons(cardGitHub);
       for (const icon of await cardGitHub.all()) await expect(icon).toHaveJSProperty("innerHTML", githubShape);
+      await expectIconLinkColors(page, cardGitHub, theme);
       await expectTransparentBadges(page);
       await stablePage(page);
       if (mode.name === "mobile") {
