@@ -263,6 +263,23 @@ test('closed PR revokes public access even when configured template identity is 
   assert.ok(!f.calls.some(c => c.provider === 'ship'));
 });
 
+test('closed PR deletes its public hostname before fallible Worker settings or signing validation', async () => {
+  for (const invalidSeed of [false, true]) {
+    const f = fixture({ initialActive: '7,42', custom: { id: 'custom_preview', hostname: 'pr-42.preview.mstefan.dev',
+      service: 'mstefan-pr-previews', environment: 'production', zone_id: '3352ae407d84634ce4524a7a7629383f' } });
+    f.pr.state = 'closed';
+    if (invalidSeed) f.args.seed = '';
+    else {
+      const cf = f.args.cf;
+      f.args.cf = async (method, path, body) => path.includes('/settings')
+        ? { bindings: [{ name: 'UNEXPECTED', type: 'plain_text', text: '' }] } : cf(method, path, body);
+    }
+    await assert.rejects(runPreview(f.args), invalidSeed ? /at least 32 characters/ : /Worker bindings changed/);
+    assert.ok(f.calls.some(c => c.provider === 'cf' && c.method === 'DELETE'));
+    assert.ok(!f.calls.some(c => c.provider === 'ship' || c.body?.state === 'inactive'));
+  }
+});
+
 test('gateway requires its native service-owned origin and never creates a project route fallback', async () => {
   for (const options of [{ missingServiceDomain: true }, { wrongServiceDomain: true }]) {
     const f = fixture(options);

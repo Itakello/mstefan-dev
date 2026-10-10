@@ -176,13 +176,13 @@ export async function runPreview({ number, templateId, seed, gh, ship, cf, probe
   }
 
   async function revokePublic() {
-    await active(false);
     const domain = await customDomain();
     if (domain) {
       assert(ID.test(domain.id), 'Custom domain identity invalid');
       await cf('DELETE', `${domainsPath}/${domain.id}`);
       assert(!await customDomain(), 'Preview hostname removal unverified');
     }
+    await active(false);
   }
 
   async function disableGateway(services) {
