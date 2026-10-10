@@ -144,7 +144,7 @@ test('chronological lanes keep the earliest experience nearest the mainline rega
 
 test('overlapping experiences occupy separate lanes and later jobs reuse the smallest free lane', () => {
   const layout = layoutCareerTimeline([
-    job('later', 8, 10), job('long', 1, 7), job('overlap', 2, 5), job('after', 6, 9),
+    job('later', 8, 10), job('long', 1, 8), job('overlap', 2, 5), job('after', 6, 9),
   ], now);
   const entries = Object.fromEntries(layout.entries.map((entry) => [entry.key, entry]));
   assert.equal(entries.long.lane, 1);
@@ -416,4 +416,37 @@ test('nearest junction resolves overlapping endpoint hit areas independently of 
   assert.deepEqual(nearestCareerJunction(mobile.entries, first.x, first.headY), { x: first.x, y: first.headY });
   assert.deepEqual(nearestCareerJunction([...mobile.entries].reverse(), second.x, second.headY), { x: second.x, y: second.headY });
   assert.deepEqual(nearestCareerJunction(mobile.entries, mobile.mainX, first.forkY), { x: mobile.mainX, y: first.forkY });
+});
+
+
+test('short education overlap reuses the first lane automatically without merging vertical branches', () => {
+  const jobs = [
+    { id: 'bachelor', startDate: '2019-09-01', endDate: '2022-09-30' },
+    { id: 'internship', startDate: '2021-03-01', endDate: '2023-02-28' },
+    { id: 'master', branchName: 'master', startDate: '2022-09-01', endDate: '2025-03-31' },
+    { id: 'research', parentBranchName: 'master', startDate: '2024-09-01', endDate: '2024-12-31' },
+  ];
+  for (const order of [jobs, [...jobs].reverse()]) {
+    for (const width of [undefined, 180, 240]) {
+      const layout = layoutCareerTimeline(order, now, 24, width);
+      const entries = Object.fromEntries(layout.entries.map(entry => [entry.key, entry]));
+      assert.equal(entries.bachelor.lane, 1);
+      assert.equal(entries.master.lane, 1);
+      assert.equal(entries.internship.lane, 2);
+      assert.equal(entries.research.lane, 2);
+      assert.ok(entries.master.forkY - entries.master.forkRadius + 3 < entries.bachelor.headY + entries.bachelor.mergeRadius);
+    }
+  }
+});
+
+test('short shared joins and compressed lanes cannot hide real overlap', () => {
+  const jobs = [
+    { id: 'old', startDate: '2020-01-01', endDate: '2022-09-30' },
+    { id: 'new', startDate: '2022-09-01', endDate: '2025-01-01' },
+    { id: 'short', startDate: '2022-09-01', endDate: '2022-09-02' },
+  ];
+  const shared = layoutCareerTimeline(jobs, now);
+  assert.notEqual(shared.entries[0].lane, shared.entries[1].lane);
+  const narrow = layoutCareerTimeline(jobs.slice(0, 2), now, 24, 64);
+  assert.notEqual(narrow.entries[0].lane, narrow.entries[1].lane);
 });
