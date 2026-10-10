@@ -1,0 +1,19 @@
+scripts/pr-preview/README.md
+  s_a491d7bd628a32::t_081a6e70a85d75 11
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9281f630cd1d19dc17105cb0205820225e7e9dcf",
+  "prompts": {},
+  "sessions": {
+    "s_a491d7bd628a32": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12188-c82e-7d43-a904-df8756013a38",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
