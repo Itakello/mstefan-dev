@@ -24,6 +24,7 @@ export function validatePR(pr, number) {
   assert(Number.isSafeInteger(number) && number > 0 && pr?.number === number, 'PR identity mismatch');
   assert(pr.base?.repo?.full_name === REPO && ['open', 'closed'].includes(pr.state), 'PR repository or state mismatch');
   if (pr.head?.repo?.full_name !== REPO) return false;
+  assert(typeof pr.base.ref === 'string' && pr.base.ref.length > 0, 'PR base invalid');
   assert(SHA.test(pr.head.sha) && typeof pr.head.ref === 'string' && pr.head.ref.length > 0, 'PR source invalid');
   return true;
 }
@@ -242,8 +243,9 @@ export async function runPreview({ number, templateId, seed, gh, ship, cf, probe
   async function settled(id, status, target = project) {
     const build = await ship('get_deployments_by_id_build', { id });
     assert(build?.deployment_id === id && build.project_id === target.id, 'Preview worker identity mismatch');
-    return build.deploymentStatus === status && build.completionPending === false
-      && (status !== 'cancelled' || build.cancellationPending === false);
+    return build.deploymentStatus === status && (status === 'cancelled'
+      ? build.cancellationPending === false && (build.completionPending === false || build.completionPending === undefined)
+      : build.completionPending === false);
   }
 
   async function cancel(id, target = project) {
@@ -269,7 +271,7 @@ export async function runPreview({ number, templateId, seed, gh, ship, cf, probe
     throw new Error('Preview cancellation did not finish within five minutes');
   }
 
-  if (pr.state === 'closed') await revokePublic();
+  await revokePublic();
   assert(ID.test(templateId ?? '') && templateId !== PRODUCTION, 'OPENSHIP_PREVIEW_TEMPLATE_ID invalid');
   template = validateProject(data(await ship('get_projects_by_id', { id: templateId })));
   assert(template.id === templateId, 'Preview template identity mismatch');
@@ -278,14 +280,14 @@ export async function runPreview({ number, templateId, seed, gh, ship, cf, probe
   const matches = siblings.filter(row => row.slug === envName);
   assert(matches.length <= 1, 'Duplicate preview environment');
   project = matches.length ? validateProject(data(await ship('get_projects_by_id', { id: matches[0].id })), template, number) : null;
-  if (pr.state === 'closed') return close(true);
+  if (pr.state === 'closed' || pr.base.ref !== 'master') return close(true);
   const secret = payloadSecret(seed, number);
   const sha = pr.head.sha;
   const branch = pr.head.ref;
   async function current() {
     pr = await gh('GET', prPath);
     assert(validatePR(pr, number), 'PR source changed');
-    assert(pr.state === 'open' && pr.head.sha === sha && pr.head.ref === branch, 'PR changed during deployment');
+    assert(pr.state === 'open' && pr.base.ref === 'master' && pr.head.sha === sha && pr.head.ref === branch, 'PR changed during deployment');
   }
   const deployment = await gh('POST', `/repos/${REPO}/deployments`, {
     ref: sha, environment: envName, auto_merge: false, required_contexts: [], transient_environment: true,
@@ -297,7 +299,6 @@ export async function runPreview({ number, templateId, seed, gh, ship, cf, probe
   let submittedId;
   try {
     await current();
-    await active(false);
     if (!project) {
       const created = data(await ship('post_projects_by_id_environments', { id: templateId, body: {
         environmentName: `PR ${number}`, environmentSlug: envName, environmentType: 'preview', sourceMode: 'branch', gitBranch: branch,

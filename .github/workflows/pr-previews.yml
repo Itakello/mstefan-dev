@@ -2,7 +2,7 @@ name: PR previews
 
 on:
   pull_request_target:
-    types: [opened, reopened, synchronize, closed, ready_for_review]
+    types: [opened, reopened, synchronize, closed, ready_for_review, edited]
 
 permissions: {}
 
@@ -26,7 +26,7 @@ jobs:
       - name: Check out trusted default-branch controller
         uses: actions/checkout@v7
         with:
-          ref: ${{ github.sha }}
+          ref: master
           persist-credentials: false
       - uses: actions/setup-node@v7
         with:

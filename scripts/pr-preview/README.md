@@ -1,6 +1,6 @@
 # PR previews
 
-The trusted default-branch workflow reconciles same-repository pull requests into separate OpenShip Docker environments. GitHub deployment statuses link to `https://pr-N.preview.mstefan.dev` after the exact PR commit, running container, origin certificate and public HTTPS probe pass. Forks receive no deployment or secrets.
+The trusted default-branch workflow reconciles same-repository pull requests targeting `master` into separate OpenShip Docker environments. GitHub deployment statuses link to `https://pr-N.preview.mstefan.dev` after the exact PR commit, running container, origin certificate and public HTTPS probe pass. Forks receive no deployment or secrets.
 
 Each PR has its own named `/data` volume for SQLite and uploads, and a Payload signing key derived from the preview-only seed. Production credentials and Notion integrations are not copied. CMS content starts from the application's seed; Projects and Stack remain unconfigured until a separate non-production source is supplied. Public preview links allow GET/HEAD, discard cookies and authorization, and prevent indexing and caching.
 

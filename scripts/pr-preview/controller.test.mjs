@@ -20,7 +20,7 @@ const child = { ...template, id: 'proj_preview', slug: 'mstefan-pr-previews-pr-4
 const gatewayProject = { id: 'proj_gateway', organizationId: org, slug: 'mstefan-pr-preview-gateway-42', serverId: null,
   gitProvider: 'none', framework: 'docker-compose', sourceKind: 'image', buildKind: 'prebuilt', hasBuild: false, port: 8080,
   runtimeMode: 'docker', autoDeploy: false, routeStrategy: 'loopback-port', volumes: [], enabled: true };
-const pull = { number: 42, state: 'open', base: { repo: { full_name: 'Itakello/mstefan-dev' } },
+const pull = { number: 42, state: 'open', base: { ref: 'master', repo: { full_name: 'Itakello/mstefan-dev' } },
   head: { sha, ref: child.gitBranch, repo: { full_name: 'Itakello/mstefan-dev' } } };
 
 function fixture(options = {}) {
@@ -237,10 +237,11 @@ test('an origin that accepts unauthenticated requests cannot be published', asyn
   assert.ok(!f.calls.some(c => c.body?.state === 'success' || c.provider === 'cf' && c.method === 'PUT'));
 });
 
-test('closed PR revokes public access before any failing native template read', async () => {
+test('trusted PR events revoke public access before any failing native template read', async () => {
+  for (const state of ['open', 'closed']) {
   const f = fixture({ initialActive: '7,42', custom: { id: 'custom_preview', hostname: 'pr-42.preview.mstefan.dev',
     service: 'mstefan-pr-previews', environment: 'production', zone_id: '3352ae407d84634ce4524a7a7629383f' } });
-  f.pr.state = 'closed';
+  f.pr.state = state;
   const native = f.args.ship;
   f.args.ship = async (name, args) => {
     if (name === 'get_projects_by_id' && args.id === template.id) { f.calls.push({ provider: 'ship', name, args }); throw new Error('Native unavailable'); }
@@ -252,6 +253,7 @@ test('closed PR revokes public access before any failing native template read', 
   const firstNative = f.calls.findIndex(c => c.provider === 'ship');
   assert.ok(removal >= 0 && removal < firstNative);
   assert.ok(!f.calls.some(c => c.body?.state === 'inactive'));
+  }
 });
 
 test('closed PR revokes public access even when configured template identity is invalid', async () => {
@@ -441,6 +443,17 @@ test('close cancels reconciling releases before disabling retained runtime', asy
   assert.ok(cancel >= 0 && cancel < disable);
 });
 
+test('retargeted PRs withdraw and stop existing previews without deploying the new base', async () => {
+  for (const existing of [false, true]) {
+    const f = fixture({ existing, initialActive: '7,42' });
+    f.pr.base.ref = 'feature/other';
+    assert.equal((await runPreview(f.args)).state, 'closed');
+    assert.equal(f.active, '7');
+    assert.ok(!f.calls.some(c => c.name === 'post_deployments' || c.name === 'post_projects_by_id_environments'));
+    if (existing) assert.equal(f.project.enabled, false);
+  }
+});
+
 test('native rejection of a persistent reconciling release fails closed within the cancellation bound', async () => {
   const f = fixture({ existing: true, initialActive: '7,42', cancelReconcilingRejected: true });
   f.record.status = 'reconciling';
@@ -449,6 +462,27 @@ test('native rejection of a persistent reconciling release fails closed within t
   assert.equal(f.active, '7');
   assert.equal(f.calls.filter(c => c.name === 'post_deployments_by_id_cancel').length, 20);
   assert.ok(!f.calls.some(c => c.name === 'post_projects_by_id_disable' || c.body?.state === 'inactive'));
+});
+
+test('older native cancellation lease proof works without completionPending and still blocks a live worker', async () => {
+  for (const cancellationPending of [false, true]) {
+    const f = fixture({ existing: true });
+    f.record.status = 'building';
+    f.pr.state = 'closed';
+    const ship = f.args.ship;
+    f.args.ship = async (name, args) => {
+      const result = await ship(name, args);
+      if (name === 'get_deployments_by_id_build') {
+        delete result.completionPending;
+        result.cancellationPending = cancellationPending;
+      }
+      return result;
+    };
+    if (cancellationPending) {
+      await assert.rejects(runPreview(f.args), /cancellation did not finish within five minutes/);
+      assert.ok(!f.calls.some(c => c.name === 'post_projects_by_id_disable' || c.body?.state === 'inactive'));
+    } else assert.equal((await runPreview(f.args)).state, 'closed');
+  }
 });
 
 test('uncertain submission rejects history belonging to another project', async () => {
@@ -557,10 +591,11 @@ test('production, shared volume slug, altered mounts and runtime recipes are rej
   }
 });
 
-test('production template ID blocks before writes', async () => {
+test('production template ID blocks native operations after preview withdrawal', async () => {
   const f = fixture();
   await assert.rejects(runPreview({ ...f.args, templateId: production }), /TEMPLATE_ID invalid/);
-  assert.deepEqual(mutations(f), []);
+  assert.ok(!f.calls.some(c => c.provider === 'ship'));
+  assert.deepEqual(mutations(f).filter(c => c.provider !== 'cf'), []);
 });
 
 test('replay uses the exact existing successful release without rebuilding', async () => {
@@ -736,8 +771,10 @@ test('MCP transport fixes workspace scope and refuses provider error payloads', 
 test('trusted workflow never checks out PR code; shared allowlist writes serialize with queued events', async () => {
   const workflow = await readFile(new URL('../../.github/workflows/pr-previews.yml', import.meta.url), 'utf8');
   assert.match(workflow, /pull_request_target:/);
-  assert.match(workflow, /ref: \$\{\{ github.sha \}\}/);
-  assert.doesNotMatch(workflow, /github.event.pull_request.base.sha/);
+  assert.match(workflow, /types: \[opened, reopened, synchronize, closed, ready_for_review, edited\]/);
+  assert.doesNotMatch(workflow, /branches:/);
+  assert.match(workflow, /ref: master/);
+  assert.doesNotMatch(workflow, /github.sha|github.event.pull_request.base.sha/);
   assert.doesNotMatch(workflow, /head.sha|head.ref|npm install|pnpm install|pull_request:\n/);
   assert.match(workflow, /cancel-in-progress: false\n  queue: max/);
   assert.match(workflow, /deployments: write/);
