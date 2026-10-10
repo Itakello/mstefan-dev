@@ -1,0 +1,32 @@
+scripts/pr-preview/controller.mjs
+  s_a491d7bd628a32::t_55ee0d598c5af8 246-248
+  s_a491d7bd628a32::t_93d25afc456a3f 27,283,290
+  s_a491d7bd628a32::t_05bf2e2926d768 274
+scripts/pr-preview/README.md
+  s_a491d7bd628a32::t_ef463af8f614a1 3
+.github/workflows/pr-previews.yml
+  s_a491d7bd628a32::t_93d25afc456a3f 5
+  s_a491d7bd628a32::t_05bf2e2926d768 29
+scripts/pr-preview/controller.test.mjs
+  s_a491d7bd628a32::t_05bf2e2926d768 240-241,244,256,776-777
+  s_a491d7bd628a32::t_54528fa415745c 594,597-598
+  s_a491d7bd628a32::t_fe5e7eed250f6c 446-456
+  s_a491d7bd628a32::t_4c025598226c33 467-487
+  s_a491d7bd628a32::t_93d25afc456a3f 23,774-775
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4d1844b6f3b47116f7a6934462624f1bd7cda966",
+  "prompts": {},
+  "sessions": {
+    "s_a491d7bd628a32": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12188-c82e-7d43-a904-df8756013a38",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
