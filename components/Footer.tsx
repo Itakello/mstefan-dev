@@ -34,7 +34,7 @@ export function Footer({ locale }: { locale: Locale }) {
           />
           <IconLink
             href="https://x.com/itakello"
-            label="X"
+            label={"X"}
             icon={<BrandIcon brand="x" />}
           />
         </div>
