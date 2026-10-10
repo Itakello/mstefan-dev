@@ -17,7 +17,10 @@
     "dev:payload": "next dev --hostname 127.0.0.1 --port 3000",
     "migrate": "payload migrate",
     "migrate:baseline-preview": "node scripts/baseline-payload-preview.mjs",
-    "test:cms": "node --test --import tsx tests/cms/*.test.mts"
+    "test:cms": "node --test --import tsx tests/cms/*.test.mts",
+    "workshop": "storybook dev --host 127.0.0.1 --port 3000 --exact-port --no-open --disable-telemetry",
+    "build:workshop": "storybook build --output-dir .artifacts/workshop --disable-telemetry",
+    "test:workshop": "node scripts/visual-review/run-workshop.mjs"
   },
   "dependencies": {
     "@iconify/react": "^6.0.0",
@@ -44,6 +47,7 @@
     "@mdx-js/loader": "^2.3.0",
     "@next/mdx": "16.3.8",
     "@playwright/test": "^1.62.1",
+    "@storybook/nextjs-vite": "10.6.1",
     "@tailwindcss/typography": "^0.5.10",
     "@types/node": "^20.12.12",
     "@types/react": "^19.3.0",
@@ -51,9 +55,11 @@
     "autoprefixer": "^10.4.19",
     "next-sitemap": "^4.2.3",
     "postcss": "^8.4.38",
+    "storybook": "10.6.1",
     "tailwindcss": "^3.4.7",
     "tsx": "^4.20.6",
-    "typescript": "^5.5.4"
+    "typescript": "^5.5.4",
+    "vite": "^7.3.7"
   },
   "pnpm": {
     "overrides": {

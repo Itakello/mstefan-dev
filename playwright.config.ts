@@ -38,6 +38,7 @@ export default defineConfig({
   projects: [
     { name: "review", testMatch: "**/*.review.spec.ts", use: { browserName: "chromium" } },
     { name: "smoke", testMatch: "**/*.smoke.spec.ts", use: { browserName: "chromium" } },
+    { name: "workshop", testMatch: "**/*.workshop.spec.ts", use: { browserName: "chromium", video: "off" } },
     { name: "consistency", testMatch: "**/*.consistency.spec.ts", use: { browserName: "chromium", video: "off" } },
   ],
 });

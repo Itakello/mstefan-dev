@@ -6,6 +6,8 @@ export default {
   content: [
     "./app/**/*.{ts,tsx,mdx}",
     "./components/**/*.{ts,tsx}",
+    "./workshop/**/*.{ts,tsx}",
+    "./.storybook/**/*.{ts,tsx}",
     "./lib/iconStyles.ts",
     "./content/**/*.{ts,tsx,mdx}"
   ],
