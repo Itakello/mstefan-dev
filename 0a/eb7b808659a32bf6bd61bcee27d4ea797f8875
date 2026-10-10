@@ -1,0 +1,81 @@
+components/WorkExplorer.tsx
+  s_ca9b05cd06e974::t_dd88c7cb21f3cc 43,52-55,58,131,143,155-156
+  s_ca9b05cd06e974::t_92ed02edacc940 44-50
+  s_ca9b05cd06e974::t_96bb6b28ef2883 3,8,99,119,128
+AGENTS.md
+  s_ca9b05cd06e974::t_fb9bfb0920d1c8 9-15
+tests/fixtures/visual-icons/logos.json
+  s_ca9b05cd06e974::t_baed7ec114d391 1-62
+.github/workflows/visual-review.yml
+  s_ca9b05cd06e974::t_c1345518900e3f 67
+  s_ca9b05cd06e974::t_e9706ec66f69bf 42
+components/ProjectCard.tsx
+  s_ca9b05cd06e974::t_96bb6b28ef2883 4,100
+tests/fixtures/visual-icons/lucide.json
+  s_ca9b05cd06e974::t_baed7ec114d391 1-58
+scripts/visual-review/classify.mjs
+  s_ca9b05cd06e974::t_fdefb4dbf15b0f 5-6
+  s_ca9b05cd06e974::t_e9706ec66f69bf 37
+e2e/mstefan-site.review.spec.ts
+  s_ca9b05cd06e974::t_68fd12cc4d80e0 4-5,11
+tests/fixtures/visual-icons/lucide.LICENSE
+  s_ca9b05cd06e974::t_baed7ec114d391 1-43
+e2e/offline-review.ts
+  s_ca9b05cd06e974::t_ff669cb96092ce 1-8,10-21,24,26-50
+  s_ca9b05cd06e974::t_9fb13f6d95a805 9,22-23,25
+components/StackBadge.tsx
+  s_ca9b05cd06e974::t_96bb6b28ef2883 20
+tests/fixtures/visual-icons/logos.LICENSE
+  s_ca9b05cd06e974::t_baed7ec114d391 1-116
+e2e/design.consistency.spec.ts
+  s_ca9b05cd06e974::t_d2384b22d3df40 6
+  s_ca9b05cd06e974::t_10297345165ff1 2,88
+  s_ca9b05cd06e974::t_56cadf3a6a864f 57,59
+  s_ca9b05cd06e974::t_2b7a725728ea55 65,74,79
+  s_ca9b05cd06e974::t_7cebed55762de2 49-50
+  s_ca9b05cd06e974::t_9fb13f6d95a805 1,3-5,7-48,51-56,58,60-64,66-73,75-78,80-87,89-95
+components/BrandIcon.tsx
+  s_ca9b05cd06e974::t_96bb6b28ef2883 1-12,14
+  s_ca9b05cd06e974::t_fb9bfb0920d1c8 13
+components/Footer.tsx
+  s_ca9b05cd06e974::t_96bb6b28ef2883 4,28,33,38
+scripts/visual-review/run-fixture.mjs
+  s_ca9b05cd06e974::t_e9706ec66f69bf 12-14,63
+DESIGN.md
+  s_ca9b05cd06e974::t_fb9bfb0920d1c8 1-35
+tests/visual-review.test.ts
+  s_ca9b05cd06e974::t_c09270804de0e8 6,47,62-73,76
+  s_ca9b05cd06e974::t_2b7a725728ea55 48,56-57
+  s_ca9b05cd06e974::t_fdefb4dbf15b0f 74-75
+  s_ca9b05cd06e974::t_b62d0466745fc3 58
+  s_ca9b05cd06e974::t_9f7d30b23f1e95 77
+tests/fixtures/visual-icons/simple-icons.json
+  s_ca9b05cd06e974::t_baed7ec114d391 1-19
+components/CareerGraph.module.css
+  s_ca9b05cd06e974::t_99b3b8b08ec4fe 13-14
+playwright.config.ts
+  s_ca9b05cd06e974::t_e9706ec66f69bf 41
+  s_ca9b05cd06e974::t_fdefb4dbf15b0f 19
+tests/fixtures/visual-icons/simple-icons.LICENSE
+  s_ca9b05cd06e974::t_baed7ec114d391 1-30
+tests/stack-badge.test.ts
+  s_ca9b05cd06e974::t_fb9bfb0920d1c8 33-38
+tests/fixtures/visual-icons/README.md
+  s_ca9b05cd06e974::t_ff669cb96092ce 1-9
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0aeb7b808659a32bf6bd61bcee27d4ea797f8875",
+  "prompts": {},
+  "sessions": {
+    "s_ca9b05cd06e974": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a125e2-8a12-72c0-9b0f-65ad915684a2",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
