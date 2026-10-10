@@ -117,15 +117,15 @@ function fixture(options = {}) {
           return { deployment_id: record.id, project_id: child.id, deploymentStatus: record.status,
             completionPending: pending, cancellationPending: record.status === 'cancelled' && pending };
         }
-        if (name === 'get_deployments') {
-          if (args.query.projectId === gateway?.id) return { rows: gatewayRecord ? [structuredClone(gatewayRecord)] : [], total: gatewayRecord ? 1 : 0 };
+        if (name === 'get_projects_by_id_deployments') {
+          if (args.id === gateway?.id) return { data: gatewayRecord ? [structuredClone(gatewayRecord)] : [], total: gatewayRecord ? 1 : 0 };
           let rows = submitted ? [structuredClone(record)] : [];
           if (priorRecord) {
             recoveryReads++;
             rows = recoveryReads <= (options.recoveryDelayReads ?? 0) ? [structuredClone(priorRecord)] : [...rows, structuredClone(priorRecord)];
           }
           if (options.historyOverride && recoveryReads) rows = options.historyOverride;
-          return { rows, total: rows.length, page: args.query.page, perPage: args.query.perPage };
+          return { data: rows, total: rows.length, page: args.query.page, perPage: args.query.perPage };
         }
         if (name === 'post_deployments_by_id_cancel') {
           if (args.id === gatewayRecord?.id) { gatewayRecord.status = 'cancelled'; return { success: true, pending: false, status: 'cancelled' }; }
@@ -228,9 +228,39 @@ test('origin signing keys are separated from Payload and each PR gateway token',
 
 test('an origin that accepts unauthenticated requests cannot be published', async () => {
   const f = fixture({ unauthorizedRejected: false });
-  await assert.rejects(runPreview(f.args), /readiness timed out/);
+  await assert.rejects(runPreview(f.args), /origin authentication boundary unverified/);
   assert.equal(f.active, '7');
+  assert.equal(f.gateway.enabled, false);
+  const disable = f.calls.findIndex(c => c.name === 'post_projects_by_id_disable' && c.args.id === f.gateway.id);
+  assert.ok(f.calls.slice(disable + 1).some(c => c.name === 'get_projects_by_id_services_containers'));
+  assert.equal(f.calls.filter(c => c.provider === 'probe').length, 2);
   assert.ok(!f.calls.some(c => c.body?.state === 'success' || c.provider === 'cf' && c.method === 'PUT'));
+});
+
+test('closed PR revokes public access before any failing native template read', async () => {
+  const f = fixture({ initialActive: '7,42', custom: { id: 'custom_preview', hostname: 'pr-42.preview.mstefan.dev',
+    service: 'mstefan-pr-previews', environment: 'production', zone_id: '3352ae407d84634ce4524a7a7629383f' } });
+  f.pr.state = 'closed';
+  const native = f.args.ship;
+  f.args.ship = async (name, args) => {
+    if (name === 'get_projects_by_id' && args.id === template.id) { f.calls.push({ provider: 'ship', name, args }); throw new Error('Native unavailable'); }
+    return native(name, args);
+  };
+  await assert.rejects(runPreview(f.args), /Native unavailable/);
+  assert.equal(f.active, '7');
+  const removal = f.calls.findIndex(c => c.provider === 'cf' && c.method === 'DELETE');
+  const firstNative = f.calls.findIndex(c => c.provider === 'ship');
+  assert.ok(removal >= 0 && removal < firstNative);
+  assert.ok(!f.calls.some(c => c.body?.state === 'inactive'));
+});
+
+test('closed PR revokes public access even when configured template identity is invalid', async () => {
+  const f = fixture({ initialActive: '7,42' });
+  f.pr.state = 'closed';
+  f.args.templateId = production;
+  await assert.rejects(runPreview(f.args), /TEMPLATE_ID invalid/);
+  assert.equal(f.active, '7');
+  assert.ok(!f.calls.some(c => c.provider === 'ship'));
 });
 
 test('gateway requires its native service-owned origin and never creates a project route fallback', async () => {
@@ -352,7 +382,7 @@ test('uncertain submission cannot reuse old history or leave an unverified previ
   f.record.status = 'building';
   await assert.rejects(runPreview(f.args), /submission could not be reconciled within one minute/);
   assert.equal(f.calls.filter(c => c.name === 'post_deployments').length, 1);
-  assert.ok(f.calls.filter(c => c.name === 'get_deployments').length <= 5);
+  assert.ok(f.calls.filter(c => c.name === 'get_projects_by_id_deployments').length <= 5);
   assert.equal(f.active, '7');
   assert.ok(!f.calls.some(c => c.body?.state === 'success' || c.provider === 'probe'));
 });

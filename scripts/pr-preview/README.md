@@ -27,4 +27,14 @@ Set GitHub variables `MSTEFAN_PREVIEW_TEMPLATE_ID`, `MSTEFAN_PREVIEW_TS_CLIENT_I
 
 Leave `MSTEFAN_PR_PREVIEWS_ENABLED` unset or `false` until live deployment, replay, isolation and close/reopen checks pass. Setting it to `false` pauses future workflow runs; existing previews remain active, and PRs closed during the pause require reconciliation before resuming.
 
+## Preview seed rotation
+
+Changing `MSTEFAN_PREVIEW_PAYLOAD_SECRET` is coordinated maintenance with preview downtime. It changes every application's Payload key and every gateway credential, including the shared Worker signing key. Do not rotate it during ordinary per-PR reconciliation: changing the Worker key for one PR would invalidate the other active gateways.
+
+1. Set `MSTEFAN_PR_PREVIEWS_ENABLED=false`, finish or cancel every running and queued preview job, and stop attended controller runs. Record the active PR numbers and all existing preview application/gateway pairs. Set the Worker's entire `ACTIVE_PRS` binding to an empty string, preserve its other binding, and verify every previously active public URL returns 404 before changing any key.
+2. Rotate the seed in its dedicated 1Password entry and GitHub secret through protected transport. Keep old-seed jobs and controller runs stopped throughout the maintenance.
+3. For each still-open PR, derive its new Payload key with the trusted controller's `payloadSecret` helper, update only that application's preview `PAYLOAD_SECRET`, and deploy a fresh native OpenShip release at its current PR commit. Verify the new release is active and healthy. Reconciliation alone may reuse an already-ready application at the same commit, so it does not prove the new key reached that container.
+4. Run the trusted controller sequentially for each affected PR using the new seed. It replaces that gateway's saved credential, deploys a fresh gateway release, and verifies authenticated forwarding and unauthenticated rejection before adding the PR back to `ACTIVE_PRS`. Reconcile closed PRs through their cleanup path. A failed PR stays withdrawn; do not restore the old allowlist wholesale.
+5. Verify every restored public URL and the corresponding gateway rejection checks, then re-enable future workflow runs. Rotation is complete only when all affected application and gateway runtimes use the new credentials and no old-seed run can publish settings again.
+
 Run `node --test scripts/pr-preview/*.test.mjs` for controller and edge checks. Mock tests establish local behavior; they do not prove installed OpenShip compatibility, actual mounts, DNS or certificates. Merging this setup must account for the existing master CI production-deployment trigger before changing the base branch.
