@@ -115,7 +115,7 @@ export function ProjectCard({
           inert={isOpen}
         >
           <div className="grid items-center gap-3 pb-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-4">
-            <p className="min-w-0 max-w-prose text-sm leading-5 text-black/65 dark:text-white/65">
+            <p className="min-w-0 max-w-prose text-sm leading-5 text-black/65 dark:text-white/65 sm:line-clamp-2">
               {projectPreviewSummary({ summary, shortSummary })}
             </p>
             {technologies.length > 0 && (
