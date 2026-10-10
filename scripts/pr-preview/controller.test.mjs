@@ -580,7 +580,7 @@ test('a created child outside the expected namespace receives no recipe patch', 
     if (name === 'post_projects_by_id_environments') f.project.slug = 'mstefan-payload';
     return response;
   };
-  await assert.rejects(runPreview(f.args), /Created preview isolation mismatch/);
+  await assert.rejects(runPreview(f.args), /Preview recipe or namespace changed/);
   assert.ok(!f.calls.some(c => c.name === 'patch_projects_by_id' || c.name === 'patch_projects_by_id_env'));
 });
 
@@ -752,6 +752,63 @@ test('closed PR arriving during polling completes cleanup', async () => {
   await assert.rejects(runPreview(f.args), /PR changed/);
   assert.equal(f.project.enabled, false);
   assert.ok(!f.calls.some(c => c.body?.state === 'success'));
+});
+
+test('close after gateway submission still stops the app when gateway disable fails', async () => {
+  const f = fixture();
+  const ship = f.args.ship;
+  let submitted = false;
+  f.args.ship = async (name, args) => {
+    if (submitted && name === 'post_projects_by_id_disable' && args.id === gatewayProject.id) throw new Error('Gateway disable unavailable');
+    const result = await ship(name, args);
+    if (name === 'post_deployments_build_access') { submitted = true; f.pr.state = 'closed'; }
+    return result;
+  };
+  await assert.rejects(runPreview(f.args), /Gateway disable unavailable/);
+  assert.equal(f.project.enabled, false);
+  assert.deepEqual(f.project.volumes, ['data:/data']);
+  assert.ok(!f.active.split(',').includes('42'));
+  assert.ok(!f.calls.some(c => ['success', 'inactive'].includes(c.body?.state)));
+});
+
+test('replay recovers native defaults after an accepted child creation response is lost', async () => {
+  for (const failure of ['post_projects_by_id_environments', 'get_projects_by_id', 'patch_projects_by_id']) for (const closed of [false, true]) {
+    const f = fixture();
+    const ship = f.args.ship;
+    let failed = false;
+    f.args.ship = async (name, args) => {
+      const result = await ship(name, args);
+      if (!failed && name === failure && (name !== 'get_projects_by_id' || args.id === child.id)) {
+        failed = true;
+        throw new Error('Lost child preparation response');
+      }
+      return result;
+    };
+    await assert.rejects(runPreview(f.args), /Lost child preparation response/);
+    if (closed) f.pr.state = 'closed';
+    assert.equal((await runPreview(f.args)).state, closed ? 'closed' : 'ready');
+    assert.equal(f.calls.filter(c => c.name === 'post_projects_by_id_environments').length, 1);
+    assert.deepEqual(f.project.volumes, ['data:/data']);
+    if (closed) assert.equal(f.project.enabled, false);
+  }
+});
+
+test('partial child recovery rejects changed ownership, storage or deployed state before patching', async () => {
+  for (const change of [{ groupId: 'foreign' }, { volumes: ['foreign:/data'] }, { activeDeploymentId: 'dep_foreign' }, { routeStrategy: 'public' }]) {
+    const f = fixture();
+    const ship = f.args.ship;
+    f.args.ship = async (name, args) => {
+      const result = await ship(name, args);
+      if (name === 'post_projects_by_id_environments') {
+        Object.assign(f.project, change);
+        throw new Error('Lost child creation response');
+      }
+      return result;
+    };
+    await assert.rejects(runPreview(f.args), /Lost child creation response/);
+    await assert.rejects(runPreview(f.args));
+    assert.ok(!f.calls.some(c => c.name === 'patch_projects_by_id' || c.name === 'post_deployments'));
+  }
 });
 
 test('close during an unfinished build cancels it before disabling and preserves volumes', async () => {

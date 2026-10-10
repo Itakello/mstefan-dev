@@ -295,7 +295,22 @@ export async function runPreview({ number, templateId, seed, gh, ship, cf, probe
   assert(Array.isArray(siblings), 'Preview environments response invalid');
   const matches = siblings.filter(row => row.slug === envName);
   assert(matches.length <= 1, 'Duplicate preview environment');
-  project = matches.length ? validateProject(data(await ship('get_projects_by_id', { id: matches[0].id })), template, number) : null;
+  async function prepareChild(id, created = false) {
+    const isolated = data(await ship('get_projects_by_id', { id }));
+    assert(isolated?.id === id, 'Preview child identity mismatch');
+    if (created) assert(isolated.activeDeploymentId == null && isolated.gitBranch === pr.head.ref, 'Created preview isolation mismatch');
+    if (isolated.routeStrategy === 'auto' && isolated.readiness == null) {
+      assert(isolated.activeDeploymentId == null && isolated.gitBranch === pr.head.ref, 'Partial preview already deployed or source changed');
+      // Native creation omits these fields; prove every other invariant before recovering a lost response.
+      validateProject({ ...isolated, routeStrategy: 'loopback-port', readiness: template.readiness }, template, number);
+      await ship('patch_projects_by_id', { id, body: { routeStrategy: 'loopback-port', readiness: template.readiness } });
+      const normalized = data(await ship('get_projects_by_id', { id }));
+      assert(normalized?.id === id, 'Normalized preview identity mismatch');
+      return validateProject(normalized, template, number);
+    }
+    return validateProject(isolated, template, number);
+  }
+  project = matches.length ? await prepareChild(matches[0].id) : null;
   if (pr.state === 'closed' || pr.base.ref !== 'master') return close(true);
   const secret = payloadSecret(seed, number);
   const sha = pr.head.sha;
@@ -320,14 +335,7 @@ export async function runPreview({ number, templateId, seed, gh, ship, cf, probe
         environmentName: `PR ${number}`, environmentSlug: envName, environmentType: 'preview', sourceMode: 'branch', gitBranch: branch,
       } }));
       assert(created && ID.test(created.id) && created.id !== PRODUCTION && created.id !== templateId, 'Created preview identity invalid');
-      const isolated = data(await ship('get_projects_by_id', { id: created.id }));
-      assert(isolated?.id === created.id && isolated.organizationId === ORG && isolated.groupId === template.groupId
-        && isolated.slug === `${TEMPLATE_SLUG}-${envName}` && isolated.environmentSlug === envName && isolated.environmentType === 'preview'
-        && isolated.gitProvider === 'github' && isolated.gitOwner === 'Itakello' && isolated.gitRepo === 'mstefan-dev'
-        && isolated.gitBranch === branch && isolated.activeDeploymentId == null, 'Created preview isolation mismatch');
-      // Native environment creation omits routing and readiness from the inherited recipe.
-      await ship('patch_projects_by_id', { id: isolated.id, body: { routeStrategy: 'loopback-port', readiness: template.readiness } });
-      project = validateProject(data(await ship('get_projects_by_id', { id: isolated.id })), template, number);
+      project = await prepareChild(created.id, true);
     }
     const appDomains = data(await ship('get_domains', { query: { projectId: project.id } }));
     if (!(Array.isArray(appDomains) && appDomains.every(d => d.projectId === project.id && d.hostname === origin && typeof d.id === 'string' && ID.test(d.id)))) {
@@ -551,20 +559,26 @@ export async function runPreview({ number, templateId, seed, gh, ship, cf, probe
     } finally {
       try { await active(false); }
       finally {
-        if (gatewayCleanup) {
-          try { await settleHistory(gateway, 'production'); }
-          finally {
-            const services = (await ship('get_projects_by_id_services', { id: gateway.id })).services;
-            assert(Array.isArray(services) && services.every(s => s.projectId === gateway.id && typeof s.id === 'string' && ID.test(s.id)), 'Gateway cleanup service identity mismatch');
-            await disableGateway(services);
+        try {
+          if (gatewayCleanup) {
+            try { await settleHistory(gateway, 'production'); }
+            finally {
+              const services = (await ship('get_projects_by_id_services', { id: gateway.id })).services;
+              assert(Array.isArray(services) && services.every(s => s.projectId === gateway.id && typeof s.id === 'string' && ID.test(s.id)), 'Gateway cleanup service identity mismatch');
+              await disableGateway(services);
+            }
+          }
+        } finally {
+          try {
+            if (submittedId) {
+              const record = data(await ship('get_deployments_by_id', { id: submittedId }));
+              assert(record?.id === submittedId && record.projectId === project.id, 'Preview cancellation identity mismatch');
+              if (inFlight.has(record.status) || (record.status === 'cancelled' && !await settled(submittedId, 'cancelled'))) await cancel(submittedId);
+            }
+          } finally {
+            if (pr.state === 'closed') await close();
           }
         }
-        if (submittedId) {
-          const record = data(await ship('get_deployments_by_id', { id: submittedId }));
-          assert(record?.id === submittedId && record.projectId === project.id, 'Preview cancellation identity mismatch');
-          if (inFlight.has(record.status) || (record.status === 'cancelled' && !await settled(submittedId, 'cancelled'))) await cancel(submittedId);
-        }
-        if (pr.state === 'closed') await close();
       }
     }
     throw error;
