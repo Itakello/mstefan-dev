@@ -1,0 +1,19 @@
+app/[locale]/projects/page.tsx
+  s_736f2427abf3d0::t_76654ca730aed6 29
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3ee657b9f577808fd5004cb3ad6b9b2e43c79e90",
+  "prompts": {},
+  "sessions": {
+    "s_736f2427abf3d0": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12179-a131-7d42-8af2-c3343178f3fc",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
