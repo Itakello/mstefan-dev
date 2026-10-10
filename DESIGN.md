@@ -32,4 +32,4 @@ The isolated production fixture must render pinned real icon artwork and fail on
 
 An independent AI reviewer must inspect the complete current diff and its rendered evidence against this contract. Compare the changed pattern with its callers and related pages. Report a concrete rule, affected locations, and visible evidence for each inconsistency; separate proven violations from subjective suggestions. A passing functional journey or recording alone is not design approval.
 
-Fix proven violations before completion. Review intentional visual changes and their baseline diffs before updating references; never auto-accept a snapshot because a check failed. Keep baseline capture and comparison in the same browser/runtime environment. Preserve accessibility and forced-colors behavior.
+Fix proven violations before completion. Review intentional visual changes and their baseline diffs before updating references; never auto-accept a snapshot because a check failed. Keep baseline capture and comparison in the same browser/runtime environment and freeze the fixture clock for date-driven layouts. Preserve accessibility and forced-colors behavior.
