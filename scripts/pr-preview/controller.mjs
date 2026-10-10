@@ -381,6 +381,7 @@ export async function runPreview({ number, templateId, seed, gh, ship, cf, probe
       const live = validateProject(data(await ship('get_projects_by_id', { id: project.id })), template, number);
       assert(live.activeDeploymentId === deploymentId && live.gitBranch === branch, 'Active preview release mismatch');
       const info = data(await ship('get_deployments_by_id_info', { id: deploymentId }));
+      project = live;
       return info?.status === 'running';
     });
     assert(project.serverId ? (typeof project.serverId === 'string' && ID.test(project.serverId) && project.deployTarget === 'server')

@@ -515,6 +515,20 @@ test('new preview isolates source, database namespace, signing key and publishes
   assert.equal(f.calls[success].body.environment_url, 'https://pr-42.preview.mstefan.dev');
 });
 
+test('first native release supplies its resolved target before gateway creation', async () => {
+  const f = fixture();
+  const ship = f.args.ship;
+  let submitted = false;
+  f.args.ship = async (name, args) => {
+    const result = await ship(name, args);
+    if (name === 'post_deployments') submitted = true;
+    if (name === 'get_projects_by_id' && args.id === child.id && !submitted) result.data.deployTarget = null;
+    return result;
+  };
+  assert.equal((await runPreview(f.args)).state, 'ready');
+  assert.equal(f.gateway.serverId, undefined);
+});
+
 test('signing keys differ between PRs and the seed is never the runtime value', () => {
   const seed = 's'.repeat(32);
   assert.notEqual(payloadSecret(seed, 1), payloadSecret(seed, 2));
