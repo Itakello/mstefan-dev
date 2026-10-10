@@ -83,7 +83,7 @@ type SiteCopy = {
 
 export const copy = {
   en: {
-    nav: { home: "Home", projects: "Work", about: "About" },
+    nav: { home: "Home", projects: "Work", about: "Experience" },
     metadata: {
       home: {
         title: "Massimo Stefan",
@@ -94,8 +94,8 @@ export const copy = {
         description: "Selected websites and software projects by Massimo Stefan.",
       },
       about: {
-        title: "About",
-        description: "About Massimo Stefan, a software engineer building dependable AI systems.",
+        title: "Experience",
+        description: "Massimo Stefan’s experience building dependable AI systems as a software engineer.",
       },
     },
     header: {
@@ -174,7 +174,7 @@ export const copy = {
 
     },
     about: {
-      title: "About",
+      title: "Experience",
       firstParagraph: "I’m Massimo Stefan, a software engineer based in Italy. I build agents and automation that connect models to the tools and information people already use.",
       secondParagraph: "I prefer systems with one source of truth, deterministic automation where possible, human approval where it matters, and failures that are visible instead of silent. The point is not to add AI everywhere. It is to remove work without losing control.",
       imageAlt: "Massimo Stefan standing in an elevator, holding a laptop",
@@ -182,7 +182,7 @@ export const copy = {
     og: { description: "Software engineer building AI systems for real work." },
   },
   it: {
-    nav: { home: "Home", projects: "Lavori", about: "Profilo" },
+    nav: { home: "Home", projects: "Lavori", about: "Esperienza" },
     metadata: {
       home: {
         title: "Massimo Stefan",
@@ -193,8 +193,8 @@ export const copy = {
         description: "Siti web e progetti software selezionati di Massimo Stefan.",
       },
       about: {
-        title: "Profilo",
-        description: "Profilo di Massimo Stefan, ingegnere del software che realizza sistemi di IA affidabili.",
+        title: "Esperienza",
+        description: "Esperienza di Massimo Stefan, ingegnere del software che realizza sistemi di IA affidabili.",
       },
     },
     header: {
@@ -275,7 +275,7 @@ export const copy = {
 
     },
     about: {
-      title: "Profilo",
+      title: "Esperienza",
       firstParagraph: "Sono Massimo Stefan, ingegnere del software in Italia. Creo agenti e automazioni che collegano i modelli agli strumenti e alle informazioni già usati dalle persone.",
       secondParagraph: "Preferisco sistemi con un'unica fonte di verità, automazione deterministica dove possibile, approvazione umana dove conta e problemi visibili anziché silenziosi. Il punto non è mettere l'IA ovunque: è eliminare lavoro senza perdere il controllo.",
       imageAlt: "Massimo Stefan in ascensore con un laptop in mano",
