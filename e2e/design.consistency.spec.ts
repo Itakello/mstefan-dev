@@ -56,6 +56,7 @@ test.beforeEach(async ({ context }) => installOfflineReview(context));
 for (const mode of modes) {
   for (const theme of ["light", "dark"] as const) {
     test(`${mode.name} ${theme}: Home, Work, About and footer remain consistent`, async ({ page }, testInfo) => {
+      await page.clock.setFixedTime(new Date("2026-10-10T13:00:00Z"));
       await page.setViewportSize({ width: mode.width, height: mode.height });
       await page.emulateMedia({ colorScheme: theme, reducedMotion: "reduce" });
       await page.addInitScript(value => localStorage.setItem("theme", value), theme);
