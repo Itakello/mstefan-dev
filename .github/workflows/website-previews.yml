@@ -1,0 +1,86 @@
+name: Refresh website previews
+
+on:
+  schedule:
+    - cron: '17 4 * * 1'
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish captures to the preview store
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: website-preview-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    if: github.event_name == 'workflow_dispatch' || vars.WEBSITE_PREVIEW_REFRESH_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - name: Verify browser network boundaries
+        run: node --test --import tsx tests/website-previews/*.test.mts
+      - name: Block private destinations on the disposable runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          for network in 0.0.0.0/8 10.0.0.0/8 100.64.0.0/10 127.0.0.0/8 169.254.0.0/16 172.16.0.0/12 192.168.0.0/16 198.18.0.0/15 224.0.0.0/4 240.0.0.0/4; do
+            sudo iptables -I OUTPUT -p tcp -d "$network" -j REJECT
+            sudo iptables -I OUTPUT -p udp -d "$network" -j REJECT
+          done
+          for network in ::/128 ::1/128 fc00::/7 fe80::/10 ff00::/8; do
+            sudo ip6tables -I OUTPUT -p tcp -d "$network" -j REJECT
+            sudo ip6tables -I OUTPUT -p udp -d "$network" -j REJECT
+          done
+          # Preserve DNS only to the runner's configured resolvers.
+          while read -r resolver; do
+            if [[ "$resolver" == *:* ]]; then
+              sudo ip6tables -I OUTPUT -p udp -d "$resolver" --dport 53 -j ACCEPT
+            else
+              sudo iptables -I OUTPUT -p udp -d "$resolver" --dport 53 -j ACCEPT
+            fi
+          done < <(awk '$1 == "nameserver" { print $2 }' /etc/resolv.conf)
+      - name: Capture approved Notion pages
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
+          WEBSITE_PREVIEW_OUTPUT_DIR: ${{ runner.temp }}/website-previews
+        run: pnpm capture:website-previews
+      - name: Publish successful captures
+        if: github.event_name == 'schedule' || inputs.publish
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.WEBSITE_PREVIEW_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.WEBSITE_PREVIEW_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          AWS_MAX_ATTEMPTS: '1'
+        run: >-
+          aws s3 sync "$RUNNER_TEMP/website-previews/" s3://mstefan-website-previews/
+          --endpoint-url https://17adf7cbee8c9709bd3ffb656890f985.r2.cloudflarestorage.com
+          --exclude '*' --include '*.png'
+          --content-type image/png --cache-control 'public, max-age=300'
+          --only-show-errors
+      - name: Verify published image bytes
+        if: github.event_name == 'schedule' || inputs.publish
+        env:
+          WEBSITE_PREVIEW_OUTPUT_DIR: ${{ runner.temp }}/website-previews
+        run: node --import tsx scripts/verify-website-previews.ts
+      - name: Retain capture evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: website-previews-${{ github.run_id }}
+          path: ${{ runner.temp }}/website-previews/
+          if-no-files-found: ignore
+          retention-days: 7

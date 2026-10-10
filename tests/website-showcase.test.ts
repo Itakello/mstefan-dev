@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   workItemsFromProjects,
   websitePreviewUrl,
+  websitePreviewTargets,
 } from "../lib/websiteShowcase";
 import { websiteScreenshotPaths } from "../lib/websiteScreenshots";
 import { loadPublicProjects } from "../lib/publicProjects";
@@ -121,4 +122,59 @@ test("screenshot assets normalize URL identity and separate locale and viewport"
   assert.notEqual(english.desktop, websiteScreenshotPaths("https://example.com", "it").desktop);
   assert.notEqual(english.desktop, websiteScreenshotPaths("https://example.com/other", "en").desktop);
   assert.match(english.desktop, /^\/website-previews\/[a-f0-9]{64}\/en-desktop\.png$/);
+  assert.deepEqual(websiteScreenshotPaths("https://example.com", "en", "https://previews.mstefan.dev"), {
+    desktop: `https://previews.mstefan.dev${english.desktop}`,
+    mobile: `https://previews.mstefan.dev${english.mobile}`,
+  });
+});
+
+
+test("additional preview targets transfer from canonical Notion into work entries", async () => {
+  const parsed = parseNotionProjectPage({ properties: {
+    Name: { title: [{ plain_text: project.title }] }, Status: { status: { name: "Added" } },
+    Summary: { rich_text: [{ plain_text: "English." }] }, "Summary IT": { rich_text: [{ plain_text: "Italiano." }] },
+    "Website URL": { type: "url", url: "https://example.com" },
+    "Preview URLs": { type: "rich_text", rich_text: [{ plain_text: " https://example.com/about\n\nhttps://example.com/work?sort=year " }] },
+  } });
+  assert.ok(parsed);
+  const loaded = await loadPublicProjects("it", { fetchProjects: async () => [parsed], fetchRepos: async () => [], vercelEnv: "production" });
+  const item = workItemsFromProjects(loaded.projects)[0];
+  assert.deepEqual(item.previewUrls, ["https://example.com/about", "https://example.com/work?sort=year"]);
+  assert.deepEqual(websitePreviewTargets({ websiteUrl: item.url, previewUrls: item.previewUrls }), ["https://example.com/", ...item.previewUrls!]);
+});
+
+test("additional targets are bounded, unique, secure, and fail publication closed", async () => {
+  const properties = {
+    Name: { title: [{ plain_text: project.title }] }, Status: { status: { name: "Added" } },
+    Summary: { rich_text: [{ plain_text: "English." }] }, "Summary IT": { rich_text: [{ plain_text: "Italiano." }] },
+    "Website URL": { type: "url", url: "https://example.com" },
+  };
+  assert.ok(parseNotionProjectPage({ properties: { ...properties, "Preview URLs": { type: "rich_text", rich_text: [] } } }));
+  for (const value of ["https://other.example/about", "https://example.com/", "http://example.com/about", "https://user@example.com/about", "https://example.com/about#part", "not-a-url", "https:example.com/about", "https://example.com/about#", "https://example.com/about\nhttps://example.com/about", Array.from({ length: 10 }, (_, i) => `https://example.com/${i}`).join("\n")]) {
+    assert.equal(parseNotionProjectPage({ properties: { ...properties, "Preview URLs": { type: "rich_text", rich_text: [{ plain_text: value }] } } }), null, value);
+  }
+  assert.equal(parseNotionProjectPage({ properties: { ...properties, "Preview URLs": { type: "url", url: null } } }), null);
+  assert.throws(() => websitePreviewTargets({ previewUrls: ["https://example.com/about"] }), /require/);
+  await assert.rejects(loadPublicProjects("en", { fetchProjects: async () => [{ title: "Invalid", status: "Added", copy: { en: { summary: "English." }, it: { summary: "Italiano." } }, websiteUrl: "https://example.com", previewUrls: ["https://other.example/about"] }], fetchRepos: async () => [], vercelEnv: "production" }), /Cannot publish/);
+  assert.equal(websitePreviewTargets({ websiteUrl: "https://example.com", previewUrls: Array.from({ length: 9 }, (_, i) => `https://example.com/${i}`) }).length, 10);
+});
+
+test("personal capture pages follow requested locale without changing page or query", () => {
+  for (const [url, expected] of [
+    ["https://www.mstefan.dev/en", "https://www.mstefan.dev/it"],
+    ["https://mstefan.dev/it/about", "https://mstefan.dev/it/about"],
+    ["https://www.mstefan.dev/en/projects?project=site", "https://www.mstefan.dev/it/projects?project=site"],
+    ["https://www.mstefan.dev/about", "https://www.mstefan.dev/it/about"],
+    ["https://example.com/en/about", "https://example.com/en/about"],
+  ]) assert.equal(websitePreviewUrl({ id: url, url, preview: true, name: "Site", description: "Site" }, "it"), expected);
+});
+
+
+test("Karakal capture pages follow its English-prefix and Italian-root routes", () => {
+  for (const path of ["/", "/karakal", "/about", "/en", "/en/karakal", "/en/about"]) {
+    const website = { id: path, url: `https://www.thekarakaltimes.com${path}`, preview: true, name: "Karakal", description: "Site" };
+    const unprefixed = path.replace(/^\/en(?=\/|$)/, "");
+    assert.equal(websitePreviewUrl(website, "en"), `https://www.thekarakaltimes.com/en${unprefixed === "/" ? "" : unprefixed}`);
+    assert.equal(websitePreviewUrl(website, "it"), `https://www.thekarakaltimes.com${unprefixed || "/"}`);
+  }
 });

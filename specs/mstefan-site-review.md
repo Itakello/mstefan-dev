@@ -25,6 +25,7 @@
 ### Gallery boundaries
 
 - Verify website previews are static desktop/mobile screenshots with no iframe. Missing images, including failures before hydration, retain the external visit link and recover when switching to an available capture.
+- Verify additional approved page targets expose a keyboard-accessible selector, preserve desktop/mobile switching on every page, reset to the homepage when changing projects, and localize the homepage label. One-page sites expose no page selector.
 - Exercise multiple, one, empty, and failed synthetic publication states; empty/error states never invent gallery entries.
 - Verify the 360px gallery viewport has no horizontal overflow, bilingual navigation, light/dark themes, and zero browser errors in the primary journey.
 - This proves the production build against controlled records. Configured live Notion schema/membership and deployed public behavior require separate evidence.

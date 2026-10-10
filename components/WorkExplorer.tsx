@@ -31,6 +31,7 @@ function ScreenshotPreview({ url, title, mobile, unavailable }: { url: string; t
 export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; items: ShowcaseWebsite[]; stackCatalog: WebsiteStackState }) {
   const copy = getCopy(locale);
   const [documentKind, setDocumentKind] = useState<"paper" | "slides">("paper");
+  const [pageIndex, setPageIndex] = useState(0);
   const [mobile, setMobile] = useState(false);
   const stackScroll = useRef<HTMLDivElement>(null);
   const [moreStack, setMoreStack] = useState(false);
@@ -88,7 +89,8 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
     return () => observer.disconnect();
   }, [selected?.id, stackCatalog]);
   if (!selected) return null;
-  const screenshotUrl = selected.screenshots?.[mobile ? "mobile" : "desktop"];
+  const selectedPage = selected.screenshotPages?.[pageIndex] || selected.screenshotPages?.[0];
+  const screenshotUrl = selectedPage?.screenshots[mobile ? "mobile" : "desktop"];
   const visitUrl = websitePreviewUrl(selected, locale);
   const groups = groupStackEntries(resolveProjectStack(projectStackLabels(selected), stackCatalog.entries));
   const hasStackColumn = groups.length > 0 || Boolean(stackCatalog.message);
@@ -97,7 +99,7 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
   return (
     <div className="mt-8 grid min-w-0 gap-8 lg:grid-cols-[288px_minmax(0,1fr)] lg:gap-6">
       <nav aria-label={copy.work.selectorLabel} className="max-h-64 overflow-y-auto overscroll-contain lg:max-h-[760px]">
-        {items.map(item => <button key={item.id} type="button" onClick={() => { setSelectedId(item.id); setDocumentKind("paper"); }}
+        {items.map(item => <button key={item.id} type="button" onClick={() => { setSelectedId(item.id); setDocumentKind("paper"); setPageIndex(0); }}
           aria-label={copy.websites.selectSite(item.name)} aria-current={item.id === selected.id ? "true" : undefined}
           className={`block w-full border-b border-black/10 px-4 py-4 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[hsl(var(--accent))] dark:border-white/10 ${item.id === selected.id ? "border-l-4 border-l-[hsl(var(--accent))] bg-[hsl(var(--accent)/0.05)]" : "hover:bg-black/[0.03] dark:hover:bg-white/5"}`}>
           <span className="flex flex-wrap items-center gap-2"><span className="font-semibold">{item.name}</span>{item.type && <span className="rounded-full border border-black/10 px-2 py-0.5 text-[10px] font-medium text-black/60 dark:border-white/15 dark:text-white/60">{copy.work.types[item.type]}</span>}</span>
@@ -170,6 +172,12 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
           </>}
         </section>}
         {screenshotUrl && <div className="mt-7">
+            {selected.screenshotPages && selected.screenshotPages.length > 1 && <label className="mb-4 flex items-center gap-3 text-sm">
+              {copy.work.previewPage}
+              <select value={pageIndex} onChange={event => setPageIndex(Number(event.target.value))} className="min-w-0 rounded-lg border border-black/10 bg-transparent px-3 py-2 dark:border-white/15">
+                {selected.screenshotPages.map((page, index) => <option key={page.url} value={index}>{page.label}</option>)}
+              </select>
+            </label>}
             <ScreenshotPreview key={screenshotUrl} url={screenshotUrl} title={`${mobile ? copy.work.mobile : copy.work.desktop}: ${copy.websites.previewTitle(selected.name)}`} mobile={mobile} unavailable={copy.websites.unavailable} />
             <div role="group" aria-label={copy.work.previewSize} className="mt-4 ml-auto flex w-fit gap-1 rounded-lg border border-black/10 p-1 dark:border-white/15">
               {([{ mobile: false, label: copy.work.desktop, Icon: Monitor }, { mobile: true, label: copy.work.mobile, Icon: Smartphone }]).map(mode => (

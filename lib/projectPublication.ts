@@ -9,6 +9,7 @@ export type Project = {
   year?: string;
   url?: string;
   websiteUrl?: string;
+  previewUrls?: string[];
   paperUrl?: string;
   slidesUrl?: string;
   publication?: string;
