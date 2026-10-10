@@ -5,6 +5,8 @@ const exactPaths = new Set([
   "AGENTS.md",
   "DESIGN.md",
   ".github/workflows/visual-review.yml",
+  ".github/workflows/ai-visual-review.yml",
+  "tests/ai-visual-review.test.mjs",
   "middleware.ts",
   "proxy.ts",
   "payload.config.ts",
