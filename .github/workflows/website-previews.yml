@@ -2,7 +2,7 @@ name: Refresh website previews
 
 on:
   schedule:
-    - cron: '17 4 * * *'
+    - cron: '17 4 * * 1'
   workflow_dispatch:
     inputs:
       publish:
