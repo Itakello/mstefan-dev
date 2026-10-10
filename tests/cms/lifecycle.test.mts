@@ -372,7 +372,7 @@ test('career admin live preview keeps About text intact and locale drafts privat
     await expect(graph.locator('button[data-career-job]').first()).toContainText('Amazon');
     assert.ok(Number(await educationBranch.locator('[data-career-head]').getAttribute('cy')) > Number(await amazonBranch.locator('[data-career-head]').getAttribute('cy')), 'Later dates must appear above earlier dates despite title order');
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), 'Career page overflows at 320px');
-    await page.setViewportSize({ width: 1000, height: 800 });
+    await page.setViewportSize({ width: 1280, height: 800 });
     const tree = graph.getByRole('region', { name: 'Graph. Time moves upward.', exact: true });
     assert.ok(await tree.evaluate((element) => element.scrollHeight > element.clientHeight), 'Long history must scroll inside the tree');
     await graph.locator('button[data-career-job]', { hasText: 'education/test-university' }).click();
