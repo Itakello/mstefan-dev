@@ -576,7 +576,7 @@ export async function runPreview({ number, templateId, seed, gh, ship, cf, probe
               if (inFlight.has(record.status) || (record.status === 'cancelled' && !await settled(submittedId, 'cancelled'))) await cancel(submittedId);
             }
           } finally {
-            if (pr.state === 'closed') await close();
+            if (pr.state === 'closed' || pr.base.ref !== 'master') await close();
           }
         }
       }

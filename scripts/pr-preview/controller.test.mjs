@@ -754,21 +754,26 @@ test('closed PR arriving during polling completes cleanup', async () => {
   assert.ok(!f.calls.some(c => c.body?.state === 'success'));
 });
 
-test('close after gateway submission still stops the app when gateway disable fails', async () => {
-  const f = fixture();
-  const ship = f.args.ship;
-  let submitted = false;
-  f.args.ship = async (name, args) => {
-    if (submitted && name === 'post_projects_by_id_disable' && args.id === gatewayProject.id) throw new Error('Gateway disable unavailable');
-    const result = await ship(name, args);
-    if (name === 'post_deployments_build_access') { submitted = true; f.pr.state = 'closed'; }
-    return result;
-  };
-  await assert.rejects(runPreview(f.args), /Gateway disable unavailable/);
-  assert.equal(f.project.enabled, false);
-  assert.deepEqual(f.project.volumes, ['data:/data']);
-  assert.ok(!f.active.split(',').includes('42'));
-  assert.ok(!f.calls.some(c => ['success', 'inactive'].includes(c.body?.state)));
+test('close or retarget after gateway submission stops the app even when gateway disable fails', async () => {
+  for (const retarget of [false, true]) {
+    const f = fixture();
+    const ship = f.args.ship;
+    let submitted = false;
+    f.args.ship = async (name, args) => {
+      if (submitted && name === 'post_projects_by_id_disable' && args.id === gatewayProject.id) throw new Error('Gateway disable unavailable');
+      const result = await ship(name, args);
+      if (name === 'post_deployments_build_access') {
+        submitted = true;
+        if (retarget) f.pr.base.ref = 'feature/other'; else f.pr.state = 'closed';
+      }
+      return result;
+    };
+    await assert.rejects(runPreview(f.args), /Gateway disable unavailable/);
+    assert.equal(f.project.enabled, false);
+    assert.deepEqual(f.project.volumes, ['data:/data']);
+    assert.ok(!f.active.split(',').includes('42'));
+    assert.ok(!f.calls.some(c => ['success', 'inactive'].includes(c.body?.state)));
+  }
 });
 
 test('replay recovers native defaults after an accepted child creation response is lost', async () => {
