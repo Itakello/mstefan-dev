@@ -129,7 +129,7 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
               {groups.map(group => <li key={group.category} aria-label={displayStackCategory(group.category, locale)}>
                 <details className="mb-3 border-b border-black/10 pb-2 dark:border-white/10" onToggle={event => {
                   if (event.currentTarget.open) showStackLabel(event.currentTarget, displayStackCategory(group.category, locale), "");
-                  else setStackLabel(null);
+                  else updateStackLabel();
                 }} onMouseLeave={event => { if (!event.currentTarget.open) updateStackLabel(); }}>
                   <summary data-stack-name={displayStackCategory(group.category, locale)} aria-label={displayStackCategory(group.category, locale)} onMouseEnter={event => showStackLabel(event.currentTarget, displayStackCategory(group.category, locale), "")}
                     onFocus={event => showStackLabel(event.currentTarget, displayStackCategory(group.category, locale), "")}
@@ -141,7 +141,7 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
               {group.entries.map(entry => <li key={entry.name}>
                 <details className="group relative" onToggle={event => {
                   if (event.currentTarget.open) showStackLabel(event.currentTarget, entry.name, displayStackCategory(group.category, locale));
-                  else setStackLabel(null);
+                  else updateStackLabel();
                 }} onMouseLeave={event => { if (!event.currentTarget.open) updateStackLabel(); }}>
                   <summary data-stack-name={entry.name} data-stack-category={displayStackCategory(group.category, locale)} aria-label={`${entry.name} · ${displayStackCategory(group.category, locale)}`} onMouseEnter={event => showStackLabel(event.currentTarget, entry.name, displayStackCategory(group.category, locale))}
                     onFocus={event => showStackLabel(event.currentTarget, entry.name, displayStackCategory(group.category, locale))}

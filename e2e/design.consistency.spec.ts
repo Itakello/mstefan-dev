@@ -1,4 +1,4 @@
-import { expect, test, type Locator, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page, type TestInfo } from "@playwright/test";
 import { writeFile } from "node:fs/promises";
 import { installOfflineReview } from "./offline-review";
 
@@ -41,6 +41,11 @@ async function scrollStyle(scroller: Locator) {
   });
 }
 
+async function compareScreenshot(target: Page | Locator, name: string, testInfo: TestInfo, options: NonNullable<Parameters<Page["screenshot"]>[0]>, maxDiffPixels: number) {
+  await target.screenshot({ ...options, path: testInfo.outputPath(name) });
+  await expect.soft(target).toHaveScreenshot(name, { ...options, maxDiffPixels });
+}
+
 const modes = [
   { name: "desktop", width: 1280, height: 900 },
   { name: "mobile", width: 390, height: 844 },
@@ -50,7 +55,7 @@ test.beforeEach(async ({ context }) => installOfflineReview(context));
 
 for (const mode of modes) {
   for (const theme of ["light", "dark"] as const) {
-    test(`${mode.name} ${theme}: Home, Work, About and footer remain consistent`, async ({ page }) => {
+    test(`${mode.name} ${theme}: Home, Work, About and footer remain consistent`, async ({ page }, testInfo) => {
       await page.setViewportSize({ width: mode.width, height: mode.height });
       await page.emulateMedia({ colorScheme: theme, reducedMotion: "reduce" });
       await page.addInitScript(value => localStorage.setItem("theme", value), theme);
@@ -66,23 +71,23 @@ for (const mode of modes) {
       await expectTransparentBadges(page);
       const workScroll = await scrollStyle(page.locator("[data-work-stack-scroll]"));
       await stablePage(page);
-      await expect.soft(page).toHaveScreenshot(`work-${mode.name}-${theme}.png`, {
-        fullPage: true, animations: "disabled", maxDiffPixels: 100,
+      await compareScreenshot(page, `work-${mode.name}-${theme}.png`, testInfo, {
+        fullPage: true, animations: "disabled",
         mask: [page.getByRole("img", { name: "Desktop: Screenshot of mstefan.dev", exact: true }), page.locator("footer p")],
-      });
+      }, 100);
       await page.goto("/en/about");
       await expect(page.getByRole("heading", { level: 1, name: "master" })).toBeVisible();
       await stablePage(page);
       const careerScroll = page.getByRole("region", { name: /^Graph\./ });
       expect(await scrollStyle(careerScroll)).toEqual(workScroll);
-      await expect.soft(page).toHaveScreenshot(`about-${mode.name}-${theme}.png`, {
-        fullPage: true, animations: "disabled", maxDiffPixels: 100, mask: [page.locator("footer p")],
-      });
+      await compareScreenshot(page, `about-${mode.name}-${theme}.png`, testInfo, {
+        fullPage: true, animations: "disabled", mask: [page.locator("footer p")],
+      }, 100);
       const footer = page.locator("footer");
       await footer.scrollIntoViewIfNeeded();
-      await expect.soft(footer).toHaveScreenshot(`footer-${mode.name}-${theme}.png`, {
-        animations: "disabled", maxDiffPixels: 20, mask: [footer.locator("p")],
-      });
+      await compareScreenshot(footer, `footer-${mode.name}-${theme}.png`, testInfo, {
+        animations: "disabled", mask: [footer.locator("p")],
+      }, 20);
       for (const brand of ["github", "linkedin", "x"]) {
         const icon = footer.locator(`[data-brand-icon="${brand}"]`);
         await expectDrawnIcons(icon);
@@ -96,9 +101,9 @@ for (const mode of modes) {
       for (const icon of await cardGitHub.all()) await expect(icon).toHaveJSProperty("innerHTML", githubShape);
       await expectTransparentBadges(page);
       await stablePage(page);
-      await expect.soft(page).toHaveScreenshot(`home-${mode.name}-${theme}.png`, {
-        fullPage: true, animations: "disabled", maxDiffPixels: 100, mask: [page.locator("footer p")],
-      });
+      await compareScreenshot(page, `home-${mode.name}-${theme}.png`, testInfo, {
+        fullPage: true, animations: "disabled", mask: [page.locator("footer p")],
+      }, 100);
     });
   }
 }

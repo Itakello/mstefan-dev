@@ -367,7 +367,12 @@ test.describe("Public website review", () => {
     await frameworkItems.nth(1).click();
     await expect(page.locator("[data-work-stack-label]")).toContainText("Tailwind CSS");
     const separatedName = stack.locator('summary[aria-label="React · DOM · Libreria"]');
-    await separatedName.focus();
+    await separatedName.evaluate(async node => {
+      node.closest("[data-work-stack-scroll]")!.querySelectorAll<HTMLDetailsElement>("details[open]").forEach(detail => { detail.open = false; });
+      (node as HTMLElement).focus();
+      await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+    });
+    await expect(page.locator("[data-work-stack-label]")).toContainText("React · DOM");
     await page.evaluate(() => window.scrollBy(0, 10));
     await expect(page.locator("[data-work-stack-label]")).toContainText("React · DOM");
     await expect(page.locator("[data-work-stack-label]")).toContainText("Libreria");

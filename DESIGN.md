@@ -28,7 +28,7 @@ Native scrollbars use the global track, thumb, width, and accent-hover rules. Do
 
 ## Verification and AI review
 
-The isolated production fixture must render pinned real icon artwork and fail on missing fixtures. Check Work, About, and contact links at desktop/mobile sizes in light/dark themes. Compare approved screenshot baselines and assert actual glyphs, transparent wrappers, consistent GitHub paths, and shared scrollbar styling. Exercise selection, keyboard focus, scrolling, and existing bilingual navigation as well as appearance.
+The isolated production fixture must render pinned real icon artwork and fail on missing fixtures. Check Home, Work, About, and contact links at desktop/mobile sizes in light/dark themes. Compare approved screenshot baselines and assert actual glyphs, transparent wrappers, consistent GitHub paths, and shared scrollbar styling. Keep named current screenshots in the CI evidence for independent review. Exercise selection, keyboard focus, scrolling, and existing bilingual navigation as well as appearance.
 
 An independent AI reviewer must inspect the complete current diff and its rendered evidence against this contract. Compare the changed pattern with its callers and related pages. Report a concrete rule, affected locations, and visible evidence for each inconsistency; separate proven violations from subjective suggestions. A passing functional journey or recording alone is not design approval.
 
