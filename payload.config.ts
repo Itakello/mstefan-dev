@@ -64,12 +64,12 @@ const publishedDocuments: Access = async ({ req }) => {
 function pageGlobal(slug: "home" | "about"): GlobalConfig {
   return {
     slug,
-    label: slug === "home" ? "Homepage" : "About",
+    label: slug === "home" ? "Homepage" : "Experience",
     access: { read: authenticated, update: authenticated, readVersions: authenticated },
     versions: { drafts: true, max: 20 },
     admin: {
       components: { elements: { beforeDocumentControls: ["./components/cms/PreviewLocaleSync#PreviewLocaleSync"] } },
-      description: "Bilingual page text and About photo. Project and Stack data remain in Notion.",
+      description: "Bilingual page text and Experience photo. Project and Stack data remain in Notion.",
       livePreview: {
         url: ({ locale }) => `/${locale?.code === "it" ? "it" : "en"}${slug === "about" ? "/about" : ""}?preview=1`,
       },
@@ -151,8 +151,8 @@ const careerGlobal: GlobalConfig = {
       },
       { name: "company", label: "Organization", type: "text", required: true },
       { name: "role", label: "Role or qualification", type: "text", required: true },
-      { name: "summary", type: "textarea", admin: { description: "Write this experience's story to show it in About when selected." } },
-      { name: "photo", type: "upload", relationTo: "media", admin: { description: "Shown with this experience in About only when its summary has content." } },
+      { name: "summary", type: "textarea", admin: { description: "Write this experience's story to show it in Experience when selected." } },
+      { name: "photo", type: "upload", relationTo: "media", admin: { description: "Shown with this experience in Experience only when its summary has content." } },
       { name: "documents", type: "array", fields: [
         { name: "title", type: "text", required: true },
         { name: "file", type: "upload", relationTo: "documents", required: true },

@@ -176,10 +176,10 @@ test.describe("Public website review", () => {
     await expect(desktop).toBeVisible();
     await showReviewStep(page, "2 · Work explorer and responsive preview toggle");
 
-    // 3. Open About and verify its portrait and biography.
-    await page.getByRole("link", { name: "About", exact: true }).click();
+    // 3. Open Experience and verify its portrait and biography.
+    await page.getByRole("link", { name: "Experience", exact: true }).click();
     await expect(page).toHaveURL(/\/en\/about$/);
-    await expect(page.locator("#career-story")).toHaveAttribute("aria-label", "About");
+    await expect(page.locator("#career-story")).toHaveAttribute("aria-label", "Experience");
     await expect(page.getByRole("heading", { level: 1, name: "master" })).toBeVisible();
     await expect(page.getByRole("img", { name: "Massimo Stefan standing in an elevator, holding a laptop" })).toBeVisible();
     const story = page.locator("#career-story");
@@ -203,7 +203,7 @@ test.describe("Public website review", () => {
     await aboutCareer.locator("[data-career-main-row]").click();
     await expect(story.getByRole("heading", { level: 1, name: "master" })).toBeVisible();
     await expect(story.getByRole("img", { name: "Massimo Stefan standing in an elevator, holding a laptop" })).toBeVisible();
-    await showReviewStep(page, "3 · About and portrait");
+    await showReviewStep(page, "3 · Experience and portrait");
 
     // 4. Toggle dark mode and verify the rendered theme state.
     await page.getByRole("button", { name: "Toggle theme" }).click();
@@ -214,7 +214,7 @@ test.describe("Public website review", () => {
     await page.getByRole("button", { name: "Select language" }).click();
     await page.getByRole("menuitemradio", { name: /Italiano/ }).click();
     await expect(page).toHaveURL(/\/it\/about$/);
-    await expect(page.locator("#career-story")).toHaveAttribute("aria-label", "Profilo");
+    await expect(page.locator("#career-story")).toHaveAttribute("aria-label", "Esperienza");
     await expect(page.getByRole("heading", { level: 1, name: "master" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Lavori", exact: true })).toBeVisible();
     await page.getByRole("link", { name: "Lavori", exact: true }).click();
@@ -290,7 +290,7 @@ test.describe("Public website review", () => {
     await page.goto("/en/projects");
     const selector = page.getByRole("combobox", { name: "Preview page", exact: true });
     await expect(selector).toHaveValue("0");
-    await expect(selector.getByRole("option")).toHaveText(["Homepage", "About", "Work"]);
+    await expect(selector.getByRole("option")).toHaveText(["Homepage", "Experience", "Work"]);
     const image = page.getByRole("img", { name: "Desktop: Screenshot of mstefan.dev", exact: true });
     const homepage = await image.getAttribute("src");
     await selector.focus();

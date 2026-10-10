@@ -43,7 +43,7 @@ for (const width of [1280, 390]) {
       await expect(page.getByRole("heading", { level: 1 })).toHaveText(locale === "it" ? "Questa pagina non c’è." : "This page isn't here.");
       await expect(page.getByRole("link", { name: "Massimo Stefan", exact: false })).toHaveAttribute("href", `/${locale}`);
       if (width < 640) await page.getByRole("button", { name: locale === "it" ? "Apri navigazione" : "Open navigation" }).click();
-      await expect(page.getByRole("link", { name: locale === "it" ? "Profilo" : "About", exact: true })).toHaveAttribute("href", `/${locale}/about`);
+      await expect(page.getByRole("link", { name: locale === "it" ? "Esperienza" : "Experience", exact: true })).toHaveAttribute("href", `/${locale}/about`);
       await expect(page.getByRole("button", { name: locale === "it" ? "Cambia tema" : "Toggle theme" })).toBeVisible();
       await expect(page.getByRole("button", { name: locale === "it" ? "Seleziona lingua" : "Select language" })).toBeVisible();
     });
@@ -51,7 +51,7 @@ for (const width of [1280, 390]) {
 }
 
 for (const width of [1280, 390]) {
-  test(`@release-smoke ${width}px language, theme, and About recovery work from a 404`, async ({ page, context, baseURL }) => {
+  test(`@release-smoke ${width}px language, theme, and Experience recovery work from a 404`, async ({ page, context, baseURL }) => {
     await page.setViewportSize({ width, height: 800 });
     await context.addCookies([{ name: "site-locale", value: "en", url: baseURL! }]);
     await page.goto("/en/old-page");
@@ -65,9 +65,9 @@ for (const width of [1280, 390]) {
     await expect(page.locator("html")).toHaveClass(/dark/);
     await page.goto("/it/old-page");
     if (width < 640) await page.getByRole("button", { name: "Apri navigazione" }).click();
-    await page.getByRole("link", { name: "Profilo", exact: true }).click();
+    await page.getByRole("link", { name: "Esperienza", exact: true }).click();
     await expect(page).toHaveURL(/\/it\/about$/);
-    await expect(page.locator("#career-story")).toHaveAttribute("aria-label", "Profilo");
+    await expect(page.locator("#career-story")).toHaveAttribute("aria-label", "Esperienza");
     await expect(page.locator("html")).toHaveClass(/dark/);
   });
 }
