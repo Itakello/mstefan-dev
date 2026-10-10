@@ -18,7 +18,7 @@ const schema = { type: 'object', additionalProperties: false, required: ['comple
 function ensure(condition, message) { if (!condition) throw new Error(message); }
 export function verifyRevision(pr, run, repository) {
   ensure(pr.state === 'open' && pr.base.repo.full_name === repository, 'PR repository/state mismatch');
-  ensure(run.repository.full_name === repository && run.name === 'Visual review' && run.path === '.github/workflows/visual-review.yml' && run.event === 'pull_request' && run.status === 'completed' && run.conclusion === 'success', 'Untrusted or unsuccessful source workflow');
+  ensure(run.repository.full_name === repository && run.name === 'Visual review' && run.path === '.github/workflows/visual-review.yml' && run.event === 'pull_request' && run.status === 'completed', 'Untrusted source workflow');
   ensure(run.pull_requests.length === 1 && run.pull_requests[0].number === pr.number && run.pull_requests[0].head.sha === pr.head.sha && run.pull_requests[0].base.sha === pr.base.sha, 'Stale head/base revision');
 }
 export function verifyEvidence(metadata, names, pr, run, repository, {workshopRequired = false} = {}) {
@@ -101,7 +101,7 @@ export async function modelReview(body, key, fetcher = fetch) {
 }
 export function alreadyAttempted(statuses, marker) { return statuses.some(status => status.context === CONTEXT && status.description.includes(`${marker}: request claimed`)); }
 
-export async function main({env = process.env, fetcher = fetch} = {}) {
+export async function main({env = process.env, fetcher = fetch, invalidate = false} = {}) {
   const repository = env.GITHUB_REPOSITORY;
   ensure(/^[\w.-]+\/[\w.-]+$/.test(repository), 'Invalid repository');
   const root = `https://api.github.com/repos/${repository}`;
@@ -112,15 +112,29 @@ export async function main({env = process.env, fetcher = fetch} = {}) {
     const text = await response.text(); ensure(Buffer.byteLength(text) <= 5*1024*1024,'GitHub response too large'); return options.raw ? text : JSON.parse(text);
   }
   const event = JSON.parse(readFileSync(env.GITHUB_EVENT_PATH,'utf8'));
+  const markerFor = pr => `PR${pr.number} ${pr.base.sha}`;
+  const publishStatus = (pr, state, description) => github(`/statuses/${pr.head.sha}`, {method:'POST',body:JSON.stringify({state,context:CONTEXT,description:`${markerFor(pr)}: ${description}`.slice(0,140),target_url:`https://github.com/${repository}/actions/runs/${env.GITHUB_RUN_ID}`})});
+  if (invalidate) {
+    ensure(env.GITHUB_EVENT_NAME === 'pull_request_target' && ['opened','synchronize','reopened','edited'].includes(event.action) && Number.isSafeInteger(event.pull_request?.number), 'Untrusted invalidation event');
+    const current = await github(`/pulls/${event.pull_request.number}`);
+    ensure(current.state === 'open' && current.base.repo.full_name === repository, 'PR repository/state mismatch');
+    const statuses = await github(`/commits/${current.head.sha}/statuses?per_page=100`);
+    ensure(Array.isArray(statuses), 'Invalid status history');
+    const latest = statuses.find(status => status.context === CONTEXT);
+    if (latest?.description?.startsWith(`${markerFor(current)}: `)) return;
+    await publishStatus(current,'pending','awaiting current head/base visual evidence');
+    return;
+  }
   const runId = event.workflow_run?.id ?? event.inputs?.source_run_id;
   ensure(/^\d+$/.test(String(runId)), 'Invalid source run');
   const run = await github(`/actions/runs/${runId}`);
   ensure(run.pull_requests.length === 1, 'Source run needs one PR');
   let pr = await github(`/pulls/${run.pull_requests[0].number}`);
-  const sha = pr.head.sha, base = pr.base.sha, marker = `PR${pr.number} ${base}`;
-  const status = (state, description) => github(`/statuses/${sha}`, {method:'POST',body:JSON.stringify({state,context:CONTEXT,description:`${marker}: ${description}`.slice(0,140),target_url:`https://github.com/${repository}/actions/runs/${env.GITHUB_RUN_ID}`})});
+  const sha = pr.head.sha, base = pr.base.sha, marker = markerFor(pr);
+  const status = (state, description) => publishStatus({number:pr.number,head:{sha},base:{sha:base}},state,description);
   verifyRevision(pr,run,repository);
   try {
+    ensure(run.conclusion === 'success', `Current visual producer ended in ${run.conclusion}`);
     const statuses = await github(`/commits/${sha}/statuses?per_page=100`);
     ensure(statuses.length < 100, 'Status history truncated');
     if (alreadyAttempted(statuses,marker)) return;
@@ -174,4 +188,4 @@ export async function main({env = process.env, fetcher = fetch} = {}) {
     } finally { rmSync(directory,{recursive:true,force:true}); }
   } catch (error) { await status('error',error.message); throw error; }
 }
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main().catch(error => { console.error(error.message); process.exitCode=1; });
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main({invalidate:process.argv.includes('--invalidate')}).catch(error => { console.error(error.message); process.exitCode=1; });
