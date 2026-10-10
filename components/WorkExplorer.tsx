@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpen, Presentation, ChevronDown, ChevronRight, ExternalLink, Monitor, Smartphone, Trophy } from "lucide-react";
+import { BookOpen, Presentation, ChevronDown, ChevronLeft, ChevronRight, ExternalLink, Monitor, Smartphone, Trophy } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { DocumentPreview } from "@/components/DocumentPreview";
@@ -90,6 +90,7 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
   }, [selected?.id, stackCatalog]);
   if (!selected) return null;
   const selectedPage = selected.screenshotPages?.[pageIndex] || selected.screenshotPages?.[0];
+  const pageCount = selected.screenshotPages?.length || 0;
   const screenshotUrl = selectedPage?.screenshots[mobile ? "mobile" : "desktop"];
   const visitUrl = websitePreviewUrl(selected, locale);
   const groups = groupStackEntries(resolveProjectStack(projectStackLabels(selected), stackCatalog.entries));
@@ -179,20 +180,27 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
           </>}
         </section>}
         {screenshotUrl && <div className="mt-7">
-            {selected.screenshotPages && selected.screenshotPages.length > 1 && <label className="mb-4 flex items-center gap-3 text-sm">
-              {copy.work.previewPage}
-              <select value={pageIndex} onChange={event => setPageIndex(Number(event.target.value))} className="min-w-0 rounded-lg border border-black/10 bg-transparent px-3 py-2 dark:border-white/15">
-                {selected.screenshotPages.map((page, index) => <option key={page.url} value={index}>{page.label}</option>)}
-              </select>
-            </label>}
             <ScreenshotPreview key={screenshotUrl} url={screenshotUrl} title={`${mobile ? copy.work.mobile : copy.work.desktop}: ${copy.websites.previewTitle(selected.name)}`} mobile={mobile} unavailable={copy.websites.unavailable} />
-            <div role="group" aria-label={copy.work.previewSize} className="mt-4 ml-auto flex w-fit gap-1 rounded-lg border border-black/10 p-1 dark:border-white/15">
-              {([{ mobile: false, label: copy.work.desktop, Icon: Monitor }, { mobile: true, label: copy.work.mobile, Icon: Smartphone }]).map(mode => (
-                <button key={mode.label} type="button" aria-pressed={mobile === mode.mobile} onClick={() => setMobile(mode.mobile)}
-                  className={`inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-[hsl(var(--accent))] ${mobile === mode.mobile ? "bg-[hsl(var(--accent))] text-white" : "text-black/65 hover:bg-black/5 dark:text-white/65 dark:hover:bg-white/5"}`}>
-                  <mode.Icon size={16} aria-hidden="true" />{mode.label}
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+              {pageCount > 1 && <div role="group" aria-label={copy.work.previewPage} className="flex max-w-full items-center gap-1 rounded-lg border border-[var(--surface-border)] p-1">
+                <button type="button" aria-label={copy.work.previousPreviewPage} onClick={() => setPageIndex(index => (index + pageCount - 1) % pageCount)} className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[hsl(var(--accent))]">
+                  <ChevronLeft size={16} aria-hidden="true" />
                 </button>
-              ))}
+                <span aria-live="polite" aria-atomic="true" className="min-w-0 px-1 text-center text-sm [overflow-wrap:anywhere]">
+                  {selectedPage?.label}<span className="block text-xs text-[var(--page-muted)]">{pageIndex + 1} / {pageCount}</span>
+                </span>
+                <button type="button" aria-label={copy.work.nextPreviewPage} onClick={() => setPageIndex(index => (index + 1) % pageCount)} className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[hsl(var(--accent))]">
+                  <ChevronRight size={16} aria-hidden="true" />
+                </button>
+              </div>}
+              <div role="group" aria-label={copy.work.previewSize} className="ml-auto flex w-fit gap-1 rounded-lg border border-black/10 p-1 dark:border-white/15">
+                {([{ mobile: false, label: copy.work.desktop, Icon: Monitor }, { mobile: true, label: copy.work.mobile, Icon: Smartphone }]).map(mode => (
+                  <button key={mode.label} type="button" aria-pressed={mobile === mode.mobile} onClick={() => setMobile(mode.mobile)}
+                    className={`inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-[hsl(var(--accent))] ${mobile === mode.mobile ? "bg-[hsl(var(--accent))] text-white" : "text-black/65 hover:bg-black/5 dark:text-white/65 dark:hover:bg-white/5"}`}>
+                    <mode.Icon size={16} aria-hidden="true" />{mode.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>}
         {selected.url && !selected.preview && <p className="mt-6 text-sm text-black/60 dark:text-white/60">{copy.websites.linkOnly}</p>}
