@@ -8,7 +8,7 @@ Closing a PR cancels unfinished builds, removes its public hostname and stops it
 
 ## Setup and activation
 
-Create an undeployed `mstefan-pr-previews` OpenShip template with the repository Dockerfile, `runtimeMode: docker`, `routeStrategy: loopback-port`, port 3000 and `data:/data`. The OpenShip token must be able to create projects and manage only projects it creates, excluding existing projects.
+Create an undeployed `mstefan-pr-previews` OpenShip template with the repository Dockerfile, `runtimeMode: docker`, `routeStrategy: loopback-port`, port 3000 and `data:/data`. Scope the OpenShip token to creating projects and managing the projects it creates, plus `View` access to `Itakello/mstefan-dev` so deployment can read its git source. On token replacement, grant `Deploy & manage` access to the existing preview template and its preview children. Exclude the production project and unrelated resources.
 
 The Cloudflare `mstefan-pr-previews` Worker uses `edge.mjs`, with only an initially empty `ACTIVE_PRS` plain-text binding. Each PR uses an exact Worker Custom Domain and a proxied origin A record named `preview-origin-pr-N.mstefan.dev`. The controller verifies the origin's native certificate before exposing the preview URL.
 
