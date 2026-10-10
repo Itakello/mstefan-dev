@@ -1,0 +1,69 @@
+tests/visual-review.test.ts
+  s_a3d57fd6983d88::t_1b42f5b5d49ae4 6,47-48,56-58,62-76
+  s_a3d57fd6983d88::t_01a7ac7f97b326 77
+components/BrandIcon.tsx
+  s_a3d57fd6983d88::t_1b42f5b5d49ae4 1-14
+DESIGN.md
+  s_a3d57fd6983d88::t_1b42f5b5d49ae4 1-35
+tests/fixtures/visual-icons/logos.json
+  s_a3d57fd6983d88::t_1b42f5b5d49ae4 1-62
+AGENTS.md
+  s_a3d57fd6983d88::t_1b42f5b5d49ae4 9-15
+components/CareerGraph.module.css
+  s_a3d57fd6983d88::t_1b42f5b5d49ae4 13-14
+scripts/visual-review/classify.mjs
+  s_a3d57fd6983d88::t_1b42f5b5d49ae4 5-6,37
+tests/stack-badge.test.ts
+  s_a3d57fd6983d88::t_1b42f5b5d49ae4 33-38
+e2e/design.consistency.spec.ts
+  s_a3d57fd6983d88::t_1b42f5b5d49ae4 1-69,72-81,86-107,111-117
+  s_a3d57fd6983d88::t_e396ec9955a445 70-71,108-110
+  s_a3d57fd6983d88::t_ce23b30fd8fc93 82-85
+tests/fixtures/visual-icons/README.md
+  s_a3d57fd6983d88::t_1b42f5b5d49ae4 1-9
+components/ProjectCard.tsx
+  s_a3d57fd6983d88::t_1b42f5b5d49ae4 4,100
+tests/fixtures/visual-icons/logos.LICENSE
+  s_a3d57fd6983d88::t_1b42f5b5d49ae4 1-116
+components/StackBadge.tsx
+  s_a3d57fd6983d88::t_1b42f5b5d49ae4 20
+playwright.config.ts
+  s_a3d57fd6983d88::t_1b42f5b5d49ae4 19,41
+tests/fixtures/visual-icons/simple-icons.json
+  s_a3d57fd6983d88::t_1b42f5b5d49ae4 1-19
+scripts/visual-review/run-fixture.mjs
+  s_a3d57fd6983d88::t_1b42f5b5d49ae4 12-14,63
+.github/workflows/visual-review.yml
+  s_a3d57fd6983d88::t_1b42f5b5d49ae4 42,67
+components/Footer.tsx
+  s_a3d57fd6983d88::t_1b42f5b5d49ae4 4,28,33,38
+e2e/offline-review.ts
+  s_a3d57fd6983d88::t_1b42f5b5d49ae4 1-50
+e2e/mstefan-site.review.spec.ts
+  s_a3d57fd6983d88::t_1b42f5b5d49ae4 5,13,389-394
+tests/fixtures/visual-icons/lucide.json
+  s_a3d57fd6983d88::t_1b42f5b5d49ae4 1-58
+tests/fixtures/visual-icons/simple-icons.LICENSE
+  s_a3d57fd6983d88::t_1b42f5b5d49ae4 1-30
+components/WorkExplorer.tsx
+  s_a3d57fd6983d88::t_bbe98fa23b52d9 104
+  s_a3d57fd6983d88::t_1b42f5b5d49ae4 3,8,44-51,53-56,59,128,137,139-140,151-152,164-165
+tests/fixtures/visual-icons/lucide.LICENSE
+  s_a3d57fd6983d88::t_1b42f5b5d49ae4 1-43
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "24ebb00c882da50aea4fc6e4f734277c4a90ae30",
+  "prompts": {},
+  "sessions": {
+    "s_a3d57fd6983d88": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a125dc-d51e-7583-9ad7-4135793b24dc",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
