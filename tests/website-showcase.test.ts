@@ -122,6 +122,10 @@ test("screenshot assets normalize URL identity and separate locale and viewport"
   assert.notEqual(english.desktop, websiteScreenshotPaths("https://example.com", "it").desktop);
   assert.notEqual(english.desktop, websiteScreenshotPaths("https://example.com/other", "en").desktop);
   assert.match(english.desktop, /^\/website-previews\/[a-f0-9]{64}\/en-desktop\.png$/);
+  assert.deepEqual(websiteScreenshotPaths("https://example.com", "en", "https://previews.mstefan.dev"), {
+    desktop: `https://previews.mstefan.dev${english.desktop}`,
+    mobile: `https://previews.mstefan.dev${english.mobile}`,
+  });
 });
 
 
