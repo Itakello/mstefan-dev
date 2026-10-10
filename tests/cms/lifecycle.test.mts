@@ -75,11 +75,11 @@ async function update(slug: string, locale: string, data: unknown, query = '') {
   assert.equal(response.status, 200, `Update failed for ${slug}/${locale}`);
   return response.json();
 }
-async function publicTitle(locale: string, title: string, absent?: string) {
+async function publicCopy(locale: string, copy: string, absent?: string) {
   const response = await request(`/${locale}/about`);
   assert.equal(response.status, 200);
   const html = await response.text();
-  assert.ok(html.includes(title), `Missing published title ${title}`);
+  assert.ok(html.includes(copy), `Missing published copy ${copy}`);
   if (absent) assert.ok(!html.includes(absent), 'A draft appeared in public HTML');
 }
 async function stop() {
@@ -132,14 +132,24 @@ before(async () => {
 }, { timeout: 90_000 });
 after(async () => { await stop(); if (dataDir) await rm(dataDir, { recursive: true, force: true }); });
 
+test('Experience region labels ignore persisted CMS titles in both locales', async () => {
+  for (const [locale, title, label] of [['en', 'About', 'Experience'], ['it', 'Profilo', 'Esperienza']]) {
+    await update('about', locale, { title, _status: 'published' }, `&publishSpecificLocale=${locale}`);
+    const html = await (await request(`/${locale}/about`)).text();
+    assert.match(html, new RegExp(`id="career-story"[^>]*aria-label="${label}"`));
+    const stored = await (await request(`/api/globals/about?locale=${locale}&draft=false`, undefined, true)).json();
+    assert.equal(stored.title, title, 'Canonical interface labels must preserve stored CMS titles');
+  }
+});
+
 test('production drafts, active-locale UI publishing, media privacy, and restart persistence', { timeout: 120_000 }, async () => {
   for (const locale of ['en', 'it']) {
-    await update('about', locale, { title: `${locale}-published`, _status: 'published' }, `&publishSpecificLocale=${locale}`);
+    await update('about', locale, { firstParagraph: `${locale}-published`, _status: 'published' }, `&publishSpecificLocale=${locale}`);
   }
-  await update('about', 'it', { title: 'it-private-draft' }, '&draft=true');
-  await update('about', 'en', { title: 'en-private-draft' }, '&draft=true');
-  await publicTitle('en', 'en-published', 'en-private-draft');
-  await publicTitle('it', 'it-published', 'it-private-draft');
+  await update('about', 'it', { firstParagraph: 'it-private-draft' }, '&draft=true');
+  await update('about', 'en', { firstParagraph: 'en-private-draft' }, '&draft=true');
+  await publicCopy('en', 'en-published', 'en-private-draft');
+  await publicCopy('it', 'it-published', 'it-private-draft');
   for (const url of ['/en/about?preview=1', '/it/about?preview=1', '/en?preview=1', '/api/globals/about?draft=true', '/api/globals/about/versions', '/api/globals/career?draft=true', '/api/globals/career/versions', '/api/users']) {
     const response = await request(url);
     assert.ok([401, 403, 404].includes(response.status), `Anonymous access succeeded: ${url} (${response.status})`);
@@ -162,15 +172,15 @@ test('production drafts, active-locale UI publishing, media privacy, and restart
     await context.addCookies([{ name: cookie.split('=')[0], value: cookie.slice(cookie.indexOf('=') + 1), url: base }]);
     const page = await context.newPage();
     await page.goto(`${base}/admin/globals/about?locale=en`);
-    await expect(page.locator('#field-title')).toHaveValue('en-private-draft');
-    await page.locator('#field-title').fill('en-published-from-ui');
+    await expect(page.locator('#field-firstParagraph')).toHaveValue('en-private-draft');
+    await page.locator('#field-firstParagraph').fill('en-published-from-ui');
     const published = page.waitForResponse((response) => response.request().method() === 'POST' && response.url().includes('/api/globals/about') && response.url().includes('publishSpecificLocale=en'));
     await page.getByRole('button', { name: /publish/i }).first().click();
     assert.equal((await published).status(), 200);
-    await publicTitle('en', 'en-published-from-ui', 'en-private-draft');
-    await publicTitle('it', 'it-published', 'it-private-draft');
+    await publicCopy('en', 'en-published-from-ui', 'en-private-draft');
+    await publicCopy('it', 'it-published', 'it-private-draft');
     const draft = await request('/api/globals/about?locale=it&draft=true', undefined, true);
-    assert.equal((await draft.json()).title, 'it-private-draft');
+    assert.equal((await draft.json()).firstParagraph, 'it-private-draft');
     await context.close();
   } finally { await browser.close(); }
 
@@ -202,13 +212,13 @@ test('production drafts, active-locale UI publishing, media privacy, and restart
   assert.equal((await publicRequest(optimizedURL, publicHeaders)).status, 404, 'CMS media must not enter the image optimizer cache');
   await stop();
   await start();
-  await publicTitle('en', 'en-published-from-ui');
-  await publicTitle('it', 'it-published', 'it-private-draft');
+  await publicCopy('en', 'en-published-from-ui');
+  await publicCopy('it', 'it-published', 'it-private-draft');
   const login = await request('/api/users/login', { email, password });
   assert.equal(login.status, 200);
   cookie = login.headers.get('set-cookie')!.split(';')[0];
   const persistedDraft = await request('/api/globals/about?locale=it&draft=true', undefined, true);
-  assert.equal((await persistedDraft.json()).title, 'it-private-draft');
+  assert.equal((await persistedDraft.json()).firstParagraph, 'it-private-draft');
   const persistedFile = await fetch(new URL(media.url, base));
   assert.deepEqual(Buffer.from(await persistedFile.arrayBuffer()), bytes);
   await update('about', 'en', { photo: null, _status: 'published' }, '&publishSpecificLocale=en');
@@ -277,7 +287,7 @@ test('career admin live preview keeps About text intact and locale drafts privat
     const iframe = page.locator('iframe');
     await expect(iframe).toHaveAttribute('src', /previewSource=career/);
     const preview = page.frameLocator('iframe');
-    await expect(preview.locator('#career-story')).toHaveAttribute('aria-label', 'en-published-from-ui');
+    await expect(preview.locator('#career-story')).toHaveAttribute('aria-label', 'Experience');
     await expect(preview.getByRole('heading', { level: 1 })).toHaveText('master');
     await preview.getByRole('region', { name: 'Career', exact: true }).locator('button[data-career-job]').first().click();
     await expect(preview.getByRole('heading', { level: 1 })).toHaveText('master');
@@ -484,7 +494,7 @@ test('nested career branches share junctions and synchronize graph and Experienc
       const photo = story.querySelector('figure')!.getBoundingClientRect();
       return Math.abs((container.left + container.right - photo.left - photo.right) / 2);
     });
-    await expect(page.locator('#career-story')).toHaveAttribute('aria-label', 'en-published-from-ui');
+    await expect(page.locator('#career-story')).toHaveAttribute('aria-label', 'Experience');
     await expect(page.locator('#career-story h1')).toHaveText('master');
     await expect(page.locator('#career-story img')).toHaveAttribute('src', '/profile-photo.jpg');
     await expect(page.getByRole('link', { name: /Read story/i })).toHaveCount(0);
@@ -514,6 +524,7 @@ test('nested career branches share junctions and synchronize graph and Experienc
     await expect(reader.getByText('125%')).toBeVisible();
     await graph.locator('button[data-career-job]', { hasText: 'work/next' }).click();
     await expect(page.locator('#career-story h1')).toHaveText('H');
+    await expect(page.locator('#career-story')).toHaveAttribute('aria-label', 'H');
     await expect(page.locator('#career-story img')).toHaveCount(0);
     await expect(page.locator('#career-story [data-pdf-document]')).toBeVisible();
     await expect(page.getByRole('link', { name: /H · View documents/i })).toHaveAttribute('href', '#career-story');
@@ -603,7 +614,7 @@ test('authenticated previews load only the active source draft', { timeout: 60_0
   const browser = await chromium.launch({ headless: true });
   try {
     await update('home', 'en', { title: titles.home }, '&draft=true');
-    await update('about', 'en', { title: titles.about }, '&draft=true');
+    await update('about', 'en', { firstParagraph: titles.about }, '&draft=true');
     await update('career', 'en', { jobs: originals.career.jobs.map((job: { role: string; summary?: string | null }) => ({ ...job, role: privateRole, summary: privateSummary })) }, '&draft=true');
     const context = await browser.newContext();
     await context.addCookies([{ name: cookie.split('=')[0], value: cookie.slice(cookie.indexOf('=') + 1), url: base }]);
@@ -611,14 +622,15 @@ test('authenticated previews load only the active source draft', { timeout: 60_0
     for (const slug of ['home', 'about'] as const) {
       const expectPageTitle = async (title: string) => {
         if (slug === 'about') {
-          await expect(page.locator('#career-story')).toHaveAttribute('aria-label', title);
+          await expect(page.locator('#career-story')).toHaveAttribute('aria-label', 'Experience');
+          await expect(page.locator('#career-story')).toContainText(title);
           await expect(page.locator('#career-story h1')).toHaveText('master');
         } else await expect(page.getByRole('heading', { level: 1 })).toHaveText(title);
       };
       const pathname = slug === 'home' ? '/en' : '/en/about';
       if (slug === 'about') {
         await page.goto(`${base}${pathname}?preview=1&previewSource=career`);
-        await expectPageTitle(published[slug].title);
+        await expectPageTitle(slug === 'about' ? published.about.firstParagraph : published.home.title);
         await expect(page.getByText(titles[slug], { exact: true })).toHaveCount(0);
         const careerPreview = page.getByRole('region', { name: 'Career', exact: true });
         await expect(careerPreview.locator('button[data-career-job]').first()).toContainText(privateRole);
@@ -641,7 +653,7 @@ test('authenticated previews load only the active source draft', { timeout: 60_0
         assert.ok([401, 403, 404].includes(anonymous.status), `Anonymous preview succeeded: ${pathname}${query}`);
       }
       await page.goto(`${base}${pathname}`);
-      await expectPageTitle(published[slug].title);
+      await expectPageTitle(slug === 'about' ? published.about.firstParagraph : published.home.title);
       await expect(page.getByText(privateSummary, { exact: true })).toHaveCount(0);
     }
     await context.close();

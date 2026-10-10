@@ -1,0 +1,32 @@
+name: AI visual review pending
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, edited]
+
+# Invalidate promptly without queuing behind paid review.
+concurrency:
+  group: ai-visual-review-pending-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pull-requests: read
+  statuses: write
+
+jobs:
+  pending:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+      - name: Invalidate stale AI approval for the literal current PR revision
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/visual-review/ai-review.mjs --invalidate

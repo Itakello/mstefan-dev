@@ -176,10 +176,10 @@ test.describe("Public website review", () => {
     await expect(desktop).toBeVisible();
     await showReviewStep(page, "2 · Work explorer and responsive preview toggle");
 
-    // 3. Open About and verify its portrait and biography.
-    await page.getByRole("link", { name: "About", exact: true }).click();
+    // 3. Open Experience and verify its portrait and biography.
+    await page.getByRole("link", { name: "Experience", exact: true }).click();
     await expect(page).toHaveURL(/\/en\/about$/);
-    await expect(page.locator("#career-story")).toHaveAttribute("aria-label", "About");
+    await expect(page.locator("#career-story")).toHaveAttribute("aria-label", "Experience");
     await expect(page.getByRole("heading", { level: 1, name: "master" })).toBeVisible();
     await expect(page.getByRole("img", { name: "Massimo Stefan standing in an elevator, holding a laptop" })).toBeVisible();
     const story = page.locator("#career-story");
@@ -203,7 +203,7 @@ test.describe("Public website review", () => {
     await aboutCareer.locator("[data-career-main-row]").click();
     await expect(story.getByRole("heading", { level: 1, name: "master" })).toBeVisible();
     await expect(story.getByRole("img", { name: "Massimo Stefan standing in an elevator, holding a laptop" })).toBeVisible();
-    await showReviewStep(page, "3 · About and portrait");
+    await showReviewStep(page, "3 · Experience and portrait");
 
     // 4. Toggle dark mode and verify the rendered theme state.
     await page.getByRole("button", { name: "Toggle theme" }).click();
@@ -214,7 +214,7 @@ test.describe("Public website review", () => {
     await page.getByRole("button", { name: "Select language" }).click();
     await page.getByRole("menuitemradio", { name: /Italiano/ }).click();
     await expect(page).toHaveURL(/\/it\/about$/);
-    await expect(page.locator("#career-story")).toHaveAttribute("aria-label", "Profilo");
+    await expect(page.locator("#career-story")).toHaveAttribute("aria-label", "Esperienza");
     await expect(page.getByRole("heading", { level: 1, name: "master" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Lavori", exact: true })).toBeVisible();
     await page.getByRole("link", { name: "Lavori", exact: true }).click();
@@ -290,7 +290,7 @@ test.describe("Public website review", () => {
     await page.goto("/en/projects");
     const selector = page.getByRole("combobox", { name: "Preview page", exact: true });
     await expect(selector).toHaveValue("0");
-    await expect(selector.getByRole("option")).toHaveText(["Homepage", "About", "Work"]);
+    await expect(selector.getByRole("option")).toHaveText(["Homepage", "Experience", "Work"]);
     const image = page.getByRole("img", { name: "Desktop: Screenshot of mstefan.dev", exact: true });
     const homepage = await image.getAttribute("src");
     await selector.focus();
@@ -353,10 +353,11 @@ test.describe("Public website review", () => {
       await page.setViewportSize({ width, height: 800 });
       const details = await page.locator("#selected-work-title").boundingBox();
       const panel = await stack.boundingBox();
-      expect((await stack.locator("[data-work-stack-scroll]").boundingBox())?.height).toBeCloseTo(158, 0);
+      if (width >= 640) expect((await stack.locator("[data-work-stack-scroll]").boundingBox())?.height).toBeCloseTo(158, 0);
       const section = await page.locator("section[aria-labelledby=selected-work-title]").boundingBox();
       expect(panel && section && Math.abs(panel.x + panel.width - section.x - section.width) < 2).toBeTruthy();
-      await expect(stack.getByRole("heading", { name: "Stack", exact: true })).toHaveCSS("text-align", "right");
+      await expect(stack.getByRole("heading", { name: "Stack", exact: true })).toHaveCSS("text-align", width >= 640 ? "right" : "left");
+      if (width < 640) expect(panel && section && Math.abs(panel.x - section.x) < 2).toBeTruthy();
       expect(details && panel && (width >= 640 ? panel.x >= details.x + details.width && Math.abs(panel.y - details.y) < 2 : panel.y > details.y + details.height)).toBeTruthy();
       await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
       if (width === 900) await page.screenshot({ path: ".artifacts/playwright/work-stack-medium.png", fullPage: true });
@@ -404,6 +405,7 @@ test.describe("Public website review", () => {
     expect(headerBox && itemBox && itemBox.y > headerBox.y && Math.abs(itemBox.x - headerBox.x) < 1).toBeTruthy();
     await page.setViewportSize({ width: 640, height: 800 });
     await expect.poll(() => scroller.evaluate(node => node.scrollWidth > node.clientWidth)).toBe(true);
+    await expect(scroller).toHaveAttribute("tabindex", "0");
     const lastIcon = stack.locator("summary").last();
     await lastIcon.focus();
     await expect(lastIcon).toBeVisible();
@@ -412,6 +414,12 @@ test.describe("Public website review", () => {
     await expect.poll(() => scroller.evaluate(node => node.scrollLeft > 0)).toBe(true);
     await scroller.evaluate(node => { node.scrollLeft = 0; });
     await expect(page.locator("[data-work-stack-label]")).toHaveCount(0);
+    await page.setViewportSize({ width: 320, height: 800 });
+    await expect.poll(() => scroller.evaluate(node => node.scrollWidth <= node.clientWidth + 1 && node.scrollHeight <= node.clientHeight + 1)).toBe(true);
+    await expect(scroller).toHaveJSProperty("tabIndex", -1);
+    const firstCategory = await columns.first().boundingBox();
+    const lastCategory = await columns.last().boundingBox();
+    expect(firstCategory && lastCategory && lastCategory.y > firstCategory.y).toBeTruthy();
     await writeFile(state, "empty");
     await page.reload();
     await expect(page.locator('[data-project-publication-status="empty"]')).toBeVisible();

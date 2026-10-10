@@ -40,7 +40,7 @@ pnpm dev
   :root { --accent: 350 89% 56%; }
   ```
 - **Home content**: `app/[locale]/page.tsx`.
-- **About**: `app/[locale]/about/page.tsx`.
+- **Experience**: `app/[locale]/about/page.tsx`.
 - **Contact links**: `components/Footer.tsx`.
 
 If you fork this repo, also update the hardcoded GitHub username used for repo fetching:
