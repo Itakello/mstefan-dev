@@ -1,0 +1,60 @@
+scripts/visual-review/package-evidence.mjs
+  s_ca9b05cd06e974::t_7001fd7139fe0e 34
+lib/i18n/copy.ts
+  s_ca9b05cd06e974::t_7001fd7139fe0e 73,168,269
+.github/workflows/website-previews.yml
+  s_ca9b05cd06e974::t_7001fd7139fe0e 1-86
+app/[locale]/projects/page.tsx
+  s_ca9b05cd06e974::t_7001fd7139fe0e 14,28-29,39-42
+lib/websiteScreenshots.ts
+  s_ca9b05cd06e974::t_7001fd7139fe0e 4,6
+tests/website-preview-verification.test.ts
+  s_ca9b05cd06e974::t_7001fd7139fe0e 1-25
+tests/website-showcase.test.ts
+  s_ca9b05cd06e974::t_7001fd7139fe0e 7,125-179
+components/WorkExplorer.tsx
+  s_ca9b05cd06e974::t_7001fd7139fe0e 34,92-93,102,175-180
+scripts/website-preview-network.ts
+  s_ca9b05cd06e974::t_7001fd7139fe0e 1-43
+lib/websiteShowcase.ts
+  s_ca9b05cd06e974::t_7001fd7139fe0e 6,8-16,18-21,23-35,45,62-70
+tests/website-previews/network.test.mts
+  s_ca9b05cd06e974::t_7001fd7139fe0e 1-73
+lib/notion.ts
+  s_ca9b05cd06e974::t_7001fd7139fe0e 2,20,121-128,162
+README.md
+  s_ca9b05cd06e974::t_7001fd7139fe0e 67,79-85
+scripts/capture-website-previews.ts
+  s_ca9b05cd06e974::t_7001fd7139fe0e 6,8,14-20,26-27,30,32,42-43
+lib/projectPublication.ts
+  s_ca9b05cd06e974::t_7001fd7139fe0e 12
+lib/publicProjects.ts
+  s_ca9b05cd06e974::t_7001fd7139fe0e 43
+scripts/verify-website-previews.ts
+  s_ca9b05cd06e974::t_7001fd7139fe0e 1-24
+e2e/mstefan-site.review.spec.ts
+  s_ca9b05cd06e974::t_7001fd7139fe0e 7-8,264-291
+  s_ca9b05cd06e974::t_14f209409fbcb6 4,292-293
+tests/cms/notion-publication-fixture.mjs
+  s_ca9b05cd06e974::t_7001fd7139fe0e 31,40-41
+specs/mstefan-site-review.md
+  s_ca9b05cd06e974::t_7001fd7139fe0e 28
+tests/website-preview-network.test.ts
+  s_ca9b05cd06e974::t_7001fd7139fe0e 1-14
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b64127a88c98f12bfd997ee24eeceb4d93355ba7",
+  "prompts": {},
+  "sessions": {
+    "s_ca9b05cd06e974": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a125e2-8a12-72c0-9b0f-65ad915684a2",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
