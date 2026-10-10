@@ -960,3 +960,30 @@ test('active release drift after public probing withdraws publication and stops 
   assert.equal(f.gateway.enabled, false);
   assert.ok(!f.calls.some(c => c.body?.state === 'success'));
 });
+
+
+test('close and retarget stop owned runtimes even when the retained gateway recipe is invalid', async () => {
+  for (const retarget of [false, true]) {
+    const f = fixture({ existing: true, gateway: { ...gatewayProject, activeDeploymentId: 'dep_old_gateway' },
+      gatewayService: { ...gatewayService(42), id: 'svc_gateway', projectId: gatewayProject.id, image: 'nginx:latest' } });
+    if (retarget) f.pr.base.ref = 'feature/other'; else f.pr.state = 'closed';
+    assert.equal((await runPreview(f.args)).state, 'closed');
+    assert.equal(f.gateway.enabled, false);
+    assert.equal(f.project.enabled, false);
+    assert.deepEqual(f.project.volumes, ['data:/data']);
+  }
+});
+
+test('gateway cleanup failure still stops the independent owned app and never claims inactive completion', async () => {
+  const f = fixture({ existing: true, gateway: gatewayProject });
+  f.pr.state = 'closed';
+  const ship = f.args.ship;
+  f.args.ship = async (name, args) => {
+    if (name === 'get_projects_by_id_deployments' && args.id === gatewayProject.id) throw new Error('Gateway history unavailable');
+    return ship(name, args);
+  };
+  await assert.rejects(runPreview(f.args), /Gateway history unavailable/);
+  assert.equal(f.gateway.enabled, false);
+  assert.equal(f.project.enabled, false);
+  assert.ok(!f.calls.some(c => c.body?.state === 'inactive'));
+});

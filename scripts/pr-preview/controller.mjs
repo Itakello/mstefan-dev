@@ -221,17 +221,19 @@ export async function runPreview({ number, templateId, seed, gh, ship, cf, probe
 
   async function close(publicRevoked = false) {
     if (!publicRevoked) await revokePublic();
-    gateway ??= await findGateway();
-    if (gateway) {
-      const services = (await ship('get_projects_by_id_services', { id: gateway.id })).services;
-      assert(Array.isArray(services) && services.length <= 1, 'Gateway service list changed');
-      services.forEach(validateGatewayService);
-      await settleHistory(gateway, 'production');
-      await disableGateway(services);
-    }
-    if (project) {
-      await settleHistory();
-      await disableApp();
+    try {
+      gateway ??= await findGateway();
+      if (gateway) {
+        const services = (await ship('get_projects_by_id_services', { id: gateway.id })).services;
+        assert(Array.isArray(services) && services.every(s => s.projectId === gateway.id && typeof s.id === 'string' && ID.test(s.id)), 'Gateway cleanup service identity mismatch');
+        try { await settleHistory(gateway, 'production'); }
+        finally { await disableGateway(services); }
+      }
+    } finally {
+      if (project) {
+        await settleHistory();
+        await disableApp();
+      }
     }
     for (let page = 1; page <= 10; page++) {
       const deployments = await gh('GET', `/repos/${REPO}/deployments?environment=${envName}&per_page=100&page=${page}`);
