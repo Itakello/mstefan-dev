@@ -85,6 +85,7 @@ for (const theme of ["light", "dark"] as const) {
         const badge = page.locator('section[aria-labelledby="selected-work-title"]').getByText(category, { exact: true });
         await expect(badge).toBeVisible();
         await expect(badge).toHaveCSS("border-top-width", "1px");
+        await expect(badge).toHaveCSS("font-family", await page.locator("main").evaluate(node => getComputedStyle(node).fontFamily));
         const contrast = await badge.evaluate(node => {
           const canvas = document.createElement("canvas");
           canvas.width = canvas.height = 1;
