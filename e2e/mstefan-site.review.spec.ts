@@ -122,7 +122,8 @@ test.describe("Public website review", () => {
       expect(accomplishment.y + accomplishment.height).toBeLessThan(links.y);
     }
     await page.setViewportSize({ width: 1280, height: 720 });
-    await expect(page.getByText("Research · 2024", { exact: true })).toBeVisible();
+    await expect(page.locator('section[aria-labelledby="selected-work-title"] .work-category')).toHaveText("Research");
+    await expect(page.locator('section[aria-labelledby="selected-work-title"]').getByText("2024", { exact: true })).toBeVisible();
     const reader = page.getByRole("region", { name: "LLM Interaction Simulator: Document reader", exact: true });
     await expect(reader.locator(".media-caption").filter({ hasText: "1 / 2" })).toBeVisible();
     await expect(reader.getByRole("status")).toHaveCount(0);
@@ -370,6 +371,7 @@ test.describe("Public website review", () => {
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     await page.goto("/it/projects");
     await page.getByRole("combobox", { name: "Scegli un progetto" }).selectOption({ label: "mstefan.dev" });
+    await expect(page.locator('section[aria-labelledby="selected-work-title"] .work-category')).toHaveText("Sito web");
     await expect(page.getByRole("group", { name: "Pagina anteprima", exact: true })).toContainText("Pagina iniziale · 1 / 3");
     await page.getByRole("button", { name: "Anteprima successiva", exact: true }).click();
     await expect(page.getByRole("group", { name: "Pagina anteprima", exact: true })).toContainText("Esperienza · 2 / 3");

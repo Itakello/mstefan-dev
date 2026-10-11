@@ -114,7 +114,7 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
   const visitUrl = websitePreviewUrl(selected, locale);
   const groups = groupStackEntries(resolveProjectStack(projectStackLabels(selected), stackCatalog.entries));
   const hasStackColumn = groups.length > 0 || Boolean(stackCatalog.message);
-  const metadata = [selected.type ? copy.work.types[selected.type] : undefined, selected.year, groups.length ? undefined : selected.language].filter(Boolean);
+  const metadata = [selected.year, groups.length ? undefined : selected.language].filter(Boolean);
   const linkClass = `inline-flex items-center gap-2 text-sm font-medium ${ICON_LINK_COLOR_CLASS}`;
   const selectProject = (id: string) => { setSelectedId(id); setDocumentKind("photos"); setPageIndex(0); };
   const changePreview = (direction: number) => {
@@ -140,7 +140,7 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
         {items.map(item => <button key={item.id} type="button" onClick={() => selectProject(item.id)}
           aria-label={copy.websites.selectSite(item.name)} aria-current={item.id === selected.id ? "true" : undefined}
           className={`block w-full border-b border-black/10 px-4 py-3 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[hsl(var(--accent))] dark:border-white/10 ${item.id === selected.id ? "border-l-4 border-l-[hsl(var(--accent))] bg-[hsl(var(--accent)/0.05)]" : "hover:bg-black/[0.03] dark:hover:bg-white/5"}`}>
-          <span className="flex flex-wrap items-center gap-2"><span className="font-semibold [overflow-wrap:anywhere]">{item.name}</span>{item.type && <span className="rounded-full border border-black/10 px-2 py-0.5 text-[10px] font-medium text-black/60 dark:border-white/15 dark:text-white/60">{copy.work.types[item.type]}</span>}</span>
+          <span className="flex flex-wrap items-center gap-2"><span className="font-semibold [overflow-wrap:anywhere]">{item.name}</span>{item.type && <span className="work-category" data-category={item.type}>{copy.work.types[item.type]}</span>}</span>
           <span className="mt-1 line-clamp-1 text-sm leading-5 text-black/60 dark:text-white/60">{item.shortDescription || item.description}</span>
         </button>)}
       </nav>
@@ -148,7 +148,10 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
         <div className={`grid ${hasStackColumn ? "grid-cols-1 gap-4 sm:grid-cols-[minmax(0,1fr)_minmax(112px,45%)] sm:gap-6" : "grid-cols-1"}`}>
           <div className="min-w-0">
             <h2 id="selected-work-title" className="text-2xl font-semibold tracking-tight [overflow-wrap:anywhere]">{selected.name}</h2>
-            {metadata.length > 0 && <p className="mt-2 text-xs text-black/55 dark:text-white/55">{metadata.join(" · ")}</p>}
+            {(selected.type || metadata.length > 0) && <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-black/55 dark:text-white/55">
+              {metadata.length > 0 && <span>{metadata.join(" · ")}</span>}
+              {selected.type && <span className="work-category" data-category={selected.type}>{copy.work.types[selected.type]}</span>}
+            </div>}
             <p className="mt-3 max-w-2xl whitespace-pre-line text-sm leading-6 text-black/70 dark:text-white/70">{selected.description}</p>
             {selected.publication && <p className="mt-3 flex min-w-0 items-center gap-2 text-sm text-black/65 dark:text-white/65">
               <Trophy size={16} className="shrink-0 text-[hsl(var(--accent))]" aria-hidden />
