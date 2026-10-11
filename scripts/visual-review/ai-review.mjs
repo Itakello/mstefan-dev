@@ -134,6 +134,10 @@ export function attendedAllowance(env, event, pr, now = Date.now()) {
   ensure([138,135].includes(pr.number) && Number.isFinite(now) && now < Date.parse('2026-10-12T20:59:00Z'), 'Attended allowance expired or outside approved PRs');
   return 2000000;
 }
+export function budgetTime(env, event, pr, now = Date.now()) {
+  // Freeze the historical window so expiry cannot replenish the one-time $2 allowance.
+  return attendedAllowance(env,event,pr,now) ? Date.parse('2026-10-11T21:30:00Z') : now;
+}
 export function checkBudget(history, plannedMicroUsd = 0, extraMicroUsd = 0) {
   ensure(extraMicroUsd === 0 || extraMicroUsd === 2000000, 'Invalid attended allowance');
   if (plannedMicroUsd) validReservation(plannedMicroUsd);
@@ -180,7 +184,13 @@ async function settledCost(github, run, job, paid, reserved, trustedSha) {
     // A reviewed immutable recovery may be squash-merged; identical trusted engine/workflow blobs preserve its provenance.
     for (const path of ['.github/workflows/ai-visual-review.yml','scripts/visual-review/ai-review.mjs','scripts/visual-review/recovery.mjs']) {
       const historical = await github(`/contents/${path}?ref=${run.head_sha}`), trusted = await github(`/contents/${path}?ref=${trustedSha}`);
-      ensure(historical.type === 'file' && historical.sha === trusted.sha, 'Untrusted usage producer contents');
+      ensure(historical.type === 'file' && trusted.type === 'file', 'Untrusted usage producer contents');
+      if (historical.sha !== trusted.sha) {
+        ensure(path === '.github/workflows/ai-visual-review.yml' && historical.encoding === 'base64' && trusted.encoding === 'base64', 'Untrusted usage producer contents');
+        const wrapper = Buffer.from(historical.content,'base64').toString('utf8');
+        const engineWorkflow = Buffer.from(trusted.content,'base64').toString('utf8');
+        ensure(wrapper === engineWorkflow.replace(/          ref: [a-f0-9]{40}\n/, `          ref: ${trustedSha}\n`), 'Untrusted usage producer contents');
+      }
     }
   }
   const log = await github(`/actions/jobs/${job.id}/logs`,{raw:true,accept:'application/vnd.github.raw+json'});
@@ -312,7 +322,7 @@ export async function main({env = process.env, fetcher = fetch, invalidate = fal
       ensure(env.ENABLED === 'true' || env.GITHUB_EVENT_NAME === 'workflow_dispatch','Automatic AI review disabled; activation proof required');
       ensure(env.GITHUB_RUN_ATTEMPT === '1','Reruns do not issue another model request');
       validReservation(prepared.reservedMicroUsd);
-      checkBudget(await paidAttempts(github,Date.now(),env.GITHUB_RUN_ID,prepared.reservedMicroUsd,trustedSha),0,attendedAllowance(env,event,pr));
+      checkBudget(await paidAttempts(github,budgetTime(env,event,pr),env.GITHUB_RUN_ID,prepared.reservedMicroUsd,trustedSha),0,attendedAllowance(env,event,pr));
       pr = await github(`/pulls/${pr.number}`); ensure(currentRevision(pr,repository,sha,base),'Revisions changed before request');
       await status('pending','request claimed; no retries');
       const response = await modelReview(prepared.body,env.OPENAI_API_KEY,fetcher,prepared.reservedMicroUsd);
@@ -359,7 +369,7 @@ export async function main({env = process.env, fetcher = fetch, invalidate = fal
       const body = requestBody(`Base DESIGN.md:\n${design}\nBase AGENTS.md:\n${agents}\nBase .github/PR_POLICY.md:\n${policy}\nExact diff ${base}...${sha}:\n${diff}\nCurrent captures:\n${names.join('\n')}`,images);
       pr = await github(`/pulls/${pr.number}`); ensure(currentRevision(pr,repository,sha,base),'Revisions changed before request');
       const reservedMicroUsd = await reviewBudget(body,env.OPENAI_API_KEY,fetcher);
-      checkBudget(await paidAttempts(github,Date.now(),undefined,undefined,trustedSha),reservedMicroUsd,attendedAllowance(env,event,pr));
+      checkBudget(await paidAttempts(github,budgetTime(env,event,pr),undefined,undefined,trustedSha),reservedMicroUsd,attendedAllowance(env,event,pr));
       pr = await github(`/pulls/${pr.number}`); ensure(currentRevision(pr,repository,sha,base),'Revisions changed before preparation');
       writeFileSync(join(env.RUNNER_TEMP,'ai-visual-request.json'),JSON.stringify({sha,base,sourceRun:run.id,names,body,reservedMicroUsd}),{mode:0o600});
       appendFileSync(env.GITHUB_OUTPUT,`reserved_micro_usd=${reservedMicroUsd}\nready=true\n`);

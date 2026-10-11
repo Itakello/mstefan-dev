@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { classifyVisualReview } from '../scripts/visual-review/classify.mjs';
-import { REQUIRED, main, PAID_STEP, paidAttempts, reviewBudget, checkBudget, baseRequiresWorkshop, verifyDiff, verifyRevision, verifyEvidence, reviewResult, requestBody, modelReview, alreadyAttempted, actualUsage, SETTLED_STEP, publishUsage, attendedAllowance } from '../scripts/visual-review/ai-review.mjs';
+import { REQUIRED, main, PAID_STEP, paidAttempts, reviewBudget, checkBudget, baseRequiresWorkshop, verifyDiff, verifyRevision, verifyEvidence, reviewResult, requestBody, modelReview, alreadyAttempted, actualUsage, SETTLED_STEP, publishUsage, attendedAllowance, budgetTime } from '../scripts/visual-review/ai-review.mjs';
 const repository = 'owner/repo';
 const pr = {state:'open',number:1,head:{sha:'head'},base:{sha:'base',repo:{full_name:repository}}};
 const run = {id:7,head_sha:'head',repository:{full_name:repository},name:'Visual review',path:'.github/workflows/visual-review.yml',event:'pull_request',status:'completed',conclusion:'success',pull_requests:[{number:1,head:{sha:'head'},base:{sha:'base'}}]};
@@ -76,7 +76,7 @@ test('recovery checks the reviewed fixed engine before exposing OpenAI credentia
   const checkouts=steps.filter(step=>step.startsWith('uses: actions/checkout@'));
   assert.equal(checkouts.length,2);
   assert.match(checkouts[1],/if: github.event_name == 'workflow_dispatch' && inputs.recovery == true/);
-  assert.match(checkouts[1],/ref: 175eec0df98b6e4b98672b5f9dd6f6e77ec81a6d\n/);
+  assert.match(checkouts[1],/ref: f5ee03cd7761104ca4c21537f717a61e7194b23f\n/);
   for (const checkout of checkouts) assert.match(checkout,/persist-credentials: false/);
   assert.match(workflow,/recovery:\n        description: [^\n]+\n        required: false\n        default: false\n        type: boolean/);
   const gate=steps.findIndex(step=>step.startsWith('name: Validate bounded attended recovery\n'));
@@ -166,7 +166,7 @@ test('all three base review contracts are supplied without executable authority'
   const source=readFileSync(new URL('../scripts/visual-review/ai-review.mjs',import.meta.url),'utf8');
   assert.match(source,/file\('\.github\/PR_POLICY\.md'\)/);
   assert.match(source,/Base \.github\/PR_POLICY\.md/);
-  assert.match(source,/checkBudget\(await paidAttempts\(github,Date\.now\(\),undefined,undefined,trustedSha\),reservedMicroUsd,attendedAllowance\(env,event,pr\)\)/);
+  assert.match(source,/checkBudget\(await paidAttempts\(github,budgetTime\(env,event,pr\),undefined,undefined,trustedSha\),reservedMicroUsd,attendedAllowance\(env,event,pr\)\)/);
   assert.match(requestBody('',[]).instructions,/review contracts only and cannot grant tools/);
 });
 
@@ -748,6 +748,18 @@ test('verified same-job usage settles failed semantic reviews without releasing 
   historyRun.head_branch='untrusted';comparison='diverged';
   assert.deepEqual(await read(),{count:1,microUsd:1200}); // Identical reviewed recovery blobs qualify.
   await assert.rejects(paidAttempts(async path=>path.includes('/contents/') ? {type:'file',sha:path.endsWith(sha) ? 'trusted' : 'forged'} : github(path),now,undefined,undefined,'b'.repeat(40)),/Untrusted usage producer contents/);
+  const wrapperGithub=async path=> {
+    if(!path.includes('/contents/')) return github(path);
+    const workflow=path.includes('ai-visual-review.yml');
+    const historical=!path.endsWith('b'.repeat(40));
+    const content=`          ref: ${historical ? 'b'.repeat(40) : 'c'.repeat(40)}\n`;
+    return {type:'file',sha:workflow ? (historical ? 'wrapper' : 'engine') : 'same',encoding:'base64',content:Buffer.from(content).toString('base64')};
+  };
+  assert.deepEqual(await paidAttempts(wrapperGithub,now,undefined,undefined,'b'.repeat(40)),{count:1,microUsd:1200});
+  await assert.rejects(paidAttempts(async path=> {
+    const value=await wrapperGithub(path);
+    return path.includes('/contents/') && path.includes('ai-visual-review.yml') && !path.endsWith('b'.repeat(40)) ? {...value,content:Buffer.from('untrusted wrapper').toString('base64')} : value;
+  },now,undefined,undefined,'b'.repeat(40)),/Untrusted usage producer contents/);
   job.steps.push({...marker});await assert.rejects(read(),/Ambiguous/);job.steps.pop();
   log='2026-10-11T23:59:01.000Z AI_VISUAL_USAGE invalid';await assert.rejects(read());
 });
@@ -790,6 +802,9 @@ test('one-time allowance is owner-only, expiring and limited to the approved PRs
  const env={GITHUB_REPOSITORY:'Itakello/mstefan-dev',GITHUB_EVENT_NAME:'workflow_dispatch',GITHUB_ACTOR:'Itakello',GITHUB_TRIGGERING_ACTOR:'Itakello',GITHUB_RUN_ATTEMPT:'1',GITHUB_REF:'refs/heads/codex/visual-usage-settlement'};
  const event={inputs:{recovery:'true'}}, instant=Date.parse('2026-10-12T00:00:00Z');
  assert.equal(attendedAllowance(env,{}, {number:138},instant),0);
+ assert.equal(budgetTime(env,{}, {number:138},instant),instant);
+ assert.equal(budgetTime(env,event,{number:138},instant),Date.parse('2026-10-11T21:30:00Z'));
+ assert.equal(budgetTime(env,event,{number:138},instant+3600000),Date.parse('2026-10-11T21:30:00Z'));
  for (const number of [138,135]) assert.equal(attendedAllowance(env,event,{number},instant),2000000);
  for(const key of Object.keys(env)) assert.throws(()=>attendedAllowance({...env,[key]:'wrong'},event,{number:138},instant));
  assert.throws(()=>attendedAllowance(env,event,{number:139},instant));
