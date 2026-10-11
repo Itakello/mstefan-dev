@@ -1,0 +1,34 @@
+components/WorkExplorer.tsx
+  s_a3d57fd6983d88::t_d3887ce63345f6 222-224
+components/DocumentPreview.tsx
+  s_a3d57fd6983d88::t_d3887ce63345f6 115,134-137,143
+  s_a3d57fd6983d88::t_d16fe8ec1b22fe 133
+public/presentations/physiq/index.html
+  s_a3d57fd6983d88::t_d3887ce63345f6 1-9
+app/globals.css
+  s_a3d57fd6983d88::t_d3887ce63345f6 342-344,358,413-414
+lib/powerPointPreview.ts
+  s_a3d57fd6983d88::t_d3887ce63345f6 10-16
+components/PowerPointPreview.tsx
+  s_a3d57fd6983d88::t_d3887ce63345f6 2,4,13-23,26,31
+tests/powerpoint-preview.test.ts
+  s_a3d57fd6983d88::t_b362a4a25edd0d 3,13-17
+tests/presentation-counter.test.mjs
+  s_a3d57fd6983d88::t_49d621e07166f0 1-24
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "5eceae644bd616bddf156e2cefac7fd2dda0c018",
+  "prompts": {},
+  "sessions": {
+    "s_a3d57fd6983d88": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a125dc-d51e-7583-9ad7-4135793b24dc",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
