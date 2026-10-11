@@ -201,6 +201,7 @@ export async function main({env = process.env, fetcher = fetch, invalidate = fal
       const prepared = JSON.parse(readFileSync(join(env.RUNNER_TEMP,'ai-visual-request.json'),'utf8'));
       ensure(prepared.sha === sha && prepared.base === base && prepared.sourceRun === run.id, 'Prepared revision mismatch');
       ensure(await paidAttempts(github,Date.now(),env.GITHUB_RUN_ID) <= 5, 'Rolling 24h paid attempt cap reached');
+      pr = await github(`/pulls/${pr.number}`); ensure(pr.head.sha === sha && pr.base.sha === base,'Revisions changed before request');
       await status('pending','request claimed; no retries');
       const result = reviewResult(await modelReview(prepared.body,env.OPENAI_API_KEY,fetcher),prepared.names);
       pr = await github(`/pulls/${pr.number}`); ensure(pr.head.sha === sha && pr.base.sha === base,'Revisions changed during review');

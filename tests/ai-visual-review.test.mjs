@@ -360,3 +360,42 @@ with zipfile.ZipFile(sys.argv[1]+'/fixture.zip','w') as z:
     assert.equal(calls.some(url=>url.includes('/jobs?') || url.startsWith('https://api.openai.com')),false);
   } finally {rmSync(directory,{recursive:true,force:true});}
 });
+
+
+test('revision changes during budget history or job lookup cannot claim or call the model', async () => {
+  const {mkdtempSync,writeFileSync,rmSync}=await import('node:fs');
+  const {tmpdir}=await import('node:os');
+  const {join}=await import('node:path');
+  const directory=mkdtempSync(join(tmpdir(),'visual-budget-retarget-'));
+  try {
+    const event=join(directory,'event.json');
+    writeFileSync(event,JSON.stringify({inputs:{source_run_id:'7'}}));
+    writeFileSync(join(directory,'ai-visual-request.json'),JSON.stringify({sha:'head',base:'base',sourceRun:7,names:REQUIRED,body:requestBody('',[])}));
+    const env={GITHUB_REPOSITORY:repository,GITHUB_EVENT_PATH:event,GITHUB_EVENT_NAME:'workflow_dispatch',GITHUB_RUN_ATTEMPT:'1',GITHUB_RUN_ID:'5',RUNNER_TEMP:directory,OPENAI_API_KEY:'opaque'};
+    for(const changed of ['head','base']) for(const during of ['history','jobs']) {
+      let retargeted=false;
+      const calls=[],writes=[];
+      const fetcher=async(url,options)=>{
+        calls.push(url);
+        if(options.method==='POST') {writes.push(JSON.parse(options.body));return new Response('{}');}
+        let response;
+        if(url.endsWith('/actions/runs/7')) response=run;
+        else if(url.endsWith('/pulls/1')) response={...pr,...(retargeted ? {[changed]:{...pr[changed],sha:'new-revision'}} : {}),changed_files:1,labels:[]};
+        else if(url.includes('/statuses?')) response=[];
+        else if(url.includes('/pulls/1/files?')) response=[{filename:'components/Header.tsx',additions:1,deletions:1}];
+        else if(url.includes('/workflows/ai-visual-review.yml/runs?')) {
+          if(during==='history') retargeted=true;
+          response={total_count:1,workflow_runs:[{id:5,status:'in_progress',updated_at:new Date().toISOString()}]};
+        } else if(url.includes('/jobs?')) {
+          if(during==='jobs') retargeted=true;
+          response={total_count:1,jobs:[{steps:[{name:PAID_STEP,status:'in_progress',conclusion:null,started_at:new Date().toISOString()}]}]};
+        } else throw new Error(`Unexpected endpoint ${url}`);
+        return new Response(JSON.stringify(response));
+      };
+      await assert.rejects(main({env,fetcher,request:true}),/Revisions changed before request/);
+      assert.equal(retargeted,true);
+      assert.equal(calls.some(url=>url.startsWith('https://api.openai.com')),false);
+      assert.equal(writes.some(status=>status.description.includes('request claimed')),false);
+    }
+  } finally {rmSync(directory,{recursive:true,force:true});}
+});
