@@ -40,7 +40,7 @@ export function AboutContent({ content, career, locale }: Props) {
               <p className={styles.metadata}><span>{selected.role}</span>{results.map((document) => {
                 const file = document.file;
                 if (!file || typeof file !== "object" || !file.url) return null;
-                return <a key={document.id || file.id} href={file.url} download={file.filename} className={styles.results} aria-label={`${locale === "it" ? "Scarica" : "Download"} ${document.title} (PDF)`}><Download size={14} aria-hidden="true" />{locale === "it" ? "Risultati" : "Results"}</a>;
+                return <a key={document.id || file.id} href={file.url} download={file.filename} className={styles.results} aria-label={`${locale === "it" ? "Scarica" : "Download"} ${document.title} (PDF)`}><Download size={14} aria-hidden="true" />{locale === "it" ? "Scarica" : "Download"}</a>;
               })}</p>
               {selected.summary && <p className={styles.summary}>{selected.summary}</p>}
             </> : <>
