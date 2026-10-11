@@ -65,7 +65,7 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           ENABLED: ${{ vars.MSTEFAN_AI_VISUAL_REVIEW_ENABLED }}
         run: node scripts/visual-review/ai-review.mjs --request
-      - name: Settle paid AI visual review usage (${{ steps.paid.outputs.settled_micro_usd }} microUSD)
+      - name: Report actual AI visual review usage (${{ steps.paid.outputs.settled_micro_usd }} microUSD)
         if: always() && steps.paid.outputs.settled_micro_usd != ''
         run: node scripts/visual-review/ai-review.mjs --settle
       - name: Remove prepared request
