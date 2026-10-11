@@ -28,6 +28,36 @@ Do not copy canonical private page bodies, relations, production account credent
 
 A refresh replaces Staging experiments with a fresh production snapshot. It is explicitly requested and attended; no scheduler keeps Staging synchronized. CMS and Notion are separate stores, so keep Staging stopped until both are reconciled and verified.
 
+### Supported command
+
+Run on the verified Docker/OpenShip host as root, from a trusted checkout containing both `deploy/payload-production` and `deploy/event`. The command reuses the active Staging image; it does not pull source or rebuild. Keep other attended deployment/host writers and Notion editors out of the refresh window. It holds the production event controller's existing lock for the whole operation; that lock does not control arbitrary host processes or provider-console operators.
+
+```sh
+python3 deploy/payload-production/staging_refresh.py plan --credentials-file /run/mstefan-staging-refresh/credentials.json
+python3 deploy/payload-production/staging_refresh.py apply --credentials-file /run/mstefan-staging-refresh/credentials.json
+```
+
+`plan` performs reads without signing in, stopping runtimes, creating a snapshot, checkpointing SQLite or changing Notion. `apply` generates a unique run ID, snapshots production during a brief stop, restarts and checks production, prepares a new isolated volume, reconciles Notion, cuts over Staging and verifies readiness. Its private journal and recovery archive remain under `/var/backups/mstefan-payload/staging-refresh/<run-id>`. A reported `ready` includes dedicated sign-in, both locales' globals/pages, Projects and Stack rendering, upload hashes, the retained image/commit and sole writer. It leaves recovery volumes and Notion Trash intact.
+
+Prepare the credential bundle through protected 1Password transport in a root-owned mode-0700 temporary directory; the JSON file must have mode 0600 and exactly these keys:
+
+- `openship`: project/deployment reads for Production and Staging, plus only Staging mount update and native refresh where installed permission granularity permits.
+- `notion_source`: read-only access to the two production source databases.
+- `notion_target`: a separate attended operator connection with read/insert/update content access to only the two Staging databases, including Trash/restore. Do not broaden the website's read-only connection.
+- `staging_email` and `staging_password`: the dedicated Staging CMS login from 1Password.
+
+Credentials are execution prerequisites, not supplied by the repository. Do not reuse the revoked setup token, place values in arguments/logs, or save a broad provider token as a workaround. Remove the exact temporary bundle after the attended command finishes. `plan` cannot prove write capability without a mutation; missing write access fails the apply and enters recovery.
+
+Preflight compares migration/dependency/startup Git identities and WAL-aware SQLite schema/applied migration signatures. Migration, lockfile or startup changes refuse refresh until Staging is aligned and verified. Other protected configuration differences require an independent compatibility review in root-owned mode-0600 `/etc/mstefan-staging-refresh/compatibility.json`. The receipt contains exact `production` and `staging` objects with `commit` and `image`, the full sorted `reviewed_paths`, `standards: clean`, `spec: clean`, and Unix `expires_at` within seven days. A receipt only clears reviewed source differences; it never waives the SQLite or restore integrity checks. Labels/test-only changes can be reviewed without rebuilding Staging. Unfamiliar hooks, validation or schema-generating changes cannot be inferred safe from equal database schemas.
+
+Failures attempt bounded recovery before returning nonzero. An interrupted or uncertain native submission is never blindly repeated; Staging can remain stopped with `recovery_required`. Once its exact provider outcome is terminal and identified, recover the retained run:
+
+```sh
+python3 deploy/payload-production/staging_refresh.py rollback --run-id <exact-reported-run-id> --credentials-file /run/mstefan-staging-refresh/credentials.json
+```
+
+An unknown Notion creation result or native submission with no returned ID requires operator reconciliation. Inspect the exact provider result and protected journal; do not erase the pending intent or repost to force progress. `rollback` recovers unfinished runs, not later experiments after a successful refresh. The following steps describe the underlying operation and attended recovery boundaries.
+
 1. Verify the exact production and Staging deployment containers, their mounted volumes, all writers and current restart policies. Preserve Staging's current volume, dedicated accounts, deployment configuration and copied Notion property values/page IDs for recovery. Refuse ambiguous identities, shared volumes or multiple writers.
 2. Stop every production writer, temporarily disable automatic restarts and verify they remain stopped. Run [the backup command](BACKUP.md#manual-backup) with a **new run ID** and a private output directory. Verify success, then restore the recorded production restart policies and restart production. Confirm the public site works before continuing. An existing run ID returns its old archive rather than taking a fresh snapshot.
 3. Stop every Staging writer and disable automatic restarts. Checkpoint its SQLite WAL with `PRAGMA wal_checkpoint(TRUNCATE)` while stopped; verify completion and no nonempty WAL/SHM/journal sidecars. Create a fresh empty target volume, separate from production, existing Staging and the archive. Prepare it using the supported command below; the paths and run ID must refer to the verified snapshot and account donor.
