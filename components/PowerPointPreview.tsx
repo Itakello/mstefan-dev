@@ -13,7 +13,7 @@ export function PowerPointPreview({ url, title, locale, previewUrl, enlarge }: {
   const italian = locale === "it";
   return <section data-powerpoint-preview aria-label={`${title}: PowerPoint`}>
     <div className="media-caption">{title}</div>
-    {viewer ? <div data-preview-stage className="media-frame"><iframe ref={frame} src={viewer} title={`${title}: PowerPoint`} allow="autoplay; fullscreen" allowFullScreen loading="lazy" className="aspect-video w-full border-0" />
+    {viewer ? <div data-preview-stage className="media-frame"><iframe ref={frame} src={viewer} title={`${title}: PowerPoint`} allow="autoplay; fullscreen" allowFullScreen loading="lazy" className="block aspect-video w-full border-0" />
       {enlarge}
       <PreviewArrows previous={italian ? "Passaggio precedente" : "Previous step"} next={italian ? "Passaggio successivo" : "Next step"} onPrevious={() => advance("ArrowLeft")} onNext={() => advance("ArrowRight")} />
       </div>

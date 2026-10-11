@@ -33,7 +33,7 @@ function ScreenshotPreview({ url, title, mobile, unavailable, direction, onSize 
       variants={{ enter: (step: number) => ({ x: reducedMotion ? 0 : `${step * 100}%` }), exit: (step: number) => ({ x: reducedMotion ? 0 : `${step * -100}%` }) }}
       initial="enter" animate={{ x: 0 }} exit="exit" transition={{ duration: reducedMotion ? 0 : 0.26, ease: [0.22, 0.61, 0.36, 1] }}>
       {failed ? <p role="status" className="text-sm text-black/60 dark:text-white/60">{unavailable}</p> : <img ref={image} src={url} alt={title} width={mobile ? 390 : 1280} height={mobile ? 844 : 800}
-        className="h-full w-auto max-w-full rounded-xl border border-black/10 object-contain dark:border-white/15"
+        className="h-full w-auto max-w-full object-contain"
         draggable={false} onLoad={event => { if (present) onSize(event.currentTarget.naturalWidth / event.currentTarget.naturalHeight); }} onError={() => setFailed(true)} />}
     </motion.div>
   );
@@ -203,7 +203,7 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
             {previewPages && (previewPages.length > 1 || selected.previewImages?.length) && <div role="group" aria-label={copy.work.previewPage} className="media-caption">
               <span aria-live="polite" aria-atomic="true">{selectedPage.label} <span className="text-[var(--page-muted)]">· {pageIndex + 1} / {previewPages.length}</span></span>
             </div>}
-            <div data-work-preview data-preview-stage className="media-frame mx-auto" style={{ touchAction: "pan-y pinch-zoom", aspectRatio: imageRatio, width: `min(100%, calc(min(620px, 70svh) * ${imageRatio}))`, "--preview-ratio": imageRatio } as CSSProperties}
+            <div data-work-preview data-preview-stage className="media-frame mx-auto" style={{ touchAction: "pan-y pinch-zoom", width: `min(100%, calc(min(620px, 70svh) * ${imageRatio} + 24px))`, "--preview-ratio": imageRatio } as CSSProperties}
               onTouchStart={event => { swipeStart.current = event.touches.length === 1 && window.matchMedia("(max-width: 639px)").matches ? { x: event.touches[0].clientX, y: event.touches[0].clientY } : null; }}
               onTouchCancel={() => { swipeStart.current = null; }}
               onTouchEnd={event => {
@@ -214,9 +214,11 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
                 const dy = event.changedTouches[0].clientY - start.y;
                 if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5) changePreview(dx < 0 ? 1 : -1);
               }}>
+              <div className="relative overflow-hidden" style={{ aspectRatio: imageRatio }}>
               <AnimatePresence key={`${selected.id}-${mobile}`} initial={false} custom={pageDirection}>
                 <ScreenshotPreview key={screenshotUrl} url={screenshotUrl} title={selected.previewImages?.length ? `${selected.name}: ${selectedPage.label}` : `${mobile ? copy.work.mobile : copy.work.desktop}: ${copy.websites.previewTitle(selected.name)}`} mobile={mobile && !selected.previewImages?.length} unavailable={copy.websites.unavailable} direction={pageDirection} onSize={setImageRatio} />
               </AnimatePresence>
+              </div>
               {enlarge}
               {previewPages && previewPages.length > 1 && <PreviewArrows previous={copy.work.previousPreview} next={copy.work.nextPreview} onPrevious={() => changePreview(-1)} onNext={() => changePreview(1)} />}
             </div>

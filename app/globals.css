@@ -345,6 +345,7 @@ a {
 }
 
 .media-frame {
+  padding: 12px;
   position: relative;
   overflow: hidden;
   border: 1px solid var(--surface-border);
@@ -391,7 +392,7 @@ a {
 }
 .media-preview:modal [data-document-stage] { max-height: calc(100svh - 160px); }
 .media-preview:modal [data-work-preview] {
-  width: min(100%, calc((100svh - 220px) * var(--preview-ratio))) !important;
+  width: min(100%, calc((100svh - 220px) * var(--preview-ratio) + 24px)) !important;
 }
 .media-preview-control {
   display: inline-flex;
