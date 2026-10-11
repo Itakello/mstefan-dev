@@ -690,15 +690,15 @@ test('degree results are optional metadata downloads while other attachments ret
         for (const [degree, attachment, role] of [['master', file, 'Artificial Intelligence'], ['bachelor', bachelorFile, 'Computer Science']] as const) {
           await page.locator('button[data-career-job]', { hasText: `education/trento-${degree}` }).click();
           const link = page.getByRole('link', { name: `${verb} ${degree === 'master' ? title : bachelorTitle} (PDF)`, exact: true });
-          await expect(link).toHaveText(verb);
+          await expect(link).toHaveText(locale === 'it' ? 'Risultati' : 'Results');
           await expect(link.locator('svg.lucide-download')).toHaveCount(1);
           await expect(page.locator('#career-story article p', { has: link })).toContainText(role);
           await expect(link).toHaveAttribute('href', attachment.url);
-          await expect(link).toHaveAttribute('download', `${degree}-grades.pdf`);
+          await expect(link).toHaveAttribute('download', `massimo-stefan-${degree}s-exam-results.pdf`);
           await expect(page.locator('#career-story [data-pdf-document]')).toHaveCount(0);
           const download = page.waitForEvent('download');
           await link.click();
-          assert.equal((await download).suggestedFilename(), `${degree}-grades.pdf`);
+          assert.equal((await download).suggestedFilename(), `massimo-stefan-${degree}s-exam-results.pdf`);
           for (const [size, width, height] of [['desktop', 1280, 900], ['mobile', 390, 844]] as const) {
             await page.setViewportSize({ width, height });
             for (const theme of ['light', 'dark'] as const) {
