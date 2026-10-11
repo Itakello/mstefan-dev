@@ -130,12 +130,12 @@ class SyntheticClient:
             self.host.native_volume = ('openship-mstefan-payload-preview-' +
                                       self.projects[refresh.STAGE]['volumes'][0].split(':')[0])
             return {'deployment_id': identity}
-        if path.startswith('/projects/'):
-            return {'data': copy.deepcopy(self.projects[path.split('/')[-1]])}
-        if path.startswith('/deployments?'):
-            identity = path.split('projectId=')[1].split('&')[0]
+        if path.startswith('/projects/') and '/deployments?' in path:
+            identity = path.split('/')[2]
             rows = [copy.deepcopy(row) for row in self.records.values() if row['projectId'] == identity]
             return {'data': rows, 'total': len(rows)}
+        if path.startswith('/projects/'):
+            return {'data': copy.deepcopy(self.projects[path.split('/')[-1]])}
         self.fault.hit('deployment:read')
         return {'data': copy.deepcopy(self.records[path.split('/')[-1]])}
 
@@ -325,12 +325,33 @@ class RefreshLifecycleTests(unittest.TestCase):
 
     def test_plan_only_reads_and_incompatible_revision_refuses_before_stop(self):
         self.assertFalse(any(call[0] != 'GET' for call in self.client.calls))
+        for identity in (refresh.PROD, refresh.STAGE):
+            self.assertIn(('GET', '/projects/' + identity + '/deployments?perPage=100&page=1', None), self.client.calls)
+        self.assertFalse(any(path.startswith('/deployments?') for _, path, _ in self.client.calls))
         self.fault.at = 'compatible'
         with self.assertRaisesRegex(Injected, 'compatible'):
             self.runner.plan()
         self.assertEqual(self.host.running, {'production': True, 'staging': True})
         self.assertNotIn('stop:production', self.fault.events)
         self.assert_original_data()
+
+    def test_production_default_host_requires_exact_local_runtime(self):
+        self.client.projects[refresh.PROD]['serverId'] = None
+        self.runner.plan()
+        self.client.projects[refresh.PROD]['activeDeploymentId'] = 'dep_elsewhere'
+        self.client.records['dep_elsewhere'] = {'id': 'dep_elsewhere', 'projectId': refresh.PROD,
+                                               'commitSha': COMMIT, 'status': 'ready'}
+        with self.assertRaises(KeyError):
+            self.runner.plan()
+
+    def test_unexpected_servers_and_staging_default_host_refused(self):
+        for identity, server in ((refresh.PROD, 'another-server'), (refresh.STAGE, None),
+                                 (refresh.STAGE, 'another-server')):
+            original = self.client.projects[identity]['serverId']
+            self.client.projects[identity]['serverId'] = server
+            with self.assertRaisesRegex(refresh.Refused, 'Project identity'):
+                self.runner.project(identity)
+            self.client.projects[identity]['serverId'] = original
 
     def test_compatibility_receipt_binds_images_paths_and_expiry(self):
         receipt_path = self.fixture.root / 'compatibility.json'
@@ -398,6 +419,7 @@ class ClientAndCredentialsTests(unittest.TestCase):
         self.assertEqual(opener.request.get_header('Authorization'), 'Bearer synthetic-openship')
         self.assertEqual(opener.request.get_header('X-organization-id'), refresh.ORG)
         self.assertEqual(opener.request.get_header('X-openship-scope'), 'fixed')
+        self.assertEqual(opener.request.get_header('User-agent'), 'mstefan-staging-refresh/1')
 
     def test_transport_invalid_oversized_response_and_redirect_refused(self):
         for payload, reason in ((b'not-json synthetic-sensitive', 'unavailable or invalid'),

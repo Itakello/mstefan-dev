@@ -95,7 +95,7 @@ class Client:
         self.opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), NoRedirect)
 
     def request(self, method, url, token=None, body=None, headers=None, raw=False):
-        headers = {'Accept': 'application/json', **(headers or {})}
+        headers = {'Accept': 'application/json', 'User-Agent': 'mstefan-staging-refresh/1', **(headers or {})}
         if token:
             headers['Authorization'] = 'Bearer ' + token
         data = None if body is None else json.dumps(body).encode()
@@ -328,10 +328,11 @@ class Refresh:
 
     def project(self, identity):
         project = value(self.client.ship('GET', '/projects/' + identity))
-        expected = {'id': identity, 'organizationId': ORG, 'slug': SLUGS[identity], 'serverId': SERVER,
+        expected = {'id': identity, 'organizationId': ORG, 'slug': SLUGS[identity],
                     'gitProvider': 'github', 'gitOwner': 'Itakello', 'gitRepo': 'mstefan-dev', 'gitBranch': 'master',
                     'autoDeploy': False, 'routeStrategy': 'loopback-port'}
-        if any(project.get(key) != expected_value for key, expected_value in expected.items()):
+        servers = {SERVER, None} if identity == PROD else {SERVER}
+        if project.get('serverId') not in servers or any(project.get(key) != expected_value for key, expected_value in expected.items()):
             raise Refused('Project identity, routing or deployment ownership changed')
         mounts = project.get('volumes')
         if identity == PROD and mounts != ['data:/data']:
@@ -343,7 +344,7 @@ class Refresh:
     def idle(self, identity):
         offset = 1
         while True:
-            response = self.client.ship('GET', '/deployments?projectId=' + identity + '&perPage=100&page=' + str(offset))
+            response = self.client.ship('GET', '/projects/' + identity + '/deployments?perPage=100&page=' + str(offset))
             rows = value(response)
             if not isinstance(rows, list) or not isinstance(response.get('total'), int) or len(rows) > 100:
                 raise Refused('Deployment inventory incomplete')
