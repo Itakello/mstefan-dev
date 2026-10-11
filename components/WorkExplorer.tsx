@@ -200,9 +200,6 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
         {(screenshotUrl || selected.paperUrl || selected.slidesUrl) && <section aria-label={copy.work.research} className="mt-7">
         <MediaPreview key={selected.id} title={selected.name} locale={locale} controls={mediaControls}>{enlarge => <>
         {activeKind === "photos" && screenshotUrl && <div>
-            {previewPages && (previewPages.length > 1 || selected.previewImages?.length) && <div role="group" aria-label={copy.work.previewPage} className="media-caption">
-              <span aria-live="polite" aria-atomic="true">{selectedPage.label} <span className="text-[var(--page-muted)]">· {pageIndex + 1} / {previewPages.length}</span></span>
-            </div>}
             <div data-work-preview data-preview-stage className="media-frame mx-auto" style={{ touchAction: "pan-y pinch-zoom", width: `min(100%, calc(min(620px, 70svh) * ${imageRatio} + 24px))`, "--preview-ratio": imageRatio } as CSSProperties}
               onTouchStart={event => { swipeStart.current = event.touches.length === 1 && window.matchMedia("(max-width: 639px)").matches ? { x: event.touches[0].clientX, y: event.touches[0].clientY } : null; }}
               onTouchCancel={() => { swipeStart.current = null; }}
@@ -222,6 +219,9 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
               {enlarge}
               {previewPages && previewPages.length > 1 && <PreviewArrows previous={copy.work.previousPreview} next={copy.work.nextPreview} onPrevious={() => changePreview(-1)} onNext={() => changePreview(1)} />}
             </div>
+            {previewPages && (previewPages.length > 1 || selected.previewImages?.length) && <div role="group" aria-label={copy.work.previewPage} className="media-caption">
+              <span aria-live="polite" aria-atomic="true">{selectedPage.label} <span className="text-[var(--page-muted)]">· {pageIndex + 1} / {previewPages.length}</span></span>
+            </div>}
             {!selected.previewImages?.length && <div role="group" aria-label={copy.work.previewSize} className="mt-4 ml-auto flex w-fit gap-1 rounded-lg border border-black/10 p-1 dark:border-white/15">
               {([{ mobile: false, label: copy.work.desktop, Icon: Monitor }, { mobile: true, label: copy.work.mobile, Icon: Smartphone }]).map(mode => (
                 <button key={mode.label} type="button" aria-pressed={mobile === mode.mobile} onClick={() => setMobile(mode.mobile)}

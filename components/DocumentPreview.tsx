@@ -112,9 +112,8 @@ function PdfDocumentPreview({ url, title, locale, presentation = false, enlarge 
     void draw();
     return () => { disposed = true; render?.cancel(); textLayer?.cancel(); };
   }, [document, page, width, zoom, presentation, viewportHeight]);
-  const control = "inline-flex items-center justify-center rounded-md p-2 hover:bg-black/5 disabled:opacity-30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[hsl(var(--accent))] dark:hover:bg-white/10";
+  const control = "media-preview-control disabled:cursor-default";
   return <section data-pdf-preview aria-label={`${title}: ${italian ? "Lettore documenti" : "Document reader"}`} className={`mx-auto ${presentation ? "" : "max-w-[640px]"}`}>
-    <div className="media-caption" aria-live="polite">{title} <span className="text-[var(--page-muted)]">· {page} / {document?.numPages ?? "…"}</span></div>
     <div data-preview-stage className="media-frame" style={{ width: presentation ? undefined : `min(100%, calc(min(616px, 70svh - 24px) * ${pageRatio} + 24px))`, marginInline: "auto", "--document-ratio": pageRatio, touchAction: zoom > 1 ? "pan-x pan-y pinch-zoom" : "pan-y pinch-zoom" } as CSSProperties}
       onTouchStart={event => { swipeStart.current = zoom === 1 && event.touches.length === 1 ? { x: event.touches[0].clientX, y: event.touches[0].clientY } : null; }}
       onTouchCancel={() => { swipeStart.current = null; }}
@@ -131,15 +130,16 @@ function PdfDocumentPreview({ url, title, locale, presentation = false, enlarge 
       {status === "error" && <p role="status" className="text-sm">{italian ? "Anteprima non disponibile. Usa Scarica PDF per leggere il documento." : "Preview unavailable. Use Download PDF to read the document."}</p>}
       <div ref={pageHost} className={`relative mx-auto ${status === "error" ? "hidden" : ""}`}><canvas ref={canvas} role="img" aria-label={`${title} · ${italian ? "pagina" : "page"} ${page}`} className="bg-white shadow-sm" /><div ref={text} data-document-text /></div>
     </div>
+    {!presentation && <div data-media-zoom role="group" aria-label={italian ? "Zoom documento" : "Document zoom"} className="absolute top-3 left-3 z-20 flex items-center gap-1 text-xs transition-opacity">
+          <button type="button" className={control} disabled={zoom <= 1} aria-label={italian ? "Riduci" : "Zoom out"} onClick={() => setZoom(value => Math.max(1, value - 0.25))}><Minus size={16} /></button>
+          <span className="media-preview-control" aria-live="polite">{Math.round(zoom * 100)}%</span>
+          <button type="button" className={control} disabled={zoom >= 2} aria-label={italian ? "Ingrandisci" : "Zoom in"} onClick={() => setZoom(value => Math.min(2, value + 0.25))}><Plus size={16} /></button>
+    </div>}
     {enlarge}
     <PreviewArrows previous={italian ? "Pagina precedente" : "Previous page"} next={italian ? "Pagina successiva" : "Next page"}
       previousDisabled={!document || page === 1} nextDisabled={!document || page === document.numPages}
       onPrevious={() => setPage(current => Math.max(1, current - 1))} onNext={() => setPage(current => Math.min(document?.numPages ?? 1, current + 1))} />
     </div>
-    {!presentation && <div className="mt-3 flex items-center justify-center gap-1 text-xs">
-          <button type="button" className={control} disabled={zoom <= 1} aria-label={italian ? "Riduci" : "Zoom out"} onClick={() => setZoom(value => Math.max(1, value - 0.25))}><Minus size={16} /></button>
-          <span>{Math.round(zoom * 100)}%</span>
-          <button type="button" className={control} disabled={zoom >= 2} aria-label={italian ? "Ingrandisci" : "Zoom in"} onClick={() => setZoom(value => Math.min(2, value + 0.25))}><Plus size={16} /></button>
-    </div>}
+    <div className="media-caption" aria-live="polite">{title} <span className="text-[var(--page-muted)]">· {page} / {document?.numPages ?? "…"}</span></div>
   </section>;
 }

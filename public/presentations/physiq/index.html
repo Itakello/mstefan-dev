@@ -1,1 +1,9 @@
-<!doctype html><html xmlns="http://www.w3.org/1999/xhtml"><head><title>PhysIQ — Presentation</title><meta name="viewport" content="initial-scale=1,width=device-width"/><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/></head><body id="body" bgcolor="black"><div id="stageArea"><div id="stage" class="stage"></div><div id="hyperlinkPlane" class="stage"></div></div><div id="slideshowNavigator"></div><div id="slideNumberControl"></div><div id="slideNumberDisplay"></div><div id="helpPlacard"></div><div id="waitingIndicator"><div id="waitingSpinner"></div></div><script src="assets/player/main.js"></script></body></html>
+<!doctype html><html xmlns="http://www.w3.org/1999/xhtml"><head><title>PhysIQ — Presentation</title><meta name="viewport" content="initial-scale=1,width=device-width"/><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/></head><body id="body" bgcolor="black"><div id="stageArea"><div id="stage" class="stage"></div><div id="hyperlinkPlane" class="stage"></div></div><div id="slideshowNavigator"></div><div id="slideNumberControl"></div><div id="slideNumberDisplay"></div><div id="helpPlacard"></div><div id="waitingIndicator"><div id="waitingSpinner"></div></div><script>
+(() => {
+  let current = 1, total = 0;
+  const publish = () => { if (total > 0) parent.postMessage({ type: "mstefan:presentation-progress", current, total }, location.origin); };
+  document.addEventListener("ScriptManager:ScriptDidDownloadEvent", event => { total = event.detail.script.slideList.length; publish(); });
+  document.addEventListener("ShowController:SlideIndexDidChangeEvent", event => { current = event.detail.slideIndex + 1; publish(); });
+  window.addEventListener("message", event => { if (event.source === parent && event.origin === location.origin && event.data?.type === "mstefan:presentation-progress-request") publish(); });
+})();
+</script><script src="assets/player/main.js"></script></body></html>
