@@ -296,6 +296,7 @@ test.describe("Public website review", () => {
     await expect(page.getByRole("combobox", { name: "Preview page", exact: true })).toHaveCount(0);
     await page.screenshot({ path: ".artifacts/playwright/work-preview-arrows-desktop.png", fullPage: true });
     await page.getByRole("button", { name: "Toggle theme", exact: true }).click();
+    await expect(page.locator('footer [data-brand-icon="github"]')).toHaveCSS("color", "rgba(255, 255, 255, 0.65)");
     await page.screenshot({ path: ".artifacts/playwright/work-preview-arrows-desktop-dark.png", fullPage: true });
     await page.getByRole("button", { name: "Toggle theme", exact: true }).click();
     await next.focus();
@@ -322,6 +323,7 @@ test.describe("Public website review", () => {
     await preview.scrollIntoViewIfNeeded();
     await page.screenshot({ path: ".artifacts/playwright/work-preview-arrows-mobile.png", fullPage: true });
     await page.getByRole("button", { name: "Toggle theme", exact: true }).click();
+    await expect(page.locator('footer [data-brand-icon="github"]')).toHaveCSS("color", "rgba(255, 255, 255, 0.65)");
     await page.screenshot({ path: ".artifacts/playwright/work-preview-arrows-mobile-dark.png", fullPage: true });
     await page.getByRole("button", { name: "Toggle theme", exact: true }).click();
     await preview.scrollIntoViewIfNeeded();
