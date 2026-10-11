@@ -11,6 +11,8 @@ const nextConfig = {
   images: { unoptimized: true },
   ...(process.env.PAYLOAD_LOCAL_PROTOTYPE === "1" ? { allowedDevOrigins: ["127.0.0.1"] } : {}),
   experimental: {
+    cpus: 1,
+    webpackMemoryOptimizations: true,
     mdxRs: true,
     globalNotFound: true,
   },
