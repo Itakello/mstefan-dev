@@ -1,0 +1,19 @@
+components/CareerGraph.tsx
+  s_010799367a456c::t_a228cd6db02503 4,25,158-164,181,184
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b3c568e6ff47f7dbf3fa454a6e5be37b901dfa9a",
+  "prompts": {},
+  "sessions": {
+    "s_010799367a456c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1282a-038e-7652-8a7a-c5197bbdad36",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
