@@ -248,6 +248,7 @@ test('production Notion changes, withdrawals, hard failures, and stale-cache rec
   assert.equal(home.response.status, 200);
   assert.equal(projects.response.status, 200);
   assert.ok(home.html.includes('Changed publication fixture.'));
+  assert.ok(home.html.includes('Renamed portfolio'), 'Renaming a selected project must preserve its Home card');
   assert.ok(projects.html.includes('Changed publication fixture.'));
   observation = await readObservation();
   const lastGoodDigest = observation.digest;

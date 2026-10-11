@@ -19,6 +19,7 @@ const fixtureRows = [
   URL: { url: index === 1 ? null : `https://github.com/fixture/project-${index}` }, 'Website URL': { type: 'url', url: website },
 } }));
 fixtureRows[2].properties.URL = { url: 'https://github.com/mobs-fbk/llm_interaction_simulator' };
+fixtureRows[0].properties.URL = { url: 'https://github.com/Itakello/mstefan-dev' };
 fixtureRows[2].properties['Paper URL'] = { type: 'url', url: 'https://arxiv.org/pdf/2410.07109' };
 fixtureRows[2].properties['Slides URL'] = { type: 'url', url: 'https://example.com/research-slides.pdf' };
 fixtureRows[2].properties.Publication = { rich_text: [{ plain_text: 'Co-author · I Want to Break Free! (TMLR, 2025)' }] };
@@ -31,7 +32,7 @@ function fixturePayload() {
   if (!['multiple', 'one', 'empty', 'dense', 'publication', 'changedsummary', 'recovered', 'pages'].includes(mode)) throw new Error('Unexpected publication fixture state');
   const denseRow = { ...fixtureRows[0], properties: { ...fixtureRows[0].properties, Tags: { multi_select: stackRows.map(row => ({ name: row.properties.Name.title[0].plain_text })) } } };
   const publicationRows = fixtureRows.map((row, index) => index === 0 ? { ...row, properties: { ...row.properties,
-    Name: { title: [{ plain_text: 'mstefan-dev' }] },
+    Name: { title: [{ plain_text: mode === 'changedsummary' ? 'Renamed portfolio' : 'mstefan-dev' }] },
     ...(mode === 'changedsummary' || mode === 'recovered' ? {
       Summary: { rich_text: [{ plain_text: mode === 'changedsummary' ? 'Changed publication fixture.' : 'Recovered publication fixture.' }] },
       'Summary IT': { rich_text: [{ plain_text: mode === 'changedsummary' ? 'Pubblicazione di prova aggiornata.' : 'Pubblicazione di prova ripristinata.' }] },
