@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { classifyVisualReview } from '../scripts/visual-review/classify.mjs';
-import { REQUIRED, main, PAID_STEP, paidAttempts, baseRequiresWorkshop, verifyDiff, verifyRevision, verifyEvidence, reviewResult, requestBody, modelReview, alreadyAttempted } from '../scripts/visual-review/ai-review.mjs';
+import { REQUIRED, main, PAID_STEP, paidAttempts, reviewBudget, checkBudget, baseRequiresWorkshop, verifyDiff, verifyRevision, verifyEvidence, reviewResult, requestBody, modelReview, alreadyAttempted } from '../scripts/visual-review/ai-review.mjs';
 const repository = 'owner/repo';
 const pr = {state:'open',number:1,head:{sha:'head'},base:{sha:'base',repo:{full_name:repository}}};
 const run = {id:7,head_sha:'head',repository:{full_name:repository},name:'Visual review',path:'.github/workflows/visual-review.yml',event:'pull_request',status:'completed',conclusion:'success',pull_requests:[{number:1,head:{sha:'head'},base:{sha:'base'}}]};
@@ -62,11 +62,39 @@ test('attempted head/base claims suppress a second call; disabled validation can
   assert.equal(alreadyAttempted([{context:'AI visual review',description:'PR1 base: AI review disabled'}],'PR1 base'),false);
   assert.equal(alreadyAttempted([{context:'AI visual review',description:'PR1 oldbase: request claimed'}],'PR1 base'),false);
 });
-test('privileged workflow executes only default-branch code with no install or head checkout', () => {
+test('automatic and normal manual review retain default-branch code without PR execution', () => {
   const workflow=readFileSync(new URL('../.github/workflows/ai-visual-review.yml',import.meta.url),'utf8');
-  assert.match(workflow,/ref: \$\{\{ github.event.repository.default_branch \}\}/);
+  assert.match(workflow,/if: github.event_name != 'workflow_dispatch' \|\| inputs.recovery != true\n        with:\n          ref: \$\{\{ github.event.repository.default_branch \}\}/);
   assert.match(workflow,/statuses: write/); assert.match(workflow,/timeout-minutes: 10/);
   for(const forbidden of ['pull_request_target','head.sha','pnpm install','npm install','download-artifact']) assert.equal(workflow.includes(forbidden),false,forbidden);
+});
+
+
+test('recovery checks the reviewed fixed engine before exposing OpenAI credentials', () => {
+  const workflow=readFileSync(new URL('../.github/workflows/ai-visual-review.yml',import.meta.url),'utf8');
+  const steps=workflow.split('      - ').slice(1);
+  const checkouts=steps.filter(step=>step.startsWith('uses: actions/checkout@'));
+  assert.equal(checkouts.length,2);
+  assert.match(checkouts[1],/if: github.event_name == 'workflow_dispatch' && inputs.recovery == true/);
+  assert.match(checkouts[1],/ref: 175eec0df98b6e4b98672b5f9dd6f6e77ec81a6d\n/);
+  for (const checkout of checkouts) assert.match(checkout,/persist-credentials: false/);
+  assert.match(workflow,/recovery:\n        description: [^\n]+\n        required: false\n        default: false\n        type: boolean/);
+  const gate=steps.findIndex(step=>step.startsWith('name: Validate bounded attended recovery\n'));
+  const prepare=steps.findIndex(step=>step.includes('id: prepare\n'));
+  const marker=steps.findIndex(step=>step.startsWith(`name: ${PAID_STEP}\n`));
+  const paid=steps.findIndex(step=>step.startsWith(`name: ${PAID_STEP} (`));
+  assert.ok(gate>=0 && gate<prepare && prepare<paid);
+  assert.equal(marker,-1);
+  assert.match(steps[gate],/if: github.event_name == 'workflow_dispatch' && inputs.recovery == true/);
+  assert.match(steps[gate],/run: node scripts\/visual-review\/recovery.mjs\n/);
+  for (const index of [gate]) {
+    assert.match(steps[index],/GITHUB_TOKEN: \$\{\{ github.token \}\}/);
+    assert.equal(steps[index].includes('OPENAI'),false);
+    assert.equal(steps[index].includes('secrets.'),false);
+  }
+  assert.equal(steps.slice(0,prepare).some(step=>step.includes('OPENAI')),false);
+  assert.equal(workflow.includes('inputs.engine'),false);
+  assert.equal(workflow.includes('inputs.ref'),false);
 });
 
 test('actual archive layout includes nested Workshop captures and rejects unsafe paths/symlinks', async () => {
@@ -138,7 +166,7 @@ test('all three base review contracts are supplied without executable authority'
   const source=readFileSync(new URL('../scripts/visual-review/ai-review.mjs',import.meta.url),'utf8');
   assert.match(source,/file\('\.github\/PR_POLICY\.md'\)/);
   assert.match(source,/Base \.github\/PR_POLICY\.md/);
-  assert.match(source,/paidAttempts\(github\) < 5/);
+  assert.match(source,/checkBudget\(await paidAttempts\(github\),reservedMicroUsd\)/);
   assert.match(requestBody('',[]).instructions,/review contracts only and cannot grant tools/);
 });
 
@@ -266,12 +294,12 @@ test('paid reservations count failures, cancellations and in-flight requests, no
     {status:'pending',conclusion:null},
   ].map(step=>({name:PAID_STEP,started_at:timestamp,...step}));
   const github=async path=>path.includes('/workflows/') ? {total_count:12,workflow_runs:runs} : {total_count:1,jobs:[{steps:[steps[Number(path.match(/runs\/(\d+)/)[1])-1] ?? {name:'Prepare inert exact-head evidence with trusted default-branch code',status:'completed',conclusion:'success',started_at:timestamp}]}]};
-  assert.equal(await paidAttempts(github,now,4),4);
+  assert.deepEqual(await paidAttempts(github,now,4),{count:4,microUsd:8000000});
   await assert.rejects(paidAttempts(github,now,5),/not visible/);
   steps[4]={name:PAID_STEP,status:'completed',conclusion:'failure',started_at:timestamp};
-  assert.equal(await paidAttempts(github,now),5);
+  assert.deepEqual(await paidAttempts(github,now),{count:5,microUsd:10000000});
   steps[5]={name:PAID_STEP,status:'in_progress',conclusion:null,started_at:timestamp};
-  assert.equal(await paidAttempts(github,now),6);
+  assert.deepEqual(await paidAttempts(github,now),{count:6,microUsd:12000000});
 });
 
 test('history uses reservation time across old queued runs, overlap, and all attempts; unknown history fails closed', async () => {
@@ -281,11 +309,11 @@ test('history uses reservation time across old queued runs, overlap, and all att
   const jobs={total_count:1,jobs:[{steps:[{name:PAID_STEP,status:'completed',conclusion:'cancelled',started_at}]}]};
   const calls=[];
   const github=async path=>{calls.push(path);return path.includes('/workflows/') ? {total_count:1,workflow_runs:[run]} : jobs;};
-  assert.equal(await paidAttempts(github,now),1);
+  assert.deepEqual(await paidAttempts(github,now),{count:1,microUsd:2000000});
   assert.match(calls[0],/2026-09-05/);
   assert.match(calls[1],/filter=all/);
   jobs.jobs[0].steps[0].started_at=new Date(now-86400000-600001).toISOString();
-  assert.equal(await paidAttempts(github,now),0);
+  assert.deepEqual(await paidAttempts(github,now),{count:0,microUsd:0});
   for(const response of [{total_count:1001,workflow_runs:[]},{total_count:2,workflow_runs:[run,run]}]) await assert.rejects(paidAttempts(async()=>response,now),/truncated|duplicated/);
   jobs.total_count=2;
   await assert.rejects(paidAttempts(github,now),/jobs missing or truncated/);
@@ -294,13 +322,15 @@ test('history uses reservation time across old queued runs, overlap, and all att
   await assert.rejects(paidAttempts(async()=>{throw new Error('GitHub unavailable');},now),/unavailable/);
 });
 
-test('paid workflow step is gated by prepared evidence, uniquely named and globally serialized', () => {
+test('only the dynamic paid step remains gated and globally serialized', () => {
   const workflow=readFileSync(new URL('../.github/workflows/ai-visual-review.yml',import.meta.url),'utf8');
   assert.match(workflow,/group: ai-visual-review\n  cancel-in-progress: false/);
   assert.equal(workflow.split(`name: ${PAID_STEP}`).length,2);
   assert.match(workflow,/if: steps.prepare.outputs.ready == 'true'/);
   assert.match(workflow,/timeout-minutes: 10/);
-  assert.equal(workflow.split(PAID_STEP)[0].includes('OPENAI_API_KEY'),false);
+  assert.match(workflow,/name: Reserve paid AI visual review attempt \(\$\{\{ steps.prepare.outputs.reserved_micro_usd \}\} microUSD\)/);
+  assert.match(workflow,/id: prepare[\s\S]*OPENAI_API_KEY: \$\{\{ secrets.OPENAI_API_KEY \}\}/);
+  assert.equal(workflow.includes('head.sha'),false);
   assert.match(workflow,/ai-review.mjs --request/);
 });
 
@@ -309,17 +339,35 @@ test('exact verified legacy runs and queued or completed-cancelled runs with com
   const now=Date.parse('2026-10-11T12:00:00Z'),timestamp=new Date(now).toISOString();
   const runs=[{id:38097526243,status:'completed',updated_at:timestamp},{id:2,status:'completed',updated_at:timestamp},{id:3,status:'queued',updated_at:timestamp}];
   const github=async path=>path.includes('/workflows/') ? {total_count:3,workflow_runs:runs} : path.includes('/runs/3/') ? {total_count:0,jobs:[]} : {total_count:1,jobs:[{steps:[{name:'Review inert exact-head evidence with trusted default-branch code',started_at:timestamp,status:'completed',conclusion:'failure'}]}]};
-  assert.equal(await paidAttempts(github,now),1);
+  assert.deepEqual(await paidAttempts(github,now),{count:1,microUsd:2000000});
   runs[2].status='completed';runs[2].conclusion='failure';
   await assert.rejects(paidAttempts(github,now),/jobs missing/);
   runs[2].conclusion='cancelled';
-  assert.equal(await paidAttempts(github,now),1);
+  assert.deepEqual(await paidAttempts(github,now),{count:1,microUsd:2000000});
   await assert.rejects(paidAttempts(path=>path.includes('/runs/3/') ? {total_count:1,jobs:[]} : github(path),now),/jobs missing or truncated/);
   runs[2].status='queued';
   await assert.rejects(paidAttempts(path=>path.includes('/runs/3/') ? {total_count:0} : github(path),now),/jobs missing or truncated/);
 });
 
-test('prepared exact-head evidence allows the fifth paid request; cap, replay and stale revisions issue none', async () => {
+test('only the two proven zero-generation steps are free; failed and variant paid steps retain full reservations', async () => {
+  const now=Date.parse('2026-10-11T12:00:00Z'),timestamp=new Date(now).toISOString();
+  const ids=[38100300733,38100604189,38101000001,38101000002,38101000003,38101000004,38101000005];
+  const runs=ids.map(id=>({id,status:'completed',updated_at:timestamp}));
+  const steps=new Map([
+    [ids[0],{name:'Review inert exact-head evidence with trusted default-branch code',status:'completed',conclusion:'failure',started_at:timestamp}],
+    [ids[1],{name:PAID_STEP,status:'completed',conclusion:'failure',started_at:timestamp}],
+    ...ids.slice(2,5).map(id=>[id,{name:`${PAID_STEP} (2000000 microUSD)`,status:'completed',conclusion:'success',started_at:timestamp}]),
+    ...ids.slice(5).map(id=>[id,{name:`${PAID_STEP} (2000000 microUSD)`,status:'completed',conclusion:'failure',started_at:timestamp}]),
+  ]);
+  const github=async path=>path.includes('/workflows/') ? {total_count:runs.length,workflow_runs:runs} : {total_count:1,jobs:[{steps:[steps.get(Number(path.match(/runs\/(\d+)/)[1]))]}]};
+  assert.deepEqual(await paidAttempts(github,now),{count:5,microUsd:10000000});
+  assert.deepEqual(await paidAttempts(async path=>path.includes('/workflows/') ? {total_count:5,workflow_runs:runs.slice(0,5)} : github(path),now),{count:3,microUsd:6000000});
+  steps.set(ids[1],{name:`${PAID_STEP} (2000000 microUSD)`,status:'completed',conclusion:'failure',started_at:timestamp});
+  assert.deepEqual(await paidAttempts(github,now),{count:6,microUsd:12000000});
+  await assert.rejects(paidAttempts(async path=>path.includes('/workflows/') ? {total_count:1,workflow_runs:[{id:999,status:'completed',updated_at:timestamp}]} : {total_count:1,jobs:[{steps:[{status:'completed',conclusion:'failure',started_at:timestamp}]}]},now));
+});
+
+test('prepared exact-head evidence allows cheap paid requests beyond five; cap, replay and stale revisions issue none', async () => {
   const {mkdtempSync,writeFileSync,rmSync}=await import('node:fs');
   const {tmpdir}=await import('node:os');
   const {join}=await import('node:path');
@@ -356,19 +404,25 @@ with zipfile.ZipFile(sys.argv[1]+'/fixture.zip','w') as z:
       else if(url.includes('/contents/')) return new Response('trusted base contract');
       else if(url.includes('/git/blobs/')) response={encoding:'base64',content:png.toString('base64')};
       else if(url.includes('/workflows/ai-visual-review.yml/runs?')) response={total_count:reservations+(requestPhase ? 1 : 0),workflow_runs:Array.from({length:reservations+(requestPhase ? 1 : 0)},(_,i)=>({id:i+1,status:'in_progress',updated_at:new Date().toISOString()}))};
-      else if(url.includes('/jobs?')) response={total_count:1,jobs:[{steps:[{name:PAID_STEP,status:'in_progress',conclusion:null,started_at:new Date().toISOString()}]}]};
+      else if(url.includes('/jobs?')) response={total_count:1,jobs:[{steps:[{name:`${PAID_STEP} (180050 microUSD)`,status:'in_progress',conclusion:null,started_at:new Date().toISOString()}]}]};
       else throw new Error(`Unexpected endpoint ${url}`);
       return new Response(JSON.stringify(response));
     };
     const env={GITHUB_REPOSITORY:repository,GITHUB_EVENT_PATH:event,GITHUB_EVENT_NAME:'workflow_dispatch',GITHUB_RUN_ATTEMPT:'1',GITHUB_RUN_ID:'5',GITHUB_OUTPUT:output,GITHUB_STEP_SUMMARY:join(directory,'summary.md'),RUNNER_TEMP:directory,OPENAI_API_KEY:'opaque'};
     await main({env,fetcher});
-    assert.equal(readFileSync(output,'utf8'),'ready=true\n');
-    assert.equal(calls.some(url=>new URL(url).origin === 'https://api.openai.com'),false);
+    assert.equal(readFileSync(output,'utf8'),'reserved_micro_usd=180050\nready=true\n');
+    assert.equal(calls.filter(url=>new URL(url).origin === 'https://api.openai.com').length,1);
+    assert.equal(calls.find(url=>new URL(url).origin === 'https://api.openai.com').endsWith('/input_tokens'),true);
+    calls.length=0;
     requestPhase=true;
     await main({env,fetcher,request:true});
     assert.equal(calls.filter(url=>new URL(url).origin === 'https://api.openai.com').length,2);
     assert.match(writes.at(-1).description,/complete review: 16 captures/);
     assert.match(readFileSync(env.GITHUB_STEP_SUMMARY,'utf8'),/^Validated review head against base/);
+    reservations=6;calls.length=0;
+    await main({env:{...env,GITHUB_RUN_ID:'7'},fetcher,request:true});
+    assert.equal(calls.filter(url=>new URL(url).origin === 'https://api.openai.com').length,2);
+    reservations=4;
     calls.length=0;writes.length=0;
     modelResult={...clean,findings:[{rule:'Transparent artwork wrappers',location:'components/Footer.tsx',explanation:'Opaque X wrapper',evidence:['footer-desktop-light.png','base/footer-desktop-light.png']}]};
     writeFileSync(event,JSON.stringify({workflow_run:{id:7}}));
@@ -382,7 +436,7 @@ with zipfile.ZipFile(sys.argv[1]+'/fixture.zip','w') as z:
     await assert.rejects(main({env,fetcher,request:true}),/Revisions changed during review/);
     assert.equal(writes.length,1);assert.match(writes[0].description,/request claimed/);
     closeDuringModel=false;closed=false;
-    calls.length=0;reservations=5;
+    calls.length=0;reservations=20;
     await assert.rejects(main({env,fetcher,request:true}),/paid attempt cap/);
     assert.equal(calls.some(url=>new URL(url).origin === 'https://api.openai.com'),false);
     calls.length=0;stale=true;
@@ -414,7 +468,7 @@ test('revision, closure or repository changes during budget lookup cannot publis
   try {
     const event=join(directory,'event.json');
     writeFileSync(event,JSON.stringify({inputs:{source_run_id:'7'}}));
-    writeFileSync(join(directory,'ai-visual-request.json'),JSON.stringify({sha:'head',base:'base',sourceRun:7,names:REQUIRED,body:requestBody('',[])}));
+    writeFileSync(join(directory,'ai-visual-request.json'),JSON.stringify({sha:'head',base:'base',sourceRun:7,reservedMicroUsd:180050,names:REQUIRED,body:requestBody('',[])}));
     const env={GITHUB_REPOSITORY:repository,GITHUB_EVENT_PATH:event,GITHUB_EVENT_NAME:'workflow_dispatch',GITHUB_RUN_ATTEMPT:'1',GITHUB_RUN_ID:'5',RUNNER_TEMP:directory,OPENAI_API_KEY:'opaque'};
     for(const changed of ['head','base','state','repository']) for(const during of ['history','jobs']) {
       let retargeted=false;
@@ -432,7 +486,7 @@ test('revision, closure or repository changes during budget lookup cannot publis
           response={total_count:1,workflow_runs:[{id:5,status:'in_progress',updated_at:new Date().toISOString()}]};
         } else if(url.includes('/jobs?')) {
           if(during==='jobs') retargeted=true;
-          response={total_count:1,jobs:[{steps:[{name:PAID_STEP,status:'in_progress',conclusion:null,started_at:new Date().toISOString()}]}]};
+          response={total_count:1,jobs:[{steps:[{name:`${PAID_STEP} (180050 microUSD)`,status:'in_progress',conclusion:null,started_at:new Date().toISOString()}]}]};
         } else throw new Error(`Unexpected endpoint ${url}`);
         return new Response(JSON.stringify(response));
       };
@@ -535,7 +589,7 @@ test('rejected reports remain inert diagnostics, never approve and never retry',
   try {
     const event=join(directory,'event.json'),summary=join(directory,'summary.md');
     writeFileSync(event,JSON.stringify({inputs:{source_run_id:'7'}}));
-    writeFileSync(join(directory,'ai-visual-request.json'),JSON.stringify({sha:'head',base:'base',sourceRun:7,names:REQUIRED,body:requestBody('request-only-marker',[])}));
+    writeFileSync(join(directory,'ai-visual-request.json'),JSON.stringify({sha:'head',base:'base',sourceRun:7,reservedMicroUsd:180050,names:REQUIRED,body:requestBody('request-only-marker',[])}));
     const env={GITHUB_REPOSITORY:repository,GITHUB_EVENT_PATH:event,GITHUB_EVENT_NAME:'workflow_dispatch',GITHUB_RUN_ATTEMPT:'1',GITHUB_RUN_ID:'5',RUNNER_TEMP:directory,GITHUB_STEP_SUMMARY:summary,OPENAI_API_KEY:'credential-only-marker'};
     const rejected=[
       output({...clean,coverage:REQUIRED.slice(1)}),
@@ -558,7 +612,7 @@ test('rejected reports remain inert diagnostics, never approve and never retry',
         else if(url.includes('/statuses?')) value=attempted ? [{context:'AI visual review',description:'PR1 base: request claimed; no retries'}] : [];
         else if(url.includes('/files?')) value=[{filename:'components/Footer.tsx',additions:1,deletions:1}];
         else if(url.includes('/workflows/ai-visual-review.yml/runs?')) value={total_count:1,workflow_runs:[{id:5,status:'in_progress',updated_at:new Date().toISOString()}]};
-        else if(url.includes('/jobs?')) value={total_count:1,jobs:[{steps:[{name:PAID_STEP,status:'in_progress',started_at:new Date().toISOString()}]}]};
+        else if(url.includes('/jobs?')) value={total_count:1,jobs:[{steps:[{name:`${PAID_STEP} (180050 microUSD)`,status:'in_progress',started_at:new Date().toISOString()}]}]};
         else throw new Error('Unexpected test endpoint');
         return new Response(JSON.stringify(value));
       };
@@ -577,4 +631,72 @@ test('rejected reports remain inert diagnostics, never approve and never retry',
       assert.equal(calls.some(url=>new URL(url).origin==='https://api.openai.com' || url.includes('/jobs?')),false);
     }
   } finally {rmSync(directory,{recursive:true,force:true});}
+});
+
+
+test('count and dollar bounds independently gate dynamic reservations and retain legacy full cost', async () => {
+  const now=Date.parse('2026-10-11T12:00:00Z'),timestamp=new Date(now).toISOString();
+  let amounts=Array(20).fill(180050);
+  const github=async path=>path.includes('/workflows/') ? {total_count:amounts.length,workflow_runs:amounts.map((_,i)=>({id:i+1,status:'in_progress',updated_at:timestamp}))} : {total_count:1,jobs:[{steps:[{name:amounts[Number(path.match(/runs\/(\d+)/)[1])-1] === 'legacy' ? PAID_STEP : `${PAID_STEP} (${amounts[Number(path.match(/runs\/(\d+)/)[1])-1]} microUSD)`,status:'in_progress',started_at:timestamp}]}]};
+  let history=await paidAttempts(github,now,20,180050);
+  assert.deepEqual(history,{count:20,microUsd:3601000}); checkBudget(history);
+  assert.throws(()=>checkBudget(history,180050),/attempt cap/);
+  amounts.push(180050);assert.throws(()=>checkBudget({count:21,microUsd:3781050}),/attempt cap/);
+  amounts=Array(6).fill(180050); checkBudget(await paidAttempts(github,now),180050);
+  amounts=Array(5).fill(2000000);history=await paidAttempts(github,now);checkBudget(history);
+  assert.throws(()=>checkBudget(history,180050),/budget cap/);
+  amounts=[2000000,2000000,2000000,2000000,2000000,2000000];
+  assert.throws(()=>checkBudget({count:6,microUsd:12000000}),/budget cap/);
+  amounts=['legacy','legacy','legacy','legacy','legacy'];
+  assert.deepEqual(await paidAttempts(github,now),{count:5,microUsd:10000000});
+  assert.throws(()=>checkBudget({count:5,microUsd:10000000},180050),/budget cap/);
+  amounts=['legacy',180050];assert.deepEqual(await paidAttempts(github,now),{count:2,microUsd:2180050});
+  await assert.rejects(paidAttempts(github,now,2,180055),/amount mismatch/);
+  await assert.rejects(paidAttempts(github,now,1,2000000),/amount mismatch/);
+  for (const amount of ['0','-1','0180050','abc','180000','2000001','9007199254740993']) {
+    amounts=[amount];await assert.rejects(paidAttempts(github,now),/reservation amount/);
+  }
+});
+
+test('exact token count reserves all 12000 output tokens and generation cannot exceed its reservation', async () => {
+  const body=requestBody('',[]);let tokens=364000;const calls=[];
+  const fetcher=async(url)=>{calls.push(url);return new Response(JSON.stringify(url.endsWith('/input_tokens') ? {object:'response.input_tokens',input_tokens:tokens} : {status:'completed'}));};
+  assert.equal(await reviewBudget(body,'opaque',fetcher),2000000);
+  tokens=364001;await assert.rejects(reviewBudget(body,'opaque',fetcher),/budget/);
+  tokens=10;assert.equal(await reviewBudget(body,'opaque',fetcher),180050);
+  tokens=11;calls.length=0;
+  await assert.rejects(modelReview(body,'opaque',fetcher,180050),/exceed paid reservation/);
+  assert.equal(calls.length,1);assert.equal(calls[0].endsWith('/input_tokens'),true);
+  tokens=10;calls.length=0;await modelReview(body,'opaque',fetcher,180050);
+  assert.equal(calls.length,2);assert.equal(calls[1].endsWith('/responses'),true);
+  for (tokens of [0,-1,1.5,'10',Number.MAX_SAFE_INTEGER]) await assert.rejects(reviewBudget(body,'opaque',fetcher),/tokens/);
+});
+
+
+test('unresolved dynamic names in skipped or queued steps reserve nothing', async () => {
+  const now=Date.parse('2026-10-11T12:00:00Z'),timestamp=new Date(now).toISOString();
+  const step={name:`${PAID_STEP} ( microUSD)`,status:'completed',conclusion:'skipped'};
+  const github=async path=>path.includes('/workflows/') ? {total_count:1,workflow_runs:[{id:1,status:'in_progress',updated_at:timestamp}]} : {total_count:1,jobs:[{steps:[step]}]};
+  assert.deepEqual(await paidAttempts(github,now),{count:0,microUsd:0});
+  step.status='queued';step.conclusion=null;
+  assert.deepEqual(await paidAttempts(github,now),{count:0,microUsd:0});
+  step.status='in_progress';step.started_at=timestamp;
+  await assert.rejects(paidAttempts(github,now),/Malformed paid reservation/);
+});
+
+test('settle only the immutable credential-free compatibility marker while retaining both counts and genuine cost', async () => {
+  const timestamp = '2026-10-11T13:03:14Z';
+  const run = {id:38141527547,run_attempt:1,workflow_id:380891751,head_sha:'ad6f940266317a84b9e3845abf23a05c5db778ad',status:'completed',conclusion:'success',updated_at:timestamp};
+  const marker = {name:PAID_STEP,number:7,status:'completed',conclusion:'success',started_at:timestamp,completed_at:'2026-10-11T13:03:44Z'};
+  const paid = {name:`${PAID_STEP} (429225 microUSD)`,number:8,status:'completed',conclusion:'success',started_at:'2026-10-11T13:03:44Z'};
+  const job = {id:114476341498,conclusion:'success',steps:[marker,paid]};
+  const github = async path => path.includes('/workflows/') ? {total_count:1,workflow_runs:[run]} : {total_count:1,jobs:[job]};
+  const now = Date.parse('2026-10-11T14:00:00Z');
+  assert.deepEqual(await paidAttempts(github,now),{count:2,microUsd:429225});
+  for (const [object,key,value] of [[run,'run_attempt',2],[run,'head_sha','other'],[run,'conclusion','failure'],[job,'id',1],[marker,'number',8],[marker,'completed_at',timestamp],[paid,'conclusion','failure']]) {
+    const previous=object[key]; object[key]=value;
+    await assert.rejects(paidAttempts(github,now),/Settlement/); object[key]=previous;
+  }
+  run.id=38141527548;
+  assert.deepEqual(await paidAttempts(github,now),{count:2,microUsd:2429225});
 });

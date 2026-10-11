@@ -44,7 +44,7 @@ test("supported agents exclude the stock healer", () => {
 test("browser tests cannot silently suppress failures", () => {
   const reviewDirectory = new URL("../e2e/", import.meta.url);
   const reviewTests = readdirSync(reviewDirectory)
-    .filter((name) => /\.(review|smoke|consistency)\.spec\.ts$/.test(name));
+    .filter((name) => /\.(review|smoke|consistency|workshop)\.spec\.ts$/.test(name));
   const prohibited = ["test.skip", "test.fixme", "test.fail", "test.only"];
 
   assert.notEqual(reviewTests.length, 0);
@@ -73,6 +73,8 @@ test("pinned artwork changes require visual review", () => {
   assert.equal(classifyVisualReview(["tests/fixtures/visual-icons/simple-icons.json"]).run, true);
   assert.equal(classifyVisualReview(["DESIGN.md"]).run, true);
   assert.equal(classifyVisualReview(["AGENTS.md"]).run, true);
+  assert.equal(classifyVisualReview([".storybook/preview.tsx"]).run, true);
+  assert.equal(classifyVisualReview(["workshop/Stack.stories.tsx"]).run, true);
 });
 
 test("CMS persistence and request-boundary changes require browser review", () => {

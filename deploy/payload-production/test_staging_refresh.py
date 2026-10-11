@@ -129,7 +129,7 @@ class SyntheticClient:
             self.host.running[runtime] = True
             self.host.native_volume = ('openship-mstefan-payload-preview-' +
                                       self.projects[refresh.STAGE]['volumes'][0].split(':')[0])
-            return {'deployment_id': identity}
+            return {'data': {'deployment_id': identity, 'project_id': refresh.STAGE}}
         if path.startswith('/projects/') and '/deployments?' in path:
             identity = path.split('/')[2]
             rows = [copy.deepcopy(row) for row in self.records.values() if row['projectId'] == identity]
