@@ -5,6 +5,9 @@ async function story(page: Page, id: string, theme: string) {
   await expect(page.locator("main")).toBeVisible();
   await expect(page.locator("html")).toHaveClass(theme === "dark" ? /dark/ : /^$/);
   await page.evaluate(() => document.fonts.ready);
+  for (const image of await page.locator("main img:visible").all()) {
+    await expect.poll(() => image.evaluate(node => (node as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
+  }
   for (const svg of await page.locator("main svg:visible").all()) {
     await expect.poll(() => svg.evaluate(node => {
       const box = (node as SVGGraphicsElement).getBBox();
@@ -93,6 +96,45 @@ for (const theme of ["light", "dark"] as const) {
         await expect.poll(() => scroller.evaluate(node => node.scrollTop)).toBeGreaterThan(0);
       } else {
         await expect.poll(() => scroller.evaluate(node => node.scrollHeight <= node.clientHeight)).toBe(true);
+      }
+
+      await story(page, "workshop-workexplorer--research-media", theme);
+      const media = page.locator("[data-media-preview]");
+      for (const mode of ["Photos", "Paper", "Slides"]) {
+        const control = page.getByRole("button", { name: mode, exact: true });
+        await control.click();
+        await expect(control).toHaveAttribute("aria-pressed", "true");
+        if (mode === "Photos") await expect(media.getByRole("img")).toBeVisible();
+        if (mode === "Paper") {
+          await expect(media.locator("[data-document-text]")).toContainText("Research");
+          await expect(media.getByRole("link", { name: "Download PDF" })).toHaveAttribute("href", "/api/documents/file/research.pdf");
+        }
+        if (mode === "Slides") {
+          await expect(media.locator("iframe")).toHaveAttribute("src", "/presentations/physiq/index.html");
+          await expect(media.locator(".media-caption")).toContainText("1 / 25");
+          await expect(page.frameLocator("[data-powerpoint-preview] iframe").locator("#stage canvas").first()).toBeVisible();
+          await expect(page.frameLocator("[data-powerpoint-preview] iframe").locator("#waitingIndicator")).toBeHidden();
+          await expect(media.getByRole("link", { name: "Download PowerPoint" })).toHaveAttribute("href", "https://example.com/workshop-slides.pptx");
+        }
+        if (mode !== "Photos") {
+          const name = `work-media-${mode.toLowerCase()}-${size}-${theme}.png`;
+          await page.locator("main").screenshot({ path: testInfo.outputPath(name), animations: "disabled" });
+          await expect.soft(page.locator("main")).toHaveScreenshot(name, { animations: "disabled", maxDiffPixels: 40 });
+        }
+        await media.getByRole("button", { name: "Enlarge preview" }).click();
+        await expect.poll(() => media.evaluate(node => node.matches(":modal"))).toBe(true);
+        await expect(media.getByRole("button", { name: "Close preview" })).toBeFocused();
+        if (mode === "Paper") await expect(media.getByRole("status")).toHaveCount(0);
+        if (mode === "Slides") {
+          await expect.poll(() => page.frameLocator("[data-powerpoint-preview] iframe").locator("#stage").evaluate(node =>
+            Math.abs(node.getBoundingClientRect().width - window.innerWidth))).toBeLessThan(2);
+        }
+        const expandedName = `work-media-${mode.toLowerCase()}-expanded-${size}-${theme}.png`;
+        await page.screenshot({ path: testInfo.outputPath(expandedName), animations: "disabled" });
+        await expect.soft(page).toHaveScreenshot(expandedName, { animations: "disabled", maxDiffPixels: 40 });
+        await page.keyboard.press("Escape");
+        await expect.poll(() => media.evaluate(node => node.matches(":modal"))).toBe(false);
+        await expect(media.getByRole("button", { name: "Enlarge preview" })).toBeFocused();
       }
 
       await story(page, "workshop-careergraph--expanded", theme);

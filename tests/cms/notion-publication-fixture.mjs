@@ -64,7 +64,7 @@ const provider = http.createServer((request, response) => {
     }
     const review = process.env.WORK_CONTENT_REVIEW_FIXTURE;
     const { status, body } = review
-      ? { status: 200, body: { object: 'list', results: JSON.parse(readFileSync(review, 'utf8')).projects, has_more: false, next_cursor: null } }
+      ? { status: 200, body: { object: 'list', results: JSON.parse(readFileSync(review, 'utf8')).projects.filter(row => row.properties.Status?.status?.name === 'Added'), has_more: false, next_cursor: null } }
       : fixturePayload();
     response.writeHead(status, { 'content-type': 'application/json' }).end(JSON.stringify(body));
   });
