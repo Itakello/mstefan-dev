@@ -692,9 +692,14 @@ test('master results are an optional download while other attachments retain pre
         for (const [size, width, height] of [['desktop', 1280, 900], ['mobile', 390, 844]] as const) {
           await page.setViewportSize({ width, height });
           for (const theme of ['light', 'dark'] as const) {
-            await page.emulateMedia({ colorScheme: theme });
+            const dark = (await page.locator('html').getAttribute('class'))?.split(' ').includes('dark') ?? false;
+            if (dark !== (theme === 'dark')) await page.getByRole('button', { name: locale === 'it' ? 'Cambia tema' : 'Toggle theme' }).click();
+            await expect(page.locator('html')).toHaveClass(theme === 'dark' ? /\bdark\b/ : /^(?!.*\bdark\b)/);
             await expect(link).toBeVisible();
             await link.focus();
+            await link.press('Tab');
+            await page.keyboard.press('Shift+Tab');
+            await expect(link).toBeFocused();
             await page.screenshot({ path: `.artifacts/playwright/master-download/${locale}-${size}-${theme}.png`, fullPage: true });
           }
         }
