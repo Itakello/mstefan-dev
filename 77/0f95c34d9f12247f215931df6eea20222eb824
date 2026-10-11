@@ -1,0 +1,21 @@
+scripts/visual-review/ai-review.mjs
+  s_a3d57fd6983d88::t_ef7fd4d221a6ab 74-77,83,88,114,131,312,362
+tests/ai-visual-review.test.mjs
+  s_a3d57fd6983d88::t_4630e40cacf6c4 162,220-224,228-229,231-236,467,498,506-510,514,516-522,535
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "770f95c34d9f12247f215931df6eea20222eb824",
+  "prompts": {},
+  "sessions": {
+    "s_a3d57fd6983d88": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a125dc-d51e-7583-9ad7-4135793b24dc",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
