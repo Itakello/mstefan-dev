@@ -10,6 +10,7 @@ export type Project = {
   url?: string;
   websiteUrl?: string;
   previewUrls?: string[];
+  previewImages?: { url: string; label: string }[];
   paperUrl?: string;
   slidesUrl?: string;
   publication?: string;

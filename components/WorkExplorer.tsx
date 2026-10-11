@@ -99,7 +99,10 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
     return () => observer.disconnect();
   }, [selected?.id, stackCatalog]);
   if (!selected) return null;
-  const selectedPage = selected.screenshotPages?.[pageIndex] || selected.screenshotPages?.[0];
+  const previewPages = selected.previewImages?.length
+    ? selected.previewImages.map(image => ({ label: image.label, screenshots: { desktop: image.url, mobile: image.url } }))
+    : selected.screenshotPages;
+  const selectedPage = previewPages?.[pageIndex] || previewPages?.[0];
   const screenshotUrl = selectedPage?.screenshots[mobile ? "mobile" : "desktop"];
   const visitUrl = websitePreviewUrl(selected, locale);
   const groups = groupStackEntries(resolveProjectStack(projectStackLabels(selected), stackCatalog.entries));
@@ -108,7 +111,7 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
   const linkClass = `inline-flex items-center gap-2 text-sm font-medium ${ICON_LINK_COLOR_CLASS}`;
   const selectProject = (id: string) => { setSelectedId(id); setDocumentKind("paper"); setPageIndex(0); };
   const changePreview = (direction: number) => {
-    const count = selected.screenshotPages?.length ?? 0;
+    const count = previewPages?.length ?? 0;
     if (count < 2) return;
     setPageDirection(direction);
     setPageIndex(index => (index + direction + count) % count);
@@ -182,6 +185,37 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
             </div>
           </aside> : stackCatalog.message && <p role="status" className="text-xs leading-5 text-black/55 dark:text-white/55">{copy.publication.stack[stackCatalog.message]}</p>}
         </div>
+        {screenshotUrl && <div className="mt-7">
+            {previewPages && (previewPages.length > 1 || selected.previewImages?.length) && <div role="group" aria-label={copy.work.previewPage} className="mb-4 flex items-center justify-between gap-3 text-sm">
+              <span aria-live="polite" aria-atomic="true">{selectedPage.label} <span className="text-[var(--page-muted)]">· {pageIndex + 1} / {previewPages.length}</span></span>
+              {previewPages.length > 1 && <div className="flex shrink-0 gap-2">
+                {([{ direction: -1, label: copy.work.previousPreview, Icon: ChevronLeft }, { direction: 1, label: copy.work.nextPreview, Icon: ChevronRight }]).map(control => <button key={control.direction} type="button" aria-label={control.label} onClick={() => changePreview(control.direction)} className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-[var(--surface-border)] text-[var(--page-text)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[hsl(var(--accent))]"><control.Icon size={18} aria-hidden /></button>)}
+              </div>}
+            </div>}
+            <div data-work-preview className={`relative ${selected.previewImages?.length ? "aspect-[4/3] max-h-[min(620px,70svh)]" : "aspect-[8/5] max-h-[min(620px,70svh)]"} w-full overflow-hidden`} style={{ touchAction: "pan-y pinch-zoom" }}
+              onTouchStart={event => { swipeStart.current = event.touches.length === 1 && window.matchMedia("(max-width: 639px)").matches ? { x: event.touches[0].clientX, y: event.touches[0].clientY } : null; }}
+              onTouchCancel={() => { swipeStart.current = null; }}
+              onTouchEnd={event => {
+                const start = swipeStart.current;
+                swipeStart.current = null;
+                if (!start || !event.changedTouches.length) return;
+                const dx = event.changedTouches[0].clientX - start.x;
+                const dy = event.changedTouches[0].clientY - start.y;
+                if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5) changePreview(dx < 0 ? 1 : -1);
+              }}>
+              <AnimatePresence key={`${selected.id}-${mobile}`} initial={false} custom={pageDirection}>
+                <ScreenshotPreview key={screenshotUrl} url={screenshotUrl} title={selected.previewImages?.length ? `${selected.name}: ${selectedPage.label}` : `${mobile ? copy.work.mobile : copy.work.desktop}: ${copy.websites.previewTitle(selected.name)}`} mobile={mobile && !selected.previewImages?.length} unavailable={copy.websites.unavailable} direction={pageDirection} />
+              </AnimatePresence>
+            </div>
+            {!selected.previewImages?.length && <div role="group" aria-label={copy.work.previewSize} className="mt-4 ml-auto flex w-fit gap-1 rounded-lg border border-black/10 p-1 dark:border-white/15">
+              {([{ mobile: false, label: copy.work.desktop, Icon: Monitor }, { mobile: true, label: copy.work.mobile, Icon: Smartphone }]).map(mode => (
+                <button key={mode.label} type="button" aria-pressed={mobile === mode.mobile} onClick={() => setMobile(mode.mobile)}
+                  className={`inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-[hsl(var(--accent))] ${mobile === mode.mobile ? "bg-[hsl(var(--accent))] text-white" : "text-black/65 hover:bg-black/5 dark:text-white/65 dark:hover:bg-white/5"}`}>
+                  <mode.Icon size={16} aria-hidden="true" />{mode.label}
+                </button>
+              ))}
+            </div>}
+          </div>}
         {(selected.paperUrl || selected.slidesUrl) && <section aria-label={copy.work.research} className="mt-4 border-t border-black/10 pt-4 dark:border-white/10">
           <h3 className="text-sm font-semibold">{copy.work.research}</h3>
           {(selected.paperUrl || selected.slidesUrl) && <>
@@ -194,37 +228,6 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
             </div>
           </>}
         </section>}
-        {screenshotUrl && <div className="mt-7">
-            {selected.screenshotPages && selected.screenshotPages.length > 1 && <div role="group" aria-label={copy.work.previewPage} className="mb-4 flex items-center justify-between gap-3 text-sm">
-              <span aria-live="polite" aria-atomic="true">{selectedPage.label} <span className="text-[var(--page-muted)]">· {pageIndex + 1} / {selected.screenshotPages.length}</span></span>
-              <div className="flex shrink-0 gap-2">
-                {([{ direction: -1, label: copy.work.previousPreview, Icon: ChevronLeft }, { direction: 1, label: copy.work.nextPreview, Icon: ChevronRight }]).map(control => <button key={control.direction} type="button" aria-label={control.label} onClick={() => changePreview(control.direction)} className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-[var(--surface-border)] text-[var(--page-text)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[hsl(var(--accent))]"><control.Icon size={18} aria-hidden /></button>)}
-              </div>
-            </div>}
-            <div data-work-preview className="relative aspect-[8/5] max-h-[min(620px,70svh)] w-full overflow-hidden" style={{ touchAction: "pan-y pinch-zoom" }}
-              onTouchStart={event => { swipeStart.current = event.touches.length === 1 && window.matchMedia("(max-width: 639px)").matches ? { x: event.touches[0].clientX, y: event.touches[0].clientY } : null; }}
-              onTouchCancel={() => { swipeStart.current = null; }}
-              onTouchEnd={event => {
-                const start = swipeStart.current;
-                swipeStart.current = null;
-                if (!start || !event.changedTouches.length) return;
-                const dx = event.changedTouches[0].clientX - start.x;
-                const dy = event.changedTouches[0].clientY - start.y;
-                if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5) changePreview(dx < 0 ? 1 : -1);
-              }}>
-              <AnimatePresence key={`${selected.id}-${mobile}`} initial={false} custom={pageDirection}>
-                <ScreenshotPreview key={screenshotUrl} url={screenshotUrl} title={`${mobile ? copy.work.mobile : copy.work.desktop}: ${copy.websites.previewTitle(selected.name)}`} mobile={mobile} unavailable={copy.websites.unavailable} direction={pageDirection} />
-              </AnimatePresence>
-            </div>
-            <div role="group" aria-label={copy.work.previewSize} className="mt-4 ml-auto flex w-fit gap-1 rounded-lg border border-black/10 p-1 dark:border-white/15">
-              {([{ mobile: false, label: copy.work.desktop, Icon: Monitor }, { mobile: true, label: copy.work.mobile, Icon: Smartphone }]).map(mode => (
-                <button key={mode.label} type="button" aria-pressed={mobile === mode.mobile} onClick={() => setMobile(mode.mobile)}
-                  className={`inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-[hsl(var(--accent))] ${mobile === mode.mobile ? "bg-[hsl(var(--accent))] text-white" : "text-black/65 hover:bg-black/5 dark:text-white/65 dark:hover:bg-white/5"}`}>
-                  <mode.Icon size={16} aria-hidden="true" />{mode.label}
-                </button>
-              ))}
-            </div>
-          </div>}
         {selected.url && !selected.preview && <p className="mt-6 text-sm text-black/60 dark:text-white/60">{copy.websites.linkOnly}</p>}
       </section>
       {stackLabel && createPortal(<span data-work-stack-label aria-hidden className="pointer-events-none fixed z-50 max-w-40 rounded-md border border-black/10 bg-white px-2 py-1 text-xs shadow-md dark:border-white/15 dark:bg-zinc-900" style={{ right: stackLabel.right, top: stackLabel.top }}>

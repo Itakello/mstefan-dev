@@ -54,14 +54,17 @@ const provider = http.createServer((request, response) => {
     const parsed = JSON.parse(query);
     if (request.url === '/v1/databases/visual-stack-fixture/query') {
       if (parsed.filter || parsed.start_cursor) { response.writeHead(400).end('Unexpected Stack query'); return; }
-      response.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify({ object: 'list', results: stackRows, has_more: false, next_cursor: null }));
+      response.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify({ object: 'list', results: process.env.WORK_CONTENT_REVIEW_FIXTURE ? JSON.parse(readFileSync(process.env.WORK_CONTENT_REVIEW_FIXTURE, 'utf8')).stack : stackRows, has_more: false, next_cursor: null }));
       return;
     }
     if (parsed.filter?.property !== 'Status' || parsed.filter?.status?.equals !== 'Added' || parsed.start_cursor) {
       response.writeHead(400).end('Unexpected publication query');
       return;
     }
-    const { status, body } = fixturePayload();
+    const review = process.env.WORK_CONTENT_REVIEW_FIXTURE;
+    const { status, body } = review
+      ? { status: 200, body: { object: 'list', results: JSON.parse(readFileSync(review, 'utf8')).projects, has_more: false, next_cursor: null } }
+      : fixturePayload();
     response.writeHead(status, { 'content-type': 'application/json' }).end(JSON.stringify(body));
   });
 });

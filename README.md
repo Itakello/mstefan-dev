@@ -84,6 +84,8 @@ Run `pnpm exec playwright install chromium` once, then `pnpm capture:website-pre
 
 The refresh uses no model, allows at most 100 pages per run and 2 MB per image, serializes overlapping runs, and stops after 30 minutes. Initial budget: one scheduled run plus two manual verification runs in the first week (at most 90 job minutes). Disable the repository variable or workflow to pause; capture-only dispatch remains available for diagnosis. Review failures and R2 usage after the first scheduled run before increasing these bounds. R2 storage/request charges above its free allowance are separate from GitHub Actions usage.
 
+Projects may also provide `Preview images` as a text property containing a JSON array of `{ "url", "label", "labelIT" }` objects (up to ten). Each caption is required in both languages. Images use reviewed `/work-previews/` assets, raw GitHub sources, or the owned preview store. Image previews reuse the arrows and mobile swipe, precede research documents, and omit the website viewport switch. Missing images retain the unavailable state.
+
 Paper and slides URLs are rendered as PDFs inside Work, with page navigation, zoom, and selectable text. Use public PDF sources that allow cross-origin reading (CORS), such as raw GitHub files or arXiv. GitHub blob links are converted to raw content for the reader. Hosts that require sign-in, block CORS, or serve a non-PDF retain an external Open PDF link when the inline preview is unavailable.
 
 An `Added` row requires both nonblank long summaries. The website never falls back between English and Italian summaries; each locale uses only its own long and optional short summary.

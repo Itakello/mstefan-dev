@@ -41,6 +41,7 @@ export function selectPublicProjectLocale(project: NotionProject, locale: Locale
     ...(project.url ? { url: project.url } : {}),
     ...(project.websiteUrl ? { websiteUrl: project.websiteUrl } : {}),
     ...(project.previewUrls ? { previewUrls: project.previewUrls } : {}),
+    ...(project.previewImages ? { previewImages: project.previewImages.map(image => ({ url: image.url, label: locale === "it" ? image.labelIT : image.label })) } : {}),
     ...(project.paperUrl ? { paperUrl: project.paperUrl } : {}),
     ...(project.slidesUrl ? { slidesUrl: project.slidesUrl } : {}),
     ...(localizedCopy.publication ? { publication: localizedCopy.publication } : {}),
