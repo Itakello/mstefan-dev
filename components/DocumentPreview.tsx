@@ -132,7 +132,7 @@ function PdfDocumentPreview({ url, title, locale, filename, presentation = false
       }}>
     <div ref={host} data-document-stage className={`relative max-h-[min(480px,55svh)] overflow-auto bg-[var(--surface-bg)] p-3`}>
       {status === "loading" && <p role="status" className="absolute left-4 top-4 rounded bg-white/90 px-2 py-1 text-sm text-black">{italian ? "Caricamento documento…" : "Loading document…"}</p>}
-      {status === "error" && <p role="status" className="text-sm">{italian ? "Anteprima non disponibile. Usa Apri PDF per leggere il documento." : "Preview unavailable. Use Open PDF to read the document."}</p>}
+      {status === "error" && <p role="status" className="text-sm">{italian ? "Anteprima non disponibile. Usa Scarica PDF per leggere il documento." : "Preview unavailable. Use Download PDF to read the document."}</p>}
       <div ref={pageHost} className={`relative mx-auto ${status === "error" ? "hidden" : ""}`}><canvas ref={canvas} role="img" aria-label={`${title} · ${italian ? "pagina" : "page"} ${page}`} className="bg-white shadow-sm" /><div ref={text} data-document-text /></div>
     </div>
     <PreviewArrows previous={italian ? "Pagina precedente" : "Previous page"} next={italian ? "Pagina successiva" : "Next page"}
