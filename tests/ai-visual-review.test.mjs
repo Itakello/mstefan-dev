@@ -325,16 +325,19 @@ with zipfile.ZipFile(sys.argv[1]+'/fixture.zip','w') as z:
  m=json.loads(sys.argv[2]); z.writestr('evidence/metadata.json',json.dumps(m))
  for n in m['captures']: z.writestr('test-results/'+n,bytes([137,80,78,71,13,10,26,10]))`,directory,JSON.stringify({...metadata,baseSha})]);
     writeArchive();
-    let reservations=4,requestPhase=false,stale=false,replayed=false;
+    let reservations=4,requestPhase=false,stale=false,replayed=false,closeDuringModel=false,closed=false;
     const calls=[],writes=[];
     const fetcher=async(url,options)=>{
       calls.push(url);
-      if(new URL(url).origin === 'https://api.openai.com') return new Response(JSON.stringify(url.endsWith('/input_tokens') ? {object:'response.input_tokens',input_tokens:10} : {status:'completed',output:[{type:'message',content:[{type:'output_text',text:JSON.stringify(clean)}]}]}));
+      if(new URL(url).origin === 'https://api.openai.com') {
+        if(closeDuringModel && !url.endsWith('/input_tokens')) closed=true;
+        return new Response(JSON.stringify(url.endsWith('/input_tokens') ? {object:'response.input_tokens',input_tokens:10} : {status:'completed',output:[{type:'message',content:[{type:'output_text',text:JSON.stringify(clean)}]}]}));
+      }
       if(options.method==='POST') {writes.push(JSON.parse(options.body));return new Response('{}');}
       let response;
       if(url.endsWith('/actions/runs/7')) response=run;
       else if(url.endsWith('/pulls/1') && options.headers.Accept==='application/vnd.github.diff') return new Response('diff --git a/components/Header.tsx b/components/Header.tsx\n@@ -1 +1 @@\n-old\n+new\n');
-      else if(url.endsWith('/pulls/1')) response={...pr,head:{sha:stale ? 'new-head' : 'head'},changed_files:1,labels:[]};
+      else if(url.endsWith('/pulls/1')) response={...pr,state:closed ? 'closed' : 'open',head:{sha:stale ? 'new-head' : 'head'},changed_files:1,labels:[]};
       else if(url.includes('/statuses?')) response=replayed ? [{context:'AI visual review',description:'PR1 base: request claimed; no retries'}] : [];
       else if(url.includes('/pulls/1/files?')) response=[{filename:'components/Header.tsx',additions:1,deletions:1}];
       else if(url.includes('/actions/runs/7/artifacts?')) response={total_count:1,artifacts:[{id:9,name:'visual-review-pr-1-head',size_in_bytes:1000,expired:false}]};
@@ -355,6 +358,10 @@ with zipfile.ZipFile(sys.argv[1]+'/fixture.zip','w') as z:
     await main({env,fetcher,request:true});
     assert.equal(calls.filter(url=>new URL(url).origin === 'https://api.openai.com').length,2);
     assert.match(writes.at(-1).description,/complete review: 16 captures/);
+    calls.length=0;writes.length=0;closeDuringModel=true;
+    await assert.rejects(main({env,fetcher,request:true}),/Revisions changed during review/);
+    assert.equal(writes.length,1);assert.match(writes[0].description,/request claimed/);
+    closeDuringModel=false;closed=false;
     calls.length=0;reservations=5;
     await assert.rejects(main({env,fetcher,request:true}),/paid attempt cap/);
     assert.equal(calls.some(url=>new URL(url).origin === 'https://api.openai.com'),false);
@@ -379,7 +386,7 @@ with zipfile.ZipFile(sys.argv[1]+'/fixture.zip','w') as z:
 });
 
 
-test('revision changes during budget history or job lookup cannot claim or call the model', async () => {
+test('revision, closure or repository changes during budget lookup cannot publish or call the model', async () => {
   const {mkdtempSync,writeFileSync,rmSync}=await import('node:fs');
   const {tmpdir}=await import('node:os');
   const {join}=await import('node:path');
@@ -389,7 +396,7 @@ test('revision changes during budget history or job lookup cannot claim or call 
     writeFileSync(event,JSON.stringify({inputs:{source_run_id:'7'}}));
     writeFileSync(join(directory,'ai-visual-request.json'),JSON.stringify({sha:'head',base:'base',sourceRun:7,names:REQUIRED,body:requestBody('',[])}));
     const env={GITHUB_REPOSITORY:repository,GITHUB_EVENT_PATH:event,GITHUB_EVENT_NAME:'workflow_dispatch',GITHUB_RUN_ATTEMPT:'1',GITHUB_RUN_ID:'5',RUNNER_TEMP:directory,OPENAI_API_KEY:'opaque'};
-    for(const changed of ['head','base']) for(const during of ['history','jobs']) {
+    for(const changed of ['head','base','state','repository']) for(const during of ['history','jobs']) {
       let retargeted=false;
       const calls=[],writes=[];
       const fetcher=async(url,options)=>{
@@ -397,7 +404,7 @@ test('revision changes during budget history or job lookup cannot claim or call 
         if(options.method==='POST') {writes.push(JSON.parse(options.body));return new Response('{}');}
         let response;
         if(url.endsWith('/actions/runs/7')) response=run;
-        else if(url.endsWith('/pulls/1')) response={...pr,...(retargeted ? {[changed]:{...pr[changed],sha:'new-revision'}} : {}),changed_files:1,labels:[]};
+        else if(url.endsWith('/pulls/1')) response={...pr,...(retargeted ? changed === 'state' ? {state:'closed'} : changed === 'repository' ? {base:{...pr.base,repo:{full_name:'other/repo'}}} : {[changed]:{...pr[changed],sha:'new-revision'}} : {}),changed_files:1,labels:[]};
         else if(url.includes('/statuses?')) response=[];
         else if(url.includes('/pulls/1/files?')) response=[{filename:'components/Header.tsx',additions:1,deletions:1}];
         else if(url.includes('/workflows/ai-visual-review.yml/runs?')) {
@@ -461,5 +468,29 @@ test('documentation-only approval proves current files and refreshes its tuple w
     assert.match(writes[0].description,/no UI-impacting paths changed/);
     assert.equal(calls.filter(url=>url.endsWith('/pulls/1')).length,2);
     assert.equal(calls.some(url=>url.includes('/artifacts') || new URL(url).origin === 'https://api.openai.com'),false);
+  } finally {rmSync(directory,{recursive:true,force:true});}
+});
+
+
+test('closing the PR during documentation classification publishes no status', async () => {
+  const {mkdtempSync,writeFileSync,rmSync}=await import('node:fs');
+  const {tmpdir}=await import('node:os');
+  const {join}=await import('node:path');
+  const directory=mkdtempSync(join(tmpdir(),'visual-closed-docs-'));
+  try {
+    const event=join(directory,'event.json');writeFileSync(event,JSON.stringify({workflow_run:{id:7}}));
+    let closed=false;
+    const writes=[];
+    await assert.rejects(main({env:{GITHUB_REPOSITORY:repository,GITHUB_EVENT_PATH:event},fetcher:async(url,options)=>{
+      if(options.method==='POST') {writes.push(JSON.parse(options.body));return new Response('{}');}
+      let response;
+      if(url.endsWith('/actions/runs/7')) response=run;
+      else if(url.endsWith('/pulls/1')) response={...pr,state:closed ? 'closed' : 'open',changed_files:1,labels:[]};
+      else if(url.includes('/statuses?')) response=[];
+      else if(url.includes('/files?')) {closed=true;response=[{filename:'README.md',additions:1,deletions:0}];}
+      else throw new Error(`Unexpected endpoint ${url}`);
+      return new Response(JSON.stringify(response));
+    }}),/Revisions changed before classification/);
+    assert.equal(writes.length,0);
   } finally {rmSync(directory,{recursive:true,force:true});}
 });

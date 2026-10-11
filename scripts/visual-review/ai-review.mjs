@@ -14,7 +14,7 @@ const VERIFIED_NO_REQUEST_RUNS = new Set([
   38098603752,38098511736,38098397899,38098386258,38098372261,38098223179,38098203117,38098107198,
   38098091742,38097981789,38097888323,38097869584,38097745015,38097705932,38097526243,38097492576,
   38097453777,38096596576,38096485905,38096450321,38096448766,38096390404,38096215815,38096104257,
-  38096080891,38096032138,38096010327,38095912444,38095707403,38099278720,38099083901,
+  38096080891,38096032138,38096010327,38095912444,38095707403,38099278720,38099083901,38099572728,
 ]);
 const MAX_OUTPUT = 12000;
 const MAX_BYTES = 60 * 1024 * 1024;
@@ -25,6 +25,9 @@ const schema = { type: 'object', additionalProperties: false, required: ['comple
   suggestions:{type:'array',items:{type:'string'}},
 } };
 function ensure(condition, message) { if (!condition) throw new Error(message); }
+function currentRevision(pr, repository, sha, base) {
+  return pr.state === 'open' && pr.base?.repo?.full_name === repository && pr.head?.sha === sha && pr.base?.sha === base;
+}
 export function verifyRevision(pr, run, repository) {
   ensure(pr.state === 'open' && pr.base.repo.full_name === repository, 'PR repository/state mismatch');
   ensure(run.repository.full_name === repository && run.name === 'Visual review' && run.path === '.github/workflows/visual-review.yml' && run.event === 'pull_request' && run.status === 'completed', 'Untrusted source workflow');
@@ -198,7 +201,7 @@ export async function main({env = process.env, fetcher = fetch, invalidate = fal
     ensure(files.length === pr.changed_files && files.length < 300, 'PR file inventory truncated');
     const decision = classifyVisualReview(files.flatMap(file => [file.filename,...(file.previous_filename ? [file.previous_filename] : [])]),{force:pr.labels.some(label => label.name === 'visual-review')});
     if (!decision.run) {
-      pr = await github(`/pulls/${pr.number}`); ensure(pr.head.sha === sha && pr.base.sha === base,'Revisions changed before classification');
+      pr = await github(`/pulls/${pr.number}`); ensure(currentRevision(pr,repository,sha,base),'Revisions changed before classification');
       revisionProven = true;
       await status('success',decision.reason); return;
     }
@@ -209,10 +212,10 @@ export async function main({env = process.env, fetcher = fetch, invalidate = fal
       ensure(env.ENABLED === 'true' || env.GITHUB_EVENT_NAME === 'workflow_dispatch','Automatic AI review disabled; activation proof required');
       ensure(env.GITHUB_RUN_ATTEMPT === '1','Reruns do not issue another model request');
       ensure(await paidAttempts(github,Date.now(),env.GITHUB_RUN_ID) <= 5, 'Rolling 24h paid attempt cap reached');
-      pr = await github(`/pulls/${pr.number}`); ensure(pr.head.sha === sha && pr.base.sha === base,'Revisions changed before request');
+      pr = await github(`/pulls/${pr.number}`); ensure(currentRevision(pr,repository,sha,base),'Revisions changed before request');
       await status('pending','request claimed; no retries');
       const result = reviewResult(await modelReview(prepared.body,env.OPENAI_API_KEY,fetcher),prepared.names);
-      pr = await github(`/pulls/${pr.number}`); ensure(pr.head.sha === sha && pr.base.sha === base,'Revisions changed during review');
+      pr = await github(`/pulls/${pr.number}`); ensure(currentRevision(pr,repository,sha,base),'Revisions changed during review');
       await status(result.findings.length ? 'failure' : 'success',result.findings.length ? `${result.findings.length} proven design violations` : `complete review: ${prepared.names.length} captures`);
       if (env.GITHUB_STEP_SUMMARY) writeFileSync(env.GITHUB_STEP_SUMMARY,`Review ${sha} against ${base}\n\n${JSON.stringify(result,null,2)}\n`);
       return;
@@ -230,7 +233,7 @@ export async function main({env = process.env, fetcher = fetch, invalidate = fal
       const tree = await github(`/git/trees/${base}?recursive=1`);
       verifyEvidence(inventory.metadata,names,pr,run,repository,{workshopRequired:baseRequiresWorkshop(tree)});
       revisionProven = true;
-      pr = await github(`/pulls/${pr.number}`); ensure(pr.head.sha === sha && pr.base.sha === base,'Revisions changed before validation');
+      pr = await github(`/pulls/${pr.number}`); ensure(currentRevision(pr,repository,sha,base),'Revisions changed before validation');
       await status('pending','validating evidence');
       ensure(env.ENABLED === 'true' || env.GITHUB_EVENT_NAME === 'workflow_dispatch','Automatic AI review disabled; activation proof required');
       ensure(env.GITHUB_RUN_ATTEMPT === '1','Reruns do not issue another model request');
@@ -248,15 +251,16 @@ export async function main({env = process.env, fetcher = fetch, invalidate = fal
         if (reference) { const blob = await github(`/git/blobs/${reference.sha}`); ensure(blob.encoding === 'base64','Invalid reference encoding'); images.push({name:`base/${name}`,data:Buffer.from(blob.content,'base64')}); }
       }
       const body = requestBody(`Base DESIGN.md:\n${design}\nBase AGENTS.md:\n${agents}\nBase .github/PR_POLICY.md:\n${policy}\nExact diff ${base}...${sha}:\n${diff}\nCurrent captures:\n${names.join('\n')}`,images);
-      pr = await github(`/pulls/${pr.number}`); ensure(pr.head.sha === sha && pr.base.sha === base,'Revisions changed before request');
+      pr = await github(`/pulls/${pr.number}`); ensure(currentRevision(pr,repository,sha,base),'Revisions changed before request');
       ensure(await paidAttempts(github) < 5, 'Rolling 24h paid attempt cap reached');
+      pr = await github(`/pulls/${pr.number}`); ensure(currentRevision(pr,repository,sha,base),'Revisions changed before preparation');
       writeFileSync(join(env.RUNNER_TEMP,'ai-visual-request.json'),JSON.stringify({sha,base,sourceRun:run.id,names,body}),{mode:0o600});
       appendFileSync(env.GITHUB_OUTPUT,'ready=true\n');
     } finally { rmSync(directory,{recursive:true,force:true}); }
   } catch (error) {
     if (revisionProven) {
       const current = await github(`/pulls/${pr.number}`);
-      if (current.head.sha === sha && current.base.sha === base) await status('error',error.message);
+      if (currentRevision(current,repository,sha,base)) await status('error',error.message);
     }
     throw error;
   }
