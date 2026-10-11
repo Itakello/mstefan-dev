@@ -31,6 +31,8 @@ async function fixture(run, engine = false) {
   const replies = new Map([
     [engine ? '/pulls/137' : '/pulls/138',target], ['/actions/runs/7',producer],
     [`/commits/${sha}/statuses?per_page=100`,[]],
+    [`/compare/${engineBase}...${engineBase}`,{status:'identical'}],
+    [`/git/trees/${engineBase}?recursive=1`,{truncated:false,tree:['scripts/visual-review/ai-review.mjs','.github/workflows/ai-visual-review.yml','scripts/visual-review/recovery.mjs','AGENTS.md','DESIGN.md','.github/PR_POLICY.md'].map(path=>({path,mode:'100644',type:'blob',sha:'a'.repeat(40)}))}],
     ['/actions/runs/8/jobs?filter=all&per_page=100',{total_count:1,jobs:[{steps:[step(),step(),step()]}]}],
     ['/actions/runs/9/jobs?filter=all&per_page=100',{total_count:1,jobs:[{steps:[step(PAID_STEP,'in_progress')]}]}],
   ]);
@@ -108,7 +110,7 @@ test('category recovery requires the accounting merge as its exact base', () => 
 }));
 
 test('PR 137 engine activation is owner-only, expiring and bound to the exact branch, base, live head and producer', async () => {
-  await fixture(async ({execute,calls})=>{await execute();assert.deepEqual(calls,[`/pulls/137`,`/actions/runs/7`,`/commits/${sha}/statuses?per_page=100`]);},true);
+  await fixture(async ({execute,calls})=>{await execute();assert.deepEqual(calls.filter(path=>!path.includes('/compare/')&&!path.includes('/git/trees/')),[`/pulls/137`,`/actions/runs/7`,`/commits/${sha}/statuses?per_page=100`]);},true);
   for(const [key,value] of Object.entries({GITHUB_ACTOR:'other',GITHUB_TRIGGERING_ACTOR:'other',GITHUB_REF:'refs/heads/master',GITHUB_RUN_ATTEMPT:'2',GITHUB_EVENT_NAME:'workflow_run'})) {
     await fixture(async ({env,execute,calls})=>{env[key]=value;await assert.rejects(execute());assert.equal(calls.length,0);},true);
   }
@@ -120,3 +122,13 @@ test('PR 137 engine activation is owner-only, expiring and bound to the exact br
   await fixture(async ({execute,calls})=>{await assert.rejects(execute({now:()=>Date.parse('2026-10-12T03:00:00Z')}),/expired/);assert.equal(calls.length,0);},true);
   await fixture(async ({execute})=>{let reads=0;await assert.rejects(execute({now:()=>++reads===1 ? Date.parse('2026-10-12T01:00:00Z') : Date.parse('2026-10-12T03:00:00Z')}),/expired/);},true);
 });
+
+test('PR 137 recovery binds the source to the actual approved UI-only descendant base', () => fixture(async ({replies,execute}) => {
+  const descendant='9bbfa628b146d81abfb60f96b60617b88c5464ef';
+  replies.get('/pulls/137').base.sha=descendant;
+  replies.set(`/compare/${engineBase}...${descendant}`,{status:'ahead'});
+  replies.set(`/git/trees/${descendant}?recursive=1`,structuredClone(replies.get(`/git/trees/${engineBase}?recursive=1`)));
+  await execute();
+  replies.get('/actions/runs/7').pull_requests[0].base={...replies.get('/pulls/137').base,sha:engineBase};
+  await assert.rejects(execute(),/revision|producer|source/i);
+},true));

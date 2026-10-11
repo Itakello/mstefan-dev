@@ -1,10 +1,9 @@
 import { readFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
-import { verifyRevision, alreadyAttempted } from './ai-review.mjs';
+import { verifyRevision, alreadyAttempted, verifyPolicyBase } from './ai-review.mjs';
 
 const REPOSITORY = 'Itakello/mstefan-dev';
 const BASE = '8776f7c4fb38309505626f13968f13d5ab903127';
-const ENGINE_BASE = '9b96c768a2a893e490e79543cb1955ccd59a5aec';
 const EXPIRES = Date.parse('2026-10-12T20:59:00Z');
 class RecoveryError extends Error {}
 function ensure(value, message) { if (!value) throw new RecoveryError(message); }
@@ -60,7 +59,8 @@ export async function main({env = process.env, fetcher = fetch, now = Date.now} 
   }
   const accounting = await github(engine ? '/pulls/137' : '/pulls/138');
   const run = await github(`/actions/runs/${source}`);
-  ensure(accounting.number === (engine ? 137 : 138) && accounting.head?.sha === env.GITHUB_SHA && accounting.base?.sha === (engine ? ENGINE_BASE : BASE), 'Recovery head/base mismatch');
+  ensure(accounting.number === (engine ? 137 : 138) && accounting.head?.sha === env.GITHUB_SHA && (engine || accounting.base?.sha === BASE), 'Recovery head/base mismatch');
+  if (engine) await verifyPolicyBase(github,accounting.base?.sha);
   ensure(String(run.id) === source && run.conclusion === 'success' && run.pull_requests?.length === 1, 'Recovery source mismatch');
   const number = run.pull_requests[0].number;
   ensure(engine ? number === 137 : [138,135].includes(number), 'Recovery PR outside approved scope');

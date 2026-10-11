@@ -195,10 +195,26 @@ export async function reviewBudget(body, key, fetcher = fetch) {
 function validReservation(microUsd) {
   ensure(Number.isSafeInteger(microUsd) && microUsd > MAX_OUTPUT*15 && microUsd <= MAX_REVIEW_MICRO_USD, 'Invalid paid reservation amount');
 }
-export function verifyActivation(env, event, pr, now = Date.now()) {
+export async function verifyPolicyBase(github, base) {
+  const anchor = '9b96c768a2a893e490e79543cb1955ccd59a5aec';
+  const paths = ['scripts/visual-review/ai-review.mjs','.github/workflows/ai-visual-review.yml','scripts/visual-review/recovery.mjs','AGENTS.md','DESIGN.md','.github/PR_POLICY.md'];
+  ensure(/^[a-f0-9]{40}$/.test(base ?? ''), 'Invalid recovery policy base');
+  const comparison = await github(`/compare/${anchor}...${base}`);
+  ensure(['ahead','identical'].includes(comparison.status), 'Recovery policy base is not an approved descendant');
+  const trees = await Promise.all([anchor,base].map(sha => github(`/git/trees/${sha}?recursive=1`)));
+  const protectedEntries = trees.map(tree => {
+    ensure(tree.truncated === false && Array.isArray(tree.tree), 'Recovery policy tree truncated');
+    const entries = tree.tree.filter(item => paths.includes(item.path));
+    ensure(entries.length === paths.length && new Set(entries.map(item => item.path)).size === paths.length && entries.every(item => item.mode === '100644' && item.type === 'blob' && /^[a-f0-9]{40}$/.test(item.sha)), 'Recovery policy inventory incomplete');
+    return new Map(entries.map(item => [item.path,item.sha]));
+  });
+  ensure(paths.every(path => protectedEntries[0].get(path) === protectedEntries[1].get(path)), 'Recovery policy base changed');
+}
+export async function verifyActivation(env, event, pr, github, now = Date.now()) {
   if (![true, 'true'].includes(event.inputs?.recovery)) return;
   ensure(env.GITHUB_REPOSITORY === 'Itakello/mstefan-dev' && env.GITHUB_EVENT_NAME === 'workflow_dispatch' && env.GITHUB_ACTOR === 'Itakello' && env.GITHUB_TRIGGERING_ACTOR === 'Itakello' && env.GITHUB_RUN_ATTEMPT === '1' && env.GITHUB_REF === 'refs/heads/fix/visual-review-file-inventory', 'Unauthorized bounded engine activation');
-  ensure(pr.number === 137 && pr.base?.sha === '9b96c768a2a893e490e79543cb1955ccd59a5aec' && /^[a-f0-9]{40}$/.test(env.GITHUB_SHA ?? '') && pr.head?.sha === env.GITHUB_SHA && Number.isFinite(now) && now < Date.parse('2026-10-12T03:00:00Z'), 'Unauthorized bounded engine activation');
+  ensure(pr.number === 137 && /^[a-f0-9]{40}$/.test(env.GITHUB_SHA ?? '') && pr.head?.sha === env.GITHUB_SHA && Number.isFinite(now) && now < Date.parse('2026-10-12T03:00:00Z'), 'Unauthorized bounded engine activation');
+  await verifyPolicyBase(github,pr.base?.sha);
 }
 export function checkAttempts(history, includeNext = false) {
   ensure(Number.isSafeInteger(history.count) && history.count >= 0 && typeof includeNext === 'boolean', 'Invalid paid attempt count');
@@ -337,8 +353,8 @@ export async function main({env = process.env, fetcher = fetch, gitDiff = native
       ensure(env.GITHUB_RUN_ATTEMPT === '1','Reruns do not issue another model request');
       validReservation(prepared.reservedMicroUsd);
       checkAttempts(await paidAttempts(github,Date.now(),env.GITHUB_RUN_ID,prepared.reservedMicroUsd));
+      await verifyActivation(env,event,pr,github);
       pr = await github(`/pulls/${pr.number}`); ensure(currentRevision(pr,repository,sha,base),'Revisions changed before request');
-      verifyActivation(env,event,pr);
       await status('pending','request claimed; no retries');
       const response = await modelReview(prepared.body,env.OPENAI_API_KEY,fetcher,prepared.reservedMicroUsd);
       const actual = actualUsage(response,prepared.reservedMicroUsd);
@@ -390,8 +406,8 @@ export async function main({env = process.env, fetcher = fetch, gitDiff = native
         if (reference) { const blob = await github(`/git/blobs/${reference.sha}`); ensure(blob.encoding === 'base64','Invalid reference encoding'); images.push({name:`base/${name}`,data:Buffer.from(blob.content,'base64')}); }
       }
       const body = requestBody(`Base DESIGN.md:\n${design}\nBase AGENTS.md:\n${agents}\nBase .github/PR_POLICY.md:\n${policy}\nValidated exact diff ${base}...${sha} for visual review:\n${context}\nCurrent captures:\n${names.join('\n')}`,images);
+      await verifyActivation(env,event,pr,github);
       pr = await github(`/pulls/${pr.number}`); ensure(currentRevision(pr,repository,sha,base),'Revisions changed before request');
-      verifyActivation(env,event,pr);
       const reservedMicroUsd = await reviewBudget(body,env.OPENAI_API_KEY,fetcher);
       checkAttempts(await paidAttempts(github),true);
       pr = await github(`/pulls/${pr.number}`); ensure(currentRevision(pr,repository,sha,base),'Revisions changed before preparation');

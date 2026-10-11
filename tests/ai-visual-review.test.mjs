@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import test from 'node:test';
 import { classifyVisualReview } from '../scripts/visual-review/classify.mjs';
-import { REQUIRED, main, PAID_STEP, paidAttempts, reviewBudget, checkAttempts, baseRequiresWorkshop, nativeGitDiff, projectVisualDiff, ASSET_MANIFEST, verifyDiff, verifyRevision, verifyEvidence, reviewResult, requestBody, modelReview, alreadyAttempted, actualUsage, publishUsage, verifyActivation } from '../scripts/visual-review/ai-review.mjs';
+import { REQUIRED, main, PAID_STEP, paidAttempts, reviewBudget, checkAttempts, baseRequiresWorkshop, nativeGitDiff, projectVisualDiff, ASSET_MANIFEST, verifyDiff, verifyRevision, verifyEvidence, reviewResult, requestBody, modelReview, alreadyAttempted, actualUsage, publishUsage, verifyActivation, verifyPolicyBase } from '../scripts/visual-review/ai-review.mjs';
 const repository = 'owner/repo';
 const pr = {state:'open',number:1,head:{sha:'head'},base:{sha:'base',repo:{full_name:repository}}};
 const run = {id:7,head_sha:'head',repository:{full_name:repository},name:'Visual review',path:'.github/workflows/visual-review.yml',event:'pull_request',status:'completed',conclusion:'success',pull_requests:[{number:1,head:{sha:'head'},base:{sha:'base'}}]};
@@ -831,14 +831,16 @@ test('actual usage charges ordinary, cached, cache-write and reasoning-inclusive
   assert.throws(()=>actualUsage(response,100),/exceeds reservation/);
 });
 
-test('bounded PR 137 activation remains owner-only and expiring without monetary allowances', () => {
+test('bounded PR 137 activation remains owner-only and expiring without monetary allowances', async () => {
   const instant=Date.parse('2026-10-12T01:00:00Z'),sha='d'.repeat(40);
   const env={GITHUB_REPOSITORY:'Itakello/mstefan-dev',GITHUB_EVENT_NAME:'workflow_dispatch',GITHUB_ACTOR:'Itakello',GITHUB_TRIGGERING_ACTOR:'Itakello',GITHUB_RUN_ATTEMPT:'1',GITHUB_REF:'refs/heads/fix/visual-review-file-inventory',GITHUB_SHA:sha};
   const event={inputs:{recovery:'true'}},pr={number:137,head:{sha},base:{sha:'9b96c768a2a893e490e79543cb1955ccd59a5aec'}};
-  assert.doesNotThrow(()=>verifyActivation(env,event,pr,instant));
-  for(const [key,value] of Object.entries({GITHUB_ACTOR:'other',GITHUB_TRIGGERING_ACTOR:'other',GITHUB_RUN_ATTEMPT:'2',GITHUB_REF:'refs/heads/master',GITHUB_SHA:'e'.repeat(40)})) assert.throws(()=>verifyActivation({...env,[key]:value},event,pr,instant));
-  for(const invalid of [{...pr,number:138},{...pr,base:{sha:'old'}}]) assert.throws(()=>verifyActivation(env,event,invalid,instant));
-  assert.throws(()=>verifyActivation(env,event,pr,Date.parse('2026-10-12T03:00:00Z')));
+  const tree={truncated:false,tree:['scripts/visual-review/ai-review.mjs','.github/workflows/ai-visual-review.yml','scripts/visual-review/recovery.mjs','AGENTS.md','DESIGN.md','.github/PR_POLICY.md'].map(path=>({path,mode:'100644',type:'blob',sha:'a'.repeat(40)}))};
+  const github=async path=>path.includes('/compare/') ? {status:'identical'} : tree;
+  await assert.doesNotReject(verifyActivation(env,event,pr,github,instant));
+  for(const [key,value] of Object.entries({GITHUB_ACTOR:'other',GITHUB_TRIGGERING_ACTOR:'other',GITHUB_RUN_ATTEMPT:'2',GITHUB_REF:'refs/heads/master',GITHUB_SHA:'e'.repeat(40)})) await assert.rejects(verifyActivation({...env,[key]:value},event,pr,github,instant));
+  for(const invalid of [{...pr,number:138},{...pr,base:{sha:'old'}}]) await assert.rejects(verifyActivation(env,event,invalid,github,instant));
+  await assert.rejects(verifyActivation(env,event,pr,github,Date.parse('2026-10-12T03:00:00Z')));
 });
 
 test('current usage reporting publishes verified actual cost without historical accounting', async t => {
@@ -858,4 +860,19 @@ test('current usage reporting publishes verified actual cost without historical 
     assert.throws(()=>publishUsage({...env,GITHUB_RUN_ID:'other'}),/identity mismatch/);
     assert.equal(lines.length,1);
   } finally {rmSync(directory,{recursive:true,force:true});}
+});
+
+test('recovery policy accepts only unchanged protected blobs on a proven UI-only descendant', async () => {
+  const anchor='9b96c768a2a893e490e79543cb1955ccd59a5aec',descendant='9bbfa628b146d81abfb60f96b60617b88c5464ef';
+  const paths=['scripts/visual-review/ai-review.mjs','.github/workflows/ai-visual-review.yml','scripts/visual-review/recovery.mjs','AGENTS.md','DESIGN.md','.github/PR_POLICY.md'];
+  const tree=()=>({truncated:false,tree:paths.map(path=>({path,mode:'100644',type:'blob',sha:'a'.repeat(40)}))});
+  let status='ahead',current=tree();const calls=[];
+  const github=async path=>{calls.push(path);return path.includes('/compare/') ? {status} : path.includes(anchor) ? tree() : current;};
+  await verifyPolicyBase(github,descendant);assert.equal(calls.length,3);
+  status='diverged';await assert.rejects(verifyPolicyBase(github,descendant),/descendant/);status='ahead';
+  for(const path of paths) {current=tree();current.tree.find(item=>item.path===path).sha='b'.repeat(40);await assert.rejects(verifyPolicyBase(github,descendant),/changed/);}
+  for(const invalid of [{truncated:true,tree:tree().tree},{tree:tree().tree},{truncated:false,tree:tree().tree.slice(1)},{truncated:false,tree:[...tree().tree,tree().tree[0]]}]) {current=invalid;await assert.rejects(verifyPolicyBase(github,descendant));}
+  for(const field of [{mode:'100755'},{type:'commit'},{sha:'bad'}]) {current=tree();Object.assign(current.tree[0],field);await assert.rejects(verifyPolicyBase(github,descendant),/inventory/);}
+  await assert.rejects(verifyPolicyBase(github,'bad'),/Invalid/);
+  await assert.rejects(verifyPolicyBase(async()=>{throw new Error('API unavailable');},descendant),/unavailable/);
 });
