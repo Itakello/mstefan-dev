@@ -1,0 +1,33 @@
+components/Header.tsx
+  s_f792a2a2b302b5::t_5159d3f9eeab8f 6,21-32,36,50-56,58,65,70,80,83-84,94-95,109-112,115,117
+components/LanguageSelector.tsx
+  s_f792a2a2b302b5::t_f2188dd8179058 3,5,7-8,35,38,52-67,69-73
+e2e/mstefan-site.review.spec.ts
+  s_f792a2a2b302b5::t_280241a1a77b63 4-5,13-18,217,222,230,244,247,308,311,335,338
+e2e/not-found.smoke.spec.ts
+  s_f792a2a2b302b5::t_f7efc74c62d3b1 45,48,58,67
+e2e/theme-icons.smoke.spec.ts
+  s_f792a2a2b302b5::t_86e0cb7025af65 5,15-16,21-30,34,38,46,50-58
+tests/cms/lifecycle.test.mts
+  s_f792a2a2b302b5::t_6ce0d76e91a8de 696-700
+tests/localized-public-site.test.ts
+  s_f792a2a2b302b5::t_5faaccef920743 65
+workshop/Header.stories.tsx
+  s_f792a2a2b302b5::t_6572260ad38441 1-27
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b3a2ce8fb157e5c752d588b322cfd4418f0a6224",
+  "prompts": {},
+  "sessions": {
+    "s_f792a2a2b302b5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12cbb-dc6f-7ca0-a58e-4b0d809a1763",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
