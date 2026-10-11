@@ -9,6 +9,7 @@ import { classifyVisualReview } from './classify.mjs';
 export const CONTEXT = 'AI visual review';
 export const REQUIRED = ['home', 'work', 'about', 'footer'].flatMap(page => ['desktop', 'mobile'].flatMap(size => ['light', 'dark'].map(theme => `${page}-${size}-${theme}.png`)));
 export const PAID_STEP = 'Reserve paid AI visual review attempt';
+export const SETTLED_STEP = 'Settle paid AI visual review usage';
 const USAGE_PREFIX = 'AI_VISUAL_USAGE ';
 
 const LEGACY_STEP = 'Review inert exact-head evidence with trusted default-branch code';
@@ -195,30 +196,9 @@ export async function reviewBudget(body, key, fetcher = fetch) {
 function validReservation(microUsd) {
   ensure(Number.isSafeInteger(microUsd) && microUsd > MAX_OUTPUT*15 && microUsd <= MAX_REVIEW_MICRO_USD, 'Invalid paid reservation amount');
 }
-export async function verifyPolicyBase(github, base) {
-  const anchor = '9b96c768a2a893e490e79543cb1955ccd59a5aec';
-  const paths = ['scripts/visual-review/ai-review.mjs','.github/workflows/ai-visual-review.yml','scripts/visual-review/recovery.mjs','AGENTS.md','DESIGN.md','.github/PR_POLICY.md'];
-  ensure(/^[a-f0-9]{40}$/.test(base ?? ''), 'Invalid recovery policy base');
-  const comparison = await github(`/compare/${anchor}...${base}`);
-  ensure(['ahead','identical'].includes(comparison.status), 'Recovery policy base is not an approved descendant');
-  const trees = await Promise.all([anchor,base].map(sha => github(`/git/trees/${sha}?recursive=1`)));
-  const protectedEntries = trees.map(tree => {
-    ensure(tree.truncated === false && Array.isArray(tree.tree), 'Recovery policy tree truncated');
-    const entries = tree.tree.filter(item => paths.includes(item.path));
-    ensure(entries.length === paths.length && new Set(entries.map(item => item.path)).size === paths.length && entries.every(item => item.mode === '100644' && item.type === 'blob' && /^[a-f0-9]{40}$/.test(item.sha)), 'Recovery policy inventory incomplete');
-    return new Map(entries.map(item => [item.path,item.sha]));
-  });
-  ensure(paths.every(path => protectedEntries[0].get(path) === protectedEntries[1].get(path)), 'Recovery policy base changed');
-}
-export async function verifyActivation(env, event, pr, github, now = Date.now()) {
-  if (![true, 'true'].includes(event.inputs?.recovery)) return;
-  ensure(env.GITHUB_REPOSITORY === 'Itakello/mstefan-dev' && env.GITHUB_EVENT_NAME === 'workflow_dispatch' && env.GITHUB_ACTOR === 'Itakello' && env.GITHUB_TRIGGERING_ACTOR === 'Itakello' && env.GITHUB_RUN_ATTEMPT === '1' && env.GITHUB_REF === 'refs/heads/fix/visual-review-file-inventory', 'Unauthorized bounded engine activation');
-  ensure(pr.number === 137 && /^[a-f0-9]{40}$/.test(env.GITHUB_SHA ?? '') && pr.head?.sha === env.GITHUB_SHA && Number.isFinite(now) && now < Date.parse('2026-10-12T03:00:00Z'), 'Unauthorized bounded engine activation');
-  await verifyPolicyBase(github,pr.base?.sha);
-}
-export function checkAttempts(history, includeNext = false) {
-  ensure(Number.isSafeInteger(history.count) && history.count >= 0 && typeof includeNext === 'boolean', 'Invalid paid attempt count');
-  ensure(history.count + (includeNext ? 1 : 0) <= 20, 'Rolling 24h paid attempt cap reached');
+export function checkBudget(history, plannedMicroUsd = 0) {
+  if (plannedMicroUsd) validReservation(plannedMicroUsd);
+  ensure(history.count + (plannedMicroUsd ? 1 : 0) <= 20, 'Rolling 24h paid attempt cap reached');
 }
 export async function modelReview(body, key, fetcher = fetch, reservedMicroUsd = MAX_REVIEW_MICRO_USD) {
   validReservation(reservedMicroUsd);
@@ -246,7 +226,48 @@ export function actualUsage(response, reservedMicroUsd) {
   return {id:response.id,model:response.model,service_tier:response.service_tier,status:response.status,usage:{input_tokens:input,output_tokens:output,total_tokens:total,input_tokens_details:{cached_tokens:cached,cache_write_tokens:written}},microUsd};
 }
 
-export async function paidAttempts(github, now = Date.now(), currentRun, expectedMicroUsd) {
+async function settledCost(github, run, job, paid, reserved, trustedSha) {
+  const markers = job.steps.filter(step => step.name?.startsWith(SETTLED_STEP) && step.conclusion !== 'skipped' && !['queued','pending'].includes(step.status));
+  if (!markers.length) return reserved;
+  ensure(markers.length === 1 && job.steps.filter(step => step.name?.startsWith(PAID_STEP) && step.conclusion !== 'skipped').length === 1, 'Ambiguous usage settlement');
+  const marker = markers[0];
+  if (marker.status !== 'completed' || marker.conclusion !== 'success') return reserved;
+  const amount = marker.name.match(/^Settle paid AI visual review usage \(([0-9]+) microUSD\)$/);
+  ensure(amount && marker.status === 'completed' && marker.conclusion === 'success' && marker.number > paid.number && Date.parse(marker.started_at) >= Date.parse(paid.completed_at), 'Invalid usage settlement step');
+  ensure(/^[a-f0-9]{40}$/.test(trustedSha ?? '') && Number.isSafeInteger(job.id) && job.id > 0 && job.name === 'review' && /^[a-f0-9]{40}$/.test(run.head_sha ?? '') && ['workflow_run','workflow_dispatch'].includes(run.event) && run.name === 'AI visual review' && run.path === '.github/workflows/ai-visual-review.yml' && job.run_attempt === 1, 'Untrusted usage producer');
+  let producerTrustSha = trustedSha;
+  // Preserve the completed reviewed recovery's provenance after the policy changes.
+  if (run.head_sha === 'bb6af4b2b143abcea1582badd84b4732206e4566' && run.head_branch === 'codex/visual-usage-settlement') {
+    const baseline = '9b96c768a2a893e490e79543cb1955ccd59a5aec';
+    const lineage = await github(`/compare/${baseline}...${trustedSha}`);
+    ensure(['ahead','identical'].includes(lineage.status) && lineage.merge_base_commit?.sha === baseline, 'Unapproved historical usage anchor');
+    producerTrustSha = baseline;
+  }
+  const comparison = await github(`/compare/${run.head_sha}...${producerTrustSha}`);
+  if (!['ahead','identical'].includes(comparison.status) || run.head_branch !== 'master') {
+    // A reviewed immutable recovery may be squash-merged; identical trusted engine/workflow blobs preserve its provenance.
+    for (const path of ['.github/workflows/ai-visual-review.yml','scripts/visual-review/ai-review.mjs','scripts/visual-review/recovery.mjs']) {
+      const historical = await github(`/contents/${path}?ref=${run.head_sha}`), trusted = await github(`/contents/${path}?ref=${producerTrustSha}`);
+      ensure(historical.type === 'file' && trusted.type === 'file', 'Untrusted usage producer contents');
+      if (historical.sha !== trusted.sha) {
+        ensure(path === '.github/workflows/ai-visual-review.yml' && historical.encoding === 'base64' && trusted.encoding === 'base64', 'Untrusted usage producer contents');
+        const wrapper = Buffer.from(historical.content,'base64').toString('utf8');
+        const engineWorkflow = Buffer.from(trusted.content,'base64').toString('utf8');
+        ensure(wrapper === engineWorkflow.replace(/          ref: [a-f0-9]{40}\n/, `          ref: ${producerTrustSha}\n`), 'Untrusted usage producer contents');
+      }
+    }
+  }
+  const log = await github(`/actions/jobs/${job.id}/logs`,{raw:true,accept:'application/vnd.github.raw+json'});
+  const records = log.split('\n').filter(line => /^\d{4}-\d{2}-\d{2}T\S+ AI_VISUAL_USAGE /.test(line)).map(line => JSON.parse(line.slice(line.indexOf(USAGE_PREFIX)+USAGE_PREFIX.length)));
+  ensure(records.length === 1, 'Missing or ambiguous usage receipt');
+  const record = records[0];
+  ensure(record.runId === String(run.id) && record.attempt === String(job.run_attempt) && record.reservedMicroUsd === reserved && record.workflowSha === run.head_sha && record.job === job.name, 'Usage receipt identity mismatch');
+  const actual = actualUsage(record.response,reserved);
+  ensure(actual.microUsd === Number(amount[1]), 'Usage settlement amount mismatch');
+  return actual.microUsd;
+}
+
+export async function paidAttempts(github, now = Date.now(), currentRun, expectedMicroUsd, trustedSha) {
   // Include waiting workflows within GitHub's 35-day lifetime, not just newly created runs.
   const since = encodeURIComponent(new Date(now - 36*86400000).toISOString());
   const cutoff = now - 86400000 - 600000; // A reservation can precede its request by the job's 10-minute limit.
@@ -261,7 +282,7 @@ export async function paidAttempts(github, now = Date.now(), currentRun, expecte
     if (runs.length === total) break;
   }
   ensure(runs.length === total && new Set(runs.map(run => run.id)).size === total, 'Paid attempt history truncated or duplicated');
-  let count = 0, currentReserved = false;
+  let count = 0, microUsd = 0, currentReserved = false;
   for (const run of runs) {
     ensure(Number.isSafeInteger(run.id) && Number.isFinite(Date.parse(run.updated_at)), 'Invalid paid attempt run');
     if (run.status === 'completed' && Date.parse(run.updated_at) < cutoff) continue;
@@ -274,14 +295,26 @@ export async function paidAttempts(github, now = Date.now(), currentRun, expecte
         if (VERIFIED_ZERO_COST_STEPS.has(run.id) && VERIFIED_ZERO_COST_STEPS.get(run.id) === step.name && job.run_attempt === 1) continue;
         if (!step.name.startsWith(PAID_STEP) && (step.name !== LEGACY_STEP || (VERIFIED_NO_REQUEST_RUNS.has(run.id) && job.run_attempt === 1))) continue;
         if (step.status === 'queued' || step.status === 'pending' || step.conclusion === 'skipped') continue;
-        if (step.name !== PAID_STEP && step.name !== LEGACY_STEP) {
-          ensure(/^Reserve paid AI visual review attempt \(([1-9]\d*) microUSD\)$/.test(step.name), 'Malformed paid attempt name');
+        let reserved = MAX_REVIEW_MICRO_USD;
+        // This completed credential-free compatibility marker is covered by the same job's genuine reservation.
+        if (run.id === 38141527547 && step.name === PAID_STEP) {
+          ensure(job.run_attempt === 1 && run.workflow_id === 380891751 && run.head_sha === 'ad6f940266317a84b9e3845abf23a05c5db778ad', 'Settlement run identity mismatch');
+          ensure(job.id === 114476341498 && job.conclusion === 'success' && step.number === 7 && step.status === 'completed' && step.conclusion === 'success' && step.started_at === '2026-10-11T13:03:14Z' && step.completed_at === '2026-10-11T13:03:44Z', 'Settlement step identity mismatch');
+          ensure(job.steps.some(candidate => candidate.number === 8 && candidate.name === `${PAID_STEP} (429225 microUSD)` && candidate.status === 'completed' && candidate.conclusion === 'success'), 'Settlement genuine reservation missing');
+          reserved = 0;
         }
-        ensure(['in_progress','completed'].includes(step.status) && Number.isFinite(Date.parse(step.started_at)), 'Unknown paid attempt state');
+        if (step.name !== PAID_STEP && step.name !== LEGACY_STEP) {
+          const amount = step.name.match(/^Reserve paid AI visual review attempt \(([1-9]\d*) microUSD\)$/);
+          ensure(amount, 'Malformed paid reservation amount');
+          reserved = Number(amount[1]); validReservation(reserved);
+        }
+        ensure(['in_progress','completed'].includes(step.status) && Number.isFinite(Date.parse(step.started_at)), 'Unknown paid reservation state');
         if (Date.parse(step.started_at) >= cutoff) {
-          count++;
+          const cost = reserved ? await settledCost(github,run,job,step,reserved,trustedSha) : 0;
+          count++; microUsd += cost;
+          ensure(Number.isSafeInteger(microUsd), 'Invalid total paid reservation amount');
           if (String(run.id) === String(currentRun) && step.name.startsWith(PAID_STEP) && step.status === 'in_progress') {
-            ensure(expectedMicroUsd === undefined || step.name === `${PAID_STEP} (${expectedMicroUsd} microUSD)`, 'Current paid reservation amount mismatch');
+            ensure(expectedMicroUsd === undefined || (step.name === `${PAID_STEP} (${expectedMicroUsd} microUSD)` && reserved === expectedMicroUsd), 'Current paid reservation amount mismatch');
             currentReserved = true;
           }
         }
@@ -289,7 +322,7 @@ export async function paidAttempts(github, now = Date.now(), currentRun, expecte
     }
   }
   ensure(currentRun === undefined || currentReserved, 'Current paid reservation not visible');
-  return {count};
+  return {count,microUsd};
 }
 
 export async function main({env = process.env, fetcher = fetch, gitDiff = nativeGitDiff, invalidate = false, request = false} = {}) {
@@ -302,6 +335,8 @@ export async function main({env = process.env, fetcher = fetch, gitDiff = native
     if (options.binary) { const buffer = Buffer.from(await response.arrayBuffer()); ensure(buffer.length <= MAX_BYTES, 'Artifact download too large'); return buffer; }
     const text = await response.text(); ensure(Buffer.byteLength(text) <= 5*1024*1024,'GitHub response too large'); return options.raw ? text : JSON.parse(text);
   }
+  const trustedSha = execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
+  ensure(/^[a-f0-9]{40}$/.test(trustedSha), 'Unverified review engine revision');
   const event = JSON.parse(readFileSync(env.GITHUB_EVENT_PATH,'utf8'));
   const markerFor = pr => `PR${pr.number} ${pr.base.sha}`;
   const publishStatus = (pr, state, description) => github(`/statuses/${pr.head.sha}`, {method:'POST',body:JSON.stringify({state,context:CONTEXT,description:`${markerFor(pr)}: ${description}`.slice(0,140),target_url:`https://github.com/${repository}/actions/runs/${env.GITHUB_RUN_ID}`})});
@@ -352,8 +387,11 @@ export async function main({env = process.env, fetcher = fetch, gitDiff = native
       ensure(env.ENABLED === 'true' || env.GITHUB_EVENT_NAME === 'workflow_dispatch','Automatic AI review disabled; activation proof required');
       ensure(env.GITHUB_RUN_ATTEMPT === '1','Reruns do not issue another model request');
       validReservation(prepared.reservedMicroUsd);
-      checkAttempts(await paidAttempts(github,Date.now(),env.GITHUB_RUN_ID,prepared.reservedMicroUsd));
-      await verifyActivation(env,event,pr,github);
+      checkBudget(await paidAttempts(github,Date.now(),env.GITHUB_RUN_ID,prepared.reservedMicroUsd,trustedSha));
+      if (event.inputs?.recovery === true || event.inputs?.recovery === 'true') {
+        const {main: validateRecovery} = await import('./recovery.mjs');
+        await validateRecovery({env,fetcher});
+      }
       pr = await github(`/pulls/${pr.number}`); ensure(currentRevision(pr,repository,sha,base),'Revisions changed before request');
       await status('pending','request claimed; no retries');
       const response = await modelReview(prepared.body,env.OPENAI_API_KEY,fetcher,prepared.reservedMicroUsd);
@@ -406,10 +444,9 @@ export async function main({env = process.env, fetcher = fetch, gitDiff = native
         if (reference) { const blob = await github(`/git/blobs/${reference.sha}`); ensure(blob.encoding === 'base64','Invalid reference encoding'); images.push({name:`base/${name}`,data:Buffer.from(blob.content,'base64')}); }
       }
       const body = requestBody(`Base DESIGN.md:\n${design}\nBase AGENTS.md:\n${agents}\nBase .github/PR_POLICY.md:\n${policy}\nValidated exact diff ${base}...${sha} for visual review:\n${context}\nCurrent captures:\n${names.join('\n')}`,images);
-      await verifyActivation(env,event,pr,github);
       pr = await github(`/pulls/${pr.number}`); ensure(currentRevision(pr,repository,sha,base),'Revisions changed before request');
       const reservedMicroUsd = await reviewBudget(body,env.OPENAI_API_KEY,fetcher);
-      checkAttempts(await paidAttempts(github),true);
+      checkBudget(await paidAttempts(github,Date.now(),undefined,undefined,trustedSha),reservedMicroUsd);
       pr = await github(`/pulls/${pr.number}`); ensure(currentRevision(pr,repository,sha,base),'Revisions changed before preparation');
       writeFileSync(join(env.RUNNER_TEMP,'ai-visual-request.json'),JSON.stringify({sha,base,sourceRun:run.id,names,body,reservedMicroUsd}),{mode:0o600});
       appendFileSync(env.GITHUB_OUTPUT,`reserved_micro_usd=${reservedMicroUsd}\nready=true\n`);
