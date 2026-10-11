@@ -813,16 +813,16 @@ test('recovery expiry blocks input counting, generation and request claims after
   const {mkdtempSync,writeFileSync,rmSync}=await import('node:fs');
   const {join}=await import('node:path');const {tmpdir}=await import('node:os');
   const directory=mkdtempSync(join(tmpdir(),'visual-recovery-expiry-'));
-  const eventPath=join(directory,'event.json'),now=Date.parse('2026-10-12T20:59:00Z');
+  const eventPath=join(directory,'event.json'),now=Date.parse('2026-10-12T03:00:00Z');
   const recoveryRepository='Itakello/mstefan-dev';
-  const sha='a'.repeat(40),base='9bbfa628b146d81abfb60f96b60617b88c5464ef',reserved=1500000;
+  const sha='a'.repeat(40),base='d12bf03124b2a46b8078e260fdebc55ccf6e361c',reserved=1500000;
   writeFileSync(eventPath,JSON.stringify({inputs:{recovery:'true',source_run_id:'7'}}));
   writeFileSync(join(directory,'ai-visual-request.json'),JSON.stringify({sha,base,sourceRun:7,reservedMicroUsd:reserved,names:REQUIRED,body:requestBody('',[])}),{mode:0o600});
-  const source={id:7,repository:{full_name:recoveryRepository},name:'Visual review',path:'.github/workflows/visual-review.yml',event:'pull_request',status:'completed',conclusion:'success',head_sha:sha,pull_requests:[{number:140,head:{sha},base:{sha:base}}]};
-  const pr={state:'open',number:140,head:{sha},base:{sha:base,repo:{full_name:recoveryRepository}},changed_files:1,labels:[]};
-  const historyRun={id:7,status:'completed',updated_at:'2026-10-12T20:58:00Z'};
-  const currentRun={id:9,status:'in_progress',updated_at:'2026-10-12T20:58:00Z'};
-  const currentStep={name:`${PAID_STEP} (${reserved} microUSD)`,status:'in_progress',started_at:'2026-10-12T20:58:30Z'};
+  const source={id:7,repository:{full_name:recoveryRepository},name:'Visual review',path:'.github/workflows/visual-review.yml',event:'pull_request',status:'completed',conclusion:'success',head_sha:sha,pull_requests:[{number:142,head:{sha},base:{sha:base}}]};
+  const pr={state:'open',number:142,head:{sha},base:{sha:base,repo:{full_name:recoveryRepository}},changed_files:1,labels:[]};
+  const historyRun={id:7,status:'completed',updated_at:'2026-10-12T02:59:00Z'};
+  const currentRun={id:9,status:'in_progress',updated_at:'2026-10-12T02:59:00Z'};
+  const currentStep={name:`${PAID_STEP} (${reserved} microUSD)`,status:'in_progress',started_at:'2026-10-12T02:59:30Z'};
   const posts=[],calls=[];let currentVisible=false,modelCalls=0;
   const fetcher=async(url,options)=> {
     calls.push(url);
@@ -831,7 +831,7 @@ test('recovery expiry blocks input counting, generation and request claims after
     if(options.method==='POST') {posts.push(JSON.parse(options.body));return new Response('{}');}
     let value;
     if(path==='/actions/runs/7') value=source;
-    else if(path==='/pulls/140') value=pr;
+    else if(path==='/pulls/142') value=pr;
     else if(path.includes('/statuses?')) value=[];
     else if(path.includes('/files?')) value=[{filename:'components/Footer.tsx',additions:1,deletions:1}];
     else if(path.includes('/workflows/ai-visual-review.yml/runs?')) value={total_count:2,workflow_runs:[historyRun,currentRun]};
@@ -840,7 +840,7 @@ test('recovery expiry blocks input counting, generation and request claims after
     else throw new Error(`Unexpected ${path}`);
     return new Response(JSON.stringify(value));
   };
-  const env={GITHUB_REPOSITORY:recoveryRepository,GITHUB_EVENT_PATH:eventPath,GITHUB_EVENT_NAME:'workflow_dispatch',GITHUB_ACTOR:'Itakello',GITHUB_TRIGGERING_ACTOR:'Itakello',GITHUB_RUN_ATTEMPT:'1',GITHUB_REF:'refs/heads/codex/visual-review-no-daily-cap',GITHUB_RUN_ID:'9',GITHUB_SHA:sha,GITHUB_JOB:'review',GITHUB_TOKEN:'mock-only',OPENAI_API_KEY:'mock-only',RUNNER_TEMP:directory};
+  const env={GITHUB_REPOSITORY:recoveryRepository,GITHUB_EVENT_PATH:eventPath,GITHUB_EVENT_NAME:'workflow_dispatch',GITHUB_ACTOR:'Itakello',GITHUB_TRIGGERING_ACTOR:'Itakello',GITHUB_RUN_ATTEMPT:'1',GITHUB_REF:'refs/heads/fix/remove-review-count-cap',GITHUB_RUN_ID:'9',GITHUB_SHA:sha,GITHUB_JOB:'review',GITHUB_TOKEN:'mock-only',OPENAI_API_KEY:'mock-only',RUNNER_TEMP:directory};
   const originalNow=Date.now;
   try {
     Date.now=()=>now;

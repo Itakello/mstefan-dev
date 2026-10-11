@@ -3,9 +3,9 @@ import { pathToFileURL } from 'node:url';
 import { verifyRevision, alreadyAttempted } from './ai-review.mjs';
 
 const REPOSITORY = 'Itakello/mstefan-dev';
-const PULL_REQUEST = 140;
-const BASE = '9bbfa628b146d81abfb60f96b60617b88c5464ef';
-const EXPIRES = Date.parse('2026-10-12T20:59:00Z');
+const PULL_REQUEST = 142;
+const BASE = 'd12bf03124b2a46b8078e260fdebc55ccf6e361c';
+const EXPIRES = Date.parse('2026-10-12T03:00:00Z');
 class RecoveryError extends Error {}
 function ensure(value, message) { if (!value) throw new RecoveryError(message); }
 function context(env, now) {
@@ -13,7 +13,7 @@ function context(env, now) {
   ensure(env.GITHUB_EVENT_NAME === 'workflow_dispatch', 'Recovery requires manual dispatch');
   ensure(env.GITHUB_ACTOR === 'Itakello' && env.GITHUB_TRIGGERING_ACTOR === 'Itakello', 'Recovery owner mismatch');
   ensure(env.GITHUB_RUN_ATTEMPT === '1', 'Recovery reruns forbidden');
-  ensure(env.GITHUB_REF === 'refs/heads/codex/visual-review-no-daily-cap', 'Recovery ref mismatch');
+  ensure(env.GITHUB_REF === 'refs/heads/fix/remove-review-count-cap', 'Recovery ref mismatch');
   ensure(/^[a-f0-9]{40}$/.test(env.GITHUB_SHA ?? '') && /^[1-9]\d*$/.test(env.GITHUB_RUN_ID ?? ''), 'Invalid recovery run identity');
   ensure(Number.isFinite(now) && now < EXPIRES, 'Recovery expired');
 }
