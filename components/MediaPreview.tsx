@@ -35,7 +35,7 @@ export function MediaPreview({ title, locale, children, controls }: { title: str
   </dialog>
     <div data-media-controls className={`mt-4 flex items-center gap-1 sm:gap-2 ${controls ? "justify-center" : "justify-end"}`}>
       {controls}
-      <button ref={enlarge} type="button" onClick={() => setExpanded(true)} aria-label={italian ? "Ingrandisci anteprima" : "Enlarge preview"} className="media-preview-control shrink-0"><Maximize2 size={18} aria-hidden /></button>
+      <button ref={enlarge} type="button" data-media-enlarge onClick={() => setExpanded(true)} aria-label={italian ? "Ingrandisci anteprima" : "Enlarge preview"} className="media-preview-control shrink-0 transition-opacity"><Maximize2 size={18} aria-hidden /></button>
     </div>
   </>;
 }

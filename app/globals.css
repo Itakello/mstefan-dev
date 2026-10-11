@@ -339,6 +339,11 @@ a {
   [data-preview-stage]:focus-within [data-preview-arrow] { opacity: 1; }
   [data-preview-stage]:hover [data-preview-arrow]:disabled,
   [data-preview-stage]:focus-within [data-preview-arrow]:disabled { opacity: 0.3; }
+  [data-media-enlarge] { opacity: 0; }
+  [data-media-preview]:hover + [data-media-controls] [data-media-enlarge],
+  [data-media-preview]:focus-within + [data-media-controls] [data-media-enlarge],
+  [data-media-controls]:hover [data-media-enlarge],
+  [data-media-controls]:focus-within [data-media-enlarge] { opacity: 1; }
 }
 
 .media-preview {
