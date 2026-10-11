@@ -83,12 +83,11 @@ test('recovery checks the reviewed fixed engine before exposing OpenAI credentia
   const prepare=steps.findIndex(step=>step.includes('id: prepare\n'));
   const marker=steps.findIndex(step=>step.startsWith(`name: ${PAID_STEP}\n`));
   const paid=steps.findIndex(step=>step.startsWith(`name: ${PAID_STEP} (`));
-  assert.ok(gate>=0 && gate<prepare && prepare<marker && marker<paid);
+  assert.ok(gate>=0 && gate<prepare && prepare<paid);
+  assert.equal(marker,-1);
   assert.match(steps[gate],/if: github.event_name == 'workflow_dispatch' && inputs.recovery == true/);
   assert.match(steps[gate],/run: node scripts\/visual-review\/recovery.mjs\n/);
-  assert.match(steps[marker],/if: steps.prepare.outputs.ready == 'true' && github.event_name == 'workflow_dispatch' && inputs.recovery == true/);
-  assert.match(steps[marker],/run: node scripts\/visual-review\/recovery.mjs --reserve\n/);
-  for (const index of [gate,marker]) {
+  for (const index of [gate]) {
     assert.match(steps[index],/GITHUB_TOKEN: \$\{\{ github.token \}\}/);
     assert.equal(steps[index].includes('OPENAI'),false);
     assert.equal(steps[index].includes('secrets.'),false);
@@ -323,10 +322,10 @@ test('history uses reservation time across old queued runs, overlap, and all att
   await assert.rejects(paidAttempts(async()=>{throw new Error('GitHub unavailable');},now),/unavailable/);
 });
 
-test('fixed compatibility hold and dynamic paid step remain gated and globally serialized', () => {
+test('only the dynamic paid step remains gated and globally serialized', () => {
   const workflow=readFileSync(new URL('../.github/workflows/ai-visual-review.yml',import.meta.url),'utf8');
   assert.match(workflow,/group: ai-visual-review\n  cancel-in-progress: false/);
-  assert.equal(workflow.split(`name: ${PAID_STEP}`).length,3);
+  assert.equal(workflow.split(`name: ${PAID_STEP}`).length,2);
   assert.match(workflow,/if: steps.prepare.outputs.ready == 'true'/);
   assert.match(workflow,/timeout-minutes: 10/);
   assert.match(workflow,/name: Reserve paid AI visual review attempt \(\$\{\{ steps.prepare.outputs.reserved_micro_usd \}\} microUSD\)/);
@@ -685,7 +684,7 @@ test('unresolved dynamic names in skipped or queued steps reserve nothing', asyn
   await assert.rejects(paidAttempts(github,now),/Malformed paid reservation/);
 });
 
- test('settle only the immutable credential-free compatibility marker while retaining both counts and genuine cost', async () => {
+test('settle only the immutable credential-free compatibility marker while retaining both counts and genuine cost', async () => {
   const timestamp = '2026-10-11T13:03:14Z';
   const run = {id:38141527547,run_attempt:1,workflow_id:380891751,head_sha:'ad6f940266317a84b9e3845abf23a05c5db778ad',status:'completed',conclusion:'success',updated_at:timestamp};
   const marker = {name:PAID_STEP,number:7,status:'completed',conclusion:'success',started_at:timestamp,completed_at:'2026-10-11T13:03:44Z'};

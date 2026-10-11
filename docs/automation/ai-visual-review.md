@@ -31,3 +31,9 @@ gh workflow run ai-visual-review.yml --ref codex/visual-ai-budget -f recovery=tr
 ```
 
 The default-branch attended route and paused automatic route remain the normal operating paths after expiry. This recovery does not enable automatic review or broaden future dispatch authority.
+
+## Attended compatibility-marker settlement
+
+After PR 129 merged the dynamic-reservation reader, the owner authorized settlement of its completed credential-free compatibility marker. Only run `38141527547`, attempt 1, job `114476341498`, step 7 with its exact immutable timestamps and successful identity settles to zero. Its attempt count and separate `429225 microUSD` genuine step remain counted. All other genuine and uncertain reservations retain their full bound. This correction preserves native Actions history; it does not use rounded or delayed billing totals as zero-cost evidence.
+
+PR 133 has an owner-only first-attempt bootstrap on `codex/visual-reservation-settlement`, bound to base `ce358e8f48f4fffec22b92ec4d57b1e429f592c8` and expiring at 2026-10-11 17:00 UTC. The workflow pins the independently reviewed engine, checks the live PR/source tuple before exposing OpenAI credentials, and then uses the normal dynamic reservation and genuine review under unchanged global concurrency and limits. No second compatibility marker is needed: the default branch already recognizes dynamic reservations. Normal automatic and manual dispatch still use default-branch code. The PR 129 recovery remains closed.

@@ -11,7 +11,7 @@ on:
         required: true
         type: string
       recovery:
-        description: Expiring owner-only recovery for PR 129
+        description: Expiring owner-only settlement recovery for PR 133
         required: false
         default: false
         type: boolean
@@ -57,11 +57,6 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           ENABLED: ${{ vars.MSTEFAN_AI_VISUAL_REVIEW_ENABLED }}
         run: node scripts/visual-review/ai-review.mjs
-      - name: Reserve paid AI visual review attempt
-        if: steps.prepare.outputs.ready == 'true' && github.event_name == 'workflow_dispatch' && inputs.recovery == true
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        run: node scripts/visual-review/recovery.mjs --reserve
       - name: Reserve paid AI visual review attempt (${{ steps.prepare.outputs.reserved_micro_usd }} microUSD)
         if: steps.prepare.outputs.ready == 'true'
         env:
