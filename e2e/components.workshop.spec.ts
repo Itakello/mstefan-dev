@@ -77,6 +77,19 @@ for (const theme of ["light", "dark"] as const) {
       await overflow.press("Enter");
       await expect(overflow).toHaveAttribute("aria-expanded", "false");
 
+      await story(page, "workshop-workexplorer--categories", theme);
+      const categoryColors = new Set<string>();
+      for (const [index, category] of ["Website", "App", "Tool", "Research"].entries()) {
+        if (size === "mobile") await page.getByRole("combobox").selectOption(`category-${index}`);
+        else await page.getByRole("button", { name: `Select ${category} project`, exact: true }).click();
+        const badge = page.locator('section[aria-labelledby="selected-work-title"]').getByText(category, { exact: true });
+        await expect(badge).toBeVisible();
+        await expect(badge).toHaveCSS("border-top-width", "1px");
+        categoryColors.add(await badge.evaluate(node => getComputedStyle(node).color));
+        if (size === "desktop") await expect(page.getByRole("button", { name: `Select ${category} project`, exact: true }).getByText(category, { exact: true })).toHaveCSS("color", await badge.evaluate(node => getComputedStyle(node).color));
+      }
+      expect(categoryColors.size).toBe(4);
+
       await story(page, "workshop-workexplorer--populated-selection", theme);
       if (size === "mobile") await page.getByRole("combobox").selectOption("workshop-data-notebook");
       else await page.getByRole("button", { name: /select.*Workshop data notebook/i }).click();
