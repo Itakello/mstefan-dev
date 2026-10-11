@@ -131,6 +131,7 @@ test('career seed, localized order, authenticated drafts, colors, and deletion s
     const mediaDB = new DatabaseSync(path.join(dataDir, '.payload-local.db'));
     try {
       for (const id of [1, 2, 3, 4]) mediaDB.prepare('INSERT INTO media (id, filename, alt) VALUES (?, ?, ?)').run(id, `photo-${id}.png`, `Photo ${id}`);
+      mediaDB.prepare("INSERT INTO documents (id, filename, mime_type) VALUES (4, 'degree.pdf', 'application/pdf')").run();
     } finally { mediaDB.close(); }
     const visibleMedia = async () => {
       try { return (await payload.find({ collection: 'media', overrideAccess: false, limit: 20 })).docs.map(({ id }) => id).sort(); }
@@ -154,6 +155,12 @@ test('career seed, localized order, authenticated drafts, colors, and deletion s
       _status: 'published', jobs: [{ branchName: 'work/photo-only', company: 'Photo only', role: 'Draft role', color: '#123456', photo: 4 }],
     } });
     assert.deepEqual(await visibleMedia(), [2], 'Photo-only experience keeps the main profile and its image private');
+    await payload.updateGlobal({ slug: 'career', locale: 'en', draft: true, data: {
+      jobs: [{ branchName: 'education/degree', company: 'University', role: 'Degree', summary: ' ', color: '#123456', photo: 4, documents: [{ title: 'Degree', file: 4 }] }],
+    } });
+    assert.deepEqual(await visibleMedia(), [2], 'Document-backed draft photo must remain private');
+    await payload.updateGlobal({ slug: 'career', locale: 'en', publishSpecificLocale: 'en', data: { _status: 'published' } });
+    assert.deepEqual(await visibleMedia(), [2, 4], 'Published documents make the experience photo visible without a summary');
     await payload.updateGlobal({ slug: 'career', locale: 'en', publishSpecificLocale: 'en', data: {
       _status: 'published', jobs: [{ branchName: 'work/draft', company: 'Draft', role: 'Draft role', summary: 'English story', color: '#123456', photo: 3 }],
     } });

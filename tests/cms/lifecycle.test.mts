@@ -465,14 +465,14 @@ test('nested career branches share junctions and synchronize graph and Experienc
     company, branchName, role: 'Synthetic test experience', parentBranchName, color,
     ...(['B', 'C', 'F'].includes(company) ? { summary: `Synthetic story for ${company}` } : {}),
     ...(company === 'F' ? { photo: photo.id, documents: [{ title: 'Synthetic project PDF', file: pdfFile.id }] } : company === 'E' ? { photo: hiddenPhoto.id } : {}),
-    ...(company === 'H' ? { photo: hiddenPhoto.id, documents: [{ title: 'Synthetic document-only PDF', file: pdfFile.id }] } : {}),
+    ...(company === 'H' ? { photo: photo.id, documents: [{ title: 'Synthetic document-only PDF', file: pdfFile.id }] } : {}),
     startDate: new Date(Date.UTC(2024, start, 1)).toISOString(), endDate: new Date(Date.UTC(2024, end, 1)).toISOString(),
   }));
   await update('career', 'en', { jobs, laneSpacing: 24, _status: 'published' }, '&publishSpecificLocale=en');
   const publishedPhoto = await fetch(new URL(photo.url, base));
   assert.equal(publishedPhoto.status, 200);
   assert.deepEqual(Buffer.from(await publishedPhoto.arrayBuffer()), photoBytes);
-  assert.ok([401, 403, 404].includes((await fetch(new URL(hiddenPhoto.url, base))).status), 'Photo without a published story must remain private');
+  assert.ok([401, 403, 404].includes((await fetch(new URL(hiddenPhoto.url, base))).status), 'Photo without a published story or documents must remain private');
   const publicAbout = await (await request('/en/about')).text();
   assert.ok(!publicAbout.includes('hidden-experience.png') && !publicAbout.includes('Hidden experience portrait'), 'Hidden photo metadata leaked into the public About page');
   const publishedDocument = await fetch(new URL(pdfFile.url, base));
@@ -525,10 +525,18 @@ test('nested career branches share junctions and synchronize graph and Experienc
     await graph.locator('button[data-career-job]', { hasText: 'work/next' }).click();
     await expect(page.locator('#career-story h1')).toHaveText('H');
     await expect(page.locator('#career-story')).toHaveAttribute('aria-label', 'H');
-    await expect(page.locator('#career-story img')).toHaveCount(0);
+    await expect(page.locator('#career-story img')).toHaveAttribute('src', photo.url);
+    await expect(page.locator('#career-story img')).toHaveAttribute('alt', 'Synthetic experience portrait');
     await expect(page.locator('#career-story [data-pdf-document]')).toBeVisible();
     await expect(page.getByRole('link', { name: /H · View documents/i })).toHaveAttribute('href', '#career-story');
     await expect(page.getByRole('link', { name: /Read story/i })).toHaveCount(0);
+    const photoEvidence = path.resolve('.artifacts/career-document-photo');
+    await mkdir(photoEvidence, { recursive: true });
+    await page.screenshot({ path: path.join(photoEvidence, 'document-backed-desktop.png'), fullPage: true });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(page.locator('#career-story img')).toHaveAttribute('src', photo.url);
+    await page.screenshot({ path: path.join(photoEvidence, 'document-backed-mobile.png'), fullPage: true });
+    await page.setViewportSize({ width: 1280, height: 900 });
     await projectTitle.click();
     await expect(page.locator('#career-story h1')).toHaveText('F');
 

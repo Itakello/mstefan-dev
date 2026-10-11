@@ -35,7 +35,7 @@ const publishedMedia: Access = async ({ req }) => {
   for (const career of careers) {
     if (career._status !== "published") continue;
     for (const job of career.jobs ?? []) {
-      if (!job.summary?.trim()) continue;
+      if (!job.summary?.trim() && !job.documents?.some((document) => mediaID(document.file) !== null)) continue;
       const id = mediaID(job.photo);
       if (id !== null) ids.add(id);
     }
@@ -152,7 +152,7 @@ const careerGlobal: GlobalConfig = {
       { name: "company", label: "Organization", type: "text", required: true },
       { name: "role", label: "Role or qualification", type: "text", required: true },
       { name: "summary", type: "textarea", admin: { description: "Write this experience's story to show it in Experience when selected." } },
-      { name: "photo", type: "upload", relationTo: "media", admin: { description: "Shown with this experience in Experience only when its summary has content." } },
+      { name: "photo", type: "upload", relationTo: "media", admin: { description: "Shown with this experience in Experience when it has a summary or documents." } },
       { name: "documents", type: "array", fields: [
         { name: "title", type: "text", required: true },
         { name: "file", type: "upload", relationTo: "documents", required: true },

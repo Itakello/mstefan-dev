@@ -16,5 +16,5 @@ export async function getCareerContent(locale: Locale, preview: boolean): Promis
   });
   if (preview) return career;
   if (career._status !== "published") return { ...career, jobs: [] };
-  return { ...career, jobs: career.jobs?.map((job) => job.summary?.trim() ? job : { ...job, photo: null }) };
+  return { ...career, jobs: career.jobs?.map((job) => job.summary?.trim() || job.documents?.some((document) => document.file) ? job : { ...job, photo: null }) };
 }
