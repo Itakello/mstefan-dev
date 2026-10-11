@@ -1,0 +1,40 @@
+components/WorkExplorer.tsx
+  s_a3d57fd6983d88::t_0e53f6341b44a0 117,143,151-154
+workshop/WorkExplorer.stories.tsx
+  s_a3d57fd6983d88::t_0e53f6341b44a0 4,16
+e2e/mstefan-site.review.spec.ts
+  s_a3d57fd6983d88::t_0e53f6341b44a0 125-126,374
+scripts/visual-review/ai-review.mjs
+  s_a3d57fd6983d88::t_0e53f6341b44a0 11-13,131-142,145,154-206,231-232,237,249-250,274-275,325,329-331,372,385-393
+docs/automation/ai-visual-review.md
+  s_a3d57fd6983d88::t_0e53f6341b44a0 13,39,42-45
+e2e/components.workshop.spec.ts
+  s_a3d57fd6983d88::t_0e53f6341b44a0 83-118
+.github/workflows/ai-visual-review.yml
+  s_a3d57fd6983d88::t_0e53f6341b44a0 14,43,61,68-70,73
+app/globals.css
+  s_a3d57fd6983d88::t_0e53f6341b44a0 420-428
+scripts/visual-review/recovery.mjs
+  s_a3d57fd6983d88::t_0e53f6341b44a0 6-7,15,58,60-65,69
+tests/ai-visual-recovery.test.mjs
+  s_a3d57fd6983d88::t_0e53f6341b44a0 10,12-13,23,25,56,61,70-72,84,92-100
+  s_a3d57fd6983d88::t_9d2e9a87184997 101
+tests/ai-visual-review.test.mjs
+  s_a3d57fd6983d88::t_0e53f6341b44a0 5,79,169,296,309,340-341,350,356,363,368,393,408,490,594,604-605,617,642,681,694,698,705-816
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "7ec993f0de58386edaeea538f0c498da891bc1d5",
+  "prompts": {},
+  "sessions": {
+    "s_a3d57fd6983d88": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a125dc-d51e-7583-9ad7-4135793b24dc",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
