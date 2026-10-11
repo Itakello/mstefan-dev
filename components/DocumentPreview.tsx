@@ -15,13 +15,21 @@ export function DocumentPreview(props: DocumentPreviewProps) {
     : <PdfDocumentPreview {...props} />;
 }
 
-function PdfDocumentPreview({ url, title, locale, filename, presentation = false, enlarge }: DocumentPreviewProps) {
+export function DocumentDownload({ url, locale, filename, presentation = false }: DocumentPreviewProps) {
+  const italian = locale === "it";
+  let source: string;
+  try { source = url.startsWith("/") && !url.startsWith("//") ? url : documentMediaUrl(url); }
+  catch { return null; }
+  const powerpoint = presentation && new URL(url, "https://www.mstefan.dev").pathname.toLowerCase().endsWith(".pptx");
+  return <div className="mt-3 flex justify-center"><a href={source} download={filename || true} className="inline-flex items-center gap-1 rounded-md px-2 py-2 text-xs hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[hsl(var(--accent))]">{italian ? "Scarica" : "Download"} {powerpoint ? "PowerPoint" : "PDF"}<Download size={14} aria-hidden /></a></div>;
+}
+
+function PdfDocumentPreview({ url, title, locale, presentation = false, enlarge }: DocumentPreviewProps) {
   const host = useRef<HTMLDivElement>(null);
   const text = useRef<HTMLDivElement>(null);
   const pageHost = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const swipeStart = useRef<{ x: number; y: number } | null>(null);
-  const [resolvedUrl, setResolvedUrl] = useState(url);
   const [document, setDocument] = useState<PDFDocumentProxy | null>(null);
   const [page, setPage] = useState(1);
   const [zoom, setZoom] = useState(1);
@@ -53,7 +61,6 @@ function PdfDocumentPreview({ url, title, locale, filename, presentation = false
         if (disposed) return;
         pdf.GlobalWorkerOptions.workerSrc = new URL("pdfjs-dist/build/pdf.worker.min.mjs", import.meta.url).toString();
         const source = documentMediaUrl(url, window.location.origin);
-        setResolvedUrl(source);
         task = pdf.getDocument({ url: source });
         const loaded = await task.promise;
         if (!disposed) setDocument(loaded);
@@ -129,15 +136,10 @@ function PdfDocumentPreview({ url, title, locale, filename, presentation = false
       previousDisabled={!document || page === 1} nextDisabled={!document || page === document.numPages}
       onPrevious={() => setPage(current => Math.max(1, current - 1))} onNext={() => setPage(current => Math.min(document?.numPages ?? 1, current + 1))} />
     </div>
-    <div className="flex flex-wrap items-center justify-center gap-2 mt-3 text-xs">
-      <div className="flex items-center gap-1">
-        {!presentation && <>
+    {!presentation && <div className="mt-3 flex items-center justify-center gap-1 text-xs">
           <button type="button" className={control} disabled={zoom <= 1} aria-label={italian ? "Riduci" : "Zoom out"} onClick={() => setZoom(value => Math.max(1, value - 0.25))}><Minus size={16} /></button>
           <span>{Math.round(zoom * 100)}%</span>
           <button type="button" className={control} disabled={zoom >= 2} aria-label={italian ? "Ingrandisci" : "Zoom in"} onClick={() => setZoom(value => Math.min(2, value + 0.25))}><Plus size={16} /></button>
-        </>}
-        <a href={resolvedUrl} download={filename || true} className={`${control} gap-1`}>{italian ? "Scarica PDF" : "Download PDF"}<Download size={14} /></a>
-      </div>
-    </div>
+    </div>}
   </section>;
 }

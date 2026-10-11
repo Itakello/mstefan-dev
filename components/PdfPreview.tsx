@@ -1,7 +1,7 @@
 "use client";
 
 import type { Locale } from "@/lib/i18n/config";
-import { DocumentPreview } from "./DocumentPreview";
+import { DocumentPreview, DocumentDownload } from "./DocumentPreview";
 import { MediaPreview } from "./MediaPreview";
 import styles from "./PdfPreview.module.css";
 
@@ -10,5 +10,6 @@ export function PdfPreview({ title, url, filename, locale = "en" }: { title: str
   return <section className={styles.document} data-pdf-document>
     <h3>{title}</h3>
     <MediaPreview title={title} locale={locale}>{enlarge => <DocumentPreview url={url} title={title} filename={filename} locale={locale} enlarge={enlarge} />}</MediaPreview>
+    <DocumentDownload url={url} title={title} filename={filename} locale={locale} />
   </section>;
 }
