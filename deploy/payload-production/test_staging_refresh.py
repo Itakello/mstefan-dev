@@ -130,12 +130,12 @@ class SyntheticClient:
             self.host.native_volume = ('openship-mstefan-payload-preview-' +
                                       self.projects[refresh.STAGE]['volumes'][0].split(':')[0])
             return {'deployment_id': identity}
-        if path.startswith('/projects/'):
-            return {'data': copy.deepcopy(self.projects[path.split('/')[-1]])}
-        if path.startswith('/deployments?'):
-            identity = path.split('projectId=')[1].split('&')[0]
+        if path.startswith('/projects/') and '/deployments?' in path:
+            identity = path.split('/')[2]
             rows = [copy.deepcopy(row) for row in self.records.values() if row['projectId'] == identity]
             return {'data': rows, 'total': len(rows)}
+        if path.startswith('/projects/'):
+            return {'data': copy.deepcopy(self.projects[path.split('/')[-1]])}
         self.fault.hit('deployment:read')
         return {'data': copy.deepcopy(self.records[path.split('/')[-1]])}
 
@@ -325,6 +325,9 @@ class RefreshLifecycleTests(unittest.TestCase):
 
     def test_plan_only_reads_and_incompatible_revision_refuses_before_stop(self):
         self.assertFalse(any(call[0] != 'GET' for call in self.client.calls))
+        for identity in (refresh.PROD, refresh.STAGE):
+            self.assertIn(('GET', '/projects/' + identity + '/deployments?perPage=100&page=1', None), self.client.calls)
+        self.assertFalse(any(path.startswith('/deployments?') for _, path, _ in self.client.calls))
         self.fault.at = 'compatible'
         with self.assertRaisesRegex(Injected, 'compatible'):
             self.runner.plan()

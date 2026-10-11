@@ -343,7 +343,7 @@ class Refresh:
     def idle(self, identity):
         offset = 1
         while True:
-            response = self.client.ship('GET', '/deployments?projectId=' + identity + '&perPage=100&page=' + str(offset))
+            response = self.client.ship('GET', '/projects/' + identity + '/deployments?perPage=100&page=' + str(offset))
             rows = value(response)
             if not isinstance(rows, list) or not isinstance(response.get('total'), int) or len(rows) > 100:
                 raise Refused('Deployment inventory incomplete')
