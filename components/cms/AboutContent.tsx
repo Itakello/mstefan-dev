@@ -47,7 +47,13 @@ export function AboutContent({ content, career, locale }: Props) {
         {photoURL && <figure className={styles.photo}>
           <Image src={photoURL} alt={imageAlt} width={photo?.width || 1530} height={photo?.height || 2054} unoptimized className="h-auto w-full" />
         </figure>}
-        {documents.map((document) => document.file && typeof document.file === "object" && document.file.url && <PdfPreview key={document.id || document.file.id} title={document.title} url={document.file.url} filename={document.file.filename} locale={locale} />)}
+        {documents.map((document) => {
+          const file = document.file;
+          if (!file || typeof file !== "object" || !file.url || !/^(?:\/(?!\/)|https?:\/\/)/i.test(file.url)) return null;
+          return selected?.branchName === "education/trento-master" && file.filename === "master-grades.pdf"
+            ? <a key={document.id || file.id} href={file.url} download={file.filename} className={styles.readStory}>{locale === "it" ? "Scarica" : "Download"} {document.title} (PDF)</a>
+            : <PdfPreview key={document.id || file.id} title={document.title} url={file.url} filename={file.filename} locale={locale} />;
+        })}
       </section>
       <div className={styles.explorer}>
         <CareerGraph career={career} locale={locale} expanded showDetails={false} onSelectionChange={select} />
