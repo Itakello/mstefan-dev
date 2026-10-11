@@ -11,81 +11,81 @@ export async function up({ db }: MigrateUpArgs): Promise<void> {
     await db.all(sql`SELECT * FROM _career_v_version_jobs_documents ORDER BY _parent_id, _order`),
   );
   await db.run(sql`CREATE TABLE \`career_assets_documents\` (
-  	\`_order\` integer NOT NULL,
-  	\`_parent_id\` text NOT NULL,
-  	\`id\` text PRIMARY KEY NOT NULL,
-  	\`file_id\` integer,
-  	FOREIGN KEY (\`file_id\`) REFERENCES \`documents\`(\`id\`) ON UPDATE no action ON DELETE set null,
-  	FOREIGN KEY (\`_parent_id\`) REFERENCES \`career_assets\`(\`id\`) ON UPDATE no action ON DELETE cascade
+    \`_order\` integer NOT NULL,
+    \`_parent_id\` text NOT NULL,
+    \`id\` text PRIMARY KEY NOT NULL,
+    \`file_id\` integer,
+    FOREIGN KEY (\`file_id\`) REFERENCES \`documents\`(\`id\`) ON UPDATE no action ON DELETE set null,
+    FOREIGN KEY (\`_parent_id\`) REFERENCES \`career_assets\`(\`id\`) ON UPDATE no action ON DELETE cascade
   );
   `)
   await db.run(sql`CREATE INDEX \`career_assets_documents_order_idx\` ON \`career_assets_documents\` (\`_order\`);`)
   await db.run(sql`CREATE INDEX \`career_assets_documents_parent_id_idx\` ON \`career_assets_documents\` (\`_parent_id\`);`)
   await db.run(sql`CREATE INDEX \`career_assets_documents_file_idx\` ON \`career_assets_documents\` (\`file_id\`);`)
   await db.run(sql`CREATE TABLE \`career_assets_documents_locales\` (
-  	\`title\` text,
-  	\`id\` integer PRIMARY KEY NOT NULL,
-  	\`_locale\` text NOT NULL,
-  	\`_parent_id\` text NOT NULL,
-  	FOREIGN KEY (\`_parent_id\`) REFERENCES \`career_assets_documents\`(\`id\`) ON UPDATE no action ON DELETE cascade
+    \`title\` text,
+    \`id\` integer PRIMARY KEY NOT NULL,
+    \`_locale\` text NOT NULL,
+    \`_parent_id\` text NOT NULL,
+    FOREIGN KEY (\`_parent_id\`) REFERENCES \`career_assets_documents\`(\`id\`) ON UPDATE no action ON DELETE cascade
   );
   `)
   await db.run(sql`CREATE UNIQUE INDEX \`career_assets_documents_locales_locale_parent_id_unique\` ON \`career_assets_documents_locales\` (\`_locale\`,\`_parent_id\`);`)
   await db.run(sql`CREATE TABLE \`career_assets\` (
-  	\`_order\` integer NOT NULL,
-  	\`_parent_id\` integer NOT NULL,
-  	\`id\` text PRIMARY KEY NOT NULL,
-  	\`branch_name\` text,
-  	\`photo_id\` integer,
-  	FOREIGN KEY (\`photo_id\`) REFERENCES \`media\`(\`id\`) ON UPDATE no action ON DELETE set null,
-  	FOREIGN KEY (\`_parent_id\`) REFERENCES \`career\`(\`id\`) ON UPDATE no action ON DELETE cascade
+    \`_order\` integer NOT NULL,
+    \`_parent_id\` integer NOT NULL,
+    \`id\` text PRIMARY KEY NOT NULL,
+    \`branch_name\` text,
+    \`photo_id\` integer,
+    FOREIGN KEY (\`photo_id\`) REFERENCES \`media\`(\`id\`) ON UPDATE no action ON DELETE set null,
+    FOREIGN KEY (\`_parent_id\`) REFERENCES \`career\`(\`id\`) ON UPDATE no action ON DELETE cascade
   );
   `)
   await db.run(sql`CREATE INDEX \`career_assets_order_idx\` ON \`career_assets\` (\`_order\`);`)
   await db.run(sql`CREATE INDEX \`career_assets_parent_id_idx\` ON \`career_assets\` (\`_parent_id\`);`)
   await db.run(sql`CREATE INDEX \`career_assets_photo_idx\` ON \`career_assets\` (\`photo_id\`);`)
   await db.run(sql`CREATE TABLE \`_career_v_version_assets_documents\` (
-  	\`_order\` integer NOT NULL,
-  	\`_parent_id\` integer NOT NULL,
-  	\`id\` integer PRIMARY KEY NOT NULL,
-  	\`file_id\` integer,
-  	\`_uuid\` text,
-  	FOREIGN KEY (\`file_id\`) REFERENCES \`documents\`(\`id\`) ON UPDATE no action ON DELETE set null,
-  	FOREIGN KEY (\`_parent_id\`) REFERENCES \`_career_v_version_assets\`(\`id\`) ON UPDATE no action ON DELETE cascade
+    \`_order\` integer NOT NULL,
+    \`_parent_id\` integer NOT NULL,
+    \`id\` integer PRIMARY KEY NOT NULL,
+    \`file_id\` integer,
+    \`_uuid\` text,
+    FOREIGN KEY (\`file_id\`) REFERENCES \`documents\`(\`id\`) ON UPDATE no action ON DELETE set null,
+    FOREIGN KEY (\`_parent_id\`) REFERENCES \`_career_v_version_assets\`(\`id\`) ON UPDATE no action ON DELETE cascade
   );
   `)
   await db.run(sql`CREATE INDEX \`_career_v_version_assets_documents_order_idx\` ON \`_career_v_version_assets_documents\` (\`_order\`);`)
   await db.run(sql`CREATE INDEX \`_career_v_version_assets_documents_parent_id_idx\` ON \`_career_v_version_assets_documents\` (\`_parent_id\`);`)
   await db.run(sql`CREATE INDEX \`_career_v_version_assets_documents_file_idx\` ON \`_career_v_version_assets_documents\` (\`file_id\`);`)
   await db.run(sql`CREATE TABLE \`_career_v_version_assets_documents_locales\` (
-  	\`title\` text,
-  	\`id\` integer PRIMARY KEY NOT NULL,
-  	\`_locale\` text NOT NULL,
-  	\`_parent_id\` integer NOT NULL,
-  	FOREIGN KEY (\`_parent_id\`) REFERENCES \`_career_v_version_assets_documents\`(\`id\`) ON UPDATE no action ON DELETE cascade
+    \`title\` text,
+    \`id\` integer PRIMARY KEY NOT NULL,
+    \`_locale\` text NOT NULL,
+    \`_parent_id\` integer NOT NULL,
+    FOREIGN KEY (\`_parent_id\`) REFERENCES \`_career_v_version_assets_documents\`(\`id\`) ON UPDATE no action ON DELETE cascade
   );
   `)
   await db.run(sql`CREATE UNIQUE INDEX \`_career_v_version_assets_documents_locales_locale_parent_id_\` ON \`_career_v_version_assets_documents_locales\` (\`_locale\`,\`_parent_id\`);`)
   await db.run(sql`CREATE TABLE \`_career_v_version_assets\` (
-  	\`_order\` integer NOT NULL,
-  	\`_parent_id\` integer NOT NULL,
-  	\`id\` integer PRIMARY KEY NOT NULL,
-  	\`branch_name\` text,
-  	\`photo_id\` integer,
-  	\`_uuid\` text,
-  	FOREIGN KEY (\`photo_id\`) REFERENCES \`media\`(\`id\`) ON UPDATE no action ON DELETE set null,
-  	FOREIGN KEY (\`_parent_id\`) REFERENCES \`_career_v\`(\`id\`) ON UPDATE no action ON DELETE cascade
+    \`_order\` integer NOT NULL,
+    \`_parent_id\` integer NOT NULL,
+    \`id\` integer PRIMARY KEY NOT NULL,
+    \`branch_name\` text,
+    \`photo_id\` integer,
+    \`_uuid\` text,
+    FOREIGN KEY (\`photo_id\`) REFERENCES \`media\`(\`id\`) ON UPDATE no action ON DELETE set null,
+    FOREIGN KEY (\`_parent_id\`) REFERENCES \`_career_v\`(\`id\`) ON UPDATE no action ON DELETE cascade
   );
   `)
   await db.run(sql`CREATE INDEX \`_career_v_version_assets_order_idx\` ON \`_career_v_version_assets\` (\`_order\`);`)
   await db.run(sql`CREATE INDEX \`_career_v_version_assets_parent_id_idx\` ON \`_career_v_version_assets\` (\`_parent_id\`);`)
   await db.run(sql`CREATE INDEX \`_career_v_version_assets_photo_idx\` ON \`_career_v_version_assets\` (\`photo_id\`);`)
   await db.run(sql`CREATE TABLE \`media_locales\` (
-  	\`alt\` text,
-  	\`id\` integer PRIMARY KEY NOT NULL,
-  	\`_locale\` text NOT NULL,
-  	\`_parent_id\` integer NOT NULL,
-  	FOREIGN KEY (\`_parent_id\`) REFERENCES \`media\`(\`id\`) ON UPDATE no action ON DELETE cascade
+    \`alt\` text,
+    \`id\` integer PRIMARY KEY NOT NULL,
+    \`_locale\` text NOT NULL,
+    \`_parent_id\` integer NOT NULL,
+    FOREIGN KEY (\`_parent_id\`) REFERENCES \`media\`(\`id\`) ON UPDATE no action ON DELETE cascade
   );
   `)
   await db.run(sql`CREATE UNIQUE INDEX \`media_locales_locale_parent_id_unique\` ON \`media_locales\` (\`_locale\`,\`_parent_id\`);`)
