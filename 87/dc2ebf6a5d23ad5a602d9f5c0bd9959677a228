@@ -1,0 +1,29 @@
+scripts/visual-review/ai-review.mjs
+  s_a3d57fd6983d88::t_ba65fc95b5dbf8 83,109-148,260,299,305
+  s_a3d57fd6983d88::t_fdb80b4824fd56 5,26-27,62-81,350-359,368
+tests/ai-visual-review.test.mjs
+  s_a3d57fd6983d88::t_5f406c758ce3a1 438,455-461,472-473,475-478,481-482,490-493,495-527
+  s_a3d57fd6983d88::t_874a4e06a0fab5 3,6,166-232,533,538,544,551,555,558,561,565,570
+DESIGN.md
+  s_a3d57fd6983d88::t_b72dd5414b01a6 34
+docs/presentation-export-review.md
+  s_a3d57fd6983d88::t_0029bdc2f9cd30 1-7
+scripts/visual-review/physiq-export.json
+  s_a3d57fd6983d88::t_becb8af3e84775 1-2570
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "87dc2ebf6a5d23ad5a602d9f5c0bd9959677a228",
+  "prompts": {},
+  "sessions": {
+    "s_a3d57fd6983d88": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a125dc-d51e-7583-9ad7-4135793b24dc",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
