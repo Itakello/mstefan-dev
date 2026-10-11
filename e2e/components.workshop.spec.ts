@@ -38,6 +38,12 @@ for (const theme of ["light", "dark"] as const) {
       expect(ids.length).toBeGreaterThanOrEqual(11);
       for (const id of ids) {
         await story(page, id, theme);
+        if (id.startsWith("workshop-aboutcontent--")) {
+          const results = page.getByRole("link", { name: /Download .* exam results \(PDF\)/ });
+          await expect(results).toBeVisible();
+          await expect(results).toHaveAttribute("download", `massimo-stefan-${id.endsWith("masters-results") ? "masters" : "bachelors"}-exam-results.pdf`);
+          await expect(page.locator("[data-pdf-document]")).toHaveCount(0);
+        }
         const name = `${id}-${size}-${theme}.png`;
         await page.locator("main").screenshot({ path: testInfo.outputPath(name), animations: "disabled" });
         await expect.soft(page.locator("main")).toHaveScreenshot(name, { animations: "disabled", maxDiffPixels: 40 });
