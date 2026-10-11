@@ -1,6 +1,6 @@
 "use client";
 import { Download, Minus, Plus } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { PDFDocumentProxy } from "pdfjs-dist";
 import type { Locale } from "@/lib/i18n/config";
 import { documentMediaUrl } from "@/lib/documentMedia";
@@ -8,10 +8,10 @@ import { PreviewArrows } from "./PreviewArrows";
 import { MediaPreview } from "./MediaPreview";
 import { PowerPointPreview } from "./PowerPointPreview";
 
-type DocumentPreviewProps = { url: string; title: string; locale: Locale; filename?: string | null; presentation?: boolean; previewUrl?: string };
+type DocumentPreviewProps = { url: string; title: string; locale: Locale; filename?: string | null; presentation?: boolean; previewUrl?: string; controls?: ReactNode };
 
 export function DocumentPreview(props: DocumentPreviewProps) {
-  return <MediaPreview title={props.title} locale={props.locale}>{props.presentation && new URL(props.url, "https://www.mstefan.dev").pathname.toLowerCase().endsWith(".pptx")
+  return <MediaPreview title={props.title} locale={props.locale} controls={props.controls}>{props.presentation && new URL(props.url, "https://www.mstefan.dev").pathname.toLowerCase().endsWith(".pptx")
     ? <PowerPointPreview url={props.url} title={props.title} locale={props.locale} previewUrl={props.previewUrl} />
     : <PdfDocumentPreview {...props} />}</MediaPreview>;
 }

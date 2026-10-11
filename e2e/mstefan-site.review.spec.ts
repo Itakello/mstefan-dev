@@ -131,7 +131,11 @@ test.describe("Public website review", () => {
         await researchModes.getByRole("button", { name: mode, exact: true }).click();
         await expect(reader.getByRole("status")).toHaveCount(0);
         const mediaBox = (await page.locator("[data-media-preview]").boundingBox())!;
-        const toggleBox = (await researchModes.boundingBox())!;
+        const toggleBox = (await page.locator("[data-media-controls]").boundingBox())!;
+        const modesBox = (await researchModes.boundingBox())!;
+        const enlargeBox = (await page.getByRole("button", { name: "Enlarge preview", exact: true }).boundingBox())!;
+        expect(enlargeBox.x).toBeGreaterThanOrEqual(modesBox.x + modesBox.width);
+        expect(Math.abs(enlargeBox.y + enlargeBox.height / 2 - modesBox.y - modesBox.height / 2)).toBeLessThan(2);
         expect(toggleBox.y).toBeGreaterThanOrEqual(mediaBox.y + mediaBox.height);
         expect(Math.abs(toggleBox.x + toggleBox.width / 2 - mediaBox.x - mediaBox.width / 2)).toBeLessThan(2);
       }
