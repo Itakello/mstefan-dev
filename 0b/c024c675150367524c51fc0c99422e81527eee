@@ -1,0 +1,28 @@
+e2e/work-media.consistency.spec.ts
+  s_a3d57fd6983d88::t_a6daf646887691 26-30
+  s_a3d57fd6983d88::t_6c030c50963a49 12,69-70
+  s_a3d57fd6983d88::t_5a42655537e478 68,71,78
+  s_a3d57fd6983d88::t_1f0d1a6f9d69a2 72
+  s_a3d57fd6983d88::t_30ccfc2ab1f6bf 38-50
+  s_a3d57fd6983d88::t_f270f923c47492 1-11,13-25,31-37,51-67,73-77,79-137
+tests/cms/notion-publication-fixture.mjs
+  s_a3d57fd6983d88::t_f56bf717da1870 28-30
+  s_a3d57fd6983d88::t_30ccfc2ab1f6bf 31-34
+  s_a3d57fd6983d88::t_f5b55beeb7ccc2 26-27,35-37,44,54
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0bc024c675150367524c51fc0c99422e81527eee",
+  "prompts": {},
+  "sessions": {
+    "s_a3d57fd6983d88": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a125dc-d51e-7583-9ad7-4135793b24dc",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
