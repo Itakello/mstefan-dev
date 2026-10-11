@@ -37,17 +37,7 @@ export function Header({ locale }: { locale: Locale }) {
     <header className="relative flex items-center justify-between pt-8">
       <Link href={localizedPath(locale, "/")} aria-label={copy.header.homeLabel} className="group min-w-0 no-underline">
         <div className="flex min-w-0 items-center gap-3">
-          <div className="relative size-11 overflow-hidden rounded-xl">
-            <Image
-              src="/profile-photo.jpg"
-              alt={copy.header.portraitAlt}
-              width={1530}
-              height={2054}
-              className="absolute left-1/2 top-[-2px] h-auto w-[88px] max-w-none -translate-x-1/2"
-              priority
-              unoptimized
-            />
-          </div>
+          <Image src="/icon.svg" alt="" width={44} height={44} className="size-11 shrink-0" priority unoptimized />
           <div className="truncate font-semibold tracking-tight max-sm:hidden">Massimo Stefan</div>
         </div>
       </Link>
