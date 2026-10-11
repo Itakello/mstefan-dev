@@ -33,7 +33,7 @@ function ScreenshotPreview({ url, title, mobile, unavailable, direction, onSize 
       initial="enter" animate={{ x: 0 }} exit="exit" transition={{ duration: reducedMotion ? 0 : 0.26, ease: [0.22, 0.61, 0.36, 1] }}>
       {failed ? <p role="status" className="text-sm text-black/60 dark:text-white/60">{unavailable}</p> : <img ref={image} src={url} alt={title} width={mobile ? 390 : 1280} height={mobile ? 844 : 800}
         className="h-full w-auto max-w-full rounded-xl border border-black/10 object-contain dark:border-white/15"
-        draggable={false} onLoad={event => onSize(event.currentTarget.naturalWidth / event.currentTarget.naturalHeight)} onError={() => setFailed(true)} />}
+        draggable={false} onLoad={event => { if (present) onSize(event.currentTarget.naturalWidth / event.currentTarget.naturalHeight); }} onError={() => setFailed(true)} />}
     </motion.div>
   );
 }
