@@ -130,12 +130,12 @@ class SyntheticClient:
             self.host.native_volume = ('openship-mstefan-payload-preview-' +
                                       self.projects[refresh.STAGE]['volumes'][0].split(':')[0])
             return {'deployment_id': identity}
-        if path.startswith('/projects/'):
-            return {'data': copy.deepcopy(self.projects[path.split('/')[-1]])}
-        if path.startswith('/deployments?'):
-            identity = path.split('projectId=')[1].split('&')[0]
+        if path.startswith('/projects/') and '/deployments?' in path:
+            identity = path.split('/')[2]
             rows = [copy.deepcopy(row) for row in self.records.values() if row['projectId'] == identity]
             return {'data': rows, 'total': len(rows)}
+        if path.startswith('/projects/'):
+            return {'data': copy.deepcopy(self.projects[path.split('/')[-1]])}
         self.fault.hit('deployment:read')
         return {'data': copy.deepcopy(self.records[path.split('/')[-1]])}
 
@@ -215,6 +215,49 @@ class RefreshLifecycleTests(unittest.TestCase):
         self.assertEqual(refresh.accounts(self.fixture.target), refresh.accounts(self.fixture.staging))
         self.assert_original_data()
         self.assertEqual(len([call for call in self.client.calls if call[0] == 'POST']), 1)
+
+    def test_restart_waits_for_transient_gateway_failures(self):
+        failures = [refresh.Refused('HTTP GET failed with status 502'),
+                    refresh.Refused('HTTP GET failed with status 503'), {}]
+        with patch.object(self.client, 'health', side_effect=failures) as health, \
+                patch.object(self.runner, 'sleep') as sleep:
+            self.runner.ready_health()
+        self.assertEqual(health.call_count, 3)
+        self.assertEqual(sleep.call_count, 2)
+
+    def test_apply_survives_production_startup_gateway_failure(self):
+        original = self.client.health
+        failures = []
+        def health(staging=False):
+            if not staging and self.state['phase'] == 'restarting_production' and not failures:
+                failures.append(True)
+                raise refresh.Refused('HTTP GET failed with status 502')
+            return original(staging=staging)
+        with patch.object(self.client, 'health', side_effect=health):
+            self.apply()
+        self.assertEqual(failures, [True])
+        self.assertEqual(self.state['phase'], 'ready')
+        self.assert_original_data()
+
+    def test_restart_health_deadline_and_access_refusal(self):
+        for reason, clock in [('HTTP GET failed with status 502', [0, 60]),
+                              ('HTTP GET failed with status 403', [0, 1])]:
+            with self.subTest(reason=reason), \
+                    patch.object(self.client, 'health', side_effect=refresh.Refused(reason)), \
+                    patch.object(refresh.time, 'monotonic', side_effect=clock), \
+                    patch.object(self.runner, 'sleep') as sleep:
+                with self.assertRaisesRegex(refresh.Refused, reason):
+                    self.runner.ready_health(staging=True)
+                sleep.assert_not_called()
+
+    def test_restart_does_not_start_health_pass_after_retry_window(self):
+        with patch.object(self.client, 'health', side_effect=refresh.Refused('HTTP GET failed with status 502')) as health, \
+                patch.object(refresh.time, 'monotonic', side_effect=[0, 59.5, 60]), \
+                patch.object(self.runner, 'sleep') as sleep:
+            with self.assertRaisesRegex(refresh.Refused, 'status 502'):
+                self.runner.ready_health()
+        self.assertEqual(health.call_count, 1)
+        sleep.assert_called_once_with(0.5)
 
     def test_failures_restore_original_runtime_and_declared_mount(self):
         for event in ('stop:production', 'backup:before', 'backup:after', 'restart:production',
@@ -313,6 +356,22 @@ class RefreshLifecycleTests(unittest.TestCase):
         self.assertEqual(self.client.projects[refresh.STAGE]['volumes'], ['staging-data:/data'])
         self.assert_original_data()
 
+    def test_resumed_recovery_waits_for_staging_before_login(self):
+        self.state.update(current=self.state['staging'], recovering=True, phase='recovery_required')
+        original = self.client.health
+        calls = []
+        def health(staging=False):
+            calls.append('staging' if staging else 'production')
+            if staging and len(calls) == 1:
+                raise refresh.Refused('HTTP GET failed with status 502')
+            return original(staging=staging)
+        with patch.object(self.client, 'health', side_effect=health), \
+                patch.object(self.client, 'login', side_effect=lambda: calls.append('login')):
+            self.runner.recover(self.state, self.save)
+        self.assertEqual(calls, ['staging', 'staging', 'login', 'production'])
+        self.assertEqual(self.state['phase'], 'rolled_back')
+        self.assert_original_data()
+
     def test_known_ready_native_submission_is_reconciled_before_recovery(self):
         self.fault.at = 'deployment:read'
         with self.assertRaisesRegex(Injected, 'deployment:read'):
@@ -325,12 +384,33 @@ class RefreshLifecycleTests(unittest.TestCase):
 
     def test_plan_only_reads_and_incompatible_revision_refuses_before_stop(self):
         self.assertFalse(any(call[0] != 'GET' for call in self.client.calls))
+        for identity in (refresh.PROD, refresh.STAGE):
+            self.assertIn(('GET', '/projects/' + identity + '/deployments?perPage=100&page=1', None), self.client.calls)
+        self.assertFalse(any(path.startswith('/deployments?') for _, path, _ in self.client.calls))
         self.fault.at = 'compatible'
         with self.assertRaisesRegex(Injected, 'compatible'):
             self.runner.plan()
         self.assertEqual(self.host.running, {'production': True, 'staging': True})
         self.assertNotIn('stop:production', self.fault.events)
         self.assert_original_data()
+
+    def test_production_default_host_requires_exact_local_runtime(self):
+        self.client.projects[refresh.PROD]['serverId'] = None
+        self.runner.plan()
+        self.client.projects[refresh.PROD]['activeDeploymentId'] = 'dep_elsewhere'
+        self.client.records['dep_elsewhere'] = {'id': 'dep_elsewhere', 'projectId': refresh.PROD,
+                                               'commitSha': COMMIT, 'status': 'ready'}
+        with self.assertRaises(KeyError):
+            self.runner.plan()
+
+    def test_unexpected_servers_and_staging_default_host_refused(self):
+        for identity, server in ((refresh.PROD, 'another-server'), (refresh.STAGE, None),
+                                 (refresh.STAGE, 'another-server')):
+            original = self.client.projects[identity]['serverId']
+            self.client.projects[identity]['serverId'] = server
+            with self.assertRaisesRegex(refresh.Refused, 'Project identity'):
+                self.runner.project(identity)
+            self.client.projects[identity]['serverId'] = original
 
     def test_compatibility_receipt_binds_images_paths_and_expiry(self):
         receipt_path = self.fixture.root / 'compatibility.json'
@@ -398,6 +478,7 @@ class ClientAndCredentialsTests(unittest.TestCase):
         self.assertEqual(opener.request.get_header('Authorization'), 'Bearer synthetic-openship')
         self.assertEqual(opener.request.get_header('X-organization-id'), refresh.ORG)
         self.assertEqual(opener.request.get_header('X-openship-scope'), 'fixed')
+        self.assertEqual(opener.request.get_header('User-agent'), 'mstefan-staging-refresh/1')
 
     def test_transport_invalid_oversized_response_and_redirect_refused(self):
         for payload, reason in ((b'not-json synthetic-sensitive', 'unavailable or invalid'),

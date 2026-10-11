@@ -95,7 +95,7 @@ class Client:
         self.opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), NoRedirect)
 
     def request(self, method, url, token=None, body=None, headers=None, raw=False):
-        headers = {'Accept': 'application/json', **(headers or {})}
+        headers = {'Accept': 'application/json', 'User-Agent': 'mstefan-staging-refresh/1', **(headers or {})}
         if token:
             headers['Authorization'] = 'Bearer ' + token
         data = None if body is None else json.dumps(body).encode()
@@ -328,10 +328,11 @@ class Refresh:
 
     def project(self, identity):
         project = value(self.client.ship('GET', '/projects/' + identity))
-        expected = {'id': identity, 'organizationId': ORG, 'slug': SLUGS[identity], 'serverId': SERVER,
+        expected = {'id': identity, 'organizationId': ORG, 'slug': SLUGS[identity],
                     'gitProvider': 'github', 'gitOwner': 'Itakello', 'gitRepo': 'mstefan-dev', 'gitBranch': 'master',
                     'autoDeploy': False, 'routeStrategy': 'loopback-port'}
-        if any(project.get(key) != expected_value for key, expected_value in expected.items()):
+        servers = {SERVER, None} if identity == PROD else {SERVER}
+        if project.get('serverId') not in servers or any(project.get(key) != expected_value for key, expected_value in expected.items()):
             raise Refused('Project identity, routing or deployment ownership changed')
         mounts = project.get('volumes')
         if identity == PROD and mounts != ['data:/data']:
@@ -343,7 +344,7 @@ class Refresh:
     def idle(self, identity):
         offset = 1
         while True:
-            response = self.client.ship('GET', '/deployments?projectId=' + identity + '&perPage=100&page=' + str(offset))
+            response = self.client.ship('GET', '/projects/' + identity + '/deployments?perPage=100&page=' + str(offset))
             rows = value(response)
             if not isinstance(rows, list) or not isinstance(response.get('total'), int) or len(rows) > 100:
                 raise Refused('Deployment inventory incomplete')
@@ -388,6 +389,20 @@ class Refresh:
         state.update(phase=phase, **fields)
         save_state()
 
+    def ready_health(self, staging=False):
+        deadline = time.monotonic() + 60
+        while True:
+            try:
+                return self.client.health(staging=staging)
+            except Refused as error:
+                remaining = deadline - time.monotonic()
+                if str(error) not in {'HTTP GET failed with status 502', 'HTTP GET failed with status 503',
+                                      'HTTP GET unavailable or invalid'} or remaining <= 0:
+                    raise
+                self.sleep(min(1, remaining))
+                if time.monotonic() >= deadline:
+                    raise
+
     def wait(self, state, save_state, baseline, mount):
         self.phase(state, save_state, 'submitting', submitted=None, native_pending=True, native_mount=mount)
         result = self.client.ship('POST', '/deployments', {'projectId': STAGE, 'environment': 'preview', 'refresh': True})
@@ -422,7 +437,7 @@ class Refresh:
             archive = self.host.prepare(production, staging, state['run_id'], directory)
             self.phase(state, save_state, 'restarting_production', archive=archive)
             self.host.restart(production)
-            self.client.health()
+            self.ready_health()
             self.phase(state, save_state, 'stopping_staging')
             self.host.stop(staging)
             if self.host.schema(staging) != state['schema']:
@@ -474,7 +489,7 @@ class Refresh:
         production, staging = state['production'], state['staging']
         if previous in {'stopping_production', 'restarting_production'}:
             self.host.restart(production)
-            self.client.health()
+            self.ready_health()
             self.phase(state, save_state, 'rolled_back')
             return
         if previous == 'planned':
@@ -510,8 +525,8 @@ class Refresh:
                 self.host.stopped(state['current'])
                 current = state['current']
         if current and current['volume'] == staging['volume'] and state.get('recovering'):
+            self.ready_health(staging=True)
             self.client.login()
-            self.client.health(staging=True)
             self.client.health()
             self.phase(state, save_state, 'rolled_back')
             return
@@ -533,8 +548,8 @@ class Refresh:
             self.wait(state, save_state, staging, {'volume': staging['volume']})
         else:
             self.host.restart(staging)
+        self.ready_health(staging=True)
         self.client.login()
-        self.client.health(staging=True)
         self.client.health()
         self.phase(state, save_state, 'rolled_back')
 
