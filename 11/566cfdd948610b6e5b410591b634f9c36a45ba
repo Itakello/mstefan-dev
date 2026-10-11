@@ -1,0 +1,30 @@
+deploy/payload-production/staging_refresh.py
+  s_6454a99d25cf16::t_57d8fe1601404b 313-315,449
+  s_6454a99d25cf16::t_397641cf668da0 447-448,451-452,454-455
+deploy/payload-production/test_staging_refresh.py
+  s_6454a99d25cf16::t_57d8fe1601404b 246-250,252-257,271-284
+  s_6454a99d25cf16::t_397641cf668da0 150,162-163,251,258-270
+  s_6454a99d25cf16::t_a65a27481fab62 10,335-361
+  s_6454a99d25cf16::t_ac9180eede1e4a 285
+  s_6454a99d25cf16::t_5482af03468544 362
+deploy/payload-production/refresh_notion.py
+  s_6454a99d25cf16::t_52d0c246bb5b98 130-133,146-149,151-161,191-192,224-227
+deploy/payload-production/test_refresh_notion.py
+  s_6454a99d25cf16::t_2aad58e5cf5a30 172-231
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "11566cfdd948610b6e5b410591b634f9c36a45ba",
+  "prompts": {},
+  "sessions": {
+    "s_6454a99d25cf16": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a127bc-4c58-7743-ab47-5dbe3fa6bca9",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
