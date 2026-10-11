@@ -35,7 +35,7 @@ export function Footer({ locale }: { locale: Locale }) {
           <IconLink
             href="https://x.com/itakello"
             label={"X"}
-            icon={<span style={{ display: "inline-flex", backgroundColor: "#ff00aa" }}><span><BrandIcon brand="x" /></span></span>}
+            icon={<BrandIcon brand="x" />}
           />
         </div>
       </div>
