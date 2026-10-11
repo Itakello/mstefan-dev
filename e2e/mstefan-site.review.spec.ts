@@ -331,12 +331,17 @@ test.describe("Public website review", () => {
     await expect(mobileImage).toHaveAttribute("src", websiteScreenshotPaths("https://www.mstefan.dev/en/about", "en").mobile);
     await swipe(90, 0);
     await expect(controls).toContainText("Homepage · 1 / 3");
+    const scrollBefore = await page.evaluate(() => window.scrollY);
     await swipe(0, -90);
     await expect(controls).toContainText("Homepage · 1 / 3");
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(scrollBefore);
+    await expect(preview).toHaveCSS("touch-action", "pan-y pinch-zoom");
     await page.emulateMedia({ reducedMotion: "reduce" });
     await next.click();
     await expect(mobileImage).toHaveAttribute("src", websiteScreenshotPaths("https://www.mstefan.dev/en/about", "en").mobile);
     await expect(preview.locator("div").first()).toHaveCSS("transform", "none");
+    await page.setViewportSize({ width: 320, height: 844 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     await page.goto("/it/projects");
     await expect(page.getByRole("group", { name: "Pagina anteprima", exact: true })).toContainText("Pagina iniziale · 1 / 3");
     await page.getByRole("button", { name: "Anteprima successiva", exact: true }).click();
