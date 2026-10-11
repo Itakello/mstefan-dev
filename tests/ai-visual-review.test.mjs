@@ -441,7 +441,7 @@ test('only the two proven zero-generation steps are free; failed and variant pai
   await assert.rejects(paidAttempts(async path=>path.includes('/workflows/') ? {total_count:1,workflow_runs:[{id:999,status:'completed',updated_at:timestamp}]} : {total_count:1,jobs:[{run_attempt:1,steps:[{status:'completed',conclusion:'failure',started_at:timestamp}]}]},now));
 });
 
-test('complete 415-file evidence allows cheap paid requests beyond five; truncated inventories, cap, replay and stale revisions issue none', async () => {
+test('complete 415-file evidence allows cheap paid requests beyond five; truncated inventories, replay and stale revisions issue none', async () => {
   const {mkdtempSync,writeFileSync,rmSync}=await import('node:fs');
   const {tmpdir}=await import('node:os');
   const {join}=await import('node:path');
@@ -570,8 +570,9 @@ with zipfile.ZipFile(sys.argv[1]+'/fixture.zip','w') as z:
     assert.equal(writes.length,1);assert.match(writes[0].description,/request claimed/);
     closeDuringModel=false;closed=false;
     calls.length=0;reservations=20;
-    await assert.rejects(main({env,fetcher,gitDiff,request:true}),/paid attempt cap/);
-    assert.equal(calls.some(url=>new URL(url).origin === 'https://api.openai.com'),false);
+    await main({env,fetcher,gitDiff,request:true});
+    assert.equal(calls.filter(url=>new URL(url).origin === 'https://api.openai.com').length,2);
+    assert.equal(writes.at(-1).state,'success');
     calls.length=0;stale=true;
     await assert.rejects(main({env,fetcher,gitDiff,request:true}),/Stale immutable source head/);
     assert.equal(calls.length,2);
@@ -852,13 +853,15 @@ test('recovery expiry blocks input counting, generation and request claims after
 });
 
 
-test('paid attempts have a count ceiling without a historical dollar cap', async () => {
+test('paid attempts have no daily ceiling and retain the per-review reservation bound', async () => {
   const now=Date.parse('2026-10-11T12:00:00Z'),timestamp=new Date(now).toISOString();
   let amount=2000000,count=20;
   const github=async path=>path.includes('/workflows/') ? {total_count:count,workflow_runs:Array.from({length:count},(_,i)=>({id:i+1,status:'in_progress',updated_at:timestamp}))} : {total_count:1,jobs:[{steps:[{name:`${PAID_STEP} (${amount} microUSD)`,status:'in_progress',started_at:timestamp}]}]};
   assert.deepEqual(await paidAttempts(github,now),{count:20});checkBudget({count:20});
-  assert.throws(()=>checkBudget({count:20},180050),/attempt cap/);
-  count=21;assert.throws(()=>checkBudget({count:21}),/attempt cap/);
+  checkBudget({count:20},180050);
+  count=21;checkBudget({count:21},180050);
+  checkBudget({count:1000},2000000);
+  assert.throws(()=>checkBudget({count:0},2000001),/Invalid paid reservation/);
   count=19;amount=900000000;checkBudget(await paidAttempts(github,now),180050);
   assert.throws(()=>checkBudget({count:-1}));assert.throws(()=>checkBudget({count:1.5}));
   await assert.rejects(paidAttempts(github,now,1,180050),/amount mismatch/);

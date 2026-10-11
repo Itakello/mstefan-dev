@@ -16,7 +16,7 @@ on:
         default: false
         type: boolean
 
-# Serialize claims and the rolling paid-attempt cap; never cancel an in-flight paid request.
+# Serialize claims; never cancel an in-flight paid request.
 concurrency:
   group: ai-visual-review
   cancel-in-progress: false
