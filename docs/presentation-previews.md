@@ -8,7 +8,7 @@ The current export comes from Academic-Repository commit `0f53a1cdf0355e334e63de
 
 1. Import that PowerPoint into Keynote, duplicate it, and set the duplicate's slide size to 1920 × 1080. Export HTML into a new local directory; preserve the original PowerPoint.
 2. Replace `public/presentations/physiq/` with the export. Preserve the bundled player and its license notices. Set the HTML title to `PhysIQ — Presentation` and retain `initial-scale=1,width=device-width` without disabling pinch zoom.
-3. In the generated player's `initVideo`, immediately after `const A=document.createElement("video");`, set `A.muted=!0,A.playsInline=!0;`. This is the only player adaptation; it supports inline muted playback on mobile browsers.
+3. In the generated player's `initVideo`, immediately after `const A=document.createElement("video");`, set `A.muted=!0,A.playsInline=!0;`. This supports inline muted playback on mobile browsers. In `handleSwipeEvent`, map the one-finger right swipe to `goBackToPreviousBuild` so backward swipe reverses one build, matching the site arrow. These are the only player adaptations.
 4. Remove each exported MP4's audio track using `ffmpeg -i INPUT -map 0:v:0 -c:v copy -an -movflags +faststart OUTPUT`, then replace the exported file with that output. This retains the encoded video and guarantees silence even on devices that ignore volume settings.
 5. Verify all 25 slides, click builds, PhyRE GIF motion, silent video loops, swipe, and responsive sizing in the integrated site before publishing. Keynote substitutes unavailable fonts; inspect layouts after each export. Original raster images and videos cannot gain detail from the higher slide resolution.
 

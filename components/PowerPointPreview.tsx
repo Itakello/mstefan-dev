@@ -9,7 +9,7 @@ import type { Locale } from "@/lib/i18n/config";
 export function PowerPointPreview({ url, title, locale, previewUrl }: { url: string; title: string; locale: Locale; previewUrl?: string }) {
   const frame = useRef<HTMLIFrameElement>(null);
   const advance = (key: "ArrowLeft" | "ArrowRight") => {
-    frame.current?.contentWindow?.document.dispatchEvent(new KeyboardEvent("keydown", { key, keyCode: key === "ArrowLeft" ? 37 : 39, bubbles: true }));
+    frame.current?.contentWindow?.document.dispatchEvent(new KeyboardEvent("keydown", { key, keyCode: key === "ArrowLeft" ? 37 : 39, shiftKey: key === "ArrowLeft", bubbles: true }));
   };
   const source = documentMediaUrl(url);
   const viewer = previewUrl ? presentationPreviewUrl(previewUrl) : null;
