@@ -66,6 +66,7 @@ Notion database expected properties (create these columns):
 - `Website URL` (url, optional public website; supplies Work visit links and screenshot targets)
 - `Preview URLs` (rich_text, optional newline-separated additional full HTTPS URLs on the same origin as `Website URL`; unique normalized URLs, no credentials or fragments, at most 10 pages including the homepage)
 - `Paper URL` / `Slides URL` (url, optional HTTPS research resources; blank values are omitted, nonblank invalid or credential-bearing URLs fail publication)
+- `Slides preview URL` (url, optional owned HTML export at `https://www.mstefan.dev/presentations/<deck>/index.html`; requires `Slides URL` for the original download and shares the same media across languages)
 - `Publication` / `Publication IT` (rich_text, optional publication credit in each locale; no translation fallback)
 - `Summary` (rich_text, required English long summary)
 - `Summary IT` (rich_text, required Italian long summary)

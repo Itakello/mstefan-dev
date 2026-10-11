@@ -13,6 +13,7 @@ export type Project = {
   previewImages?: { url: string; label: string }[];
   paperUrl?: string;
   slidesUrl?: string;
+  slidesPreviewUrl?: string;
   publication?: string;
   tags?: string[];
   language?: string;

@@ -3,7 +3,7 @@ import { isGitHubRepositoryUrl } from "./projectPresentation";
 import type { Project, ProjectType } from "./projectPublication";
 
 const PERSONAL_SITE_ORIGIN = "https://www.mstefan.dev";
-export type ShowcaseWebsite = { id: string; type?: ProjectType; url?: string; sourceUrl?: string; preview: boolean; previewUrls?: string[]; previewImages?: { url: string; label: string }[]; screenshotPages?: { url: string; label: string; screenshots: { desktop: string; mobile: string } }[]; name: string; description: string; shortDescription?: string; year?: string; paperUrl?: string; slidesUrl?: string; publication?: string; language?: string; tags?: string[] };
+export type ShowcaseWebsite = { id: string; type?: ProjectType; url?: string; sourceUrl?: string; preview: boolean; previewUrls?: string[]; previewImages?: { url: string; label: string }[]; screenshotPages?: { url: string; label: string; screenshots: { desktop: string; mobile: string } }[]; name: string; description: string; shortDescription?: string; year?: string; paperUrl?: string; slidesUrl?: string; slidesPreviewUrl?: string; publication?: string; language?: string; tags?: string[] };
 
 export function websitePreviewTargets(project: { websiteUrl?: string; previewUrls?: string[] }): string[] {
   const extras = project.previewUrls ?? [];
@@ -40,7 +40,7 @@ export function workItemsFromProjects(projects: readonly Project[]): ShowcaseWeb
   const urls = approvedWebsiteUrls(projects);
   return projects.map((project, index) => {
     const metadata = { type: project.type, name: project.title, description: project.summary, shortDescription: project.shortSummary,
-      paperUrl: project.paperUrl, slidesUrl: project.slidesUrl, publication: project.publication,
+      paperUrl: project.paperUrl, slidesUrl: project.slidesUrl, slidesPreviewUrl: project.slidesPreviewUrl, publication: project.publication,
       year: project.year, language: project.language, tags: project.tags,
       previewUrls: project.previewUrls, previewImages: project.previewImages,
       sourceUrl: isGitHubRepositoryUrl(project.url) ? project.url : undefined };

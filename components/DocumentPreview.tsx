@@ -7,11 +7,11 @@ import { documentMediaUrl } from "@/lib/documentMedia";
 import { PreviewArrows } from "./PreviewArrows";
 import { PowerPointPreview } from "./PowerPointPreview";
 
-type DocumentPreviewProps = { url: string; title: string; locale: Locale; filename?: string | null; presentation?: boolean };
+type DocumentPreviewProps = { url: string; title: string; locale: Locale; filename?: string | null; presentation?: boolean; previewUrl?: string };
 
 export function DocumentPreview(props: DocumentPreviewProps) {
   return props.presentation && new URL(props.url, "https://www.mstefan.dev").pathname.toLowerCase().endsWith(".pptx")
-    ? <PowerPointPreview url={props.url} title={props.title} locale={props.locale} />
+    ? <PowerPointPreview url={props.url} title={props.title} locale={props.locale} previewUrl={props.previewUrl} />
     : <PdfDocumentPreview {...props} />;
 }
 

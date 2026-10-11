@@ -1,17 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { powerPointPreviewUrl } from "../lib/powerPointPreview";
+import { presentationPreviewUrl } from "../lib/powerPointPreview";
 
-test("PowerPoint viewer uses only public GitHub PPTX sources and the requested locale", () => {
-  const source = "https://github.com/Itakello/Academic-Repository/blob/master/2025/04-Thesis_Master/presentation.pptx";
-  const viewer = new URL(powerPointPreviewUrl(source, "it")!);
-  assert.equal(viewer.origin, "https://view.officeapps.live.com");
-  assert.equal(viewer.pathname, "/op/embed.aspx");
-  assert.equal(viewer.searchParams.get("src"), "https://raw.githubusercontent.com/Itakello/Academic-Repository/master/2025/04-Thesis_Master/presentation.pptx");
-  assert.equal(viewer.searchParams.get("ui"), "it-IT");
-  for (const suffix of ["?token=private", "#private"]) assert.equal(powerPointPreviewUrl(source + suffix, "en"), null);
-  for (const url of ["https://example.com/private.pptx", "https://raw.githubusercontent.com:8443/deck.pptx", "https://raw.githubusercontent.com/deck.pdf", "https://raw.githubusercontent.com/deck.pptx?token=private", "https://raw.githubusercontent.com/deck.pptx#private", "https://raw.githubusercontent.com.evil.example/deck.pptx"]) {
-    assert.equal(powerPointPreviewUrl(url, "en"), null);
+test("presentation embeds accept only owned static exports and use the current origin", () => {
+  for (const source of ["/presentations/physiq/index.html", "https://www.mstefan.dev/presentations/physiq/index.html", "https://mstefan.dev/presentations/physiq/index.html"]) {
+    assert.equal(presentationPreviewUrl(source), "/presentations/physiq/index.html");
   }
-  assert.throws(() => powerPointPreviewUrl("http://raw.githubusercontent.com/deck.pptx", "en"));
+  for (const source of ["https://view.officeapps.live.com/op/embed.aspx", "https://example.com/presentations/physiq/index.html", "//evil.example/presentations/physiq/index.html", "http://mstefan.dev/presentations/physiq/index.html", "https://user:secret@mstefan.dev/presentations/physiq/index.html", "/presentations/physiq/index.html?token=private", "/presentations/physiq/index.html#secret", "/presentations/../index.html", "/presentations/physiq/deck.pptx", "invalid"]) {
+    assert.equal(presentationPreviewUrl(source), null);
+  }
 });

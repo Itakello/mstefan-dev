@@ -427,3 +427,22 @@ test("malformed or untrusted preview images reject the entire publication", () =
     "Preview images": { type: "rich_text", rich_text: [] },
   } })));
 });
+
+test("self-hosted slide previews share one Notion reference across languages and fail closed", () => {
+  const properties = { ...page().properties,
+    "Slides URL": { type: "url", url: "https://example.com/deck.pptx" },
+    "Slides preview URL": { type: "url", url: "https://www.mstefan.dev/presentations/physiq/index.html" },
+  };
+  const project = parseNotionProjectPage(page({ properties }));
+  assert.ok(project);
+  for (const locale of ["en", "it"] as const) {
+    assert.equal(selectPublicProjectLocale(project, locale).slidesPreviewUrl, "/presentations/physiq/index.html");
+  }
+  for (const url of [null, "", "   "]) {
+    assert.equal(parseNotionProjectPage(page({ properties: { ...properties, "Slides preview URL": { type: "url", url } } }))?.slidesPreviewUrl, undefined);
+  }
+  for (const value of [{ type: "url", url: "https://evil.example/deck.html" }, { type: "url", url: 42 }, { type: "rich_text", rich_text: [] }, null]) {
+    assert.equal(parseNotionProjectPage(page({ properties: { ...properties, "Slides preview URL": value } })), null);
+  }
+  assert.equal(parseNotionProjectPage(page({ properties: { ...properties, "Slides URL": { type: "url", url: null } } })), null);
+});
