@@ -1,0 +1,21 @@
+.github/workflows/ai-visual-review.yml
+  s_a3d57fd6983d88::t_77160943947d80 14,43
+tests/ai-visual-review.test.mjs
+  s_a3d57fd6983d88::t_c1b11a0a5673c2 80
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "320a60b98ed80709bcfe52875b8e3cf0718c5b24",
+  "prompts": {},
+  "sessions": {
+    "s_a3d57fd6983d88": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a125dc-d51e-7583-9ad7-4135793b24dc",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
