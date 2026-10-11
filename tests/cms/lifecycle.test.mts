@@ -683,6 +683,9 @@ test('master results are an optional download while other attachments retain pre
         await page.goto(`${base}/${locale}/about`);
         await page.locator('button[data-career-job]', { hasText: 'education/trento-master' }).click();
         const link = page.getByRole('link', { name: `${verb} ${title} (PDF)`, exact: true });
+        await expect(link).toHaveText(locale === 'it' ? 'Risultati' : 'Results');
+        await expect(link.locator('svg.lucide-download')).toHaveCount(1);
+        await expect(page.locator('#career-story article p', { has: link })).toContainText('Artificial Intelligence');
         await expect(link).toHaveAttribute('href', file.url);
         await expect(link).toHaveAttribute('download', 'master-grades.pdf');
         await expect(page.locator('#career-story [data-pdf-document]')).toHaveCount(0);
