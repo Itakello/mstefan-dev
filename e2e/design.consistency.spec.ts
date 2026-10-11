@@ -1,5 +1,6 @@
 import { expect, test, type Locator, type Page, type TestInfo } from "@playwright/test";
 import { writeFile } from "node:fs/promises";
+import { randomBytes } from "node:crypto";
 import { installOfflineReview } from "./offline-review";
 
 async function expectDrawnIcons(icons: Locator) {
@@ -156,4 +157,53 @@ for (const mode of modes) {
       }, 100);
     });
   }
+}
+
+const careerFixturePassword = randomBytes(24).toString("base64url");
+const completedCareerJobs = [
+  { branchName: "work/amazon", company: "Amazon", role: "Software Development Engineer I", startDate: "2022-01-01", endDate: "2024-01-01", ongoing: false, summary: "Completed work experience for visual review.", color: "#c77835" },
+  { branchName: "education/test-university", company: "Test University", role: "Qualification", startDate: "2014-01-01", endDate: "2023-01-01", ongoing: false, summary: "Completed education experience for visual review.", color: "#1267ab" },
+];
+let careerFixtureRegistered = false;
+
+for (const theme of ["light", "dark"] as const) {
+  test(`desktop ${theme}: completed Career endpoints, keyboard focus and selection`, async ({ page, request }, testInfo) => {
+    const credentials = { email: "visual-career@example.invalid", password: careerFixturePassword };
+    const authenticated = await request.post(careerFixtureRegistered ? "/api/users/login" : "/api/users/first-register", { data: credentials });
+    expect(authenticated.status()).toBe(200);
+    careerFixtureRegistered = true;
+    const original = await request.get("/api/globals/career?locale=en&draft=false");
+    expect(original.status()).toBe(200);
+    const { jobs } = await original.json();
+    const publish = (value: typeof completedCareerJobs) => request.post("/api/globals/career?locale=en&publishSpecificLocale=en", { data: { jobs: value, _status: "published" } });
+    try {
+      expect((await publish(completedCareerJobs)).status()).toBe(200);
+      await page.setViewportSize({ width: 1280, height: 900 });
+      await page.emulateMedia({ colorScheme: theme, reducedMotion: "reduce" });
+      await page.addInitScript(value => localStorage.setItem("theme", value), theme);
+      await page.goto("/en/about");
+      await stablePage(page);
+      const career = page.getByRole("region", { name: "Career", exact: true });
+      const row = career.locator("button[data-career-job]", { hasText: "work/amazon" });
+      const branch = career.locator('[data-career-branch][aria-label^="work/amazon:"]');
+      await expect(row).toContainText("Jan 2022 – Jan 2024");
+      await expect(career.getByText("Dates not provided", { exact: true })).toHaveCount(0);
+      await expect(branch.locator("[data-career-head]")).toHaveCSS("fill", "rgb(199, 120, 53)");
+      const capture = (state: string) => career.screenshot({ path: testInfo.outputPath(`career-completed${state}-desktop-${theme}.png`), animations: "disabled" });
+      await capture("");
+      await page.keyboard.press("Tab");
+      await branch.focus();
+      await expect(branch).toBeFocused();
+      expect(await branch.evaluate(node => node.matches(":focus-visible"))).toBe(true);
+      await expect(row).toHaveAttribute("aria-pressed", "false");
+      await capture("-focus");
+      await branch.press("Enter");
+      await expect(row).toHaveAttribute("aria-pressed", "true");
+      await expect(row).toBeFocused();
+      await expect(page.locator("#career-story h1")).toHaveText("Amazon");
+      await capture("-selection");
+    } finally {
+      expect((await publish(jobs)).status()).toBe(200);
+    }
+  });
 }
