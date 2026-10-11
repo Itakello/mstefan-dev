@@ -129,6 +129,7 @@ test.describe("Public website review", () => {
       await page.setViewportSize({ width, height: 800 });
       for (const mode of ["Paper", "Slides"]) {
         await researchModes.getByRole("button", { name: mode, exact: true }).click();
+        await expect(researchModes.getByRole("button", { name: mode, exact: true })).toBeFocused();
         await expect(reader.getByRole("status")).toHaveCount(0);
         const mediaBox = (await page.locator("[data-media-preview]").boundingBox())!;
         const toggleBox = (await page.locator("[data-media-controls]").boundingBox())!;

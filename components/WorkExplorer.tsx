@@ -198,7 +198,8 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
           </aside> : stackCatalog.message && <p role="status" className="text-xs leading-5 text-black/55 dark:text-white/55">{copy.publication.stack[stackCatalog.message]}</p>}
         </div>
         {(screenshotUrl || selected.paperUrl || selected.slidesUrl) && <section aria-label={copy.work.research} className="mt-7">
-        {activeKind === "photos" && screenshotUrl && <MediaPreview key={selected.id} title={selected.name} locale={locale} controls={mediaControls}><div>
+        <MediaPreview key={selected.id} title={selected.name} locale={locale} controls={mediaControls}>
+        {activeKind === "photos" && screenshotUrl && <div>
             {previewPages && (previewPages.length > 1 || selected.previewImages?.length) && <div role="group" aria-label={copy.work.previewPage} className="mb-4 text-center text-sm">
               <span aria-live="polite" aria-atomic="true">{selectedPage.label} <span className="text-[var(--page-muted)]">· {pageIndex + 1} / {previewPages.length}</span></span>
             </div>}
@@ -226,9 +227,10 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
                 </button>
               ))}
             </div>}
-          </div></MediaPreview>}
-        {activeKind !== "photos" && <DocumentPreview key={`${selected.id}-${activeKind}`} url={(activeKind === "slides" ? selected.slidesUrl : selected.paperUrl)!} title={selected.name} locale={locale} presentation={activeKind === "slides"} previewUrl={activeKind === "slides" ? selected.slidesPreviewUrl : undefined} controls={mediaControls} />}
+          </div>}
+        {activeKind !== "photos" && <DocumentPreview key={`${selected.id}-${activeKind}`} url={(activeKind === "slides" ? selected.slidesUrl : selected.paperUrl)!} title={selected.name} locale={locale} presentation={activeKind === "slides"} previewUrl={activeKind === "slides" ? selected.slidesPreviewUrl : undefined} />}
 
+        </MediaPreview>
         </section>}
         {selected.url && !selected.preview && <p className="mt-6 text-sm text-black/60 dark:text-white/60">{copy.websites.linkOnly}</p>}
       </section>
