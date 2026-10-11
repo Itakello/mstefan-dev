@@ -1,0 +1,21 @@
+e2e/components.workshop.spec.ts
+  s_09b847434b8cc4::t_c0ac59f8d01ac4 88
+app/globals.css
+  s_09b847434b8cc4::t_ddf2aa7c00a80d 336
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f0be433dd676263b1dc6a4b2403a839a6d51c1e8",
+  "prompts": {},
+  "sessions": {
+    "s_09b847434b8cc4": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12ca3-eeb5-7c51-b80e-099a5f01a8e5",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
