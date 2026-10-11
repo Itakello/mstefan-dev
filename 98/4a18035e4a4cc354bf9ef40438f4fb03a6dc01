@@ -1,0 +1,27 @@
+docs/automation/ai-visual-review.md
+  s_ca9b05cd06e974::t_95d242435293d5 13
+tests/ai-visual-review.test.mjs
+  s_ca9b05cd06e974::t_779860620c74f8 326,331-332,334-336
+  s_ca9b05cd06e974::t_61923a99f0471b 339
+  s_ca9b05cd06e974::t_30a1fa24d08425 324-325,327-330,333,337,340-341
+  s_ca9b05cd06e974::t_509c54cda31f50 338
+scripts/visual-review/ai-review.mjs
+  s_ca9b05cd06e974::t_aa44ab45d0266a 165
+  s_ca9b05cd06e974::t_f1ca40ffc78b6b 16-20
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "984a18035e4a4cc354bf9ef40438f4fb03a6dc01",
+  "prompts": {},
+  "sessions": {
+    "s_ca9b05cd06e974": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a125e2-8a12-72c0-9b0f-65ad915684a2",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
