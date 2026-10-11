@@ -68,7 +68,7 @@ async function scrollStyle(scroller: Locator) {
 }
 
 async function compareScreenshot(target: Page | Locator, name: string, testInfo: TestInfo, options: NonNullable<Parameters<Page["screenshot"]>[0]>, maxDiffPixels: number) {
-  await target.screenshot({ ...options, path: testInfo.outputPath(name) });
+  await target.screenshot({ ...options, mask: [], path: testInfo.outputPath(name) });
   await expect.soft(target).toHaveScreenshot(name, { ...options, maxDiffPixels });
 }
 
