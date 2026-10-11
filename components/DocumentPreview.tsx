@@ -11,7 +11,7 @@ type DocumentPreviewProps = { url: string; title: string; locale: Locale; filena
 
 export function DocumentPreview(props: DocumentPreviewProps) {
   return props.presentation && new URL(props.url, "https://www.mstefan.dev").pathname.toLowerCase().endsWith(".pptx")
-    ? <PowerPointPreview url={props.url} title={props.title} locale={props.locale} previewUrl={props.previewUrl} enlarge={props.enlarge} />
+    ? <PowerPointPreview url={props.url} title={props.title} locale={props.locale} previewUrl={props.previewUrl} enlarge={props.enlarge} download={<DocumentDownload {...props} />} />
     : <PdfDocumentPreview {...props} />;
 }
 
@@ -21,10 +21,11 @@ export function DocumentDownload({ url, locale, filename, presentation = false }
   try { source = url.startsWith("/") && !url.startsWith("//") ? url : documentMediaUrl(url); }
   catch { return null; }
   const powerpoint = presentation && new URL(url, "https://www.mstefan.dev").pathname.toLowerCase().endsWith(".pptx");
-  return <div className="mt-3 flex justify-center"><a href={source} download={filename || true} className="inline-flex items-center gap-1 rounded-md px-2 py-2 text-xs hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[hsl(var(--accent))]">{italian ? "Scarica" : "Download"} {powerpoint ? "PowerPoint" : "PDF"}<Download size={14} aria-hidden /></a></div>;
+  const label = `${italian ? "Scarica" : "Download"} ${powerpoint ? "PowerPoint" : "PDF"}`;
+  return <a href={source} download={filename || true} aria-label={label} title={label} data-media-download className="media-preview-control absolute bottom-3 right-[60px] z-20 transition-opacity"><Download size={18} aria-hidden /></a>;
 }
 
-function PdfDocumentPreview({ url, title, locale, presentation = false, enlarge }: DocumentPreviewProps) {
+function PdfDocumentPreview({ url, title, locale, filename, presentation = false, enlarge }: DocumentPreviewProps) {
   const host = useRef<HTMLDivElement>(null);
   const text = useRef<HTMLDivElement>(null);
   const pageHost = useRef<HTMLDivElement>(null);
@@ -135,6 +136,7 @@ function PdfDocumentPreview({ url, title, locale, presentation = false, enlarge 
           <span className="media-preview-control" aria-live="polite">{Math.round(zoom * 100)}%</span>
           <button type="button" className={control} disabled={zoom >= 2} aria-label={italian ? "Ingrandisci" : "Zoom in"} onClick={() => setZoom(value => Math.min(2, value + 0.25))}><Plus size={16} /></button>
     </div>}
+    <DocumentDownload url={url} title={title} locale={locale} filename={filename} presentation={presentation} />
     {enlarge}
     <PreviewArrows previous={italian ? "Pagina precedente" : "Previous page"} next={italian ? "Pagina successiva" : "Next page"}
       previousDisabled={!document || page === 1} nextDisabled={!document || page === document.numPages}

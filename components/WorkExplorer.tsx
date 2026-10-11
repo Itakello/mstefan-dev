@@ -4,7 +4,7 @@ import { BookOpen, Images, Presentation, ChevronDown, ChevronLeft, ChevronRight,
 import { AnimatePresence, motion, useIsPresent, useReducedMotion } from "motion/react";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
-import { DocumentPreview, DocumentDownload } from "@/components/DocumentPreview";
+import { DocumentPreview } from "@/components/DocumentPreview";
 import { MediaPreview } from "@/components/MediaPreview";
 import { PreviewArrows } from "@/components/PreviewArrows";
 import { StackBadge } from "@/components/StackBadge";
@@ -234,7 +234,6 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
         {activeKind !== "photos" && <DocumentPreview key={`${selected.id}-${activeKind}`} url={(activeKind === "slides" ? selected.slidesUrl : selected.paperUrl)!} title={selected.name} locale={locale} presentation={activeKind === "slides"} previewUrl={activeKind === "slides" ? selected.slidesPreviewUrl : undefined} enlarge={enlarge} />}
 
         </>}</MediaPreview>
-        {activeKind !== "photos" && <DocumentDownload url={(activeKind === "slides" ? selected.slidesUrl : selected.paperUrl)!} title={selected.name} locale={locale} presentation={activeKind === "slides"} />}
         </section>}
         {selected.url && !selected.preview && <p className="mt-6 text-sm text-black/60 dark:text-white/60">{copy.websites.linkOnly}</p>}
       </section>

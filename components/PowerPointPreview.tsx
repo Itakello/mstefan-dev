@@ -4,7 +4,7 @@ import { PreviewArrows } from "./PreviewArrows";
 import { presentationPreviewUrl, presentationProgress } from "@/lib/powerPointPreview";
 import type { Locale } from "@/lib/i18n/config";
 
-export function PowerPointPreview({ url, title, locale, previewUrl, enlarge }: { url: string; title: string; locale: Locale; previewUrl?: string; enlarge?: ReactNode }) {
+export function PowerPointPreview({ url, title, locale, previewUrl, enlarge, download }: { url: string; title: string; locale: Locale; previewUrl?: string; enlarge?: ReactNode; download?: ReactNode }) {
   const frame = useRef<HTMLIFrameElement>(null);
   const advance = (key: "ArrowLeft" | "ArrowRight") => {
     frame.current?.contentWindow?.document.dispatchEvent(new KeyboardEvent("keydown", { key, keyCode: key === "ArrowLeft" ? 37 : 39, shiftKey: key === "ArrowLeft", bubbles: true }));
@@ -24,10 +24,11 @@ export function PowerPointPreview({ url, title, locale, previewUrl, enlarge }: {
   const italian = locale === "it";
   return <section data-powerpoint-preview aria-label={`${title}: PowerPoint`}>
     {viewer ? <div data-preview-stage className="media-frame"><iframe ref={frame} src={viewer} onLoad={() => frame.current?.contentWindow?.postMessage({ type: "mstefan:presentation-progress-request" }, window.location.origin)} title={`${title}: PowerPoint`} allow="autoplay; fullscreen" allowFullScreen loading="lazy" className="block aspect-video w-full border-0" />
+      {download}
       {enlarge}
       <PreviewArrows previous={italian ? "Passaggio precedente" : "Previous step"} next={italian ? "Passaggio successivo" : "Next step"} onPrevious={() => advance("ArrowLeft")} onNext={() => advance("ArrowRight")} />
       </div>
-      : <p role="status" className="p-4 text-sm">{italian ? "Anteprima non disponibile. Scarica il PowerPoint per aprirlo." : "Preview unavailable. Download the PowerPoint to open it."}</p>}
+      : <><p role="status" className="p-4 text-sm">{italian ? "Anteprima non disponibile. Scarica il PowerPoint per aprirlo." : "Preview unavailable. Download the PowerPoint to open it."}</p><div data-media-fallback className="flex justify-center">{download}</div></>}
     <div className="media-caption" aria-live="polite">{title}{progress && <span className="text-[var(--page-muted)]"> · {progress.current} / {progress.total}</span>}</div>
   </section>;
 }
