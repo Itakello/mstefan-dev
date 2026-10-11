@@ -1,0 +1,19 @@
+components/Header.tsx
+  s_f792a2a2b302b5::t_44460ae9164bb1 62
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "5fb6cfcb7ee16150a9859b09f19bad163f4ed4e0",
+  "prompts": {},
+  "sessions": {
+    "s_f792a2a2b302b5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12cbb-dc6f-7ca0-a58e-4b0d809a1763",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
