@@ -310,7 +310,9 @@ class Host:
 
 
 def accounts(path):
-    with closing(sqlite3.connect((Path(path) / backup.DB).as_uri() + '?mode=ro&immutable=1', uri=True)) as db:
+    with closing(sqlite3.connect((Path(path) / backup.DB).as_uri() + '?mode=ro', uri=True)) as db:
+        db.execute('PRAGMA query_only=ON')
+        db.execute('BEGIN')
         staging_restore.verify_database(db)
         staging_restore.user_schema(db)
         rows = db.execute('SELECT ' + ','.join(map(staging_restore.quote, staging_restore.PRESERVED)) + ' FROM users ORDER BY id').fetchall()
@@ -442,11 +444,15 @@ class Refresh:
             self.phase(state, save_state, 'verifying', current=current)
             self.client.login()
             rendered = self.client.health(staging=True)
+            if any(marker in rendered[locale] for locale in ('en', 'it') for marker in (
+                    b'data-stack-publication-status="error"', b'data-stack-publication-status="unconfigured"')):
+                raise Refused('Staging Stack publication is not ready')
             for dataset in state['notion_plan']['datasets']:
-                if dataset['name'] == 'Projects':
+                if dataset['name'] in ('Projects', 'Stack'):
+                    suffix = '/projects' if dataset['name'] == 'Projects' else ''
                     for name in dataset['source']:
-                        if any(html.escape(name).encode() not in rendered[locale + '/projects'] for locale in ('en', 'it')):
-                            raise Refused('Staging Projects render differs from copied dataset')
+                        if any(html.escape(name).encode() not in rendered[locale + suffix] for locale in ('en', 'it')):
+                            raise Refused('Staging ' + dataset['name'] + ' render differs from copied dataset')
             with tarfile.open(state['archive'], 'r:') as bundle:
                 manifest = json.load(bundle.extractfile(backup.MANIFEST))
             for name, digest in manifest['files'].items():

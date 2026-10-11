@@ -7,6 +7,7 @@ from pathlib import Path
 import sqlite3
 import sys
 import tempfile
+import time
 import unittest
 import urllib.error
 from unittest.mock import patch
@@ -146,7 +147,7 @@ class SyntheticClient:
 
     def health(self, staging=False):
         self.fault.hit('health:staging' if staging else 'health:production')
-        return {locale + suffix: b'Example &amp; project' for locale in ('en', 'it')
+        return {locale + suffix: b'Example &amp; project Example Stack' for locale in ('en', 'it')
                 for suffix in ('', '/projects', '/about')}
 
     def login(self):
@@ -158,7 +159,8 @@ class SyntheticNotion:
         self.fault = fault
 
     def plan(self):
-        return {'datasets': [{'name': 'Projects', 'source': ['Example & project']}], 'summary': {}}
+        return {'datasets': [{'name': 'Projects', 'source': ['Example & project']},
+                             {'name': 'Stack', 'source': ['Example Stack']}], 'summary': {}}
 
     def apply(self, plan, state, save):
         state['notion'] = {'applied': True}
@@ -241,6 +243,46 @@ class RefreshLifecycleTests(unittest.TestCase):
         self.assertEqual(len([call for call in self.client.calls if call[0] == 'POST']), 2)
         self.assert_original_data()
 
+    def test_stack_error_with_successful_http_response_rolls_back(self):
+        original = self.client.health
+        def health(staging=False):
+            pages = original(staging)
+            if staging:
+                pages['it'] += b' data-stack-publication-status="error"'
+            return pages
+        self.client.health = health
+        with self.assertRaisesRegex(refresh.Refused, 'Stack publication'):
+            self.apply()
+        self.assertEqual(self.state['phase'], 'rolled_back')
+        self.assertEqual(self.client.projects[refresh.STAGE]['volumes'], ['staging-data:/data'])
+        self.assert_original_data()
+
+    def test_missing_copied_stack_entry_rolls_back(self):
+        original = self.client.health
+        def health(staging=False):
+            pages = original(staging)
+            if staging:
+                pages['en'] = pages['en'].replace(b'Example Stack', b'')
+            return pages
+        self.client.health = health
+        with self.assertRaisesRegex(refresh.Refused, 'Stack render differs'):
+            self.apply()
+        self.assertEqual(self.state['phase'], 'rolled_back')
+        self.assert_original_data()
+
+    def test_account_digest_includes_committed_wal_changes(self):
+        database = self.fixture.staging / backup.DB
+        before = refresh.accounts(self.fixture.staging)
+        with sqlite3.connect(database) as writer:
+            writer.execute('PRAGMA journal_mode=WAL')
+            writer.execute('PRAGMA wal_autocheckpoint=0')
+            writer.execute("UPDATE users SET hash='new-staging-hash'")
+            writer.commit()
+            changed = refresh.accounts(self.fixture.staging)
+            self.assertNotEqual(before, changed)
+            writer.execute('PRAGMA wal_checkpoint(TRUNCATE)')
+            self.assertEqual(changed, refresh.accounts(self.fixture.staging))
+
     def test_unknown_native_submission_is_retained_without_repost(self):
         self.fault.at = 'submission:unknown'
         with self.assertRaises(Injected):
@@ -289,6 +331,34 @@ class RefreshLifecycleTests(unittest.TestCase):
         self.assertEqual(self.host.running, {'production': True, 'staging': True})
         self.assertNotIn('stop:production', self.fault.events)
         self.assert_original_data()
+
+    def test_compatibility_receipt_binds_images_paths_and_expiry(self):
+        receipt_path = self.fixture.root / 'compatibility.json'
+        receipt = {name: {key: self.state[name][key] for key in ('commit', 'image')}
+                   for name in ('production', 'staging')}
+        receipt.update(reviewed_paths=['payload.config.ts'], standards='clean', spec='clean',
+                       expires_at=time.time() + 3600)
+        self.client.compatible = lambda *args: ['payload.config.ts']
+        with patch.object(refresh, 'COMPATIBILITY', receipt_path):
+            refresh.save(receipt_path, receipt)
+            self.runner.plan()
+            for changed in ({'staging': {**receipt['staging'], 'image': 'sha256:wrong'}},
+                            {'reviewed_paths': []}, {'expires_at': time.time() - 1}):
+                refresh.save(receipt_path, {**receipt, **changed})
+                with self.assertRaisesRegex(refresh.Refused, 'Exact-version'):
+                    self.runner.plan()
+            refresh.save(receipt_path, {**receipt, 'reviewed_paths': ['migrations/new.ts']})
+            self.client.compatible = lambda *args: ['migrations/new.ts']
+            with self.assertRaisesRegex(refresh.Refused, 'align Staging'):
+                self.runner.plan()
+        self.assertNotIn('stop:production', self.fault.events)
+
+    def test_actual_schema_difference_refuses_even_without_source_changes(self):
+        with sqlite3.connect(self.fixture.staging / backup.DB) as database:
+            database.execute('CREATE TABLE incompatible (value TEXT)')
+        with self.assertRaisesRegex(refresh.Refused, 'schemas or applied migrations differ'):
+            self.runner.plan()
+        self.assertNotIn('stop:production', self.fault.events)
 
     def test_known_nonterminal_submission_blocks_then_terminal_failure_recovers(self):
         self.fault.at = 'submission:unknown'

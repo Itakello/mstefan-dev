@@ -127,10 +127,10 @@ class Notion:
                 if kind not in SCALARS or target_schema.get(key, {}).get('type') != kind:
                     raise NotionError('Schema mismatch: ' + key)
                 if kind in ('select', 'multi_select', 'status'):
-                    options = {o['name'] for o in definition[kind]['options']}
-                    target_options = {o['name'] for o in target_schema[key][kind]['options']}
-                    if not options <= target_options:
-                        raise NotionError('Missing target options: ' + key)
+                    options = {o['name']: o.get('color', 'default') for o in definition[kind]['options']}
+                    target_options = {o['name']: o.get('color', 'default') for o in target_schema[key][kind]['options']}
+                    if any(target_options.get(name) != color for name, color in options.items()):
+                        raise NotionError('Missing or mismatched target options: ' + key)
                     if key == 'Status' and 'Added' not in options:
                         raise NotionError('Missing Added option')
             src = self._rows('source', source, schema, name == 'Projects')
@@ -143,7 +143,22 @@ class Notion:
                              'update': sum(src[n]['properties'] != dst[n]['properties'] for n in src.keys() & dst.keys())}
         return {'datasets': datasets, 'summary': summary}
 
+    def _target(self, ds):
+        if not any(same_id(ds, dataset[2]) for dataset in DATASETS):
+            raise NotionError('Mutation target is not an approved Staging data source')
+
     def _mutate(self, journal, save, method, path, body, ds, page_id=None):
+        self._target(ds)
+        if method == 'POST':
+            if path != '/pages' or page_id is not None or body.get('parent') != {
+                    'type': 'data_source_id', 'data_source_id': ds}:
+                raise NotionError('Invalid page creation target')
+        elif method == 'PATCH':
+            if (not isinstance(page_id, str) or not page_id or
+                    any(char in page_id for char in '/?#') or path != '/pages/' + page_id):
+                raise NotionError('Invalid exact page mutation target')
+        else:
+            raise NotionError('Unsupported mutation method')
         if page_id:
             self._parent(self._request('target', 'GET', '/pages/' + page_id), ds)
         journal['pending'] = {'method': method, 'path': path, 'body': deepcopy(body),
@@ -173,6 +188,8 @@ class Notion:
     def apply(self, plan, state, save):
         if state.get('notion'):
             raise NotionError('Existing Notion journal; recover before applying')
+        for dataset in plan['datasets']:
+            self._target(dataset['target_id'])
         for dataset in plan['datasets']:
             self._compare(dataset, dataset['target'], ids=True)
         journal = state['notion'] = {'plan': deepcopy(plan), 'created': [], 'touched': [],
@@ -204,6 +221,10 @@ class Notion:
         journal = state.get('notion')
         if not journal:
             return
+        for dataset in journal['plan']['datasets']:
+            self._target(dataset['target_id'])
+        for row in journal['created']:
+            self._target(row['data_source_id'])
         pending = journal['pending']
         if pending and pending['method'] == 'POST' and not pending['page_id']:
             raise NotionError('Unknown creation outcome; operator must reconcile pending create')

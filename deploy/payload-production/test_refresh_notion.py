@@ -169,6 +169,66 @@ class ReconciliationTests(unittest.TestCase):
         self.assertEqual(expected['annotations'], rich['annotations'])
         self.notion.apply(plan, self.state, self.save)
 
+    def test_source_or_unknown_target_in_plan_and_recovery_journal_refused(self):
+        for target in (DATASETS[0][1], 'unknown-data-source'):
+            with self.subTest(target=target):
+                plan = self.notion.plan()
+                plan['datasets'][0]['target_id'] = target
+                self.fake.calls.clear()
+                with self.assertRaisesRegex(NotionError, 'approved Staging'):
+                    self.notion.apply(plan, self.state, self.save)
+                self.assertEqual(self.fake.calls, [])
+                self.state = {'notion': {'plan': plan, 'created': [], 'touched': [],
+                                          'pending': None}}
+                with self.assertRaisesRegex(NotionError, 'approved Staging'):
+                    self.notion.rollback(self.state, self.save)
+                self.assertEqual(self.fake.calls, [])
+                self.state = {}
+        plan = self.notion.plan()
+        self.state = {'notion': {'plan': plan, 'created': [
+            {'id': 'source-page', 'data_source_id': DATASETS[0][1]}],
+            'touched': [], 'pending': None}}
+        self.fake.calls.clear()
+        with self.assertRaisesRegex(NotionError, 'approved Staging'):
+            self.notion.rollback(self.state, self.save)
+        self.assertEqual(self.fake.calls, [])
+
+    def test_mutation_guard_rejects_bad_targets_before_transport_or_journal(self):
+        ds = DATASETS[0][2]
+        parent = {'type': 'data_source_id', 'data_source_id': ds}
+        cases = [
+            ('PATCH', '/pages/page-1', {}, DATASETS[0][1], 'page-1'),
+            ('PATCH', '/pages/page-1', {}, 'unknown', 'page-1'),
+            ('PATCH', '/pages/page-2', {}, ds, 'page-1'),
+            ('PATCH', '/pages/page-1/children', {}, ds, 'page-1/children'),
+            ('POST', '/pages', {'parent': {'type': 'data_source_id',
+                                         'data_source_id': DATASETS[0][1]}}, ds, None),
+            ('POST', '/pages/page-1', {'parent': parent}, ds, None),
+            ('POST', '/pages', {'parent': parent}, ds, 'page-1'),
+            ('DELETE', '/pages/page-1', {}, ds, 'page-1'),
+        ]
+        for method, path, body, target, page_id in cases:
+            with self.subTest(method=method, path=path, target=target):
+                journal = {'pending': None}
+                with self.assertRaises(NotionError):
+                    self.notion._mutate(journal, self.save, method, path, body, target, page_id)
+                self.assertEqual(journal, {'pending': None})
+                self.assertEqual(self.fake.calls, [])
+                self.assertEqual(self.saved, [])
+
+    def test_select_multiselect_and_status_option_colors_must_match(self):
+        for kind in ('select', 'multi_select', 'status'):
+            with self.subTest(kind=kind):
+                fake = Fake()
+                source, target = DATASETS[1][1:3]
+                for ds, color in ((source, 'blue'), (target, 'red')):
+                    fake.schemas[ds]['properties']['Category'] = {
+                        'type': kind, kind: {'options': [{'name': 'Web', 'color': color}]}}
+                with self.assertRaisesRegex(NotionError, 'mismatched target options'):
+                    Notion(fake.request).plan()
+                self.assertFalse(any(method == 'PATCH' or path == '/pages'
+                                     for _, method, path, _ in fake.calls))
+
     def test_source_write_guard(self):
         for method, path in (('PATCH', '/pages/x'), ('POST', '/pages'), ('DELETE', '/data_sources/x')):
             with self.assertRaises(NotionError):
