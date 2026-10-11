@@ -1,0 +1,28 @@
+payload.config.ts
+  s_19d9d114290977::t_b73c55d22aa6bc 38,155
+lib/cms/career.ts
+  s_19d9d114290977::t_b73c55d22aa6bc 19
+components/cms/AboutContent.tsx
+  s_19d9d114290977::t_b73c55d22aa6bc 24
+tests/cms/career.test.mts
+  s_19d9d114290977::t_90734677542cbe 134,158-163
+tests/cms/lifecycle.test.mts
+  s_19d9d114290977::t_b73c55d22aa6bc 468,475,528-529
+  s_19d9d114290977::t_3c088d3f3d463c 533-539
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "fd2653c240546e9a8676f50bc4c86b44b66d42cb",
+  "prompts": {},
+  "sessions": {
+    "s_19d9d114290977": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12d23-296a-7f40-99ea-7c893f4231b0",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
