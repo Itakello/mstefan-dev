@@ -1,0 +1,23 @@
+components/DocumentPreview.tsx
+  s_a3d57fd6983d88::t_3f26ddf468096c 107,132
+app/globals.css
+  s_a3d57fd6983d88::t_3f26ddf468096c 342-346
+components/MediaPreview.tsx
+  s_a3d57fd6983d88::t_3f26ddf468096c 38
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3f64631217cb47226c2e89ca58b43a6d24007d58",
+  "prompts": {},
+  "sessions": {
+    "s_a3d57fd6983d88": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a125dc-d51e-7583-9ad7-4135793b24dc",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
