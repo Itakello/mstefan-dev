@@ -37,7 +37,7 @@ python3 deploy/payload-production/staging_refresh.py plan --credentials-file /ru
 python3 deploy/payload-production/staging_refresh.py apply --credentials-file /run/mstefan-staging-refresh/credentials.json
 ```
 
-`plan` performs reads without signing in, stopping runtimes, creating a snapshot, checkpointing SQLite or changing Notion. `apply` generates a unique run ID, snapshots production during a brief stop, restarts and checks production, prepares a new isolated volume, reconciles Notion, cuts over Staging and verifies readiness. Its private journal and recovery archive remain under `/var/backups/mstefan-payload/staging-refresh/<run-id>`. A reported `ready` includes dedicated sign-in, both locales' globals/pages, Projects rendering, upload hashes, the retained image/commit and sole writer. It leaves recovery volumes and Notion Trash intact.
+`plan` performs reads without signing in, stopping runtimes, creating a snapshot, checkpointing SQLite or changing Notion. `apply` generates a unique run ID, snapshots production during a brief stop, restarts and checks production, prepares a new isolated volume, reconciles Notion, cuts over Staging and verifies readiness. Its private journal and recovery archive remain under `/var/backups/mstefan-payload/staging-refresh/<run-id>`. A reported `ready` includes dedicated sign-in, both locales' globals/pages, Projects and Stack rendering, upload hashes, the retained image/commit and sole writer. It leaves recovery volumes and Notion Trash intact.
 
 Prepare the credential bundle through protected 1Password transport in a root-owned mode-0700 temporary directory; the JSON file must have mode 0600 and exactly these keys:
 
