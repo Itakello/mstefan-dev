@@ -10,7 +10,7 @@ export function PreviewArrows({ previous, next, onPrevious, onNext, previousDisa
       { label: next, onClick: onNext, disabled: nextDisabled, position: "right-3", Icon: ChevronRight },
     ].map(({ label, onClick, disabled, position, Icon }) => <button key={label} type="button" data-preview-arrow
       aria-label={label} disabled={disabled} onClick={onClick}
-      className={`absolute top-1/2 z-20 inline-flex size-11 -translate-y-1/2 items-center justify-center rounded-full border border-[var(--surface-border)] bg-[var(--page-bg)] text-[var(--page-text)] shadow-sm transition-opacity hover:bg-[var(--surface-bg)] disabled:cursor-default disabled:opacity-30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[hsl(var(--accent))] ${position}`}>
+      className={`absolute top-1/2 z-20 inline-flex size-11 -translate-y-1/2 items-center justify-center rounded-md border border-[var(--surface-border)] bg-[color-mix(in_srgb,var(--page-bg)_65%,transparent)] text-[var(--page-text)] shadow-sm backdrop-blur-sm transition-opacity hover:bg-[color-mix(in_srgb,var(--surface-bg)_85%,transparent)] disabled:cursor-default disabled:opacity-30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[hsl(var(--accent))] ${position}`}>
       <Icon size={18} aria-hidden />
     </button>)}
   </>;

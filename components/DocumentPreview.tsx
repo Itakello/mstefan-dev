@@ -1,18 +1,19 @@
 "use client";
-import { Download, ExternalLink, Minus, Plus } from "lucide-react";
+import { Download, Minus, Plus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { PDFDocumentProxy } from "pdfjs-dist";
 import type { Locale } from "@/lib/i18n/config";
 import { documentMediaUrl } from "@/lib/documentMedia";
 import { PreviewArrows } from "./PreviewArrows";
+import { MediaPreview } from "./MediaPreview";
 import { PowerPointPreview } from "./PowerPointPreview";
 
 type DocumentPreviewProps = { url: string; title: string; locale: Locale; filename?: string | null; presentation?: boolean; previewUrl?: string };
 
 export function DocumentPreview(props: DocumentPreviewProps) {
-  return props.presentation && new URL(props.url, "https://www.mstefan.dev").pathname.toLowerCase().endsWith(".pptx")
+  return <MediaPreview title={props.title} locale={props.locale}>{props.presentation && new URL(props.url, "https://www.mstefan.dev").pathname.toLowerCase().endsWith(".pptx")
     ? <PowerPointPreview url={props.url} title={props.title} locale={props.locale} previewUrl={props.previewUrl} />
-    : <PdfDocumentPreview {...props} />;
+    : <PdfDocumentPreview {...props} />}</MediaPreview>;
 }
 
 function PdfDocumentPreview({ url, title, locale, filename, presentation = false }: DocumentPreviewProps) {
@@ -75,7 +76,7 @@ function PdfDocumentPreview({ url, title, locale, filename, presentation = false
         if (disposed) return;
         const base = pdfPage.getViewport({ scale: 1 });
         const maxHeight = Math.max(1, parseFloat(window.getComputedStyle(host.current!).maxHeight) - 24);
-        const fit = presentation ? Math.min(width / base.width, maxHeight / base.height) : width / base.width;
+        const fit = Math.min(width / base.width, maxHeight / base.height);
         const viewport = pdfPage.getViewport({ scale: fit * zoom });
         const ratio = Math.min(window.devicePixelRatio || 1, 2);
         element.width = Math.ceil(viewport.width * ratio);
@@ -104,7 +105,7 @@ function PdfDocumentPreview({ url, title, locale, filename, presentation = false
     return () => { disposed = true; render?.cancel(); textLayer?.cancel(); };
   }, [document, page, width, zoom, presentation, viewportHeight]);
   const control = "inline-flex items-center justify-center rounded-md p-2 hover:bg-black/5 disabled:opacity-30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[hsl(var(--accent))] dark:hover:bg-white/10";
-  return <section data-pdf-preview aria-label={`${title}: ${italian ? "Lettore documenti" : "Document reader"}`} className="overflow-hidden rounded-xl border border-black/10 dark:border-white/15">
+  return <section data-pdf-preview aria-label={`${title}: ${italian ? "Lettore documenti" : "Document reader"}`} className={`mx-auto overflow-hidden rounded-xl border border-[var(--surface-border)] ${presentation ? "" : "max-w-[460px]"}`}>
     <div className="flex flex-wrap items-center justify-between gap-2 border-b border-black/10 px-2 py-2 text-xs dark:border-white/15">
       <div className="flex items-center gap-1">
         <span className="px-2" aria-live="polite">{page} / {document?.numPages ?? "…"}</span>
@@ -116,7 +117,6 @@ function PdfDocumentPreview({ url, title, locale, filename, presentation = false
           <button type="button" className={control} disabled={zoom >= 2} aria-label={italian ? "Ingrandisci" : "Zoom in"} onClick={() => setZoom(value => Math.min(2, value + 0.25))}><Plus size={16} /></button>
         </>}
         <a href={resolvedUrl} download={filename || true} className={`${control} gap-1`}>{italian ? "Scarica PDF" : "Download PDF"}<Download size={14} /></a>
-        <a href={resolvedUrl} target="_blank" rel="noreferrer" className={`${control} gap-1`}>{italian ? "Apri PDF" : "Open PDF"}<ExternalLink size={14} /></a>
       </div>
     </div>
     <div data-preview-stage className="relative" style={{ touchAction: zoom > 1 ? "pan-x pan-y pinch-zoom" : "pan-y pinch-zoom" }}
@@ -130,7 +130,7 @@ function PdfDocumentPreview({ url, title, locale, filename, presentation = false
         const dy = event.changedTouches[0].clientY - start.y;
         if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5) setPage(current => Math.max(1, Math.min(document.numPages, current + (dx < 0 ? 1 : -1))));
       }}>
-    <div ref={host} data-document-stage className={`relative ${presentation ? "max-h-[min(480px,55svh)]" : ""} overflow-auto bg-[var(--surface-bg)] p-3`}>
+    <div ref={host} data-document-stage className={`relative max-h-[min(480px,55svh)] overflow-auto bg-[var(--surface-bg)] p-3`}>
       {status === "loading" && <p role="status" className="absolute left-4 top-4 rounded bg-white/90 px-2 py-1 text-sm text-black">{italian ? "Caricamento documento…" : "Loading document…"}</p>}
       {status === "error" && <p role="status" className="text-sm">{italian ? "Anteprima non disponibile. Usa Apri PDF per leggere il documento." : "Preview unavailable. Use Open PDF to read the document."}</p>}
       <div ref={pageHost} className={`relative mx-auto ${status === "error" ? "hidden" : ""}`}><canvas ref={canvas} role="img" aria-label={`${title} · ${italian ? "pagina" : "page"} ${page}`} className="bg-white shadow-sm" /><div ref={text} data-document-text /></div>

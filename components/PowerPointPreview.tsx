@@ -1,7 +1,7 @@
 "use client";
 import { useRef } from "react";
 import { PreviewArrows } from "./PreviewArrows";
-import { Download, ExternalLink } from "lucide-react";
+import { Download } from "lucide-react";
 import { documentMediaUrl } from "@/lib/documentMedia";
 import { presentationPreviewUrl } from "@/lib/powerPointPreview";
 import type { Locale } from "@/lib/i18n/config";
@@ -22,7 +22,6 @@ export function PowerPointPreview({ url, title, locale, previewUrl }: { url: str
       : <p role="status" className="p-4 text-sm">{italian ? "Anteprima non disponibile. Scarica il PowerPoint per aprirlo." : "Preview unavailable. Download the PowerPoint to open it."}</p>}
     <div className="flex flex-wrap justify-end gap-2 border-t border-[var(--surface-border)] p-1">
       <a href={source} download className={link}>{italian ? "Scarica PowerPoint" : "Download PowerPoint"}<Download size={14} aria-hidden /></a>
-      {viewer && <a href={viewer} target="_blank" rel="noreferrer" className={link}>{italian ? "Apri presentazione" : "Open presentation"}<ExternalLink size={14} aria-hidden /></a>}
     </div>
   </section>;
 }

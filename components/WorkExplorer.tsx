@@ -2,9 +2,10 @@
 
 import { BookOpen, Images, Presentation, ChevronDown, ChevronLeft, ChevronRight, ExternalLink, Monitor, Smartphone, Trophy } from "lucide-react";
 import { AnimatePresence, motion, useIsPresent, useReducedMotion } from "motion/react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import { DocumentPreview } from "@/components/DocumentPreview";
+import { MediaPreview } from "@/components/MediaPreview";
 import { PreviewArrows } from "@/components/PreviewArrows";
 import { StackBadge } from "@/components/StackBadge";
 import { BrandIcon } from "@/components/BrandIcon";
@@ -192,11 +193,11 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
           </aside> : stackCatalog.message && <p role="status" className="text-xs leading-5 text-black/55 dark:text-white/55">{copy.publication.stack[stackCatalog.message]}</p>}
         </div>
         {(screenshotUrl || selected.paperUrl || selected.slidesUrl) && <section aria-label={copy.work.research} className="mt-7">
-        {activeKind === "photos" && screenshotUrl && <div>
+        {activeKind === "photos" && screenshotUrl && <MediaPreview key={selected.id} title={selected.name} locale={locale}><div>
             {previewPages && (previewPages.length > 1 || selected.previewImages?.length) && <div role="group" aria-label={copy.work.previewPage} className="mb-4 text-center text-sm">
               <span aria-live="polite" aria-atomic="true">{selectedPage.label} <span className="text-[var(--page-muted)]">· {pageIndex + 1} / {previewPages.length}</span></span>
             </div>}
-            <div data-work-preview data-preview-stage className="relative mx-auto overflow-hidden" style={{ touchAction: "pan-y pinch-zoom", aspectRatio: imageRatio, width: `min(100%, calc(min(620px, 70svh) * ${imageRatio}))` }}
+            <div data-work-preview data-preview-stage className="relative mx-auto overflow-hidden" style={{ touchAction: "pan-y pinch-zoom", aspectRatio: imageRatio, width: `min(100%, calc(min(620px, 70svh) * ${imageRatio}))`, "--preview-ratio": imageRatio } as CSSProperties}
               onTouchStart={event => { swipeStart.current = event.touches.length === 1 && window.matchMedia("(max-width: 639px)").matches ? { x: event.touches[0].clientX, y: event.touches[0].clientY } : null; }}
               onTouchCancel={() => { swipeStart.current = null; }}
               onTouchEnd={event => {
@@ -220,7 +221,7 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
                 </button>
               ))}
             </div>}
-          </div>}
+          </div></MediaPreview>}
         {activeKind !== "photos" && <DocumentPreview key={`${selected.id}-${activeKind}`} url={(activeKind === "slides" ? selected.slidesUrl : selected.paperUrl)!} title={selected.name} locale={locale} presentation={activeKind === "slides"} previewUrl={activeKind === "slides" ? selected.slidesPreviewUrl : undefined} />}
         {[screenshotUrl, selected.paperUrl, selected.slidesUrl].filter(Boolean).length > 1 && <div role="group" aria-label={copy.work.research} className="mt-4 mx-auto flex w-fit gap-1 rounded-lg border border-[var(--surface-border)] p-1">
           {([{ kind: "photos", url: screenshotUrl, label: copy.work.photos, Icon: Images }, { kind: "paper", url: selected.paperUrl, label: copy.work.paper, Icon: BookOpen }, { kind: "slides", url: selected.slidesUrl, label: copy.work.slides, Icon: Presentation }] as const).filter(resource => resource.url).map(resource => (
