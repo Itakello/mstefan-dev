@@ -76,7 +76,7 @@ test('recovery checks the reviewed fixed engine before exposing OpenAI credentia
   const checkouts=steps.filter(step=>step.startsWith('uses: actions/checkout@'));
   assert.equal(checkouts.length,2);
   assert.match(checkouts[1],/if: github.event_name == 'workflow_dispatch' && inputs.recovery == true/);
-  assert.match(checkouts[1],/ref: f5ee03cd7761104ca4c21537f717a61e7194b23f\n/);
+  assert.match(checkouts[1],/ref: b21ebdc1658ad6e9622cda54edd2bdee711bfb42\n/);
   for (const checkout of checkouts) assert.match(checkout,/persist-credentials: false/);
   assert.match(workflow,/recovery:\n        description: [^\n]+\n        required: false\n        default: false\n        type: boolean/);
   const gate=steps.findIndex(step=>step.startsWith('name: Validate bounded attended recovery\n'));
