@@ -132,9 +132,15 @@ for (const theme of ["light", "dark"] as const) {
         const expandedName = `work-media-${mode.toLowerCase()}-expanded-${size}-${theme}.png`;
         await page.screenshot({ path: testInfo.outputPath(expandedName), animations: "disabled" });
         await expect.soft(page).toHaveScreenshot(expandedName, { animations: "disabled", maxDiffPixels: 40 });
+        if (mode === "Slides") await page.frameLocator("[data-powerpoint-preview] iframe").locator("#stage").click();
         await page.keyboard.press("Escape");
         await expect.poll(() => media.evaluate(node => node.matches(":modal"))).toBe(false);
         await expect(media.getByRole("button", { name: "Enlarge preview" })).toBeFocused();
+        if (mode === "Slides") {
+          await page.frameLocator("[data-powerpoint-preview] iframe").locator("#stage").click();
+          await page.keyboard.press("Escape");
+          await expect(media).toBeVisible();
+        }
       }
 
       await story(page, "workshop-careergraph--expanded", theme);

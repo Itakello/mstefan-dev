@@ -23,7 +23,17 @@ export function PowerPointPreview({ url, title, locale, previewUrl, enlarge, dow
   }, [viewer]);
   const italian = locale === "it";
   return <section data-powerpoint-preview aria-label={`${title}: PowerPoint`}>
-    {viewer ? <div data-preview-stage className="media-frame"><iframe ref={frame} src={viewer} onLoad={() => frame.current?.contentWindow?.postMessage({ type: "mstefan:presentation-progress-request" }, window.location.origin)} title={`${title}: PowerPoint`} allow="autoplay; fullscreen" allowFullScreen loading="lazy" className="block aspect-video w-full border-0" />
+    {viewer ? <div data-preview-stage className="media-frame"><iframe ref={frame} src={viewer} onLoad={event => {
+      const element = event.currentTarget;
+      element.contentDocument?.addEventListener("keydown", event => {
+        if (event.key !== "Escape") return;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        const dialog = element.closest<HTMLDialogElement>("dialog");
+        if (dialog?.matches(":modal")) dialog.close();
+      }, true);
+      element.contentWindow?.postMessage({ type: "mstefan:presentation-progress-request" }, window.location.origin);
+    }} title={`${title}: PowerPoint`} allow="autoplay; fullscreen" allowFullScreen loading="lazy" className="block aspect-video w-full border-0" />
       {download}
       {enlarge}
       <PreviewArrows previous={italian ? "Passaggio precedente" : "Previous step"} next={italian ? "Passaggio successivo" : "Next step"} onPrevious={() => advance("ArrowLeft")} onNext={() => advance("ArrowRight")} />
