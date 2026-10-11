@@ -419,6 +419,7 @@ class ClientAndCredentialsTests(unittest.TestCase):
         self.assertEqual(opener.request.get_header('Authorization'), 'Bearer synthetic-openship')
         self.assertEqual(opener.request.get_header('X-organization-id'), refresh.ORG)
         self.assertEqual(opener.request.get_header('X-openship-scope'), 'fixed')
+        self.assertEqual(opener.request.get_header('User-agent'), 'mstefan-staging-refresh/1')
 
     def test_transport_invalid_oversized_response_and_redirect_refused(self):
         for payload, reason in ((b'not-json synthetic-sensitive', 'unavailable or invalid'),
