@@ -20,7 +20,7 @@ export function AboutContent({ content, career, locale }: Props) {
   const [selectedJob, setSelected] = useState<Job | null>(null);
   const select = useCallback((job: Job | null) => setSelected(job), []);
   const documents = (selectedJob?.documents ?? []).filter((document) => document.file && typeof document.file === "object" && document.file.url && /^(?:\/(?!\/)|https?:\/\/)/i.test(document.file.url));
-  const results = documents.filter((document) => selectedJob?.branchName === "education/trento-master" && typeof document.file === "object" && document.file?.filename === "master-grades.pdf");
+  const results = documents.filter((document) => typeof document.file === "object" && ((selectedJob?.branchName === "education/trento-master" && document.file?.filename === "master-grades.pdf") || (selectedJob?.branchName === "education/trento-bachelor" && document.file?.filename === "bachelor-grades.pdf")));
   const selected = selectedJob && (selectedJob.summary?.trim() || documents.length) ? selectedJob : null;
   const profilePhoto = content.photo && typeof content.photo === "object" ? content.photo : null;
   const experiencePhoto = selected?.summary?.trim() && selected.photo && typeof selected.photo === "object" ? selected.photo : null;
