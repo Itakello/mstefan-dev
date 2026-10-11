@@ -1,0 +1,14 @@
+workshop/Header.stories.tsx
+  h_3555645a0dff85 9
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0e9c0693d1d6b5362d4dc051fd3fc6f1f493ad08",
+  "prompts": {},
+  "humans": {
+    "h_3555645a0dff85": {
+      "author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
