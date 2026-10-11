@@ -344,6 +344,19 @@ a {
   [data-preview-stage]:focus-within [data-media-enlarge] { opacity: 1; }
 }
 
+.media-frame {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--surface-border);
+  border-radius: 0.375rem;
+  background: var(--surface-bg);
+}
+.media-caption {
+  margin-bottom: 1rem;
+  text-align: center;
+  font-size: 0.875rem;
+}
+
 .media-preview {
   position: relative;
   width: 100%;
@@ -373,6 +386,9 @@ a {
   margin-inline: auto;
 }
 .media-preview:modal [data-pdf-preview] { max-width: none; }
+.media-preview:modal [data-pdf-preview] [data-preview-stage] {
+  width: min(100%, calc((100svh - 184px) * var(--document-ratio) + 24px)) !important;
+}
 .media-preview:modal [data-document-stage] { max-height: calc(100svh - 160px); }
 .media-preview:modal [data-work-preview] {
   width: min(100%, calc((100svh - 220px) * var(--preview-ratio))) !important;

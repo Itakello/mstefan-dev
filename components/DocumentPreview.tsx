@@ -1,6 +1,6 @@
 "use client";
 import { Download, Minus, Plus } from "lucide-react";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode, type CSSProperties } from "react";
 import type { PDFDocumentProxy } from "pdfjs-dist";
 import type { Locale } from "@/lib/i18n/config";
 import { documentMediaUrl } from "@/lib/documentMedia";
@@ -27,6 +27,7 @@ function PdfDocumentPreview({ url, title, locale, filename, presentation = false
   const [zoom, setZoom] = useState(1);
   const [viewportHeight, setViewportHeight] = useState(0);
   const [width, setWidth] = useState(0);
+  const [pageRatio, setPageRatio] = useState(1);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const italian = locale === "it";
   useEffect(() => {
@@ -74,6 +75,7 @@ function PdfDocumentPreview({ url, title, locale, filename, presentation = false
         const pdfPage = await document!.getPage(page);
         if (disposed) return;
         const base = pdfPage.getViewport({ scale: 1 });
+        setPageRatio(base.width / base.height);
         const maxHeight = Math.max(1, parseFloat(window.getComputedStyle(host.current!).maxHeight) - 24);
         const fit = Math.min(width / base.width, maxHeight / base.height);
         const viewport = pdfPage.getViewport({ scale: fit * zoom });
@@ -104,21 +106,9 @@ function PdfDocumentPreview({ url, title, locale, filename, presentation = false
     return () => { disposed = true; render?.cancel(); textLayer?.cancel(); };
   }, [document, page, width, zoom, presentation, viewportHeight]);
   const control = "inline-flex items-center justify-center rounded-md p-2 hover:bg-black/5 disabled:opacity-30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[hsl(var(--accent))] dark:hover:bg-white/10";
-  return <section data-pdf-preview aria-label={`${title}: ${italian ? "Lettore documenti" : "Document reader"}`} className={`mx-auto overflow-hidden rounded-xl border border-[var(--surface-border)] ${presentation ? "" : "max-w-[640px]"}`}>
-    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-black/10 px-2 py-2 text-xs dark:border-white/15">
-      <div className="flex items-center gap-1">
-        <span className="px-2" aria-live="polite">{page} / {document?.numPages ?? "…"}</span>
-      </div>
-      <div className="flex items-center gap-1">
-        {!presentation && <>
-          <button type="button" className={control} disabled={zoom <= 1} aria-label={italian ? "Riduci" : "Zoom out"} onClick={() => setZoom(value => Math.max(1, value - 0.25))}><Minus size={16} /></button>
-          <span>{Math.round(zoom * 100)}%</span>
-          <button type="button" className={control} disabled={zoom >= 2} aria-label={italian ? "Ingrandisci" : "Zoom in"} onClick={() => setZoom(value => Math.min(2, value + 0.25))}><Plus size={16} /></button>
-        </>}
-        <a href={resolvedUrl} download={filename || true} className={`${control} gap-1`}>{italian ? "Scarica PDF" : "Download PDF"}<Download size={14} /></a>
-      </div>
-    </div>
-    <div data-preview-stage className="relative" style={{ touchAction: zoom > 1 ? "pan-x pan-y pinch-zoom" : "pan-y pinch-zoom" }}
+  return <section data-pdf-preview aria-label={`${title}: ${italian ? "Lettore documenti" : "Document reader"}`} className={`mx-auto ${presentation ? "" : "max-w-[640px]"}`}>
+    <div className="media-caption" aria-live="polite">{title} <span className="text-[var(--page-muted)]">· {page} / {document?.numPages ?? "…"}</span></div>
+    <div data-preview-stage className="media-frame" style={{ width: presentation ? undefined : `min(100%, calc(min(616px, 70svh - 24px) * ${pageRatio} + 24px))`, marginInline: "auto", "--document-ratio": pageRatio, touchAction: zoom > 1 ? "pan-x pan-y pinch-zoom" : "pan-y pinch-zoom" } as CSSProperties}
       onTouchStart={event => { swipeStart.current = zoom === 1 && event.touches.length === 1 ? { x: event.touches[0].clientX, y: event.touches[0].clientY } : null; }}
       onTouchCancel={() => { swipeStart.current = null; }}
       onTouchEnd={event => {
@@ -138,6 +128,16 @@ function PdfDocumentPreview({ url, title, locale, filename, presentation = false
     <PreviewArrows previous={italian ? "Pagina precedente" : "Previous page"} next={italian ? "Pagina successiva" : "Next page"}
       previousDisabled={!document || page === 1} nextDisabled={!document || page === document.numPages}
       onPrevious={() => setPage(current => Math.max(1, current - 1))} onNext={() => setPage(current => Math.min(document?.numPages ?? 1, current + 1))} />
+    </div>
+    <div className="flex flex-wrap items-center justify-center gap-2 mt-3 text-xs">
+      <div className="flex items-center gap-1">
+        {!presentation && <>
+          <button type="button" className={control} disabled={zoom <= 1} aria-label={italian ? "Riduci" : "Zoom out"} onClick={() => setZoom(value => Math.max(1, value - 0.25))}><Minus size={16} /></button>
+          <span>{Math.round(zoom * 100)}%</span>
+          <button type="button" className={control} disabled={zoom >= 2} aria-label={italian ? "Ingrandisci" : "Zoom in"} onClick={() => setZoom(value => Math.min(2, value + 0.25))}><Plus size={16} /></button>
+        </>}
+        <a href={resolvedUrl} download={filename || true} className={`${control} gap-1`}>{italian ? "Scarica PDF" : "Download PDF"}<Download size={14} /></a>
+      </div>
     </div>
   </section>;
 }

@@ -15,13 +15,14 @@ export function PowerPointPreview({ url, title, locale, previewUrl, enlarge }: {
   const viewer = previewUrl ? presentationPreviewUrl(previewUrl) : null;
   const italian = locale === "it";
   const link = "inline-flex items-center gap-1 rounded-md px-2 py-2 text-xs hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[hsl(var(--accent))]";
-  return <section data-powerpoint-preview aria-label={`${title}: PowerPoint`} className="overflow-hidden rounded-xl border border-[var(--surface-border)]">
-    {viewer ? <div data-preview-stage className="relative"><iframe ref={frame} src={viewer} title={`${title}: PowerPoint`} allow="autoplay; fullscreen" allowFullScreen loading="lazy" className="aspect-video w-full border-0" />
+  return <section data-powerpoint-preview aria-label={`${title}: PowerPoint`} >
+    <div className="media-caption">{title}</div>
+    {viewer ? <div data-preview-stage className="media-frame"><iframe ref={frame} src={viewer} title={`${title}: PowerPoint`} allow="autoplay; fullscreen" allowFullScreen loading="lazy" className="aspect-video w-full border-0" />
       {enlarge}
       <PreviewArrows previous={italian ? "Passaggio precedente" : "Previous step"} next={italian ? "Passaggio successivo" : "Next step"} onPrevious={() => advance("ArrowLeft")} onNext={() => advance("ArrowRight")} />
       </div>
       : <p role="status" className="p-4 text-sm">{italian ? "Anteprima non disponibile. Scarica il PowerPoint per aprirlo." : "Preview unavailable. Download the PowerPoint to open it."}</p>}
-    <div className="flex flex-wrap justify-end gap-2 border-t border-[var(--surface-border)] p-1">
+    <div className="flex flex-wrap justify-center gap-2 mt-3">
       <a href={source} download className={link}>{italian ? "Scarica PowerPoint" : "Download PowerPoint"}<Download size={14} aria-hidden /></a>
     </div>
   </section>;

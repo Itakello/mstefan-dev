@@ -200,10 +200,10 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
         {(screenshotUrl || selected.paperUrl || selected.slidesUrl) && <section aria-label={copy.work.research} className="mt-7">
         <MediaPreview key={selected.id} title={selected.name} locale={locale} controls={mediaControls}>{enlarge => <>
         {activeKind === "photos" && screenshotUrl && <div>
-            {previewPages && (previewPages.length > 1 || selected.previewImages?.length) && <div role="group" aria-label={copy.work.previewPage} className="mb-4 text-center text-sm">
+            {previewPages && (previewPages.length > 1 || selected.previewImages?.length) && <div role="group" aria-label={copy.work.previewPage} className="media-caption">
               <span aria-live="polite" aria-atomic="true">{selectedPage.label} <span className="text-[var(--page-muted)]">· {pageIndex + 1} / {previewPages.length}</span></span>
             </div>}
-            <div data-work-preview data-preview-stage className="relative mx-auto overflow-hidden" style={{ touchAction: "pan-y pinch-zoom", aspectRatio: imageRatio, width: `min(100%, calc(min(620px, 70svh) * ${imageRatio}))`, "--preview-ratio": imageRatio } as CSSProperties}
+            <div data-work-preview data-preview-stage className="media-frame mx-auto" style={{ touchAction: "pan-y pinch-zoom", aspectRatio: imageRatio, width: `min(100%, calc(min(620px, 70svh) * ${imageRatio}))`, "--preview-ratio": imageRatio } as CSSProperties}
               onTouchStart={event => { swipeStart.current = event.touches.length === 1 && window.matchMedia("(max-width: 639px)").matches ? { x: event.touches[0].clientX, y: event.touches[0].clientY } : null; }}
               onTouchCancel={() => { swipeStart.current = null; }}
               onTouchEnd={event => {
