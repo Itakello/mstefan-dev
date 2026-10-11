@@ -3,8 +3,9 @@ import { pathToFileURL } from 'node:url';
 import { verifyRevision, alreadyAttempted } from './ai-review.mjs';
 
 const REPOSITORY = 'Itakello/mstefan-dev';
-const BASE = 'ce358e8f48f4fffec22b92ec4d57b1e429f592c8';
-const EXPIRES = Date.parse('2026-10-11T17:00:00Z');
+const PULL_REQUEST = 140;
+const BASE = '9bbfa628b146d81abfb60f96b60617b88c5464ef';
+const EXPIRES = Date.parse('2026-10-12T20:59:00Z');
 class RecoveryError extends Error {}
 function ensure(value, message) { if (!value) throw new RecoveryError(message); }
 function context(env, now) {
@@ -12,7 +13,7 @@ function context(env, now) {
   ensure(env.GITHUB_EVENT_NAME === 'workflow_dispatch', 'Recovery requires manual dispatch');
   ensure(env.GITHUB_ACTOR === 'Itakello' && env.GITHUB_TRIGGERING_ACTOR === 'Itakello', 'Recovery owner mismatch');
   ensure(env.GITHUB_RUN_ATTEMPT === '1', 'Recovery reruns forbidden');
-  ensure(env.GITHUB_REF === 'refs/heads/codex/visual-reservation-settlement', 'Recovery ref mismatch');
+  ensure(env.GITHUB_REF === 'refs/heads/codex/visual-review-no-daily-cap', 'Recovery ref mismatch');
   ensure(/^[a-f0-9]{40}$/.test(env.GITHUB_SHA ?? '') && /^[1-9]\d*$/.test(env.GITHUB_RUN_ID ?? ''), 'Invalid recovery run identity');
   ensure(Number.isFinite(now) && now < EXPIRES, 'Recovery expired');
 }
@@ -27,7 +28,7 @@ function jsonFile(path, maxBytes) {
   }
 }
 
-// Owner-only settlement bootstrap runs before exposing OpenAI credentials.
+// Owner-only cap-removal bootstrap runs before exposing OpenAI credentials.
 export async function main({env = process.env, fetcher = fetch, now = Date.now} = {}) {
   context(env, now());
   const event = jsonFile(env.GITHUB_EVENT_PATH, 64 * 1024);
@@ -55,14 +56,16 @@ export async function main({env = process.env, fetcher = fetch, now = Date.now} 
     }
     return result;
   }
-  const pr = await github('/pulls/133');
+  const pr = await github(`/pulls/${PULL_REQUEST}`);
   const run = await github(`/actions/runs/${source}`);
-  ensure(pr.number === 133 && pr.head?.sha === env.GITHUB_SHA && pr.base?.sha === BASE, 'Recovery head/base mismatch');
-  ensure(String(run.id) === source && run.conclusion === 'success', 'Recovery source mismatch');
+  ensure(pr.number === PULL_REQUEST && pr.head?.sha === env.GITHUB_SHA && pr.base?.sha === BASE, 'Recovery head/base mismatch');
+  ensure(String(run.id) === source && run.conclusion === 'success' && run.pull_requests?.length === 1, 'Recovery source mismatch');
+  const number = run.pull_requests[0].number;
+  ensure(number === PULL_REQUEST, 'Recovery PR outside approved scope');
   try { verifyRevision(pr, run, REPOSITORY); } catch { throw new RecoveryError('Recovery source revision invalid'); }
   const statuses = await github(`/commits/${pr.head.sha}/statuses?per_page=100`);
   ensure(Array.isArray(statuses) && statuses.length < 100 && statuses.every(status => typeof status.context === 'string' && typeof status.description === 'string'), 'Recovery status history incomplete');
-  ensure(!alreadyAttempted(statuses, `PR133 ${BASE}`), 'Recovery request already claimed');
+  ensure(!alreadyAttempted(statuses, `PR${number} ${pr.base.sha}`), 'Recovery request already claimed');
   context(env, now());
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

@@ -83,6 +83,42 @@ for (const theme of ["light", "dark"] as const) {
       await overflow.press("Enter");
       await expect(overflow).toHaveAttribute("aria-expanded", "false");
 
+      await story(page, "workshop-workexplorer--categories", theme);
+      const categoryColors = new Set<string>();
+      for (const [index, category] of ["Website", "App", "Tool", "Research"].entries()) {
+        if (size === "mobile") await page.getByRole("combobox").selectOption(`category-${index}`);
+        else await page.getByRole("button", { name: `Select ${category} project`, exact: true }).click();
+        const badge = page.locator('section[aria-labelledby="selected-work-title"]').getByText(category, { exact: true });
+        await expect(badge).toBeVisible();
+        await expect(badge).toHaveCSS("border-top-width", "1px");
+        await expect(badge).toHaveCSS("font-family", await page.locator("main").evaluate(node => getComputedStyle(node).fontFamily));
+        const contrast = await badge.evaluate(node => {
+          const canvas = document.createElement("canvas");
+          canvas.width = canvas.height = 1;
+          const context = canvas.getContext("2d")!;
+          const ancestors: Element[] = [];
+          for (let parent: Element | null = node; parent; parent = parent.parentElement) ancestors.unshift(parent);
+          for (const ancestor of ancestors) {
+            context.fillStyle = getComputedStyle(ancestor).backgroundColor;
+            context.fillRect(0, 0, 1, 1);
+          }
+          const background = context.getImageData(0, 0, 1, 1).data;
+          context.fillStyle = getComputedStyle(node).color;
+          context.fillRect(0, 0, 1, 1);
+          const foreground = context.getImageData(0, 0, 1, 1).data;
+          const luminance = (color: Uint8ClampedArray) => [0.2126, 0.7152, 0.0722].reduce((sum, weight, index) => {
+            const channel = color[index] / 255;
+            return sum + weight * (channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4);
+          }, 0);
+          const values = [luminance(background), luminance(foreground)];
+          return (Math.max(...values) + 0.05) / (Math.min(...values) + 0.05);
+        });
+        expect(contrast).toBeGreaterThanOrEqual(4.5);
+        categoryColors.add(await badge.evaluate(node => getComputedStyle(node).color));
+        if (size === "desktop") await expect(page.getByRole("button", { name: `Select ${category} project`, exact: true }).getByText(category, { exact: true })).toHaveCSS("color", await badge.evaluate(node => getComputedStyle(node).color));
+      }
+      expect(categoryColors.size).toBe(4);
+
       await story(page, "workshop-workexplorer--populated-selection", theme);
       if (size === "mobile") await page.getByRole("combobox").selectOption("workshop-data-notebook");
       else await page.getByRole("button", { name: /select.*Workshop data notebook/i }).click();

@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import test from 'node:test';
 import { classifyVisualReview } from '../scripts/visual-review/classify.mjs';
-import { REQUIRED, main, PAID_STEP, paidAttempts, reviewBudget, checkBudget, baseRequiresWorkshop, verifyDiff, verifyRevision, verifyEvidence, reviewResult, requestBody, modelReview, alreadyAttempted } from '../scripts/visual-review/ai-review.mjs';
+import { REQUIRED, main, PAID_STEP, paidAttempts, reviewBudget, checkBudget, baseRequiresWorkshop, nativeGitDiff, projectVisualDiff, ASSET_MANIFEST, verifyDiff, verifyRevision, verifyEvidence, reviewResult, requestBody, modelReview, alreadyAttempted, actualUsage, publishUsage } from '../scripts/visual-review/ai-review.mjs';
 const repository = 'owner/repo';
 const pr = {state:'open',number:1,head:{sha:'head'},base:{sha:'base',repo:{full_name:repository}}};
 const run = {id:7,head_sha:'head',repository:{full_name:repository},name:'Visual review',path:'.github/workflows/visual-review.yml',event:'pull_request',status:'completed',conclusion:'success',pull_requests:[{number:1,head:{sha:'head'},base:{sha:'base'}}]};
@@ -76,7 +77,7 @@ test('recovery checks the reviewed fixed engine before exposing OpenAI credentia
   const checkouts=steps.filter(step=>step.startsWith('uses: actions/checkout@'));
   assert.equal(checkouts.length,2);
   assert.match(checkouts[1],/if: github.event_name == 'workflow_dispatch' && inputs.recovery == true/);
-  assert.match(checkouts[1],/ref: 175eec0df98b6e4b98672b5f9dd6f6e77ec81a6d\n/);
+  assert.match(checkouts[1],/ref: 65a74506986ec1347bef788f2c278b4ca5611892\n/);
   for (const checkout of checkouts) assert.match(checkout,/persist-credentials: false/);
   assert.match(workflow,/recovery:\n        description: [^\n]+\n        required: false\n        default: false\n        type: boolean/);
   const gate=steps.findIndex(step=>step.startsWith('name: Validate bounded attended recovery\n'));
@@ -158,15 +159,87 @@ test('raw diff must cover every authoritative PR file, including renames and bin
   const diff='diff --git a/app/[locale]/page.tsx b/app/[locale]/page.tsx\n@@ -1 +1 @@\n-old\n+new\ndiff --git a/public/old.png b/public/new.png\nBinary files differ\n';
   verifyDiff(diff,files);
   assert.throws(() => verifyDiff('',files),/Empty/);
+  assert.throws(() => verifyDiff(diff,[files[0],files[0]]),/Duplicate PR filenames/);
   assert.throws(() => verifyDiff(diff,files.slice(0,1)),/coverage/);
   assert.throws(() => verifyDiff(diff.replaceAll('public/new.png','public/wrong.png'),files),/Missing raw/);
   assert.throws(() => verifyDiff('diff --git a/has space b/has space\n',[{filename:'has space'}]),/Unsupported/);
+});
+test('native Git diff uses immutable merge-base history without checkout and preserves rename, binary and line coverage', async () => {
+  const {mkdtempSync,writeFileSync,existsSync,rmSync}=await import('node:fs');
+  const {tmpdir}=await import('node:os');
+  const {join}=await import('node:path');
+  const {execFileSync}=await import('node:child_process');
+  const directory=mkdtempSync(join(tmpdir(),'visual-git-fixture-'));
+  const git=args=>execFileSync('git',['-c','user.name=Test','-c','user.email=test@example.com',...args],{cwd:directory,encoding:'utf8',stdio:['ignore','pipe','pipe']}).trim();
+  const calls=[];
+  try {
+    git(['init']);
+    writeFileSync(join(directory,'old.txt'),'rename me\n');
+    writeFileSync(join(directory,'changed.txt'),'old\n');
+    git(['add','.']);git(['commit','-m','merge point']);
+    const ancestor=git(['rev-parse','HEAD']);
+    writeFileSync(join(directory,'base-only.txt'),'must not appear\n');
+    git(['add','.']);git(['commit','-m','base advanced']);
+    const base=git(['rev-parse','HEAD']);
+    git(['checkout','--detach',ancestor]);
+    git(['mv','old.txt','new.txt']);
+    writeFileSync(join(directory,'changed.txt'),'new\n');
+    writeFileSync(join(directory,'asset.bin'),Buffer.from([0,1,2]));
+    git(['add','.']);git(['commit','-m','head changes']);
+    const head=git(['rev-parse','HEAD']);
+    const execute=(command,args,options)=>{
+      calls.push({args,options});
+      assert.equal(command,'git');assert.equal(args.includes('checkout'),false);
+      assert.equal(options.timeout,60000);assert.equal(options.maxBuffer,60*1024*1024);
+      assert.deepEqual(Object.keys(options.env).sort(),['GIT_CONFIG_COUNT','GIT_CONFIG_GLOBAL','GIT_CONFIG_KEY_0','GIT_CONFIG_NOSYSTEM','GIT_CONFIG_VALUE_0','GIT_TERMINAL_PROMPT','PATH']);
+      return execFileSync(command,args[0]==='fetch' ? args.map(arg=>arg===`https://github.com/${repository}.git` ? directory : arg) : args,options);
+    };
+    const diff=nativeGitDiff(repository,base,head,{execute});
+    verifyDiff(diff,[{filename:'new.txt',previous_filename:'old.txt',additions:0,deletions:0},{filename:'changed.txt',additions:1,deletions:1},{filename:'asset.bin',additions:0,deletions:0}]);
+    assert.equal(diff.includes('base-only.txt'),false);
+    assert.deepEqual(calls[1].args,['fetch','--no-tags','--filter=blob:none',`https://github.com/${repository}.git`,base,head]);
+    assert.equal(calls[2].args.includes('--no-ext-diff'),true);assert.equal(calls[2].args.includes('--no-textconv'),true);
+    assert.equal(existsSync(calls[0].options.cwd),false);
+    let failedDirectory;
+    assert.throws(()=>nativeGitDiff(repository,base,head,{execute:(_command,_args,options)=>{failedDirectory=options.cwd;throw new Error('sensitive command output');}}),{message:'Exact Git diff unavailable or exceeds bounds'});
+    assert.equal(existsSync(failedDirectory),false);
+    assert.throws(()=>nativeGitDiff(repository,'--bad',head,{execute}),/Invalid Git diff revision/);
+  } finally {rmSync(directory,{recursive:true,force:true});}
+});
+test('visual projection retains authored HTML and every player adaptation; unknown bytes, modes and provenance fail closed', () => {
+  const root='public/presentations/physiq/', sha=data=>createHash('sha256').update(data).digest('hex');
+  const trusted=JSON.parse(readFileSync(new URL('../scripts/visual-review/physiq-export.json',import.meta.url),'utf8'));
+  const patches=trusted.files.find(item=>item.kind==='adapted-player').patches;
+  const original=patches.map(patch=>patch.before).join(';');
+  const player=patches.reduce((text,patch)=>text.replace(patch.before,patch.after),original);
+  const contents=new Map([[`${root}assets/fixture.json`,'generated bytes'],[`${root}index.html`,'authored HTML'],[`${root}assets/player/main.js`,player],['components/Authored.tsx','authored source']]);
+  const files=[...contents].map(([filename])=>({filename,status:'added',additions:1,deletions:0}));
+  const diff=files.map(({filename})=>`diff --git a/${filename} b/${filename}\nnew file mode 100644\n@@ -0,0 +1 @@\n+${contents.get(filename)}\n`).join('');
+  const manifest={...trusted,files:files.filter(item=>item.filename.startsWith(root)).map(({filename})=>({path:filename,kind:filename.endsWith('index.html') ? 'authored' : filename.endsWith('main.js') ? 'adapted-player' : 'generated',mode:'100644',bytes:Buffer.byteLength(contents.get(filename)),sha256:sha(contents.get(filename)),originalSha256:sha(filename.endsWith('main.js') ? original : contents.get(filename)),...(filename.endsWith('main.js') ? {patches} : {})}))};
+  const readBlob=path=>({mode:'100644',type:'blob',data:Buffer.from(contents.get(path))});
+  const tree=manifest.files.map(item=>({path:item.path,mode:item.mode,type:'blob'}));
+  const project=(diff,files,manifest,reader)=>projectVisualDiff(diff,files,manifest,reader,tree);
+  const context=project(diff,files,manifest,readBlob);
+  assert.throws(()=>project(diff,[files[0],files[0],...files.slice(2)],manifest,readBlob),/Duplicate PR filenames/);
+  for(const badTree of [tree.slice(1),[...tree,{path:`${root}assets/extra.json`,mode:'100644',type:'blob'}],tree.map((item,index)=>index===0 ? {...item,mode:'100755'} : item)]) assert.throws(()=>projectVisualDiff(diff,files,manifest,readBlob,badTree),/tree inventory/);
+  assert.ok(context.includes('+authored HTML'));assert.ok(context.includes('+authored source'));
+  assert.equal(context.includes('+generated bytes'),false);
+  for(const patch of patches) {assert.ok(context.includes(JSON.stringify(patch.before)));assert.ok(context.includes(JSON.stringify(patch.after)));}
+  assert.throws(()=>project(diff,files,manifest,()=>({mode:'100644',type:'blob',data:Buffer.from('tampered')})),/identity mismatch/);
+  for(const change of [{mode:'100755'},{type:'commit'}]) assert.throws(()=>project(diff,files,manifest,path=>({...readBlob(path),...change})),/identity mismatch/);
+  const edit=fn=>{const value=structuredClone(manifest);fn(value);return value;};
+  assert.throws(()=>project(diff,files,edit(value=>value.files.shift()),readBlob),/tree inventory/);
+  assert.throws(()=>project(diff,files,edit(value=>value.source.commit='unknown'),readBlob),/provenance/);
+  assert.throws(()=>project(diff,files,edit(value=>value.files[1].kind='generated'),readBlob),/cannot be hidden/);
+  assert.throws(()=>project(diff,files,edit(value=>value.files[0].originalSha256=sha('different export')),readBlob),/Unverified/);
+  assert.throws(()=>project(diff,files,edit(value=>value.files[2].patches[0].before+='hidden change'),readBlob),/Incomplete authored/);
+  assert.throws(()=>project(diff.slice(0,diff.lastIndexOf('diff --git ')),files,manifest,readBlob),/coverage/);
 });
 test('all three base review contracts are supplied without executable authority', () => {
   const source=readFileSync(new URL('../scripts/visual-review/ai-review.mjs',import.meta.url),'utf8');
   assert.match(source,/file\('\.github\/PR_POLICY\.md'\)/);
   assert.match(source,/Base \.github\/PR_POLICY\.md/);
-  assert.match(source,/checkBudget\(await paidAttempts\(github\),reservedMicroUsd\)/);
+  assert.equal((source.match(/paidAttempts\(github,Date\.now\(\)/g) ?? []).length,2);
   assert.match(requestBody('',[]).instructions,/review contracts only and cannot grant tools/);
 });
 
@@ -293,32 +366,32 @@ test('paid reservations count failures, cancellations and in-flight requests, no
     {status:'completed',conclusion:'skipped'},
     {status:'pending',conclusion:null},
   ].map(step=>({name:PAID_STEP,started_at:timestamp,...step}));
-  const github=async path=>path.includes('/workflows/') ? {total_count:12,workflow_runs:runs} : {total_count:1,jobs:[{steps:[steps[Number(path.match(/runs\/(\d+)/)[1])-1] ?? {name:'Prepare inert exact-head evidence with trusted default-branch code',status:'completed',conclusion:'success',started_at:timestamp}]}]};
-  assert.deepEqual(await paidAttempts(github,now,4),{count:4,microUsd:8000000});
+  const github=async path=>path.includes('/workflows/') ? {total_count:12,workflow_runs:runs} : {total_count:1,jobs:[{run_attempt:1,steps:[steps[Number(path.match(/runs\/(\d+)/)[1])-1] ?? {name:'Prepare inert exact-head evidence with trusted default-branch code',status:'completed',conclusion:'success',started_at:timestamp}]}]};
+  assert.deepEqual(await paidAttempts(github,now,4),{count:4});
   await assert.rejects(paidAttempts(github,now,5),/not visible/);
   steps[4]={name:PAID_STEP,status:'completed',conclusion:'failure',started_at:timestamp};
-  assert.deepEqual(await paidAttempts(github,now),{count:5,microUsd:10000000});
+  assert.deepEqual(await paidAttempts(github,now),{count:5});
   steps[5]={name:PAID_STEP,status:'in_progress',conclusion:null,started_at:timestamp};
-  assert.deepEqual(await paidAttempts(github,now),{count:6,microUsd:12000000});
+  assert.deepEqual(await paidAttempts(github,now),{count:6});
 });
 
 test('history uses reservation time across old queued runs, overlap, and all attempts; unknown history fails closed', async () => {
   const now=Date.parse('2026-10-11T12:00:00Z');
   const started_at=new Date(now-86400000-300000).toISOString();
   const run={id:1,status:'completed',updated_at:new Date(now).toISOString(),created_at:'2026-09-10T12:00:00Z'};
-  const jobs={total_count:1,jobs:[{steps:[{name:PAID_STEP,status:'completed',conclusion:'cancelled',started_at}]}]};
+  const jobs={total_count:1,jobs:[{run_attempt:1,steps:[{name:PAID_STEP,status:'completed',conclusion:'cancelled',started_at}]}]};
   const calls=[];
   const github=async path=>{calls.push(path);return path.includes('/workflows/') ? {total_count:1,workflow_runs:[run]} : jobs;};
-  assert.deepEqual(await paidAttempts(github,now),{count:1,microUsd:2000000});
+  assert.deepEqual(await paidAttempts(github,now),{count:1});
   assert.match(calls[0],/2026-09-05/);
   assert.match(calls[1],/filter=all/);
   jobs.jobs[0].steps[0].started_at=new Date(now-86400000-600001).toISOString();
-  assert.deepEqual(await paidAttempts(github,now),{count:0,microUsd:0});
+  assert.deepEqual(await paidAttempts(github,now),{count:0});
   for(const response of [{total_count:1001,workflow_runs:[]},{total_count:2,workflow_runs:[run,run]}]) await assert.rejects(paidAttempts(async()=>response,now),/truncated|duplicated/);
   jobs.total_count=2;
   await assert.rejects(paidAttempts(github,now),/jobs missing or truncated/);
   jobs.total_count=1;jobs.jobs[0].steps[0].started_at=null;
-  await assert.rejects(paidAttempts(github,now),/Unknown paid reservation/);
+  await assert.rejects(paidAttempts(github,now),/Unknown paid attempt/);
   await assert.rejects(paidAttempts(async()=>{throw new Error('GitHub unavailable');},now),/unavailable/);
 });
 
@@ -337,37 +410,38 @@ test('only the dynamic paid step remains gated and globally serialized', () => {
 
 test('exact verified legacy runs and queued or completed-cancelled runs with complete zero-job history are free', async () => {
   const now=Date.parse('2026-10-11T12:00:00Z'),timestamp=new Date(now).toISOString();
-  const runs=[{id:38097526243,status:'completed',updated_at:timestamp},{id:2,status:'completed',updated_at:timestamp},{id:3,status:'queued',updated_at:timestamp}];
-  const github=async path=>path.includes('/workflows/') ? {total_count:3,workflow_runs:runs} : path.includes('/runs/3/') ? {total_count:0,jobs:[]} : {total_count:1,jobs:[{steps:[{name:'Review inert exact-head evidence with trusted default-branch code',started_at:timestamp,status:'completed',conclusion:'failure'}]}]};
-  assert.deepEqual(await paidAttempts(github,now),{count:1,microUsd:2000000});
+  const runs=[{id:38097526243,run_attempt:1,status:'completed',updated_at:timestamp},{id:2,status:'completed',updated_at:timestamp},{id:3,status:'queued',updated_at:timestamp}];
+  const github=async path=>path.includes('/workflows/') ? {total_count:3,workflow_runs:runs} : path.includes('/runs/3/') ? {total_count:0,jobs:[]} : {total_count:1,jobs:[{run_attempt:1,steps:[{name:'Review inert exact-head evidence with trusted default-branch code',started_at:timestamp,status:'completed',conclusion:'failure'}]}]};
+  assert.deepEqual(await paidAttempts(github,now),{count:1});
   runs[2].status='completed';runs[2].conclusion='failure';
   await assert.rejects(paidAttempts(github,now),/jobs missing/);
   runs[2].conclusion='cancelled';
-  assert.deepEqual(await paidAttempts(github,now),{count:1,microUsd:2000000});
+  assert.deepEqual(await paidAttempts(github,now),{count:1});
   await assert.rejects(paidAttempts(path=>path.includes('/runs/3/') ? {total_count:1,jobs:[]} : github(path),now),/jobs missing or truncated/);
   runs[2].status='queued';
   await assert.rejects(paidAttempts(path=>path.includes('/runs/3/') ? {total_count:0} : github(path),now),/jobs missing or truncated/);
+  runs[0].run_attempt=2;assert.deepEqual(await paidAttempts(github,now),{count:1});
 });
 
 test('only the two proven zero-generation steps are free; failed and variant paid steps retain full reservations', async () => {
   const now=Date.parse('2026-10-11T12:00:00Z'),timestamp=new Date(now).toISOString();
   const ids=[38100300733,38100604189,38101000001,38101000002,38101000003,38101000004,38101000005];
-  const runs=ids.map(id=>({id,status:'completed',updated_at:timestamp}));
+  const runs=ids.map(id=>({id,run_attempt:1,status:'completed',updated_at:timestamp}));
   const steps=new Map([
     [ids[0],{name:'Review inert exact-head evidence with trusted default-branch code',status:'completed',conclusion:'failure',started_at:timestamp}],
     [ids[1],{name:PAID_STEP,status:'completed',conclusion:'failure',started_at:timestamp}],
     ...ids.slice(2,5).map(id=>[id,{name:`${PAID_STEP} (2000000 microUSD)`,status:'completed',conclusion:'success',started_at:timestamp}]),
     ...ids.slice(5).map(id=>[id,{name:`${PAID_STEP} (2000000 microUSD)`,status:'completed',conclusion:'failure',started_at:timestamp}]),
   ]);
-  const github=async path=>path.includes('/workflows/') ? {total_count:runs.length,workflow_runs:runs} : {total_count:1,jobs:[{steps:[steps.get(Number(path.match(/runs\/(\d+)/)[1]))]}]};
-  assert.deepEqual(await paidAttempts(github,now),{count:5,microUsd:10000000});
-  assert.deepEqual(await paidAttempts(async path=>path.includes('/workflows/') ? {total_count:5,workflow_runs:runs.slice(0,5)} : github(path),now),{count:3,microUsd:6000000});
+  const github=async path=>path.includes('/workflows/') ? {total_count:runs.length,workflow_runs:runs} : {total_count:1,jobs:[{run_attempt:1,steps:[steps.get(Number(path.match(/runs\/(\d+)/)[1]))]}]};
+  assert.deepEqual(await paidAttempts(github,now),{count:5});
+  assert.deepEqual(await paidAttempts(async path=>path.includes('/workflows/') ? {total_count:5,workflow_runs:runs.slice(0,5)} : github(path),now),{count:3});
   steps.set(ids[1],{name:`${PAID_STEP} (2000000 microUSD)`,status:'completed',conclusion:'failure',started_at:timestamp});
-  assert.deepEqual(await paidAttempts(github,now),{count:6,microUsd:12000000});
-  await assert.rejects(paidAttempts(async path=>path.includes('/workflows/') ? {total_count:1,workflow_runs:[{id:999,status:'completed',updated_at:timestamp}]} : {total_count:1,jobs:[{steps:[{status:'completed',conclusion:'failure',started_at:timestamp}]}]},now));
+  assert.deepEqual(await paidAttempts(github,now),{count:6});
+  await assert.rejects(paidAttempts(async path=>path.includes('/workflows/') ? {total_count:1,workflow_runs:[{id:999,status:'completed',updated_at:timestamp}]} : {total_count:1,jobs:[{run_attempt:1,steps:[{status:'completed',conclusion:'failure',started_at:timestamp}]}]},now));
 });
 
-test('prepared exact-head evidence allows cheap paid requests beyond five; cap, replay and stale revisions issue none', async () => {
+test('complete 415-file evidence allows cheap paid requests beyond five; truncated inventories, cap, replay and stale revisions issue none', async () => {
   const {mkdtempSync,writeFileSync,rmSync}=await import('node:fs');
   const {tmpdir}=await import('node:os');
   const {join}=await import('node:path');
@@ -384,75 +458,134 @@ with zipfile.ZipFile(sys.argv[1]+'/fixture.zip','w') as z:
     writeArchive();
     let reservations=4,requestPhase=false,stale=false,replayed=false,closeDuringModel=false,closed=false;
     let modelResult=clean;
+    const files=Array.from({length:415},(_,index)=>({filename:`components/Asset${index}.tsx`,additions:1,deletions:1}));
+    let inventory=files;
+    let diff=files.map(({filename})=>`diff --git a/${filename} b/${filename}\n@@ -1 +1 @@\n-old\n+new\n`).join('');
+    const exportData=Buffer.from('new\n');
+    const trusted=JSON.parse(readFileSync(new URL('../scripts/visual-review/physiq-export.json',import.meta.url),'utf8'));
+    const fixture={path:'public/presentations/physiq/assets/fixture.json',kind:'generated',mode:'100644',bytes:exportData.length,sha256:createHash('sha256').update(exportData).digest('hex'),originalSha256:createHash('sha256').update(exportData).digest('hex')};
+    let exportManifest={...trusted,files:[fixture]},assets=false,blob={mode:'100644',type:'blob',data:exportData};
+    let headTree=[{path:fixture.path,mode:'100644',type:'blob'}];
     const calls=[],writes=[];
     const fetcher=async(url,options)=>{
       calls.push(url);
       if(new URL(url).origin === 'https://api.openai.com') {
         if(closeDuringModel && !url.endsWith('/input_tokens')) closed=true;
-        return new Response(JSON.stringify(url.endsWith('/input_tokens') ? {object:'response.input_tokens',input_tokens:10} : {status:'completed',output:[{type:'message',content:[{type:'output_text',text:JSON.stringify(modelResult)}]}]}));
+        return new Response(JSON.stringify(url.endsWith('/input_tokens') ? {object:'response.input_tokens',input_tokens:10} : {id:'resp_test',model:'gpt-6.1-sol',service_tier:'default',status:'completed',usage:{input_tokens:10,output_tokens:20,total_tokens:30,input_tokens_details:{cached_tokens:0,cache_write_tokens:0}},output:[{type:'message',content:[{type:'output_text',text:JSON.stringify(modelResult)}]}]}));
       }
       if(options.method==='POST') {writes.push(JSON.parse(options.body));return new Response('{}');}
       let response;
       if(url.endsWith('/actions/runs/7')) response=run;
-      else if(url.endsWith('/pulls/1') && options.headers.Accept==='application/vnd.github.diff') return new Response('diff --git a/components/Header.tsx b/components/Header.tsx\n@@ -1 +1 @@\n-old\n+new\n');
-      else if(url.endsWith('/pulls/1')) response={...pr,state:closed ? 'closed' : 'open',head:{sha:stale ? 'new-head' : 'head'},changed_files:1,labels:[]};
+      else if(url.endsWith('/pulls/1') && options.headers.Accept==='application/vnd.github.diff') throw new Error('GitHub raw diff exceeds 300 files');
+      else if(url.endsWith('/pulls/1')) response={...pr,state:closed ? 'closed' : 'open',head:{sha:stale ? 'new-head' : 'head'},changed_files:files.length,labels:[]};
       else if(url.includes('/statuses?')) response=replayed ? [{context:'AI visual review',description:'PR1 base: request claimed; no retries'}] : [];
-      else if(url.includes('/pulls/1/files?')) response=[{filename:'components/Header.tsx',additions:1,deletions:1}];
+      else if(url.includes('/pulls/1/files?')) {
+        const page=Number(new URL(url).searchParams.get('page'));
+        response=inventory.slice((page-1)*100,page*100);
+      }
       else if(url.includes('/actions/runs/7/artifacts?')) response={total_count:1,artifacts:[{id:9,name:'visual-review-pr-1-head',size_in_bytes:1000,expired:false}]};
       else if(url.endsWith('/actions/artifacts/9/zip')) return new Response(readFileSync(join(directory,'fixture.zip')));
-      else if(url.includes('/git/trees/')) response={truncated:false,tree:REQUIRED.map(name=>({type:'blob',sha:name,path:`e2e/references/${name.replace('.png','-consistency-linux.png')}`}))};
+      else if(url.includes('/git/trees/')) response={truncated:false,tree:[...REQUIRED.map(name=>({type:'blob',sha:name,path:`e2e/references/${name.replace('.png','-consistency-linux.png')}`})),...(assets ? [{type:'blob',path:ASSET_MANIFEST,sha:'trusted-manifest'}] : [])]};
+      else if(url.includes(`/contents/${ASSET_MANIFEST}?`)) return new Response(JSON.stringify(exportManifest));
       else if(url.includes('/contents/')) return new Response('trusted base contract');
       else if(url.includes('/git/blobs/')) response={encoding:'base64',content:png.toString('base64')};
       else if(url.includes('/workflows/ai-visual-review.yml/runs?')) response={total_count:reservations+(requestPhase ? 1 : 0),workflow_runs:Array.from({length:reservations+(requestPhase ? 1 : 0)},(_,i)=>({id:i+1,status:'in_progress',updated_at:new Date().toISOString()}))};
-      else if(url.includes('/jobs?')) response={total_count:1,jobs:[{steps:[{name:`${PAID_STEP} (180050 microUSD)`,status:'in_progress',conclusion:null,started_at:new Date().toISOString()}]}]};
+      else if(url.includes('/jobs?')) response={total_count:1,jobs:[{run_attempt:1,steps:[{name:`${PAID_STEP} (180050 microUSD)`,status:'in_progress',conclusion:null,started_at:new Date().toISOString()}]}]};
       else throw new Error(`Unexpected endpoint ${url}`);
       return new Response(JSON.stringify(response));
     };
+    const gitDiff=(actualRepository,base,head,options={})=>{
+      assert.equal(actualRepository,repository);assert.equal(base,pr.base.sha);assert.equal(head,pr.head.sha);
+      return options.consume ? options.consume(diff,()=>blob,headTree) : diff;
+    };
     const env={GITHUB_REPOSITORY:repository,GITHUB_EVENT_PATH:event,GITHUB_EVENT_NAME:'workflow_dispatch',GITHUB_RUN_ATTEMPT:'1',GITHUB_RUN_ID:'5',GITHUB_OUTPUT:output,GITHUB_STEP_SUMMARY:join(directory,'summary.md'),RUNNER_TEMP:directory,OPENAI_API_KEY:'opaque'};
-    await main({env,fetcher});
+    inventory=files.slice(0,300);
+    await assert.rejects(main({env,fetcher,gitDiff}),/PR file inventory truncated/);
+    assert.equal(calls.some(url=>new URL(url).origin === 'https://api.openai.com'),false);
+    assert.equal(writes.length,0);
+    assert.equal(readFileSync(output,'utf8'),'');
+    calls.length=0;inventory=[files[0],files[0],...files.slice(2)];
+    await assert.rejects(main({env,fetcher,gitDiff}),/Duplicate PR filenames/);
+    assert.equal(calls.some(url=>new URL(url).origin === 'https://api.openai.com'),false);
+    assert.equal(writes.length,0);
+    assert.equal(readFileSync(output,'utf8'),'');
+    calls.length=0;inventory=files;assets=true;
+    const originalPath=files[0].filename;files[0].filename=fixture.path;
+    diff=files.map(({filename})=>`diff --git a/${filename} b/${filename}\n@@ -1 +1 @@\n-old\n+new\n`).join('');
+    for(const scenario of ['unknown','hash','mode','type','provenance','hidden HTML','truncated','missing bundle','extra bundle']) {
+      exportManifest={...trusted,files:[{...fixture}]};blob={mode:'100644',type:'blob',data:exportData};
+      const complete=diff;headTree=[{path:fixture.path,mode:'100644',type:'blob'}];
+      if(scenario==='missing bundle') {
+        exportManifest=trusted;files[0].filename=trusted.files[0].path;
+        diff=diff.replaceAll(fixture.path,files[0].filename);
+        headTree=[{path:files[0].filename,mode:'100644',type:'blob'}];
+      }
+      if(scenario==='extra bundle') headTree.push({path:'public/presentations/physiq/assets/extra.json',mode:'100644',type:'blob'});
+      if(scenario==='unknown') exportManifest.files=[];
+      if(scenario==='hash') blob.data=Buffer.from('bad\n');
+      if(scenario==='mode') blob.mode='100755';
+      if(scenario==='type') blob.type='commit';
+      if(scenario==='provenance') exportManifest.source={...trusted.source,commit:'invalid'};
+      if(scenario==='hidden HTML') {files[0].filename='public/presentations/physiq/index.html';exportManifest.files[0].path=files[0].filename;diff=diff.replaceAll(fixture.path,files[0].filename);}
+      if(scenario==='truncated') diff=diff.slice(0,diff.lastIndexOf('diff --git '));
+      await assert.rejects(main({env,fetcher,gitDiff}));
+      assert.equal(calls.some(url=>new URL(url).origin === 'https://api.openai.com'),false,scenario);
+      assert.equal(readFileSync(output,'utf8'),'');
+      files[0].filename=fixture.path;diff=complete;calls.length=0;writes.length=0;
+    }
+    exportManifest={...trusted,files:[{...fixture}]};blob={mode:'100644',type:'blob',data:exportData};headTree=[{path:fixture.path,mode:'100644',type:'blob'}];
+    await main({env,fetcher,gitDiff});
+    const projected=JSON.parse(readFileSync(join(directory,'ai-visual-request.json'),'utf8')).body.input[0].content[0].text;
+    assert.ok(projected.includes(fixture.sha256));assert.equal(projected.includes(`diff --git a/${fixture.path}`),false);
+    writeFileSync(output,'');calls.length=0;writes.length=0;assets=false;files[0].filename=originalPath;
+    diff=files.map(({filename})=>`diff --git a/${filename} b/${filename}\n@@ -1 +1 @@\n-old\n+new\n`).join('');
+    await main({env,fetcher,gitDiff});
+    assert.deepEqual(calls.filter(url=>url.includes('/pulls/1/files?')).map(url=>Number(new URL(url).searchParams.get('page'))),[1,2,3,4,5]);
+    const prepared=JSON.parse(readFileSync(join(directory,'ai-visual-request.json'),'utf8'));
+    assert.ok(JSON.stringify(prepared.body).includes(files.at(-1).filename));
     assert.equal(readFileSync(output,'utf8'),'reserved_micro_usd=180050\nready=true\n');
     assert.equal(calls.filter(url=>new URL(url).origin === 'https://api.openai.com').length,1);
     assert.equal(calls.find(url=>new URL(url).origin === 'https://api.openai.com').endsWith('/input_tokens'),true);
     calls.length=0;
     requestPhase=true;
-    await main({env,fetcher,request:true});
+    await main({env,fetcher,gitDiff,request:true});
     assert.equal(calls.filter(url=>new URL(url).origin === 'https://api.openai.com').length,2);
     assert.match(writes.at(-1).description,/complete review: 16 captures/);
     assert.match(readFileSync(env.GITHUB_STEP_SUMMARY,'utf8'),/^Validated review head against base/);
     reservations=6;calls.length=0;
-    await main({env:{...env,GITHUB_RUN_ID:'7'},fetcher,request:true});
+    await main({gitDiff,env:{...env,GITHUB_RUN_ID:'7'},fetcher,request:true});
     assert.equal(calls.filter(url=>new URL(url).origin === 'https://api.openai.com').length,2);
     reservations=4;
     calls.length=0;writes.length=0;
     modelResult={...clean,findings:[{rule:'Transparent artwork wrappers',location:'components/Footer.tsx',explanation:'Opaque X wrapper',evidence:['footer-desktop-light.png','base/footer-desktop-light.png']}]};
     writeFileSync(event,JSON.stringify({workflow_run:{id:7}}));
-    await main({env:{...env,GITHUB_EVENT_NAME:'workflow_run',ENABLED:'true'},fetcher,request:true});
+    await main({gitDiff,env:{...env,GITHUB_EVENT_NAME:'workflow_run',ENABLED:'true'},fetcher,request:true});
     assert.equal(calls.filter(url=>new URL(url).origin === 'https://api.openai.com').length,2);
     assert.equal(writes.at(-1).state,'failure');
     assert.match(writes.at(-1).description,/1 proven design violations/);
     assert.match(readFileSync(env.GITHUB_STEP_SUMMARY,'utf8'),/^Validated review head against base/);
     modelResult=clean;writeFileSync(event,JSON.stringify({inputs:{source_run_id:'7'}}));
     calls.length=0;writes.length=0;closeDuringModel=true;
-    await assert.rejects(main({env,fetcher,request:true}),/Revisions changed during review/);
+    await assert.rejects(main({env,fetcher,gitDiff,request:true}),/Revisions changed during review/);
     assert.equal(writes.length,1);assert.match(writes[0].description,/request claimed/);
     closeDuringModel=false;closed=false;
     calls.length=0;reservations=20;
-    await assert.rejects(main({env,fetcher,request:true}),/paid attempt cap/);
+    await assert.rejects(main({env,fetcher,gitDiff,request:true}),/paid attempt cap/);
     assert.equal(calls.some(url=>new URL(url).origin === 'https://api.openai.com'),false);
     calls.length=0;stale=true;
-    await assert.rejects(main({env,fetcher,request:true}),/Stale immutable source head/);
+    await assert.rejects(main({env,fetcher,gitDiff,request:true}),/Stale immutable source head/);
     assert.equal(calls.length,2);
     stale=false;replayed=true;calls.length=0;
-    await main({env,fetcher,request:true});
+    await main({env,fetcher,gitDiff,request:true});
     assert.equal(calls.some(url=>url.includes('/jobs?') || new URL(url).origin === 'https://api.openai.com'),false);
     replayed=false;requestPhase=false;reservations=0;calls.length=0;writes.length=0;
     writeArchive('old-base');
-    await assert.rejects(main({env,fetcher}),/Artifact metadata mismatch/);
+    await assert.rejects(main({env,fetcher,gitDiff}),/Artifact metadata mismatch/);
     assert.equal(writes.length,0);
     assert.equal(calls.some(url=>new URL(url).origin === 'https://api.openai.com'),false);
     writeArchive();calls.length=0;
     writeFileSync(event,JSON.stringify({workflow_run:{id:7}}));
-    await assert.rejects(main({env:{...env,GITHUB_EVENT_NAME:'workflow_run'},fetcher}),/Automatic AI review disabled/);
+    await assert.rejects(main({gitDiff,env:{...env,GITHUB_EVENT_NAME:'workflow_run'},fetcher}),/Automatic AI review disabled/);
     assert.equal(writes.length,2);
     assert.equal(writes.at(-1).state,'error');
     assert.equal(calls.some(url=>new URL(url).origin === 'https://api.openai.com'),false);
@@ -486,7 +619,7 @@ test('revision, closure or repository changes during budget lookup cannot publis
           response={total_count:1,workflow_runs:[{id:5,status:'in_progress',updated_at:new Date().toISOString()}]};
         } else if(url.includes('/jobs?')) {
           if(during==='jobs') retargeted=true;
-          response={total_count:1,jobs:[{steps:[{name:`${PAID_STEP} (180050 microUSD)`,status:'in_progress',conclusion:null,started_at:new Date().toISOString()}]}]};
+          response={total_count:1,jobs:[{run_attempt:1,steps:[{name:`${PAID_STEP} (180050 microUSD)`,status:'in_progress',conclusion:null,started_at:new Date().toISOString()}]}]};
         } else throw new Error(`Unexpected endpoint ${url}`);
         return new Response(JSON.stringify(response));
       };
@@ -590,7 +723,7 @@ test('rejected reports remain inert diagnostics, never approve and never retry',
     const event=join(directory,'event.json'),summary=join(directory,'summary.md');
     writeFileSync(event,JSON.stringify({inputs:{source_run_id:'7'}}));
     writeFileSync(join(directory,'ai-visual-request.json'),JSON.stringify({sha:'head',base:'base',sourceRun:7,reservedMicroUsd:180050,names:REQUIRED,body:requestBody('request-only-marker',[])}));
-    const env={GITHUB_REPOSITORY:repository,GITHUB_EVENT_PATH:event,GITHUB_EVENT_NAME:'workflow_dispatch',GITHUB_RUN_ATTEMPT:'1',GITHUB_RUN_ID:'5',RUNNER_TEMP:directory,GITHUB_STEP_SUMMARY:summary,OPENAI_API_KEY:'credential-only-marker'};
+    const env={GITHUB_REPOSITORY:repository,GITHUB_EVENT_PATH:event,GITHUB_EVENT_NAME:'workflow_dispatch',GITHUB_RUN_ATTEMPT:'1',GITHUB_RUN_ID:'5',GITHUB_OUTPUT:join(directory,'output'),RUNNER_TEMP:directory,GITHUB_STEP_SUMMARY:summary,OPENAI_API_KEY:'credential-only-marker'};
     const rejected=[
       output({...clean,coverage:REQUIRED.slice(1)}),
       output({...clean,coverage:[...REQUIRED.slice(1),REQUIRED[1]]}),
@@ -600,7 +733,8 @@ test('rejected reports remain inert diagnostics, never approve and never retry',
       {status:'completed',output:[{type:'message',content:[{type:'refusal',refusal:'Cannot review'}]}]},
       {status:'incomplete',incomplete_details:{reason:'max_output_tokens'},output:[{type:'reasoning',summary:'reasoning-only-marker'}]},
     ];
-    for(const response of rejected) {
+    for(const modelReport of rejected) {
+      const response={...modelReport,id:'resp_rejected',model:'gpt-6.1-sol',service_tier:'default',usage:{input_tokens:10,output_tokens:20,total_tokens:30,input_tokens_details:{cached_tokens:0,cache_write_tokens:0}}};
       let attempted=false;const calls=[],writes=[];
       const fetcher=async(url,options)=>{
         calls.push(url);
@@ -612,7 +746,7 @@ test('rejected reports remain inert diagnostics, never approve and never retry',
         else if(url.includes('/statuses?')) value=attempted ? [{context:'AI visual review',description:'PR1 base: request claimed; no retries'}] : [];
         else if(url.includes('/files?')) value=[{filename:'components/Footer.tsx',additions:1,deletions:1}];
         else if(url.includes('/workflows/ai-visual-review.yml/runs?')) value={total_count:1,workflow_runs:[{id:5,status:'in_progress',updated_at:new Date().toISOString()}]};
-        else if(url.includes('/jobs?')) value={total_count:1,jobs:[{steps:[{name:`${PAID_STEP} (180050 microUSD)`,status:'in_progress',started_at:new Date().toISOString()}]}]};
+        else if(url.includes('/jobs?')) value={total_count:1,jobs:[{run_attempt:1,steps:[{name:`${PAID_STEP} (180050 microUSD)`,status:'in_progress',started_at:new Date().toISOString()}]}]};
         else throw new Error('Unexpected test endpoint');
         return new Response(JSON.stringify(value));
       };
@@ -634,30 +768,6 @@ test('rejected reports remain inert diagnostics, never approve and never retry',
 });
 
 
-test('count and dollar bounds independently gate dynamic reservations and retain legacy full cost', async () => {
-  const now=Date.parse('2026-10-11T12:00:00Z'),timestamp=new Date(now).toISOString();
-  let amounts=Array(20).fill(180050);
-  const github=async path=>path.includes('/workflows/') ? {total_count:amounts.length,workflow_runs:amounts.map((_,i)=>({id:i+1,status:'in_progress',updated_at:timestamp}))} : {total_count:1,jobs:[{steps:[{name:amounts[Number(path.match(/runs\/(\d+)/)[1])-1] === 'legacy' ? PAID_STEP : `${PAID_STEP} (${amounts[Number(path.match(/runs\/(\d+)/)[1])-1]} microUSD)`,status:'in_progress',started_at:timestamp}]}]};
-  let history=await paidAttempts(github,now,20,180050);
-  assert.deepEqual(history,{count:20,microUsd:3601000}); checkBudget(history);
-  assert.throws(()=>checkBudget(history,180050),/attempt cap/);
-  amounts.push(180050);assert.throws(()=>checkBudget({count:21,microUsd:3781050}),/attempt cap/);
-  amounts=Array(6).fill(180050); checkBudget(await paidAttempts(github,now),180050);
-  amounts=Array(5).fill(2000000);history=await paidAttempts(github,now);checkBudget(history);
-  assert.throws(()=>checkBudget(history,180050),/budget cap/);
-  amounts=[2000000,2000000,2000000,2000000,2000000,2000000];
-  assert.throws(()=>checkBudget({count:6,microUsd:12000000}),/budget cap/);
-  amounts=['legacy','legacy','legacy','legacy','legacy'];
-  assert.deepEqual(await paidAttempts(github,now),{count:5,microUsd:10000000});
-  assert.throws(()=>checkBudget({count:5,microUsd:10000000},180050),/budget cap/);
-  amounts=['legacy',180050];assert.deepEqual(await paidAttempts(github,now),{count:2,microUsd:2180050});
-  await assert.rejects(paidAttempts(github,now,2,180055),/amount mismatch/);
-  await assert.rejects(paidAttempts(github,now,1,2000000),/amount mismatch/);
-  for (const amount of ['0','-1','0180050','abc','180000','2000001','9007199254740993']) {
-    amounts=[amount];await assert.rejects(paidAttempts(github,now),/reservation amount/);
-  }
-});
-
 test('exact token count reserves all 12000 output tokens and generation cannot exceed its reservation', async () => {
   const body=requestBody('',[]);let tokens=364000;const calls=[];
   const fetcher=async(url)=>{calls.push(url);return new Response(JSON.stringify(url.endsWith('/input_tokens') ? {object:'response.input_tokens',input_tokens:tokens} : {status:'completed'}));};
@@ -676,27 +786,110 @@ test('exact token count reserves all 12000 output tokens and generation cannot e
 test('unresolved dynamic names in skipped or queued steps reserve nothing', async () => {
   const now=Date.parse('2026-10-11T12:00:00Z'),timestamp=new Date(now).toISOString();
   const step={name:`${PAID_STEP} ( microUSD)`,status:'completed',conclusion:'skipped'};
-  const github=async path=>path.includes('/workflows/') ? {total_count:1,workflow_runs:[{id:1,status:'in_progress',updated_at:timestamp}]} : {total_count:1,jobs:[{steps:[step]}]};
-  assert.deepEqual(await paidAttempts(github,now),{count:0,microUsd:0});
+  const github=async path=>path.includes('/workflows/') ? {total_count:1,workflow_runs:[{id:1,status:'in_progress',updated_at:timestamp}]} : {total_count:1,jobs:[{run_attempt:1,steps:[step]}]};
+  assert.deepEqual(await paidAttempts(github,now),{count:0});
   step.status='queued';step.conclusion=null;
-  assert.deepEqual(await paidAttempts(github,now),{count:0,microUsd:0});
+  assert.deepEqual(await paidAttempts(github,now),{count:0});
   step.status='in_progress';step.started_at=timestamp;
-  await assert.rejects(paidAttempts(github,now),/Malformed paid reservation/);
+  await assert.rejects(paidAttempts(github,now),/Malformed paid attempt/);
 });
 
-test('settle only the immutable credential-free compatibility marker while retaining both counts and genuine cost', async () => {
-  const timestamp = '2026-10-11T13:03:14Z';
-  const run = {id:38141527547,run_attempt:1,workflow_id:380891751,head_sha:'ad6f940266317a84b9e3845abf23a05c5db778ad',status:'completed',conclusion:'success',updated_at:timestamp};
-  const marker = {name:PAID_STEP,number:7,status:'completed',conclusion:'success',started_at:timestamp,completed_at:'2026-10-11T13:03:44Z'};
-  const paid = {name:`${PAID_STEP} (429225 microUSD)`,number:8,status:'completed',conclusion:'success',started_at:'2026-10-11T13:03:44Z'};
-  const job = {id:114476341498,conclusion:'success',steps:[marker,paid]};
-  const github = async path => path.includes('/workflows/') ? {total_count:1,workflow_runs:[run]} : {total_count:1,jobs:[job]};
-  const now = Date.parse('2026-10-11T14:00:00Z');
-  assert.deepEqual(await paidAttempts(github,now),{count:2,microUsd:429225});
-  for (const [object,key,value] of [[run,'run_attempt',2],[run,'head_sha','other'],[run,'conclusion','failure'],[job,'id',1],[marker,'number',8],[marker,'completed_at',timestamp],[paid,'conclusion','failure']]) {
-    const previous=object[key]; object[key]=value;
-    await assert.rejects(paidAttempts(github,now),/Settlement/); object[key]=previous;
+test('actual usage charges ordinary, cached, cache-write and reasoning-inclusive output once at the context boundary', () => {
+  const response={id:'resp_actual',model:'gpt-6.1-sol',service_tier:'default',status:'completed',usage:{input_tokens:1000,output_tokens:100,total_tokens:1100,input_tokens_details:{cached_tokens:400,cache_write_tokens:500},output_tokens_details:{reasoning_tokens:90}}};
+  assert.equal(actualUsage(response,2000000).microUsd,2490);
+  response.usage={input_tokens:272000,output_tokens:1,total_tokens:272001,input_tokens_details:{cached_tokens:272000,cache_write_tokens:0}};
+  assert.equal(actualUsage(response,2000000).microUsd,27210);
+  response.usage={input_tokens:272001,output_tokens:1,total_tokens:272002,input_tokens_details:{cached_tokens:272001,cache_write_tokens:0}};
+  assert.equal(actualUsage(response,2000000).microUsd,54416);
+  response.status='incomplete';assert.equal(actualUsage(response,2000000).microUsd,54416);
+  for(const mutate of [r=>delete r.usage,r=>delete r.usage.input_tokens_details.cache_write_tokens,r=>r.usage.total_tokens++,r=>r.usage.input_tokens_details.cached_tokens++,r=>r.usage.output_tokens=-1,r=>r.usage.output_tokens=1.5,r=>r.usage.input_tokens='10',r=>r.model='unknown',r=>r.service_tier='priority',r=>r.status='in_progress',r=>r.id='bad']) {
+    const invalid=structuredClone(response);mutate(invalid);assert.throws(()=>actualUsage(invalid,2000000));
   }
-  run.id=38141527548;
-  assert.deepEqual(await paidAttempts(github,now),{count:2,microUsd:2429225});
+  assert.throws(()=>actualUsage(response,100),/exceeds reservation/);
+});
+
+test('recovery expiry blocks input counting, generation and request claims after ledger admission', async () => {
+  const {mkdtempSync,writeFileSync,rmSync}=await import('node:fs');
+  const {join}=await import('node:path');const {tmpdir}=await import('node:os');
+  const directory=mkdtempSync(join(tmpdir(),'visual-recovery-expiry-'));
+  const eventPath=join(directory,'event.json'),now=Date.parse('2026-10-12T20:59:00Z');
+  const recoveryRepository='Itakello/mstefan-dev';
+  const sha='a'.repeat(40),base='9bbfa628b146d81abfb60f96b60617b88c5464ef',reserved=1500000;
+  writeFileSync(eventPath,JSON.stringify({inputs:{recovery:'true',source_run_id:'7'}}));
+  writeFileSync(join(directory,'ai-visual-request.json'),JSON.stringify({sha,base,sourceRun:7,reservedMicroUsd:reserved,names:REQUIRED,body:requestBody('',[])}),{mode:0o600});
+  const source={id:7,repository:{full_name:recoveryRepository},name:'Visual review',path:'.github/workflows/visual-review.yml',event:'pull_request',status:'completed',conclusion:'success',head_sha:sha,pull_requests:[{number:140,head:{sha},base:{sha:base}}]};
+  const pr={state:'open',number:140,head:{sha},base:{sha:base,repo:{full_name:recoveryRepository}},changed_files:1,labels:[]};
+  const historyRun={id:7,status:'completed',updated_at:'2026-10-12T20:58:00Z'};
+  const currentRun={id:9,status:'in_progress',updated_at:'2026-10-12T20:58:00Z'};
+  const currentStep={name:`${PAID_STEP} (${reserved} microUSD)`,status:'in_progress',started_at:'2026-10-12T20:58:30Z'};
+  const posts=[],calls=[];let currentVisible=false,modelCalls=0;
+  const fetcher=async(url,options)=> {
+    calls.push(url);
+    if(url.startsWith('https://api.openai.com/')) {modelCalls++;return new Response('{}');}
+    const path=url.slice(`https://api.github.com/repos/${recoveryRepository}`.length);
+    if(options.method==='POST') {posts.push(JSON.parse(options.body));return new Response('{}');}
+    let value;
+    if(path==='/actions/runs/7') value=source;
+    else if(path==='/pulls/140') value=pr;
+    else if(path.includes('/statuses?')) value=[];
+    else if(path.includes('/files?')) value=[{filename:'components/Footer.tsx',additions:1,deletions:1}];
+    else if(path.includes('/workflows/ai-visual-review.yml/runs?')) value={total_count:2,workflow_runs:[historyRun,currentRun]};
+    else if(path==='/actions/runs/7/jobs?filter=all&per_page=100') value={total_count:1,jobs:[{run_attempt:1,steps:[]}]};
+    else if(path==='/actions/runs/9/jobs?filter=all&per_page=100') {currentVisible=true;value={total_count:1,jobs:[{run_attempt:1,steps:[currentStep]}]};}
+    else throw new Error(`Unexpected ${path}`);
+    return new Response(JSON.stringify(value));
+  };
+  const env={GITHUB_REPOSITORY:recoveryRepository,GITHUB_EVENT_PATH:eventPath,GITHUB_EVENT_NAME:'workflow_dispatch',GITHUB_ACTOR:'Itakello',GITHUB_TRIGGERING_ACTOR:'Itakello',GITHUB_RUN_ATTEMPT:'1',GITHUB_REF:'refs/heads/codex/visual-review-no-daily-cap',GITHUB_RUN_ID:'9',GITHUB_SHA:sha,GITHUB_JOB:'review',GITHUB_TOKEN:'mock-only',OPENAI_API_KEY:'mock-only',RUNNER_TEMP:directory};
+  const originalNow=Date.now;
+  try {
+    Date.now=()=>now;
+    await assert.rejects(main({request:true,env,fetcher}),/Recovery expired/);
+    assert.equal(currentVisible,true);
+    assert.equal(modelCalls,0);
+    assert.deepEqual(posts.map(post=>post.state),['error']);
+    assert.equal(posts.some(post=>post.description.includes('request claimed')),false);
+  } finally {Date.now=originalNow;rmSync(directory,{recursive:true,force:true});}
+});
+
+
+test('paid attempts have a count ceiling without a historical dollar cap', async () => {
+  const now=Date.parse('2026-10-11T12:00:00Z'),timestamp=new Date(now).toISOString();
+  let amount=2000000,count=20;
+  const github=async path=>path.includes('/workflows/') ? {total_count:count,workflow_runs:Array.from({length:count},(_,i)=>({id:i+1,status:'in_progress',updated_at:timestamp}))} : {total_count:1,jobs:[{steps:[{name:`${PAID_STEP} (${amount} microUSD)`,status:'in_progress',started_at:timestamp}]}]};
+  assert.deepEqual(await paidAttempts(github,now),{count:20});checkBudget({count:20});
+  assert.throws(()=>checkBudget({count:20},180050),/attempt cap/);
+  count=21;assert.throws(()=>checkBudget({count:21}),/attempt cap/);
+  count=19;amount=900000000;checkBudget(await paidAttempts(github,now),180050);
+  assert.throws(()=>checkBudget({count:-1}));assert.throws(()=>checkBudget({count:1.5}));
+  await assert.rejects(paidAttempts(github,now,1,180050),/amount mismatch/);
+});
+
+
+test('attempt counting ignores monetary settlements and never fetches historical receipts or engine provenance', async () => {
+  const now=Date.parse('2026-10-12T00:00:00Z'),timestamp=new Date(now).toISOString();
+  const jobs={total_count:1,jobs:[{steps:[{name:PAID_STEP,status:'completed',conclusion:'success',started_at:timestamp},{name:`${PAID_STEP} (429225 microUSD)`,status:'completed',conclusion:'failure',started_at:timestamp},{name:'Report actual AI visual review usage (240 microUSD)',status:'completed',conclusion:'success',started_at:timestamp}]}]};
+  const calls=[];
+  const github=async path=>{calls.push(path);if(path.includes('/workflows/')) return {total_count:1,workflow_runs:[{id:38181586630,head_branch:'codex/visual-review-no-daily-cap',head_sha:'a'.repeat(40),status:'completed',updated_at:timestamp}]};if(path.includes('/jobs?'))return jobs;throw new Error(`Unexpected ledger read: ${path}`);};
+  assert.deepEqual(await paidAttempts(github,now),{count:2});
+  assert.equal(calls.some(path=>/compare|contents|logs/.test(path)),false);
+});
+
+
+test('current usage reporting publishes verified actual cost without historical accounting', async t => {
+  const {mkdtempSync,writeFileSync,rmSync}=await import('node:fs');
+  const {tmpdir}=await import('node:os');const {join}=await import('node:path');
+  const directory=mkdtempSync(join(tmpdir(),'visual-usage-report-'));
+  try {
+    const env={RUNNER_TEMP:directory,GITHUB_RUN_ID:'5',GITHUB_RUN_ATTEMPT:'1',GITHUB_SHA:'d'.repeat(40),GITHUB_JOB:'review'};
+    const record={runId:'5',attempt:'1',workflowSha:env.GITHUB_SHA,job:'review',reservedMicroUsd:180050,response:{id:'resp_actual',model:'gpt-6.1-sol',service_tier:'default',status:'completed',usage:{input_tokens:10,output_tokens:10,total_tokens:20,input_tokens_details:{cached_tokens:0,cache_write_tokens:0}}}};
+    writeFileSync(join(directory,'ai-visual-usage.json'),JSON.stringify(record),{mode:0o600});
+    const lines=[];t.mock.method(console,'log',line=>lines.push(line));
+    publishUsage(env);
+    assert.equal(lines.length,1);assert.ok(lines[0].startsWith('AI_VISUAL_USAGE '));
+    const report=JSON.parse(lines[0].slice('AI_VISUAL_USAGE '.length));
+    assert.equal(report.response.id,'resp_actual');assert.equal(report.response.microUsd,120);
+    assert.equal('input' in report,false);
+    assert.throws(()=>publishUsage({...env,GITHUB_RUN_ID:'other'}),/identity mismatch/);
+    assert.equal(lines.length,1);
+  } finally {rmSync(directory,{recursive:true,force:true});}
 });
