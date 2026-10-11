@@ -1,15 +1,26 @@
 "use client";
-import { ChevronLeft, ChevronRight, Download, ExternalLink, Minus, Plus } from "lucide-react";
+import { Download, ExternalLink, Minus, Plus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { PDFDocumentProxy } from "pdfjs-dist";
 import type { Locale } from "@/lib/i18n/config";
 import { documentMediaUrl } from "@/lib/documentMedia";
+import { PreviewArrows } from "./PreviewArrows";
+import { PowerPointPreview } from "./PowerPointPreview";
 
-export function DocumentPreview({ url, title, locale, filename, presentation = false }: { url: string; title: string; locale: Locale; filename?: string | null; presentation?: boolean }) {
+type DocumentPreviewProps = { url: string; title: string; locale: Locale; filename?: string | null; presentation?: boolean };
+
+export function DocumentPreview(props: DocumentPreviewProps) {
+  return props.presentation && new URL(props.url, "https://www.mstefan.dev").pathname.toLowerCase().endsWith(".pptx")
+    ? <PowerPointPreview url={props.url} title={props.title} locale={props.locale} />
+    : <PdfDocumentPreview {...props} />;
+}
+
+function PdfDocumentPreview({ url, title, locale, filename, presentation = false }: DocumentPreviewProps) {
   const host = useRef<HTMLDivElement>(null);
   const text = useRef<HTMLDivElement>(null);
   const pageHost = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
+  const swipeStart = useRef<{ x: number; y: number } | null>(null);
   const [resolvedUrl, setResolvedUrl] = useState(url);
   const [document, setDocument] = useState<PDFDocumentProxy | null>(null);
   const [page, setPage] = useState(1);
@@ -96,22 +107,37 @@ export function DocumentPreview({ url, title, locale, filename, presentation = f
   return <section data-pdf-preview aria-label={`${title}: ${italian ? "Lettore documenti" : "Document reader"}`} className="overflow-hidden rounded-xl border border-black/10 dark:border-white/15">
     <div className="flex flex-wrap items-center justify-between gap-2 border-b border-black/10 px-2 py-2 text-xs dark:border-white/15">
       <div className="flex items-center gap-1">
-        <button type="button" className={control} disabled={!document || page === 1} aria-label={italian ? "Pagina precedente" : "Previous page"} onClick={() => setPage(page - 1)}><ChevronLeft size={16} /></button>
-        <span aria-live="polite">{page} / {document?.numPages ?? "…"}</span>
-        <button type="button" className={control} disabled={!document || page === document.numPages} aria-label={italian ? "Pagina successiva" : "Next page"} onClick={() => setPage(page + 1)}><ChevronRight size={16} /></button>
+        <span className="px-2" aria-live="polite">{page} / {document?.numPages ?? "…"}</span>
       </div>
       <div className="flex items-center gap-1">
-        <button type="button" className={control} disabled={zoom <= 1} aria-label={italian ? "Riduci" : "Zoom out"} onClick={() => setZoom(value => Math.max(1, value - 0.25))}><Minus size={16} /></button>
-        <span>{Math.round(zoom * 100)}%</span>
-        <button type="button" className={control} disabled={zoom >= 2} aria-label={italian ? "Ingrandisci" : "Zoom in"} onClick={() => setZoom(value => Math.min(2, value + 0.25))}><Plus size={16} /></button>
+        {!presentation && <>
+          <button type="button" className={control} disabled={zoom <= 1} aria-label={italian ? "Riduci" : "Zoom out"} onClick={() => setZoom(value => Math.max(1, value - 0.25))}><Minus size={16} /></button>
+          <span>{Math.round(zoom * 100)}%</span>
+          <button type="button" className={control} disabled={zoom >= 2} aria-label={italian ? "Ingrandisci" : "Zoom in"} onClick={() => setZoom(value => Math.min(2, value + 0.25))}><Plus size={16} /></button>
+        </>}
         <a href={resolvedUrl} download={filename || true} className={`${control} gap-1`}>{italian ? "Scarica PDF" : "Download PDF"}<Download size={14} /></a>
         <a href={resolvedUrl} target="_blank" rel="noreferrer" className={`${control} gap-1`}>{italian ? "Apri PDF" : "Open PDF"}<ExternalLink size={14} /></a>
       </div>
     </div>
-    <div ref={host} data-document-stage className={`relative ${presentation ? "max-h-[min(480px,55svh)]" : "max-h-[min(680px,75svh)]"} overflow-auto overscroll-contain bg-zinc-100 p-3 dark:bg-zinc-900`}>
+    <div data-preview-stage className="relative" style={{ touchAction: "pan-y pinch-zoom" }}
+      onTouchStart={event => { swipeStart.current = event.touches.length === 1 ? { x: event.touches[0].clientX, y: event.touches[0].clientY } : null; }}
+      onTouchCancel={() => { swipeStart.current = null; }}
+      onTouchEnd={event => {
+        const start = swipeStart.current;
+        swipeStart.current = null;
+        if (!start || !event.changedTouches.length || !document) return;
+        const dx = event.changedTouches[0].clientX - start.x;
+        const dy = event.changedTouches[0].clientY - start.y;
+        if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5) setPage(current => Math.max(1, Math.min(document.numPages, current + (dx < 0 ? 1 : -1))));
+      }}>
+    <div ref={host} data-document-stage className={`relative ${presentation ? "max-h-[min(480px,55svh)]" : "max-h-[min(680px,75svh)]"} overflow-auto overscroll-contain bg-[var(--surface-bg)] p-3`}>
       {status === "loading" && <p role="status" className="absolute left-4 top-4 rounded bg-white/90 px-2 py-1 text-sm text-black">{italian ? "Caricamento documento…" : "Loading document…"}</p>}
       {status === "error" && <p role="status" className="text-sm">{italian ? "Anteprima non disponibile. Usa Apri PDF per leggere il documento." : "Preview unavailable. Use Open PDF to read the document."}</p>}
       <div ref={pageHost} className={`relative mx-auto ${status === "error" ? "hidden" : ""}`}><canvas ref={canvas} role="img" aria-label={`${title} · ${italian ? "pagina" : "page"} ${page}`} className="bg-white shadow-sm" /><div ref={text} data-document-text /></div>
+    </div>
+    <PreviewArrows previous={italian ? "Pagina precedente" : "Previous page"} next={italian ? "Pagina successiva" : "Next page"}
+      previousDisabled={!document || page === 1} nextDisabled={!document || page === document.numPages}
+      onPrevious={() => setPage(current => Math.max(1, current - 1))} onNext={() => setPage(current => Math.min(document?.numPages ?? 1, current + 1))} />
     </div>
   </section>;
 }

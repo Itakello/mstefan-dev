@@ -5,6 +5,7 @@ import { AnimatePresence, motion, useIsPresent, useReducedMotion } from "motion/
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { DocumentPreview } from "@/components/DocumentPreview";
+import { PreviewArrows } from "@/components/PreviewArrows";
 import { StackBadge } from "@/components/StackBadge";
 import { BrandIcon } from "@/components/BrandIcon";
 import { ICON_LINK_COLOR_CLASS } from "@/lib/iconStyles";
@@ -188,11 +189,8 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
         {screenshotUrl && <div className="mt-7">
             {previewPages && (previewPages.length > 1 || selected.previewImages?.length) && <div role="group" aria-label={copy.work.previewPage} className="mb-4 flex items-center justify-between gap-3 text-sm">
               <span aria-live="polite" aria-atomic="true">{selectedPage.label} <span className="text-[var(--page-muted)]">· {pageIndex + 1} / {previewPages.length}</span></span>
-              {previewPages.length > 1 && <div className="flex shrink-0 gap-2">
-                {([{ direction: -1, label: copy.work.previousPreview, Icon: ChevronLeft }, { direction: 1, label: copy.work.nextPreview, Icon: ChevronRight }]).map(control => <button key={control.direction} type="button" aria-label={control.label} onClick={() => changePreview(control.direction)} className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-[var(--surface-border)] text-[var(--page-text)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[hsl(var(--accent))]"><control.Icon size={18} aria-hidden /></button>)}
-              </div>}
             </div>}
-            <div data-work-preview className={`relative ${selected.previewImages?.length ? "aspect-[4/3] max-h-[min(620px,70svh)]" : "aspect-[8/5] max-h-[min(620px,70svh)]"} w-full overflow-hidden`} style={{ touchAction: "pan-y pinch-zoom" }}
+            <div data-work-preview data-preview-stage className={`relative ${selected.previewImages?.length ? "aspect-[4/3] max-h-[min(620px,70svh)]" : "aspect-[8/5] max-h-[min(620px,70svh)]"} w-full overflow-hidden`} style={{ touchAction: "pan-y pinch-zoom" }}
               onTouchStart={event => { swipeStart.current = event.touches.length === 1 && window.matchMedia("(max-width: 639px)").matches ? { x: event.touches[0].clientX, y: event.touches[0].clientY } : null; }}
               onTouchCancel={() => { swipeStart.current = null; }}
               onTouchEnd={event => {
@@ -206,6 +204,7 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
               <AnimatePresence key={`${selected.id}-${mobile}`} initial={false} custom={pageDirection}>
                 <ScreenshotPreview key={screenshotUrl} url={screenshotUrl} title={selected.previewImages?.length ? `${selected.name}: ${selectedPage.label}` : `${mobile ? copy.work.mobile : copy.work.desktop}: ${copy.websites.previewTitle(selected.name)}`} mobile={mobile && !selected.previewImages?.length} unavailable={copy.websites.unavailable} direction={pageDirection} />
               </AnimatePresence>
+              {previewPages && previewPages.length > 1 && <PreviewArrows previous={copy.work.previousPreview} next={copy.work.nextPreview} onPrevious={() => changePreview(-1)} onNext={() => changePreview(1)} />}
             </div>
             {!selected.previewImages?.length && <div role="group" aria-label={copy.work.previewSize} className="mt-4 ml-auto flex w-fit gap-1 rounded-lg border border-black/10 p-1 dark:border-white/15">
               {([{ mobile: false, label: copy.work.desktop, Icon: Monitor }, { mobile: true, label: copy.work.mobile, Icon: Smartphone }]).map(mode => (

@@ -86,7 +86,9 @@ The refresh uses no model, allows at most 100 pages per run and 2 MB per image, 
 
 Projects may also provide `Preview images` as a text property containing a JSON array of `{ "url", "label", "labelIT" }` objects (up to ten). Each caption is required in both languages. Images use reviewed `/work-previews/` assets, raw GitHub sources, or the owned preview store. Image previews reuse the arrows and mobile swipe, precede research documents, and omit the website viewport switch. Missing images retain the unavailable state.
 
-Paper and slides URLs are rendered as PDFs inside Work, with page navigation, zoom, and selectable text. Use public PDF sources that allow cross-origin reading (CORS), such as raw GitHub files or arXiv. GitHub blob links are converted to raw content for the reader. Hosts that require sign-in, block CORS, or serve a non-PDF retain an external Open PDF link when the inline preview is unavailable.
+PDF resources are rendered inside Work with page navigation and selectable text. Papers retain zoom; PDF slides fit automatically. Use public PDF sources that allow cross-origin reading (CORS), such as raw GitHub files or arXiv. GitHub blob links are converted to raw content for the reader. Hosts that require sign-in, block CORS, or serve a non-PDF retain an external Open PDF link when the inline preview is unavailable.
+
+For animated slides, set `Slides URL` to the original public GitHub `.pptx`. Work embeds Microsoft's PowerPoint viewer with its native controls; the public file URL is sent to Microsoft and playback depends on that service. Other hosts and signed URLs are not sent to the viewer. A download link remains available when a file cannot be embedded.
 
 An `Added` row requires both nonblank long summaries. The website never falls back between English and Italian summaries; each locale uses only its own long and optional short summary.
 

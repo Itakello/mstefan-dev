@@ -332,3 +332,11 @@ a {
 }
 [data-document-text] .markedContent { display: contents; }
 [data-document-text] ::selection { background: rgb(124 58 237 / 30%); }
+
+@media (hover: hover) and (pointer: fine) {
+  [data-preview-arrow], [data-preview-arrow]:disabled { opacity: 0; }
+  [data-preview-stage]:hover [data-preview-arrow],
+  [data-preview-stage]:focus-within [data-preview-arrow] { opacity: 1; }
+  [data-preview-stage]:hover [data-preview-arrow]:disabled,
+  [data-preview-stage]:focus-within [data-preview-arrow]:disabled { opacity: 0.3; }
+}
