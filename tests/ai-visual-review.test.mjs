@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import test from 'node:test';
 import { classifyVisualReview } from '../scripts/visual-review/classify.mjs';
-import { REQUIRED, main, PAID_STEP, paidAttempts, reviewBudget, checkBudget, baseRequiresWorkshop, verifyDiff, verifyRevision, verifyEvidence, reviewResult, requestBody, modelReview, alreadyAttempted } from '../scripts/visual-review/ai-review.mjs';
+import { REQUIRED, main, PAID_STEP, paidAttempts, reviewBudget, checkBudget, baseRequiresWorkshop, nativeGitDiff, projectVisualDiff, ASSET_MANIFEST, verifyDiff, verifyRevision, verifyEvidence, reviewResult, requestBody, modelReview, alreadyAttempted } from '../scripts/visual-review/ai-review.mjs';
 const repository = 'owner/repo';
 const pr = {state:'open',number:1,head:{sha:'head'},base:{sha:'base',repo:{full_name:repository}}};
 const run = {id:7,head_sha:'head',repository:{full_name:repository},name:'Visual review',path:'.github/workflows/visual-review.yml',event:'pull_request',status:'completed',conclusion:'success',pull_requests:[{number:1,head:{sha:'head'},base:{sha:'base'}}]};
@@ -161,6 +162,73 @@ test('raw diff must cover every authoritative PR file, including renames and bin
   assert.throws(() => verifyDiff(diff,files.slice(0,1)),/coverage/);
   assert.throws(() => verifyDiff(diff.replaceAll('public/new.png','public/wrong.png'),files),/Missing raw/);
   assert.throws(() => verifyDiff('diff --git a/has space b/has space\n',[{filename:'has space'}]),/Unsupported/);
+});
+test('native Git diff uses immutable merge-base history without checkout and preserves rename, binary and line coverage', async () => {
+  const {mkdtempSync,writeFileSync,existsSync,rmSync}=await import('node:fs');
+  const {tmpdir}=await import('node:os');
+  const {join}=await import('node:path');
+  const {execFileSync}=await import('node:child_process');
+  const directory=mkdtempSync(join(tmpdir(),'visual-git-fixture-'));
+  const git=args=>execFileSync('git',['-c','user.name=Test','-c','user.email=test@example.com',...args],{cwd:directory,encoding:'utf8',stdio:['ignore','pipe','pipe']}).trim();
+  const calls=[];
+  try {
+    git(['init']);
+    writeFileSync(join(directory,'old.txt'),'rename me\n');
+    writeFileSync(join(directory,'changed.txt'),'old\n');
+    git(['add','.']);git(['commit','-m','merge point']);
+    const ancestor=git(['rev-parse','HEAD']);
+    writeFileSync(join(directory,'base-only.txt'),'must not appear\n');
+    git(['add','.']);git(['commit','-m','base advanced']);
+    const base=git(['rev-parse','HEAD']);
+    git(['checkout','--detach',ancestor]);
+    git(['mv','old.txt','new.txt']);
+    writeFileSync(join(directory,'changed.txt'),'new\n');
+    writeFileSync(join(directory,'asset.bin'),Buffer.from([0,1,2]));
+    git(['add','.']);git(['commit','-m','head changes']);
+    const head=git(['rev-parse','HEAD']);
+    const execute=(command,args,options)=>{
+      calls.push({args,options});
+      assert.equal(command,'git');assert.equal(args.includes('checkout'),false);
+      assert.equal(options.timeout,60000);assert.equal(options.maxBuffer,60*1024*1024);
+      assert.deepEqual(Object.keys(options.env).sort(),['GIT_CONFIG_COUNT','GIT_CONFIG_GLOBAL','GIT_CONFIG_KEY_0','GIT_CONFIG_NOSYSTEM','GIT_CONFIG_VALUE_0','GIT_TERMINAL_PROMPT','PATH']);
+      return execFileSync(command,args[0]==='fetch' ? args.map(arg=>arg===`https://github.com/${repository}.git` ? directory : arg) : args,options);
+    };
+    const diff=nativeGitDiff(repository,base,head,{execute});
+    verifyDiff(diff,[{filename:'new.txt',previous_filename:'old.txt',additions:0,deletions:0},{filename:'changed.txt',additions:1,deletions:1},{filename:'asset.bin',additions:0,deletions:0}]);
+    assert.equal(diff.includes('base-only.txt'),false);
+    assert.deepEqual(calls[1].args,['fetch','--no-tags','--filter=blob:none',`https://github.com/${repository}.git`,base,head]);
+    assert.equal(calls[2].args.includes('--no-ext-diff'),true);assert.equal(calls[2].args.includes('--no-textconv'),true);
+    assert.equal(existsSync(calls[0].options.cwd),false);
+    let failedDirectory;
+    assert.throws(()=>nativeGitDiff(repository,base,head,{execute:(_command,_args,options)=>{failedDirectory=options.cwd;throw new Error('sensitive command output');}}),{message:'Exact Git diff unavailable or exceeds bounds'});
+    assert.equal(existsSync(failedDirectory),false);
+    assert.throws(()=>nativeGitDiff(repository,'--bad',head,{execute}),/Invalid Git diff revision/);
+  } finally {rmSync(directory,{recursive:true,force:true});}
+});
+test('visual projection retains authored HTML and every player adaptation; unknown bytes, modes and provenance fail closed', () => {
+  const root='public/presentations/physiq/', sha=data=>createHash('sha256').update(data).digest('hex');
+  const trusted=JSON.parse(readFileSync(new URL('../scripts/visual-review/physiq-export.json',import.meta.url),'utf8'));
+  const patches=trusted.files.find(item=>item.kind==='adapted-player').patches;
+  const original=patches.map(patch=>patch.before).join(';');
+  const player=patches.reduce((text,patch)=>text.replace(patch.before,patch.after),original);
+  const contents=new Map([[`${root}assets/fixture.json`,'generated bytes'],[`${root}index.html`,'authored HTML'],[`${root}assets/player/main.js`,player],['components/Authored.tsx','authored source']]);
+  const files=[...contents].map(([filename])=>({filename,status:'added',additions:1,deletions:0}));
+  const diff=files.map(({filename})=>`diff --git a/${filename} b/${filename}\nnew file mode 100644\n@@ -0,0 +1 @@\n+${contents.get(filename)}\n`).join('');
+  const manifest={...trusted,files:files.filter(item=>item.filename.startsWith(root)).map(({filename})=>({path:filename,kind:filename.endsWith('index.html') ? 'authored' : filename.endsWith('main.js') ? 'adapted-player' : 'generated',mode:'100644',bytes:Buffer.byteLength(contents.get(filename)),sha256:sha(contents.get(filename)),originalSha256:sha(filename.endsWith('main.js') ? original : contents.get(filename)),...(filename.endsWith('main.js') ? {patches} : {})}))};
+  const readBlob=path=>({mode:'100644',type:'blob',data:Buffer.from(contents.get(path))});
+  const context=projectVisualDiff(diff,files,manifest,readBlob);
+  assert.ok(context.includes('+authored HTML'));assert.ok(context.includes('+authored source'));
+  assert.equal(context.includes('+generated bytes'),false);
+  for(const patch of patches) {assert.ok(context.includes(JSON.stringify(patch.before)));assert.ok(context.includes(JSON.stringify(patch.after)));}
+  assert.throws(()=>projectVisualDiff(diff,files,manifest,()=>({mode:'100644',type:'blob',data:Buffer.from('tampered')})),/identity mismatch/);
+  for(const change of [{mode:'100755'},{type:'commit'}]) assert.throws(()=>projectVisualDiff(diff,files,manifest,path=>({...readBlob(path),...change})),/identity mismatch/);
+  const edit=fn=>{const value=structuredClone(manifest);fn(value);return value;};
+  assert.throws(()=>projectVisualDiff(diff,files,edit(value=>value.files.shift()),readBlob),/Unknown export/);
+  assert.throws(()=>projectVisualDiff(diff,files,edit(value=>value.source.commit='unknown'),readBlob),/provenance/);
+  assert.throws(()=>projectVisualDiff(diff,files,edit(value=>value.files[1].kind='generated'),readBlob),/cannot be hidden/);
+  assert.throws(()=>projectVisualDiff(diff,files,edit(value=>value.files[0].originalSha256=sha('different export')),readBlob),/Unverified/);
+  assert.throws(()=>projectVisualDiff(diff,files,edit(value=>value.files[2].patches[0].before+='hidden change'),readBlob),/Incomplete authored/);
+  assert.throws(()=>projectVisualDiff(diff.slice(0,diff.lastIndexOf('diff --git ')),files,manifest,readBlob),/coverage/);
 });
 test('all three base review contracts are supplied without executable authority', () => {
   const source=readFileSync(new URL('../scripts/visual-review/ai-review.mjs',import.meta.url),'utf8');
@@ -367,7 +435,7 @@ test('only the two proven zero-generation steps are free; failed and variant pai
   await assert.rejects(paidAttempts(async path=>path.includes('/workflows/') ? {total_count:1,workflow_runs:[{id:999,status:'completed',updated_at:timestamp}]} : {total_count:1,jobs:[{steps:[{status:'completed',conclusion:'failure',started_at:timestamp}]}]},now));
 });
 
-test('prepared exact-head evidence allows cheap paid requests beyond five; cap, replay and stale revisions issue none', async () => {
+test('complete 415-file evidence allows cheap paid requests beyond five; truncated inventories, cap, replay and stale revisions issue none', async () => {
   const {mkdtempSync,writeFileSync,rmSync}=await import('node:fs');
   const {tmpdir}=await import('node:os');
   const {join}=await import('node:path');
@@ -384,6 +452,13 @@ with zipfile.ZipFile(sys.argv[1]+'/fixture.zip','w') as z:
     writeArchive();
     let reservations=4,requestPhase=false,stale=false,replayed=false,closeDuringModel=false,closed=false;
     let modelResult=clean;
+    const files=Array.from({length:415},(_,index)=>({filename:`components/Asset${index}.tsx`,additions:1,deletions:1}));
+    let inventory=files;
+    let diff=files.map(({filename})=>`diff --git a/${filename} b/${filename}\n@@ -1 +1 @@\n-old\n+new\n`).join('');
+    const exportData=Buffer.from('new\n');
+    const trusted=JSON.parse(readFileSync(new URL('../scripts/visual-review/physiq-export.json',import.meta.url),'utf8'));
+    const fixture={path:'public/presentations/physiq/assets/fixture.json',kind:'generated',mode:'100644',bytes:exportData.length,sha256:createHash('sha256').update(exportData).digest('hex'),originalSha256:createHash('sha256').update(exportData).digest('hex')};
+    let exportManifest={...trusted,files:[fixture]},assets=false,blob={mode:'100644',type:'blob',data:exportData};
     const calls=[],writes=[];
     const fetcher=async(url,options)=>{
       calls.push(url);
@@ -394,13 +469,17 @@ with zipfile.ZipFile(sys.argv[1]+'/fixture.zip','w') as z:
       if(options.method==='POST') {writes.push(JSON.parse(options.body));return new Response('{}');}
       let response;
       if(url.endsWith('/actions/runs/7')) response=run;
-      else if(url.endsWith('/pulls/1') && options.headers.Accept==='application/vnd.github.diff') return new Response('diff --git a/components/Header.tsx b/components/Header.tsx\n@@ -1 +1 @@\n-old\n+new\n');
-      else if(url.endsWith('/pulls/1')) response={...pr,state:closed ? 'closed' : 'open',head:{sha:stale ? 'new-head' : 'head'},changed_files:1,labels:[]};
+      else if(url.endsWith('/pulls/1') && options.headers.Accept==='application/vnd.github.diff') throw new Error('GitHub raw diff exceeds 300 files');
+      else if(url.endsWith('/pulls/1')) response={...pr,state:closed ? 'closed' : 'open',head:{sha:stale ? 'new-head' : 'head'},changed_files:files.length,labels:[]};
       else if(url.includes('/statuses?')) response=replayed ? [{context:'AI visual review',description:'PR1 base: request claimed; no retries'}] : [];
-      else if(url.includes('/pulls/1/files?')) response=[{filename:'components/Header.tsx',additions:1,deletions:1}];
+      else if(url.includes('/pulls/1/files?')) {
+        const page=Number(new URL(url).searchParams.get('page'));
+        response=inventory.slice((page-1)*100,page*100);
+      }
       else if(url.includes('/actions/runs/7/artifacts?')) response={total_count:1,artifacts:[{id:9,name:'visual-review-pr-1-head',size_in_bytes:1000,expired:false}]};
       else if(url.endsWith('/actions/artifacts/9/zip')) return new Response(readFileSync(join(directory,'fixture.zip')));
-      else if(url.includes('/git/trees/')) response={truncated:false,tree:REQUIRED.map(name=>({type:'blob',sha:name,path:`e2e/references/${name.replace('.png','-consistency-linux.png')}`}))};
+      else if(url.includes('/git/trees/')) response={truncated:false,tree:[...REQUIRED.map(name=>({type:'blob',sha:name,path:`e2e/references/${name.replace('.png','-consistency-linux.png')}`})),...(assets ? [{type:'blob',path:ASSET_MANIFEST,sha:'trusted-manifest'}] : [])]};
+      else if(url.includes(`/contents/${ASSET_MANIFEST}?`)) return new Response(JSON.stringify(exportManifest));
       else if(url.includes('/contents/')) return new Response('trusted base contract');
       else if(url.includes('/git/blobs/')) response={encoding:'base64',content:png.toString('base64')};
       else if(url.includes('/workflows/ai-visual-review.yml/runs?')) response={total_count:reservations+(requestPhase ? 1 : 0),workflow_runs:Array.from({length:reservations+(requestPhase ? 1 : 0)},(_,i)=>({id:i+1,status:'in_progress',updated_at:new Date().toISOString()}))};
@@ -408,51 +487,87 @@ with zipfile.ZipFile(sys.argv[1]+'/fixture.zip','w') as z:
       else throw new Error(`Unexpected endpoint ${url}`);
       return new Response(JSON.stringify(response));
     };
+    const gitDiff=(actualRepository,base,head,options={})=>{
+      assert.equal(actualRepository,repository);assert.equal(base,pr.base.sha);assert.equal(head,pr.head.sha);
+      return options.consume ? options.consume(diff,()=>blob) : diff;
+    };
     const env={GITHUB_REPOSITORY:repository,GITHUB_EVENT_PATH:event,GITHUB_EVENT_NAME:'workflow_dispatch',GITHUB_RUN_ATTEMPT:'1',GITHUB_RUN_ID:'5',GITHUB_OUTPUT:output,GITHUB_STEP_SUMMARY:join(directory,'summary.md'),RUNNER_TEMP:directory,OPENAI_API_KEY:'opaque'};
-    await main({env,fetcher});
+    inventory=files.slice(0,300);
+    await assert.rejects(main({env,fetcher,gitDiff}),/PR file inventory truncated/);
+    assert.equal(calls.some(url=>new URL(url).origin === 'https://api.openai.com'),false);
+    assert.equal(writes.length,0);
+    assert.equal(readFileSync(output,'utf8'),'');
+    calls.length=0;inventory=files;assets=true;
+    const originalPath=files[0].filename;files[0].filename=fixture.path;
+    diff=files.map(({filename})=>`diff --git a/${filename} b/${filename}\n@@ -1 +1 @@\n-old\n+new\n`).join('');
+    for(const scenario of ['unknown','hash','mode','type','provenance','hidden HTML','truncated']) {
+      exportManifest={...trusted,files:[{...fixture}]};blob={mode:'100644',type:'blob',data:exportData};
+      const complete=diff;
+      if(scenario==='unknown') exportManifest.files=[];
+      if(scenario==='hash') blob.data=Buffer.from('bad\n');
+      if(scenario==='mode') blob.mode='100755';
+      if(scenario==='type') blob.type='commit';
+      if(scenario==='provenance') exportManifest.source={...trusted.source,commit:'invalid'};
+      if(scenario==='hidden HTML') {files[0].filename='public/presentations/physiq/index.html';exportManifest.files[0].path=files[0].filename;diff=diff.replaceAll(fixture.path,files[0].filename);}
+      if(scenario==='truncated') diff=diff.slice(0,diff.lastIndexOf('diff --git '));
+      await assert.rejects(main({env,fetcher,gitDiff}));
+      assert.equal(calls.some(url=>new URL(url).origin === 'https://api.openai.com'),false,scenario);
+      assert.equal(readFileSync(output,'utf8'),'');
+      files[0].filename=fixture.path;diff=complete;calls.length=0;writes.length=0;
+    }
+    exportManifest={...trusted,files:[{...fixture}]};blob={mode:'100644',type:'blob',data:exportData};
+    await main({env,fetcher,gitDiff});
+    const projected=JSON.parse(readFileSync(join(directory,'ai-visual-request.json'),'utf8')).body.input[0].content[0].text;
+    assert.ok(projected.includes(fixture.sha256));assert.equal(projected.includes(`diff --git a/${fixture.path}`),false);
+    writeFileSync(output,'');calls.length=0;writes.length=0;assets=false;files[0].filename=originalPath;
+    diff=files.map(({filename})=>`diff --git a/${filename} b/${filename}\n@@ -1 +1 @@\n-old\n+new\n`).join('');
+    await main({env,fetcher,gitDiff});
+    assert.deepEqual(calls.filter(url=>url.includes('/pulls/1/files?')).map(url=>Number(new URL(url).searchParams.get('page'))),[1,2,3,4,5]);
+    const prepared=JSON.parse(readFileSync(join(directory,'ai-visual-request.json'),'utf8'));
+    assert.ok(JSON.stringify(prepared.body).includes(files.at(-1).filename));
     assert.equal(readFileSync(output,'utf8'),'reserved_micro_usd=180050\nready=true\n');
     assert.equal(calls.filter(url=>new URL(url).origin === 'https://api.openai.com').length,1);
     assert.equal(calls.find(url=>new URL(url).origin === 'https://api.openai.com').endsWith('/input_tokens'),true);
     calls.length=0;
     requestPhase=true;
-    await main({env,fetcher,request:true});
+    await main({env,fetcher,gitDiff,request:true});
     assert.equal(calls.filter(url=>new URL(url).origin === 'https://api.openai.com').length,2);
     assert.match(writes.at(-1).description,/complete review: 16 captures/);
     assert.match(readFileSync(env.GITHUB_STEP_SUMMARY,'utf8'),/^Validated review head against base/);
     reservations=6;calls.length=0;
-    await main({env:{...env,GITHUB_RUN_ID:'7'},fetcher,request:true});
+    await main({gitDiff,env:{...env,GITHUB_RUN_ID:'7'},fetcher,request:true});
     assert.equal(calls.filter(url=>new URL(url).origin === 'https://api.openai.com').length,2);
     reservations=4;
     calls.length=0;writes.length=0;
     modelResult={...clean,findings:[{rule:'Transparent artwork wrappers',location:'components/Footer.tsx',explanation:'Opaque X wrapper',evidence:['footer-desktop-light.png','base/footer-desktop-light.png']}]};
     writeFileSync(event,JSON.stringify({workflow_run:{id:7}}));
-    await main({env:{...env,GITHUB_EVENT_NAME:'workflow_run',ENABLED:'true'},fetcher,request:true});
+    await main({gitDiff,env:{...env,GITHUB_EVENT_NAME:'workflow_run',ENABLED:'true'},fetcher,request:true});
     assert.equal(calls.filter(url=>new URL(url).origin === 'https://api.openai.com').length,2);
     assert.equal(writes.at(-1).state,'failure');
     assert.match(writes.at(-1).description,/1 proven design violations/);
     assert.match(readFileSync(env.GITHUB_STEP_SUMMARY,'utf8'),/^Validated review head against base/);
     modelResult=clean;writeFileSync(event,JSON.stringify({inputs:{source_run_id:'7'}}));
     calls.length=0;writes.length=0;closeDuringModel=true;
-    await assert.rejects(main({env,fetcher,request:true}),/Revisions changed during review/);
+    await assert.rejects(main({env,fetcher,gitDiff,request:true}),/Revisions changed during review/);
     assert.equal(writes.length,1);assert.match(writes[0].description,/request claimed/);
     closeDuringModel=false;closed=false;
     calls.length=0;reservations=20;
-    await assert.rejects(main({env,fetcher,request:true}),/paid attempt cap/);
+    await assert.rejects(main({env,fetcher,gitDiff,request:true}),/paid attempt cap/);
     assert.equal(calls.some(url=>new URL(url).origin === 'https://api.openai.com'),false);
     calls.length=0;stale=true;
-    await assert.rejects(main({env,fetcher,request:true}),/Stale immutable source head/);
+    await assert.rejects(main({env,fetcher,gitDiff,request:true}),/Stale immutable source head/);
     assert.equal(calls.length,2);
     stale=false;replayed=true;calls.length=0;
-    await main({env,fetcher,request:true});
+    await main({env,fetcher,gitDiff,request:true});
     assert.equal(calls.some(url=>url.includes('/jobs?') || new URL(url).origin === 'https://api.openai.com'),false);
     replayed=false;requestPhase=false;reservations=0;calls.length=0;writes.length=0;
     writeArchive('old-base');
-    await assert.rejects(main({env,fetcher}),/Artifact metadata mismatch/);
+    await assert.rejects(main({env,fetcher,gitDiff}),/Artifact metadata mismatch/);
     assert.equal(writes.length,0);
     assert.equal(calls.some(url=>new URL(url).origin === 'https://api.openai.com'),false);
     writeArchive();calls.length=0;
     writeFileSync(event,JSON.stringify({workflow_run:{id:7}}));
-    await assert.rejects(main({env:{...env,GITHUB_EVENT_NAME:'workflow_run'},fetcher}),/Automatic AI review disabled/);
+    await assert.rejects(main({gitDiff,env:{...env,GITHUB_EVENT_NAME:'workflow_run'},fetcher}),/Automatic AI review disabled/);
     assert.equal(writes.length,2);
     assert.equal(writes.at(-1).state,'error');
     assert.equal(calls.some(url=>new URL(url).origin === 'https://api.openai.com'),false);

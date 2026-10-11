@@ -1,0 +1,2570 @@
+{
+  "schemaVersion": 1,
+  "root": "public/presentations/physiq/",
+  "source": {
+    "repository": "Itakello/Academic-Repository",
+    "commit": "0f53a1cdf0355e334e63def6735c1c36246b79a8",
+    "path": "2025/04-Thesis_Master/presentation.pptx",
+    "exporter": "Apple Keynote",
+    "resolution": "1920x1080",
+    "proof": "Attended comparison against the preserved original HD export: 311 files unchanged, two player patches, authored HTML and three audio-stripped videos. Digests establish byte identity, not security clearance."
+  },
+  "files": [
+    {
+      "path": "public/presentations/physiq/assets/0DA56FC0-D25C-4853-8974-0FA8842BD9C3/0DA56FC0-D25C-4853-8974-0FA8842BD9C3.json",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 6478,
+      "sha256": "e4b4ebc5eeb7fd507c521327db76b61e34723115afde117a643f88dc908be6d0",
+      "originalSha256": "e4b4ebc5eeb7fd507c521327db76b61e34723115afde117a643f88dc908be6d0"
+    },
+    {
+      "path": "public/presentations/physiq/assets/0DA56FC0-D25C-4853-8974-0FA8842BD9C3/0DA56FC0-D25C-4853-8974-0FA8842BD9C3.jsonp",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 6548,
+      "sha256": "2c8ff89ff59c3c2c74e0dc0f94f7e3ec7ad8c11b780c992fa6965c8786e27100",
+      "originalSha256": "2c8ff89ff59c3c2c74e0dc0f94f7e3ec7ad8c11b780c992fa6965c8786e27100"
+    },
+    {
+      "path": "public/presentations/physiq/assets/0DA56FC0-D25C-4853-8974-0FA8842BD9C3/assets/0DA56FC0-D25C-4853-8974-0FA8842BD9C3.pdf",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 218717,
+      "sha256": "bf745f8957df915d7015b7681d95dccd9ac7cbb27481426292d96b1edf3ae30e",
+      "originalSha256": "bf745f8957df915d7015b7681d95dccd9ac7cbb27481426292d96b1edf3ae30e"
+    },
+    {
+      "path": "public/presentations/physiq/assets/0DA56FC0-D25C-4853-8974-0FA8842BD9C3/assets/0DA56FC0-D25C-4853-8974-0FA8842BD9C3.pdfp",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 296115,
+      "sha256": "46fa46aa9e4ada6bfc43d17457a0fe11e9a3f572ab007ceac8b73e856a4e36d6",
+      "originalSha256": "46fa46aa9e4ada6bfc43d17457a0fe11e9a3f572ab007ceac8b73e856a4e36d6"
+    },
+    {
+      "path": "public/presentations/physiq/assets/0DA56FC0-D25C-4853-8974-0FA8842BD9C3/thumbnail.jpeg",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 9190,
+      "sha256": "470945d772467d64ce33f11558a980380f5eea05becf02222ce2a1f643ee9302",
+      "originalSha256": "470945d772467d64ce33f11558a980380f5eea05becf02222ce2a1f643ee9302"
+    },
+    {
+      "path": "public/presentations/physiq/assets/136F4779-A0A8-4E0E-8AC7-22D02741B876/136F4779-A0A8-4E0E-8AC7-22D02741B876.json",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 4873,
+      "sha256": "974544d92ad9eb1f9a32830169a5847f754b9a188b4bf4a6e69a570a668c6c90",
+      "originalSha256": "974544d92ad9eb1f9a32830169a5847f754b9a188b4bf4a6e69a570a668c6c90"
+    },
+    {
+      "path": "public/presentations/physiq/assets/136F4779-A0A8-4E0E-8AC7-22D02741B876/136F4779-A0A8-4E0E-8AC7-22D02741B876.jsonp",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 4943,
+      "sha256": "d354835e64ba84389b06fe7d6045f4150c2ceaedc98d1288a94eaac543ba9304",
+      "originalSha256": "d354835e64ba84389b06fe7d6045f4150c2ceaedc98d1288a94eaac543ba9304"
+    },
+    {
+      "path": "public/presentations/physiq/assets/136F4779-A0A8-4E0E-8AC7-22D02741B876/assets/136F4779-A0A8-4E0E-8AC7-22D02741B876.pdf",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 18675,
+      "sha256": "1dcd133fc9e33113816ece5f08e58b525808cd4dfa77cf78c5852c0237f2eb15",
+      "originalSha256": "1dcd133fc9e33113816ece5f08e58b525808cd4dfa77cf78c5852c0237f2eb15"
+    },
+    {
+      "path": "public/presentations/physiq/assets/136F4779-A0A8-4E0E-8AC7-22D02741B876/assets/136F4779-A0A8-4E0E-8AC7-22D02741B876.pdfp",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 25321,
+      "sha256": "812fa5345dfc59e105143962e217749edf3621d5c33443133fccba1f7ad8a17f",
+      "originalSha256": "812fa5345dfc59e105143962e217749edf3621d5c33443133fccba1f7ad8a17f"
+    },
+    {
+      "path": "public/presentations/physiq/assets/136F4779-A0A8-4E0E-8AC7-22D02741B876/thumbnail.jpeg",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 5150,
+      "sha256": "0f123002fc703bfbed3f95453a871c2881383670bfa276b94c6f2bf7da8f6675",
+      "originalSha256": "0f123002fc703bfbed3f95453a871c2881383670bfa276b94c6f2bf7da8f6675"
+    },
+    {
+      "path": "public/presentations/physiq/assets/23849176-2758-4640-BB87-15007E60E30A/23849176-2758-4640-BB87-15007E60E30A.json",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 10740,
+      "sha256": "8f5553a0e8ff75ba8ba581f32de624fbc31a67a770e85a60ec09435db1623fba",
+      "originalSha256": "8f5553a0e8ff75ba8ba581f32de624fbc31a67a770e85a60ec09435db1623fba"
+    },
+    {
+      "path": "public/presentations/physiq/assets/23849176-2758-4640-BB87-15007E60E30A/23849176-2758-4640-BB87-15007E60E30A.jsonp",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 10810,
+      "sha256": "aaddf55658b3c27c793201d04cd71b9a6a78f763d23a2c253a0daff479487765",
+      "originalSha256": "aaddf55658b3c27c793201d04cd71b9a6a78f763d23a2c253a0daff479487765"
+    },
+    {
+      "path": "public/presentations/physiq/assets/23849176-2758-4640-BB87-15007E60E30A/assets/23849176-2758-4640-BB87-15007E60E30A.pdf",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 176587,
+      "sha256": "2f23c4efaa973dcd0b9870e89819e494ff0e5540e8fc8d603273e120a6aed2cc",
+      "originalSha256": "2f23c4efaa973dcd0b9870e89819e494ff0e5540e8fc8d603273e120a6aed2cc"
+    },
+    {
+      "path": "public/presentations/physiq/assets/23849176-2758-4640-BB87-15007E60E30A/assets/23849176-2758-4640-BB87-15007E60E30A.pdfp",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 239269,
+      "sha256": "34d8a5c185f1a400089420a20ee8b435a9c07e14cfd3d5d7dbdd2fb7ef1e806d",
+      "originalSha256": "34d8a5c185f1a400089420a20ee8b435a9c07e14cfd3d5d7dbdd2fb7ef1e806d"
+    },
+    {
+      "path": "public/presentations/physiq/assets/23849176-2758-4640-BB87-15007E60E30A/thumbnail.jpeg",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 10352,
+      "sha256": "2c148c7c68ff1a5769cedf8d1cc94be363b919694c1493f5053986e2041600b3",
+      "originalSha256": "2c148c7c68ff1a5769cedf8d1cc94be363b919694c1493f5053986e2041600b3"
+    },
+    {
+      "path": "public/presentations/physiq/assets/2E75A4D0-24D5-485F-B96B-6EBB6DC02A6C/2E75A4D0-24D5-485F-B96B-6EBB6DC02A6C.json",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 75970,
+      "sha256": "8758a7af2f74c8d20506c0079c2793b4c3a920b24ddc22504708d3ce3cfe83f2",
+      "originalSha256": "8758a7af2f74c8d20506c0079c2793b4c3a920b24ddc22504708d3ce3cfe83f2"
+    },
+    {
+      "path": "public/presentations/physiq/assets/2E75A4D0-24D5-485F-B96B-6EBB6DC02A6C/2E75A4D0-24D5-485F-B96B-6EBB6DC02A6C.jsonp",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 76040,
+      "sha256": "c1e9ff6a131cdee9bb254eccfb7213f40ea60bf1c27160f049c9f0d155f5f6ab",
+      "originalSha256": "c1e9ff6a131cdee9bb254eccfb7213f40ea60bf1c27160f049c9f0d155f5f6ab"
+    },
+    {
+      "path": "public/presentations/physiq/assets/2E75A4D0-24D5-485F-B96B-6EBB6DC02A6C/assets/2E75A4D0-24D5-485F-B96B-6EBB6DC02A6C.pdf",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 148945,
+      "sha256": "6a2defa30a3ea3da26653b0e38b160a7bed8ebc55d0ec6a779430ca44bc1a54d",
+      "originalSha256": "6a2defa30a3ea3da26653b0e38b160a7bed8ebc55d0ec6a779430ca44bc1a54d"
+    },
+    {
+      "path": "public/presentations/physiq/assets/2E75A4D0-24D5-485F-B96B-6EBB6DC02A6C/assets/2E75A4D0-24D5-485F-B96B-6EBB6DC02A6C.pdfp",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 201511,
+      "sha256": "17352a2e29fb63f56585b4c125ef88743a0a297b610fd8a757f001e026d85ef1",
+      "originalSha256": "17352a2e29fb63f56585b4c125ef88743a0a297b610fd8a757f001e026d85ef1"
+    },
+    {
+      "path": "public/presentations/physiq/assets/2E75A4D0-24D5-485F-B96B-6EBB6DC02A6C/thumbnail.jpeg",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 7804,
+      "sha256": "36ae4cb594a3d2e9dc174a8927064ed3f257881f51fc1f8469e13fe21d6dd960",
+      "originalSha256": "36ae4cb594a3d2e9dc174a8927064ed3f257881f51fc1f8469e13fe21d6dd960"
+    },
+    {
+      "path": "public/presentations/physiq/assets/39F765A3-6BED-43D0-B32E-EF042EF06B12/39F765A3-6BED-43D0-B32E-EF042EF06B12.json",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 5243,
+      "sha256": "73a20cbc1a2573256b2f9ce58b4713af193fdf99a5811c3a168c4e3831d71880",
+      "originalSha256": "73a20cbc1a2573256b2f9ce58b4713af193fdf99a5811c3a168c4e3831d71880"
+    },
+    {
+      "path": "public/presentations/physiq/assets/39F765A3-6BED-43D0-B32E-EF042EF06B12/39F765A3-6BED-43D0-B32E-EF042EF06B12.jsonp",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 5313,
+      "sha256": "30744c9cec72e365bed23e9c42e92213612e6752bc29afba25767c5b74c98a4d",
+      "originalSha256": "30744c9cec72e365bed23e9c42e92213612e6752bc29afba25767c5b74c98a4d"
+    },
+    {
+      "path": "public/presentations/physiq/assets/39F765A3-6BED-43D0-B32E-EF042EF06B12/assets/39F765A3-6BED-43D0-B32E-EF042EF06B12.pdf",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 23705,
+      "sha256": "dbc7064c349aacffb609c6e8360c50066e13cc0dd668b2a4b777323c2054c43c",
+      "originalSha256": "dbc7064c349aacffb609c6e8360c50066e13cc0dd668b2a4b777323c2054c43c"
+    },
+    {
+      "path": "public/presentations/physiq/assets/39F765A3-6BED-43D0-B32E-EF042EF06B12/assets/39F765A3-6BED-43D0-B32E-EF042EF06B12.pdfp",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 32146,
+      "sha256": "12a3e59fe7c3ca2f4694152bce5133bc301f0f9d1b6e358801763ec7e7a40c43",
+      "originalSha256": "12a3e59fe7c3ca2f4694152bce5133bc301f0f9d1b6e358801763ec7e7a40c43"
+    },
+    {
+      "path": "public/presentations/physiq/assets/39F765A3-6BED-43D0-B32E-EF042EF06B12/thumbnail.jpeg",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 6594,
+      "sha256": "b4c8dc9145f50d4e8973dcd406c2bf386b42c968b1123502aa01b886bb4b9545",
+      "originalSha256": "b4c8dc9145f50d4e8973dcd406c2bf386b42c968b1123502aa01b886bb4b9545"
+    },
+    {
+      "path": "public/presentations/physiq/assets/3D009F02-F170-4023-9C8A-581EF3F1A600/3D009F02-F170-4023-9C8A-581EF3F1A600.json",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 4317,
+      "sha256": "7278b3955f78680bee7fd11d961a829e1d5136f0ce27853a7229dcff73f98659",
+      "originalSha256": "7278b3955f78680bee7fd11d961a829e1d5136f0ce27853a7229dcff73f98659"
+    },
+    {
+      "path": "public/presentations/physiq/assets/3D009F02-F170-4023-9C8A-581EF3F1A600/3D009F02-F170-4023-9C8A-581EF3F1A600.jsonp",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 4387,
+      "sha256": "57f36b417e9dc1659ac21efe70303a2b6f6869777f0d629e258a24518a556d26",
+      "originalSha256": "57f36b417e9dc1659ac21efe70303a2b6f6869777f0d629e258a24518a556d26"
+    },
+    {
+      "path": "public/presentations/physiq/assets/3D009F02-F170-4023-9C8A-581EF3F1A600/assets/3D009F02-F170-4023-9C8A-581EF3F1A600.pdf",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 98253,
+      "sha256": "a64daa78405353af2ea655b604647f9febe9c61285309d91feb71550b70aa7d5",
+      "originalSha256": "a64daa78405353af2ea655b604647f9febe9c61285309d91feb71550b70aa7d5"
+    },
+    {
+      "path": "public/presentations/physiq/assets/3D009F02-F170-4023-9C8A-581EF3F1A600/assets/3D009F02-F170-4023-9C8A-581EF3F1A600.pdfp",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 133015,
+      "sha256": "bc23e6dffad76267db1e5cc0d0ac1f11d1842bbbdc2e1143bfe430a80e1d00cf",
+      "originalSha256": "bc23e6dffad76267db1e5cc0d0ac1f11d1842bbbdc2e1143bfe430a80e1d00cf"
+    },
+    {
+      "path": "public/presentations/physiq/assets/3D009F02-F170-4023-9C8A-581EF3F1A600/thumbnail.jpeg",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 3222,
+      "sha256": "b2bacc5c8b77fe701ec920dde77d2ce405bc5f696df7fc579d738dc650644fde",
+      "originalSha256": "b2bacc5c8b77fe701ec920dde77d2ce405bc5f696df7fc579d738dc650644fde"
+    },
+    {
+      "path": "public/presentations/physiq/assets/427EA23A-B794-4313-A8E9-F56264125502/427EA23A-B794-4313-A8E9-F56264125502.json",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 6050,
+      "sha256": "7c37809eca52058e2602e9f63f3ecd3dbd4a3d5585c931aff1345e8e25e70c8e",
+      "originalSha256": "7c37809eca52058e2602e9f63f3ecd3dbd4a3d5585c931aff1345e8e25e70c8e"
+    },
+    {
+      "path": "public/presentations/physiq/assets/427EA23A-B794-4313-A8E9-F56264125502/427EA23A-B794-4313-A8E9-F56264125502.jsonp",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 6120,
+      "sha256": "406fe45e4d9fe4b0965ff786628a8102010eab5e72b746faec000b6f4632683f",
+      "originalSha256": "406fe45e4d9fe4b0965ff786628a8102010eab5e72b746faec000b6f4632683f"
+    },
+    {
+      "path": "public/presentations/physiq/assets/427EA23A-B794-4313-A8E9-F56264125502/assets/427EA23A-B794-4313-A8E9-F56264125502.pdf",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 56490,
+      "sha256": "4d203e4c3c7e63860687140aa27cb18afeba8ae48997fdeb1e643c185550ff5a",
+      "originalSha256": "4d203e4c3c7e63860687140aa27cb18afeba8ae48997fdeb1e643c185550ff5a"
+    },
+    {
+      "path": "public/presentations/physiq/assets/427EA23A-B794-4313-A8E9-F56264125502/assets/427EA23A-B794-4313-A8E9-F56264125502.pdfp",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 76443,
+      "sha256": "52e7e6163164aec02e0648c4c01e69e7aea2f2dc3e86c33c9b8c02b979b0391c",
+      "originalSha256": "52e7e6163164aec02e0648c4c01e69e7aea2f2dc3e86c33c9b8c02b979b0391c"
+    },
+    {
+      "path": "public/presentations/physiq/assets/427EA23A-B794-4313-A8E9-F56264125502/thumbnail.jpeg",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 6484,
+      "sha256": "931166827fc4fb327388f85396592d9f341e5ef76d46fb71bda34407bae22a8a",
+      "originalSha256": "931166827fc4fb327388f85396592d9f341e5ef76d46fb71bda34407bae22a8a"
+    },
+    {
+      "path": "public/presentations/physiq/assets/4B9CE356-0AA3-401E-8409-81147053F827/4B9CE356-0AA3-401E-8409-81147053F827.json",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 41255,
+      "sha256": "77f6d2701104d6f9047256b0ccc2bc494285b94e86d0a09cf55cca862796731b",
+      "originalSha256": "77f6d2701104d6f9047256b0ccc2bc494285b94e86d0a09cf55cca862796731b"
+    },
+    {
+      "path": "public/presentations/physiq/assets/4B9CE356-0AA3-401E-8409-81147053F827/4B9CE356-0AA3-401E-8409-81147053F827.jsonp",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 41325,
+      "sha256": "9d2a11ffd940f16d6ea7f0bb90a2e05cbde9a80a43731d493333365245d1278f",
+      "originalSha256": "9d2a11ffd940f16d6ea7f0bb90a2e05cbde9a80a43731d493333365245d1278f"
+    },
+    {
+      "path": "public/presentations/physiq/assets/4B9CE356-0AA3-401E-8409-81147053F827/assets/4B9CE356-0AA3-401E-8409-81147053F827.pdf",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 313239,
+      "sha256": "ee3fecf3e2a1b51147d08cf3a1cf4de49461925790c47b4c1a51849199429829",
+      "originalSha256": "ee3fecf3e2a1b51147d08cf3a1cf4de49461925790c47b4c1a51849199429829"
+    },
+    {
+      "path": "public/presentations/physiq/assets/4B9CE356-0AA3-401E-8409-81147053F827/assets/4B9CE356-0AA3-401E-8409-81147053F827.pdfp",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 424609,
+      "sha256": "9f7579c45d1a5d8aa43679b0f6e13bd58e764779d5027e48e90cf802d13fdab6",
+      "originalSha256": "9f7579c45d1a5d8aa43679b0f6e13bd58e764779d5027e48e90cf802d13fdab6"
+    },
+    {
+      "path": "public/presentations/physiq/assets/4B9CE356-0AA3-401E-8409-81147053F827/assets/media1.mp4-0.0000-14.0990.mp4",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 3151977,
+      "sha256": "e47c0f524c210145752b45353e4337da2ab5e89a687b1d3fd534f0551667151a",
+      "originalSha256": "29229adf72f97fbf027caa036e9285969190a0fbb2a1cb1cae706ec5113e0438",
+      "adaptation": {
+        "operation": "remove-audio-copy-video",
+        "videoStreamSha256": "b24b00ec6ed18f4fbe654b18d15505e3135501e9d510d50b2df6ba4c4bbb3fd3",
+        "audioStreamsAfter": 0,
+        "proof": "Attended comparison verified identical encoded video bytes, dimensions and frame counts; remux container duration can differ."
+      }
+    },
+    {
+      "path": "public/presentations/physiq/assets/4B9CE356-0AA3-401E-8409-81147053F827/assets/media2.mp4-0.0000-14.1000.mp4",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 3053228,
+      "sha256": "0032ea59f37c2e152872b589eb493b417d12c04a3a2117fb2c47c4089534a2c5",
+      "originalSha256": "e714bc57d1b67ebce3e0850f9369d5b420440484f5b90e5878974273b0a32733",
+      "adaptation": {
+        "operation": "remove-audio-copy-video",
+        "videoStreamSha256": "eab6c57eae2497b9d8a5f851a2c673a7c89f5f3197edeb8d0a3f043e80230c9e",
+        "audioStreamsAfter": 0,
+        "proof": "Attended comparison verified identical encoded video bytes, dimensions and frame counts; remux container duration can differ."
+      }
+    },
+    {
+      "path": "public/presentations/physiq/assets/4B9CE356-0AA3-401E-8409-81147053F827/assets/media3.mp4-0.0000-14.1120.mp4",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 4343050,
+      "sha256": "97bce4315c0d14f338d7e25b71fadbebd4ff0ac296a98fa974988066603268e0",
+      "originalSha256": "5feed9b13b29884615bca5f29eeb836887b6cbfd8c11a7201f8df651424c2d3d",
+      "adaptation": {
+        "operation": "remove-audio-copy-video",
+        "videoStreamSha256": "5a5cacd588e273cb0139ee9e1afccade2dd775048b8be1b509e733b72a8d2dee",
+        "audioStreamsAfter": 0,
+        "proof": "Attended comparison verified identical encoded video bytes, dimensions and frame counts; remux container duration can differ."
+      }
+    },
+    {
+      "path": "public/presentations/physiq/assets/4B9CE356-0AA3-401E-8409-81147053F827/thumbnail.jpeg",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 7716,
+      "sha256": "31b9fa9e42a970fb7b1f82f920f08e5fa5df4de7ced322a873e6cc4fdad3289c",
+      "originalSha256": "31b9fa9e42a970fb7b1f82f920f08e5fa5df4de7ced322a873e6cc4fdad3289c"
+    },
+    {
+      "path": "public/presentations/physiq/assets/5D8AE265-98B6-4FCE-8DFC-FE646D485CE6/5D8AE265-98B6-4FCE-8DFC-FE646D485CE6.json",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 4292,
+      "sha256": "ae215bccc1bbbb5a0c29cf0df49ff41c9466420187625999afa426bafa5c92cf",
+      "originalSha256": "ae215bccc1bbbb5a0c29cf0df49ff41c9466420187625999afa426bafa5c92cf"
+    },
+    {
+      "path": "public/presentations/physiq/assets/5D8AE265-98B6-4FCE-8DFC-FE646D485CE6/5D8AE265-98B6-4FCE-8DFC-FE646D485CE6.jsonp",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 4362,
+      "sha256": "3e2cbaa52c84e67d2d73961634c412e69e0798c6648ee023b0fc70d4b62d45e8",
+      "originalSha256": "3e2cbaa52c84e67d2d73961634c412e69e0798c6648ee023b0fc70d4b62d45e8"
+    },
+    {
+      "path": "public/presentations/physiq/assets/5D8AE265-98B6-4FCE-8DFC-FE646D485CE6/assets/5D8AE265-98B6-4FCE-8DFC-FE646D485CE6.pdf",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 9009,
+      "sha256": "61d8ad11c6d43463bd94632d8d92380949c4ba5d48ef7921068da39daf8460e4",
+      "originalSha256": "61d8ad11c6d43463bd94632d8d92380949c4ba5d48ef7921068da39daf8460e4"
+    },
+    {
+      "path": "public/presentations/physiq/assets/5D8AE265-98B6-4FCE-8DFC-FE646D485CE6/assets/5D8AE265-98B6-4FCE-8DFC-FE646D485CE6.pdfp",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 12256,
+      "sha256": "6e0a2669da4935e081d809da2a70f9f9ca44f6cc4fab066190a1ddb1b7efe4f7",
+      "originalSha256": "6e0a2669da4935e081d809da2a70f9f9ca44f6cc4fab066190a1ddb1b7efe4f7"
+    },
+    {
+      "path": "public/presentations/physiq/assets/5D8AE265-98B6-4FCE-8DFC-FE646D485CE6/thumbnail.jpeg",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 2776,
+      "sha256": "b144b99bcbeadbc94914b17a8b9df606469b5ab1c16c171caa3ea67eb39ada24",
+      "originalSha256": "b144b99bcbeadbc94914b17a8b9df606469b5ab1c16c171caa3ea67eb39ada24"
+    },
+    {
+      "path": "public/presentations/physiq/assets/5E3684E2-E639-41CD-9365-338ED322B10A/5E3684E2-E639-41CD-9365-338ED322B10A.json",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 4592,
+      "sha256": "8b7453525e07ca3858a2d68e49942f412dd720dbb29cd8cde25b3f7720d31b5f",
+      "originalSha256": "8b7453525e07ca3858a2d68e49942f412dd720dbb29cd8cde25b3f7720d31b5f"
+    },
+    {
+      "path": "public/presentations/physiq/assets/5E3684E2-E639-41CD-9365-338ED322B10A/5E3684E2-E639-41CD-9365-338ED322B10A.jsonp",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 4662,
+      "sha256": "9f599b059143a99cb0efa937d201a2df88dbaad2d60353774e815ef1829bd6a3",
+      "originalSha256": "9f599b059143a99cb0efa937d201a2df88dbaad2d60353774e815ef1829bd6a3"
+    },
+    {
+      "path": "public/presentations/physiq/assets/5E3684E2-E639-41CD-9365-338ED322B10A/assets/5E3684E2-E639-41CD-9365-338ED322B10A.pdf",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 24171,
+      "sha256": "a328e74ba63225ccb49a2a4174b6616608fb681eee31ab5a94f1719f5dedc6a8",
+      "originalSha256": "a328e74ba63225ccb49a2a4174b6616608fb681eee31ab5a94f1719f5dedc6a8"
+    },
+    {
+      "path": "public/presentations/physiq/assets/5E3684E2-E639-41CD-9365-338ED322B10A/assets/5E3684E2-E639-41CD-9365-338ED322B10A.pdfp",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 32750,
+      "sha256": "31fb3520751640430b9d4c296b3b3598bce8c23c43878a17e2a4202109075d31",
+      "originalSha256": "31fb3520751640430b9d4c296b3b3598bce8c23c43878a17e2a4202109075d31"
+    },
+    {
+      "path": "public/presentations/physiq/assets/5E3684E2-E639-41CD-9365-338ED322B10A/thumbnail.jpeg",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 5772,
+      "sha256": "19fdf6a50177b35519beb79dbf9e470d5cb81e240cb11f494162ad857e138246",
+      "originalSha256": "19fdf6a50177b35519beb79dbf9e470d5cb81e240cb11f494162ad857e138246"
+    },
+    {
+      "path": "public/presentations/physiq/assets/6451A784-A659-4F6C-978D-1F47A86B7320/6451A784-A659-4F6C-978D-1F47A86B7320.json",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 197277,
+      "sha256": "6d68a069614ac7e3600336a1cc0d54b9696c24dd469e10ee21b9b7a29ec05db4",
+      "originalSha256": "6d68a069614ac7e3600336a1cc0d54b9696c24dd469e10ee21b9b7a29ec05db4"
+    },
+    {
+      "path": "public/presentations/physiq/assets/6451A784-A659-4F6C-978D-1F47A86B7320/6451A784-A659-4F6C-978D-1F47A86B7320.jsonp",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 197347,
+      "sha256": "07f8336c609c4e8849b61852b547ebf8821b6a8b29dea194a6e5d3436aca8c01",
+      "originalSha256": "07f8336c609c4e8849b61852b547ebf8821b6a8b29dea194a6e5d3436aca8c01"
+    },
+    {
+      "path": "public/presentations/physiq/assets/6451A784-A659-4F6C-978D-1F47A86B7320/assets/6451A784-A659-4F6C-978D-1F47A86B7320.pdf",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 474520,
+      "sha256": "e6749ac6778103c7e461f1f929cfddc7818b56c0b00de0d1be24c511351aac41",
+      "originalSha256": "e6749ac6778103c7e461f1f929cfddc7818b56c0b00de0d1be24c511351aac41"
+    },
+    {
+      "path": "public/presentations/physiq/assets/6451A784-A659-4F6C-978D-1F47A86B7320/assets/6451A784-A659-4F6C-978D-1F47A86B7320.pdfp",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 642202,
+      "sha256": "d0d5f7fe583661286ea80897b57b12fc5486803e0ab79e3be0afd72bc95f7075",
+      "originalSha256": "d0d5f7fe583661286ea80897b57b12fc5486803e0ab79e3be0afd72bc95f7075"
+    },
+    {
+      "path": "public/presentations/physiq/assets/6451A784-A659-4F6C-978D-1F47A86B7320/thumbnail.jpeg",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 8005,
+      "sha256": "26dbc9f9bb70c4deb483cc13e3a8c8f58a0c0c0e2a19ccaf11a2955148d827e7",
+      "originalSha256": "26dbc9f9bb70c4deb483cc13e3a8c8f58a0c0c0e2a19ccaf11a2955148d827e7"
+    },
+    {
+      "path": "public/presentations/physiq/assets/6D1E84D4-F734-45B1-92E9-077848F5BC54/6D1E84D4-F734-45B1-92E9-077848F5BC54.json",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 107525,
+      "sha256": "147838ab4e9c9e2265e6d1bc03b4cc53ecf57e58a4d98af3474766f01fbdddac",
+      "originalSha256": "147838ab4e9c9e2265e6d1bc03b4cc53ecf57e58a4d98af3474766f01fbdddac"
+    },
+    {
+      "path": "public/presentations/physiq/assets/6D1E84D4-F734-45B1-92E9-077848F5BC54/6D1E84D4-F734-45B1-92E9-077848F5BC54.jsonp",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 107595,
+      "sha256": "994808c4024fc00e1c3b830aa8d669f9c5ee435fefdb11774835ad31e183b061",
+      "originalSha256": "994808c4024fc00e1c3b830aa8d669f9c5ee435fefdb11774835ad31e183b061"
+    },
+    {
+      "path": "public/presentations/physiq/assets/6D1E84D4-F734-45B1-92E9-077848F5BC54/assets/6D1E84D4-F734-45B1-92E9-077848F5BC54.pdf",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 168977,
+      "sha256": "809917e3a38f4701577f74a7893a54a4811b0f109a8624afc7106223b713c26e",
+      "originalSha256": "809917e3a38f4701577f74a7893a54a4811b0f109a8624afc7106223b713c26e"
+    },
+    {
+      "path": "public/presentations/physiq/assets/6D1E84D4-F734-45B1-92E9-077848F5BC54/assets/6D1E84D4-F734-45B1-92E9-077848F5BC54.pdfp",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 228486,
+      "sha256": "32dd5e26770a6a3b50d0864cfeae18bd08faef340c3a41261788df134acbe47f",
+      "originalSha256": "32dd5e26770a6a3b50d0864cfeae18bd08faef340c3a41261788df134acbe47f"
+    },
+    {
+      "path": "public/presentations/physiq/assets/6D1E84D4-F734-45B1-92E9-077848F5BC54/assets/image6.gif-0.0000-12.2000.gif",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 3044986,
+      "sha256": "0f84c735793c4f41a314dd21755cfb9a88f0bd3a1ab0caaa31344e89eab1370f",
+      "originalSha256": "0f84c735793c4f41a314dd21755cfb9a88f0bd3a1ab0caaa31344e89eab1370f"
+    },
+    {
+      "path": "public/presentations/physiq/assets/6D1E84D4-F734-45B1-92E9-077848F5BC54/assets/image7.gif-0.0000-11.8500.gif",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 3838095,
+      "sha256": "a3c5ee36f59632616f063de3e31a4193e0ed1e59ad2ec35c5f38f428c71468d6",
+      "originalSha256": "a3c5ee36f59632616f063de3e31a4193e0ed1e59ad2ec35c5f38f428c71468d6"
+    },
+    {
+      "path": "public/presentations/physiq/assets/6D1E84D4-F734-45B1-92E9-077848F5BC54/thumbnail.jpeg",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 8619,
+      "sha256": "a0100affeab6d24deb1ee49783055438ac8e625f91d860c79869ea6090893d11",
+      "originalSha256": "a0100affeab6d24deb1ee49783055438ac8e625f91d860c79869ea6090893d11"
+    },
+    {
+      "path": "public/presentations/physiq/assets/70AEE1AB-6F19-49D5-ADF6-F45E1383E583/70AEE1AB-6F19-49D5-ADF6-F45E1383E583.json",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 57339,
+      "sha256": "0dbfe01044a3711bfd8cc27159f9b77a88e76b069a262a381e4136d42565b590",
+      "originalSha256": "0dbfe01044a3711bfd8cc27159f9b77a88e76b069a262a381e4136d42565b590"
+    },
+    {
+      "path": "public/presentations/physiq/assets/70AEE1AB-6F19-49D5-ADF6-F45E1383E583/70AEE1AB-6F19-49D5-ADF6-F45E1383E583.jsonp",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 57409,
+      "sha256": "3a0c447d87d4baa85583c0642bbb50212f68fcd0a4ab5bd3e94067e5b4bc1e62",
+      "originalSha256": "3a0c447d87d4baa85583c0642bbb50212f68fcd0a4ab5bd3e94067e5b4bc1e62"
+    },
+    {
+      "path": "public/presentations/physiq/assets/70AEE1AB-6F19-49D5-ADF6-F45E1383E583/assets/70AEE1AB-6F19-49D5-ADF6-F45E1383E583.pdf",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 182141,
+      "sha256": "24a3f9d5811af2ba90411396c5848fdc358720d7d116499789c94d17be2d5ac1",
+      "originalSha256": "24a3f9d5811af2ba90411396c5848fdc358720d7d116499789c94d17be2d5ac1"
+    },
+    {
+      "path": "public/presentations/physiq/assets/70AEE1AB-6F19-49D5-ADF6-F45E1383E583/assets/70AEE1AB-6F19-49D5-ADF6-F45E1383E583.pdfp",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 246620,
+      "sha256": "2993f24abdc0f93a05a093eeba333009b5297affd05565cb52e5e12fce0c54a6",
+      "originalSha256": "2993f24abdc0f93a05a093eeba333009b5297affd05565cb52e5e12fce0c54a6"
+    },
+    {
+      "path": "public/presentations/physiq/assets/70AEE1AB-6F19-49D5-ADF6-F45E1383E583/thumbnail.jpeg",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 8215,
+      "sha256": "ca51931c8f4607f2064a564f758583ff65becc14b9e0d9ffdd4f1764928ba75e",
+      "originalSha256": "ca51931c8f4607f2064a564f758583ff65becc14b9e0d9ffdd4f1764928ba75e"
+    },
+    {
+      "path": "public/presentations/physiq/assets/8025256E-DBDC-418A-9382-107310BDCABE/8025256E-DBDC-418A-9382-107310BDCABE.json",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 199559,
+      "sha256": "fca8f6c76cf88908a5b0785f45537570266e9a032322e7f6b0ca659ac166b426",
+      "originalSha256": "fca8f6c76cf88908a5b0785f45537570266e9a032322e7f6b0ca659ac166b426"
+    },
+    {
+      "path": "public/presentations/physiq/assets/8025256E-DBDC-418A-9382-107310BDCABE/8025256E-DBDC-418A-9382-107310BDCABE.jsonp",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 199629,
+      "sha256": "53adf15682e7a3c7e7d68a75325a9437215a5a06ac7b401f91cb386d4bae4b8d",
+      "originalSha256": "53adf15682e7a3c7e7d68a75325a9437215a5a06ac7b401f91cb386d4bae4b8d"
+    },
+    {
+      "path": "public/presentations/physiq/assets/8025256E-DBDC-418A-9382-107310BDCABE/assets/8025256E-DBDC-418A-9382-107310BDCABE.pdf",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 70718,
+      "sha256": "35bea4968cedbec68435ddc6144b9b8c2e656096fce92f59130005387ba85511",
+      "originalSha256": "35bea4968cedbec68435ddc6144b9b8c2e656096fce92f59130005387ba85511"
+    },
+    {
+      "path": "public/presentations/physiq/assets/8025256E-DBDC-418A-9382-107310BDCABE/assets/8025256E-DBDC-418A-9382-107310BDCABE.pdfp",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 95758,
+      "sha256": "8e887379fc3553ae3983fef3ab84449df29cb002e9030a1c6a63e5fbb16f2224",
+      "originalSha256": "8e887379fc3553ae3983fef3ab84449df29cb002e9030a1c6a63e5fbb16f2224"
+    },
+    {
+      "path": "public/presentations/physiq/assets/8025256E-DBDC-418A-9382-107310BDCABE/thumbnail.jpeg",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 6484,
+      "sha256": "fe36d6517502d8d5793b97c7d2c198a527ad410f83e09b3c655151ec06b139b8",
+      "originalSha256": "fe36d6517502d8d5793b97c7d2c198a527ad410f83e09b3c655151ec06b139b8"
+    },
+    {
+      "path": "public/presentations/physiq/assets/83A67926-28FE-45E6-A904-F40C5AB5AAFC/83A67926-28FE-45E6-A904-F40C5AB5AAFC.json",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 4485,
+      "sha256": "40d08dd0154b0d61482d32c8944925e75a2ad81e794f1c559595f88e0e781dda",
+      "originalSha256": "40d08dd0154b0d61482d32c8944925e75a2ad81e794f1c559595f88e0e781dda"
+    },
+    {
+      "path": "public/presentations/physiq/assets/83A67926-28FE-45E6-A904-F40C5AB5AAFC/83A67926-28FE-45E6-A904-F40C5AB5AAFC.jsonp",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 4555,
+      "sha256": "2910e337e7693810c9e184aac8a977b5d27500c4dca1c92149ccff1e0ae18041",
+      "originalSha256": "2910e337e7693810c9e184aac8a977b5d27500c4dca1c92149ccff1e0ae18041"
+    },
+    {
+      "path": "public/presentations/physiq/assets/83A67926-28FE-45E6-A904-F40C5AB5AAFC/assets/83A67926-28FE-45E6-A904-F40C5AB5AAFC.pdf",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 15186,
+      "sha256": "0ee2f83f2baf08e03f7e1d01f58984d049e3878c62ebdaa153e6b613ac2dd7e4",
+      "originalSha256": "0ee2f83f2baf08e03f7e1d01f58984d049e3878c62ebdaa153e6b613ac2dd7e4"
+    },
+    {
+      "path": "public/presentations/physiq/assets/83A67926-28FE-45E6-A904-F40C5AB5AAFC/assets/83A67926-28FE-45E6-A904-F40C5AB5AAFC.pdfp",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 20595,
+      "sha256": "9284a9baf0366444d19db74b055ab3fd32c780a4c5558af2e78bbbd58b00da08",
+      "originalSha256": "9284a9baf0366444d19db74b055ab3fd32c780a4c5558af2e78bbbd58b00da08"
+    },
+    {
+      "path": "public/presentations/physiq/assets/83A67926-28FE-45E6-A904-F40C5AB5AAFC/thumbnail.jpeg",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 3596,
+      "sha256": "65c58a83110a517d52489c65b376ac8c0b400a05a76dcaa3f4752ed9c37ec391",
+      "originalSha256": "65c58a83110a517d52489c65b376ac8c0b400a05a76dcaa3f4752ed9c37ec391"
+    },
+    {
+      "path": "public/presentations/physiq/assets/94BFCE04-6215-445F-AE57-3B84AEC9BD18/94BFCE04-6215-445F-AE57-3B84AEC9BD18.json",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 113611,
+      "sha256": "8f632daf4ad0099926f9e41fb3080ef2499cc2030288d03e067d45b7c4c0fccf",
+      "originalSha256": "8f632daf4ad0099926f9e41fb3080ef2499cc2030288d03e067d45b7c4c0fccf"
+    },
+    {
+      "path": "public/presentations/physiq/assets/94BFCE04-6215-445F-AE57-3B84AEC9BD18/94BFCE04-6215-445F-AE57-3B84AEC9BD18.jsonp",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 113681,
+      "sha256": "7d99e22fbab541c3e3701b0d27bea5df302032208fd23c6c97dac54109ae2470",
+      "originalSha256": "7d99e22fbab541c3e3701b0d27bea5df302032208fd23c6c97dac54109ae2470"
+    },
+    {
+      "path": "public/presentations/physiq/assets/94BFCE04-6215-445F-AE57-3B84AEC9BD18/assets/94BFCE04-6215-445F-AE57-3B84AEC9BD18.pdf",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 638624,
+      "sha256": "1132ba3568f7dcfea31e4505fda316bb2d32809d4575f192249f08a32f04ac74",
+      "originalSha256": "1132ba3568f7dcfea31e4505fda316bb2d32809d4575f192249f08a32f04ac74"
+    },
+    {
+      "path": "public/presentations/physiq/assets/94BFCE04-6215-445F-AE57-3B84AEC9BD18/assets/94BFCE04-6215-445F-AE57-3B84AEC9BD18.pdfp",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 867747,
+      "sha256": "afda5c772e42bb08159083005b1a015df59d8dce9e89c9c02174f186c04beab6",
+      "originalSha256": "afda5c772e42bb08159083005b1a015df59d8dce9e89c9c02174f186c04beab6"
+    },
+    {
+      "path": "public/presentations/physiq/assets/94BFCE04-6215-445F-AE57-3B84AEC9BD18/thumbnail.jpeg",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 6037,
+      "sha256": "addc9ecfd545e6883edf2c509d7c03264dd455be856488eadb7670ddf9ccf81a",
+      "originalSha256": "addc9ecfd545e6883edf2c509d7c03264dd455be856488eadb7670ddf9ccf81a"
+    },
+    {
+      "path": "public/presentations/physiq/assets/A6DD9033-1EDC-43A8-A7E4-F7EF608191FB/A6DD9033-1EDC-43A8-A7E4-F7EF608191FB.json",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 623208,
+      "sha256": "916a0d0bfd7dac44463531dfaa56d48d23220d7482484be4bd99219e165989f4",
+      "originalSha256": "916a0d0bfd7dac44463531dfaa56d48d23220d7482484be4bd99219e165989f4"
+    },
+    {
+      "path": "public/presentations/physiq/assets/A6DD9033-1EDC-43A8-A7E4-F7EF608191FB/A6DD9033-1EDC-43A8-A7E4-F7EF608191FB.jsonp",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 623278,
+      "sha256": "a523f8d2b34f99bd9ad7e890be34493da37009120cd85caf637b885582d0c25e",
+      "originalSha256": "a523f8d2b34f99bd9ad7e890be34493da37009120cd85caf637b885582d0c25e"
+    },
+    {
+      "path": "public/presentations/physiq/assets/A6DD9033-1EDC-43A8-A7E4-F7EF608191FB/assets/A6DD9033-1EDC-43A8-A7E4-F7EF608191FB.pdf",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 210933,
+      "sha256": "3799d8e5a3b719ed02e790533c5da1c8522d6bdc917e5a2adedeaedc8911646b",
+      "originalSha256": "3799d8e5a3b719ed02e790533c5da1c8522d6bdc917e5a2adedeaedc8911646b"
+    },
+    {
+      "path": "public/presentations/physiq/assets/A6DD9033-1EDC-43A8-A7E4-F7EF608191FB/assets/A6DD9033-1EDC-43A8-A7E4-F7EF608191FB.pdfp",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 285488,
+      "sha256": "ab965c8d4d48af8b662ea0cb6c860e22fe97afa4b28cd97bdccc6024ca54fb5d",
+      "originalSha256": "ab965c8d4d48af8b662ea0cb6c860e22fe97afa4b28cd97bdccc6024ca54fb5d"
+    },
+    {
+      "path": "public/presentations/physiq/assets/A6DD9033-1EDC-43A8-A7E4-F7EF608191FB/thumbnail.jpeg",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 7779,
+      "sha256": "16f14c2f143953b615da0afaf67210c8a25175c74bfccedf788fd3b9cebca608",
+      "originalSha256": "16f14c2f143953b615da0afaf67210c8a25175c74bfccedf788fd3b9cebca608"
+    },
+    {
+      "path": "public/presentations/physiq/assets/C01C6FEB-1D0A-4303-A598-D647E0A3AFEF/C01C6FEB-1D0A-4303-A598-D647E0A3AFEF.json",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 119042,
+      "sha256": "b48019dff50185a45046b8cde229243a36bf2a2b99607bd0cb3ac9252b455d10",
+      "originalSha256": "b48019dff50185a45046b8cde229243a36bf2a2b99607bd0cb3ac9252b455d10"
+    },
+    {
+      "path": "public/presentations/physiq/assets/C01C6FEB-1D0A-4303-A598-D647E0A3AFEF/C01C6FEB-1D0A-4303-A598-D647E0A3AFEF.jsonp",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 119112,
+      "sha256": "cb566bf59220a38c59b711d8a4abbd0139c55ece0b819d29cc714f876456090e",
+      "originalSha256": "cb566bf59220a38c59b711d8a4abbd0139c55ece0b819d29cc714f876456090e"
+    },
+    {
+      "path": "public/presentations/physiq/assets/C01C6FEB-1D0A-4303-A598-D647E0A3AFEF/assets/C01C6FEB-1D0A-4303-A598-D647E0A3AFEF.pdf",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 212133,
+      "sha256": "b4e9561c8f75230a8e57d14d1937924688c384b61fdecb05d35930cc8313ae0f",
+      "originalSha256": "b4e9561c8f75230a8e57d14d1937924688c384b61fdecb05d35930cc8313ae0f"
+    },
+    {
+      "path": "public/presentations/physiq/assets/C01C6FEB-1D0A-4303-A598-D647E0A3AFEF/assets/C01C6FEB-1D0A-4303-A598-D647E0A3AFEF.pdfp",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 287258,
+      "sha256": "5a3e4d107251f2db9d36bc33bcd30f8a0af44c4b2c38fec5e2a1ba7342aa9c14",
+      "originalSha256": "5a3e4d107251f2db9d36bc33bcd30f8a0af44c4b2c38fec5e2a1ba7342aa9c14"
+    },
+    {
+      "path": "public/presentations/physiq/assets/C01C6FEB-1D0A-4303-A598-D647E0A3AFEF/thumbnail.jpeg",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 7077,
+      "sha256": "8169c0f805036c13d3178324ca3f829d5956359d66311971c3eb61da790f49db",
+      "originalSha256": "8169c0f805036c13d3178324ca3f829d5956359d66311971c3eb61da790f49db"
+    },
+    {
+      "path": "public/presentations/physiq/assets/C411826C-8622-4B24-9CCA-1FF7D401500F/C411826C-8622-4B24-9CCA-1FF7D401500F.json",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 102390,
+      "sha256": "5a2ae2b321e3fa2935dbaec3d483e638f1fcd3b2a4b46b2f0fc36fa03e975c3d",
+      "originalSha256": "5a2ae2b321e3fa2935dbaec3d483e638f1fcd3b2a4b46b2f0fc36fa03e975c3d"
+    },
+    {
+      "path": "public/presentations/physiq/assets/C411826C-8622-4B24-9CCA-1FF7D401500F/C411826C-8622-4B24-9CCA-1FF7D401500F.jsonp",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 102460,
+      "sha256": "b7fa2efc31a2175c89db7ea371ada9c0389358b54118cdece747996668985a7d",
+      "originalSha256": "b7fa2efc31a2175c89db7ea371ada9c0389358b54118cdece747996668985a7d"
+    },
+    {
+      "path": "public/presentations/physiq/assets/C411826C-8622-4B24-9CCA-1FF7D401500F/assets/C411826C-8622-4B24-9CCA-1FF7D401500F.pdf",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 293682,
+      "sha256": "a726ede35f277172490cff2ccdf0bcc202b6a38f09c885855afcfa8f155e5b59",
+      "originalSha256": "a726ede35f277172490cff2ccdf0bcc202b6a38f09c885855afcfa8f155e5b59"
+    },
+    {
+      "path": "public/presentations/physiq/assets/C411826C-8622-4B24-9CCA-1FF7D401500F/assets/C411826C-8622-4B24-9CCA-1FF7D401500F.pdfp",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 397338,
+      "sha256": "a0d76ac2fee90d158b521f4a7e41c43676505cf0eb6b20f4b9136707c0db9bd9",
+      "originalSha256": "a0d76ac2fee90d158b521f4a7e41c43676505cf0eb6b20f4b9136707c0db9bd9"
+    },
+    {
+      "path": "public/presentations/physiq/assets/C411826C-8622-4B24-9CCA-1FF7D401500F/thumbnail.jpeg",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 9440,
+      "sha256": "7224a7a0443a48a0abd109bdb544a7f12049e4be7f910411913321e04ee66317",
+      "originalSha256": "7224a7a0443a48a0abd109bdb544a7f12049e4be7f910411913321e04ee66317"
+    },
+    {
+      "path": "public/presentations/physiq/assets/CA9C52CE-D35B-4527-B73C-9E37D50F7F0F/CA9C52CE-D35B-4527-B73C-9E37D50F7F0F.json",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 4293,
+      "sha256": "d878b348df9f9cc3efdc7c2859f2320e7b4608e45d08242997580c1b454d9312",
+      "originalSha256": "d878b348df9f9cc3efdc7c2859f2320e7b4608e45d08242997580c1b454d9312"
+    },
+    {
+      "path": "public/presentations/physiq/assets/CA9C52CE-D35B-4527-B73C-9E37D50F7F0F/CA9C52CE-D35B-4527-B73C-9E37D50F7F0F.jsonp",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 4363,
+      "sha256": "d6d77f0fc9b3852059c22a37cf3f579cc5221671df4f3fb538c8faed4b88797e",
+      "originalSha256": "d6d77f0fc9b3852059c22a37cf3f579cc5221671df4f3fb538c8faed4b88797e"
+    },
+    {
+      "path": "public/presentations/physiq/assets/CA9C52CE-D35B-4527-B73C-9E37D50F7F0F/assets/CA9C52CE-D35B-4527-B73C-9E37D50F7F0F.pdf",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 16396,
+      "sha256": "75cca186f5d93ad364457bf6c4dc5b7e99a9c1b7bb4683ee867865cb4ede712c",
+      "originalSha256": "75cca186f5d93ad364457bf6c4dc5b7e99a9c1b7bb4683ee867865cb4ede712c"
+    },
+    {
+      "path": "public/presentations/physiq/assets/CA9C52CE-D35B-4527-B73C-9E37D50F7F0F/assets/CA9C52CE-D35B-4527-B73C-9E37D50F7F0F.pdfp",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 22193,
+      "sha256": "1f597a6f55d17d37b532397749ac7a0a0bdaaa4c25749d7813cb80ca639403b1",
+      "originalSha256": "1f597a6f55d17d37b532397749ac7a0a0bdaaa4c25749d7813cb80ca639403b1"
+    },
+    {
+      "path": "public/presentations/physiq/assets/CA9C52CE-D35B-4527-B73C-9E37D50F7F0F/thumbnail.jpeg",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 2661,
+      "sha256": "033afaf4566cb325ad39a218d684972a12cbc40b3f3a4718b79f84f1b97d77f6",
+      "originalSha256": "033afaf4566cb325ad39a218d684972a12cbc40b3f3a4718b79f84f1b97d77f6"
+    },
+    {
+      "path": "public/presentations/physiq/assets/D7E47D07-D690-44C6-B423-3B6198F03C91/D7E47D07-D690-44C6-B423-3B6198F03C91.json",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 8277,
+      "sha256": "9b76bdf9c827a65143a0c880c86770a00d0ce2dc9a7c1bb08e083e4d808f6c7d",
+      "originalSha256": "9b76bdf9c827a65143a0c880c86770a00d0ce2dc9a7c1bb08e083e4d808f6c7d"
+    },
+    {
+      "path": "public/presentations/physiq/assets/D7E47D07-D690-44C6-B423-3B6198F03C91/D7E47D07-D690-44C6-B423-3B6198F03C91.jsonp",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 8347,
+      "sha256": "7ebed7490ca77b582a9125a1128535101a21b66860ee3230ec8b0e48c568c2d8",
+      "originalSha256": "7ebed7490ca77b582a9125a1128535101a21b66860ee3230ec8b0e48c568c2d8"
+    },
+    {
+      "path": "public/presentations/physiq/assets/D7E47D07-D690-44C6-B423-3B6198F03C91/assets/D7E47D07-D690-44C6-B423-3B6198F03C91.pdf",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 122465,
+      "sha256": "f6875728139164ae99dcee272e7b6b407714a10af6592aac75bd29c64be50a6f",
+      "originalSha256": "f6875728139164ae99dcee272e7b6b407714a10af6592aac75bd29c64be50a6f"
+    },
+    {
+      "path": "public/presentations/physiq/assets/D7E47D07-D690-44C6-B423-3B6198F03C91/assets/D7E47D07-D690-44C6-B423-3B6198F03C91.pdfp",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 166537,
+      "sha256": "03b7da9e78b33bda67d2bd8bfc518340619ed4268a020a2cc9f1084d51497f22",
+      "originalSha256": "03b7da9e78b33bda67d2bd8bfc518340619ed4268a020a2cc9f1084d51497f22"
+    },
+    {
+      "path": "public/presentations/physiq/assets/D7E47D07-D690-44C6-B423-3B6198F03C91/thumbnail.jpeg",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 5729,
+      "sha256": "5dfe8f884e06098c57dde59e0ed1421edf66692c4e425afc32d9e022d9ef680e",
+      "originalSha256": "5dfe8f884e06098c57dde59e0ed1421edf66692c4e425afc32d9e022d9ef680e"
+    },
+    {
+      "path": "public/presentations/physiq/assets/D883D257-3517-405B-A804-2CF240A79B85/D883D257-3517-405B-A804-2CF240A79B85.json",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 135104,
+      "sha256": "2b4ffff385bc5764e7cde10c7bd32894499c8a9dcc4267532a91ebf90a4a3916",
+      "originalSha256": "2b4ffff385bc5764e7cde10c7bd32894499c8a9dcc4267532a91ebf90a4a3916"
+    },
+    {
+      "path": "public/presentations/physiq/assets/D883D257-3517-405B-A804-2CF240A79B85/D883D257-3517-405B-A804-2CF240A79B85.jsonp",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 135174,
+      "sha256": "58ffe128152bcd3195d774ae0d329c72ee293c79c77ecc623184f9d20c48a604",
+      "originalSha256": "58ffe128152bcd3195d774ae0d329c72ee293c79c77ecc623184f9d20c48a604"
+    },
+    {
+      "path": "public/presentations/physiq/assets/D883D257-3517-405B-A804-2CF240A79B85/assets/D883D257-3517-405B-A804-2CF240A79B85.pdf",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 210894,
+      "sha256": "6afb729db0910d871b9abe0fa1594c1c99a02ba126b7e4a72e2c9a770a6f9305",
+      "originalSha256": "6afb729db0910d871b9abe0fa1594c1c99a02ba126b7e4a72e2c9a770a6f9305"
+    },
+    {
+      "path": "public/presentations/physiq/assets/D883D257-3517-405B-A804-2CF240A79B85/assets/D883D257-3517-405B-A804-2CF240A79B85.pdfp",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 285481,
+      "sha256": "409768489e64ee275372e4a69b9895871d68ead626b4cc9a008656bbe6576481",
+      "originalSha256": "409768489e64ee275372e4a69b9895871d68ead626b4cc9a008656bbe6576481"
+    },
+    {
+      "path": "public/presentations/physiq/assets/D883D257-3517-405B-A804-2CF240A79B85/assets/image1.gif-0.0000-10.3500.gif",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 3278826,
+      "sha256": "b22a019b367bd5f43bad6eaac614aa46a9bcc0a780a959a23a20eb355d308063",
+      "originalSha256": "b22a019b367bd5f43bad6eaac614aa46a9bcc0a780a959a23a20eb355d308063"
+    },
+    {
+      "path": "public/presentations/physiq/assets/D883D257-3517-405B-A804-2CF240A79B85/thumbnail.jpeg",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 9688,
+      "sha256": "a0a5a7b620f00c0de9cba5450ca07b11ddb645d9d95eee19d020a150882726f5",
+      "originalSha256": "a0a5a7b620f00c0de9cba5450ca07b11ddb645d9d95eee19d020a150882726f5"
+    },
+    {
+      "path": "public/presentations/physiq/assets/E84A0D88-29BB-46D5-9CA3-23A8100923D2/E84A0D88-29BB-46D5-9CA3-23A8100923D2.json",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 279389,
+      "sha256": "c1a5f653f236544c23e9895829b84c007d55beff9192b9f59fb20ad6062fda8d",
+      "originalSha256": "c1a5f653f236544c23e9895829b84c007d55beff9192b9f59fb20ad6062fda8d"
+    },
+    {
+      "path": "public/presentations/physiq/assets/E84A0D88-29BB-46D5-9CA3-23A8100923D2/E84A0D88-29BB-46D5-9CA3-23A8100923D2.jsonp",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 279459,
+      "sha256": "f6ae985accf1716be20a2d8cac792aede0cc30c7bba64e030c8be279cee7ed3c",
+      "originalSha256": "f6ae985accf1716be20a2d8cac792aede0cc30c7bba64e030c8be279cee7ed3c"
+    },
+    {
+      "path": "public/presentations/physiq/assets/E84A0D88-29BB-46D5-9CA3-23A8100923D2/assets/E84A0D88-29BB-46D5-9CA3-23A8100923D2.pdf",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 222191,
+      "sha256": "2cfe82d906f6118ae7a9a0488e7cd33a6f0c1625caec34595b6f248754a5aa1f",
+      "originalSha256": "2cfe82d906f6118ae7a9a0488e7cd33a6f0c1625caec34595b6f248754a5aa1f"
+    },
+    {
+      "path": "public/presentations/physiq/assets/E84A0D88-29BB-46D5-9CA3-23A8100923D2/assets/E84A0D88-29BB-46D5-9CA3-23A8100923D2.pdfp",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 300607,
+      "sha256": "0ef4410aead839bf4ee17a8466195352796eb9af846fe10047f74412e3c5694c",
+      "originalSha256": "0ef4410aead839bf4ee17a8466195352796eb9af846fe10047f74412e3c5694c"
+    },
+    {
+      "path": "public/presentations/physiq/assets/E84A0D88-29BB-46D5-9CA3-23A8100923D2/assets/image1.gif-0.0000-10.3500.gif",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 3278826,
+      "sha256": "b22a019b367bd5f43bad6eaac614aa46a9bcc0a780a959a23a20eb355d308063",
+      "originalSha256": "b22a019b367bd5f43bad6eaac614aa46a9bcc0a780a959a23a20eb355d308063"
+    },
+    {
+      "path": "public/presentations/physiq/assets/E84A0D88-29BB-46D5-9CA3-23A8100923D2/thumbnail.jpeg",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 10280,
+      "sha256": "e663af21ccef52497047c806f6f7645e33401b75a0e4ab281d4931a4e314551b",
+      "originalSha256": "e663af21ccef52497047c806f6f7645e33401b75a0e4ab281d4931a4e314551b"
+    },
+    {
+      "path": "public/presentations/physiq/assets/EFA860F3-3181-4595-916C-C14FBD24AC22/EFA860F3-3181-4595-916C-C14FBD24AC22.json",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 193354,
+      "sha256": "bbc39c0dc64e5045849a226b9643ab6fdf9b913dd7c12e1291010cbf6fec677c",
+      "originalSha256": "bbc39c0dc64e5045849a226b9643ab6fdf9b913dd7c12e1291010cbf6fec677c"
+    },
+    {
+      "path": "public/presentations/physiq/assets/EFA860F3-3181-4595-916C-C14FBD24AC22/EFA860F3-3181-4595-916C-C14FBD24AC22.jsonp",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 193424,
+      "sha256": "4b6850313f6275c33d4b9da819a0d910867c4192cf520c65b226d28ee8a9b141",
+      "originalSha256": "4b6850313f6275c33d4b9da819a0d910867c4192cf520c65b226d28ee8a9b141"
+    },
+    {
+      "path": "public/presentations/physiq/assets/EFA860F3-3181-4595-916C-C14FBD24AC22/assets/EFA860F3-3181-4595-916C-C14FBD24AC22.pdf",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 65885,
+      "sha256": "e06160b554968f606b876129613dee4c766640fa76917b3a8231bba0a0d7dbdf",
+      "originalSha256": "e06160b554968f606b876129613dee4c766640fa76917b3a8231bba0a0d7dbdf"
+    },
+    {
+      "path": "public/presentations/physiq/assets/EFA860F3-3181-4595-916C-C14FBD24AC22/assets/EFA860F3-3181-4595-916C-C14FBD24AC22.pdfp",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 89086,
+      "sha256": "2adcad3202d947e485348a5d2230edbaddb5461424dd192416869acd3854766d",
+      "originalSha256": "2adcad3202d947e485348a5d2230edbaddb5461424dd192416869acd3854766d"
+    },
+    {
+      "path": "public/presentations/physiq/assets/EFA860F3-3181-4595-916C-C14FBD24AC22/thumbnail.jpeg",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 9492,
+      "sha256": "73e32f44a9162661bc0ae9fee49918362c1668442f392fa0d9d7089a74a33b26",
+      "originalSha256": "73e32f44a9162661bc0ae9fee49918362c1668442f392fa0d9d7089a74a33b26"
+    },
+    {
+      "path": "public/presentations/physiq/assets/FFF1F753-D0F7-4030-96B2-CC8AECA6DA28/FFF1F753-D0F7-4030-96B2-CC8AECA6DA28.json",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 92012,
+      "sha256": "a55cd558225502d5453828c9123fbd3ded8fbdb08af298deeb5c3f7351742edb",
+      "originalSha256": "a55cd558225502d5453828c9123fbd3ded8fbdb08af298deeb5c3f7351742edb"
+    },
+    {
+      "path": "public/presentations/physiq/assets/FFF1F753-D0F7-4030-96B2-CC8AECA6DA28/FFF1F753-D0F7-4030-96B2-CC8AECA6DA28.jsonp",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 92082,
+      "sha256": "3ae42a077520f4c60e595a8ccf13685656345c52fb1c6cbcd8b6655589392bd1",
+      "originalSha256": "3ae42a077520f4c60e595a8ccf13685656345c52fb1c6cbcd8b6655589392bd1"
+    },
+    {
+      "path": "public/presentations/physiq/assets/FFF1F753-D0F7-4030-96B2-CC8AECA6DA28/assets/FFF1F753-D0F7-4030-96B2-CC8AECA6DA28.pdf",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 422288,
+      "sha256": "beadd57247b20bf1f8526f11c234917f4f0ba61bc8eb1810d21ddf61a39712dc",
+      "originalSha256": "beadd57247b20bf1f8526f11c234917f4f0ba61bc8eb1810d21ddf61a39712dc"
+    },
+    {
+      "path": "public/presentations/physiq/assets/FFF1F753-D0F7-4030-96B2-CC8AECA6DA28/assets/FFF1F753-D0F7-4030-96B2-CC8AECA6DA28.pdfp",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 571577,
+      "sha256": "78f3cc59dfc3f8b9841d76463695e1195e7f07ed6cc00889b2cca8ff2c6e8ef0",
+      "originalSha256": "78f3cc59dfc3f8b9841d76463695e1195e7f07ed6cc00889b2cca8ff2c6e8ef0"
+    },
+    {
+      "path": "public/presentations/physiq/assets/FFF1F753-D0F7-4030-96B2-CC8AECA6DA28/thumbnail.jpeg",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 8411,
+      "sha256": "824e37233d551bed9d2b1bd1c413d4224aa7e49ed8c5685dc8b1777b55b2a321",
+      "originalSha256": "824e37233d551bed9d2b1bd1c413d4224aa7e49ed8c5685dc8b1777b55b2a321"
+    },
+    {
+      "path": "public/presentations/physiq/assets/header.json",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 1470,
+      "sha256": "100c948f92da6f1d1e9da82cf9c96f60634f8a44789935dc0aa515469ac83bc8",
+      "originalSha256": "100c948f92da6f1d1e9da82cf9c96f60634f8a44789935dc0aa515469ac83bc8"
+    },
+    {
+      "path": "public/presentations/physiq/assets/header.jsonp",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 1486,
+      "sha256": "2a0cfbd38d04a36fbf50e9fe3186d5d758a2fa832dfcc21dd77577cc7dc81747",
+      "originalSha256": "2a0cfbd38d04a36fbf50e9fe3186d5d758a2fa832dfcc21dd77577cc7dc81747"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/Acknowledgements.pdf",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 68088,
+      "sha256": "1a9f702d30b4923c8ac8b9a689db3b789044a2e9cccce9d0865987225ed75079",
+      "originalSha256": "1a9f702d30b4923c8ac8b9a689db3b789044a2e9cccce9d0865987225ed75079"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/close_hi@2x.png",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 4201,
+      "sha256": "f7aa330bfd92e4ada791eaa9c62f16c1335456da1f21e6de0406d27b3967b59c",
+      "originalSha256": "f7aa330bfd92e4ada791eaa9c62f16c1335456da1f21e6de0406d27b3967b59c"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/close_n@2x.png",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 4372,
+      "sha256": "484f66a8e64347d7bde2aa0b72b520196c26378da21614f327920651a7934b31",
+      "originalSha256": "484f66a8e64347d7bde2aa0b72b520196c26378da21614f327920651a7934b31"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/close_p@2x.png",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 4169,
+      "sha256": "4669c9d03401a041633d704aff23bbfba2c3626b73e8a42ee8db32b84351f206",
+      "originalSha256": "4669c9d03401a041633d704aff23bbfba2c3626b73e8a42ee8db32b84351f206"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/kn-cloud_pd_help_btn-H@2x.png",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 1283,
+      "sha256": "8bd012548c962ef3336f25590f1597c1e79344e8589e67e7c3049d5f754c0ea7",
+      "originalSha256": "8bd012548c962ef3336f25590f1597c1e79344e8589e67e7c3049d5f754c0ea7"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/kn-cloud_pd_help_btn-N@2x.png",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 1298,
+      "sha256": "cee58e2c5f812214a520d16ef67bacd06841162481cf4caec043d90833f68ef0",
+      "originalSha256": "cee58e2c5f812214a520d16ef67bacd06841162481cf4caec043d90833f68ef0"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/kn-cloud_pd_help_btn-P@2x.png",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 1259,
+      "sha256": "27ac2616abd2022a2d6a95cd66afb8ec969dbde89f8760eae863e5acd2a9956b",
+      "originalSha256": "27ac2616abd2022a2d6a95cd66afb8ec969dbde89f8760eae863e5acd2a9956b"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/main.js",
+      "kind": "adapted-player",
+      "mode": "100644",
+      "bytes": 2369554,
+      "sha256": "cdf38b101f4a7d3643cfef7062f476edbae8f6c7e22f5d6a767c14b12d4a8bdf",
+      "originalSha256": "17c0c938caa49d5c70bd83bd5b84f57381faa51602932ca733aa965055026d91",
+      "patches": [
+        {
+          "before": "initVideo(){const A=document.createElement(\"video\");",
+          "after": "initVideo(){const A=document.createElement(\"video\");A.muted=!0,A.playsInline=!0;"
+        },
+        {
+          "before": "else if(\"right\"===g)switch(B.fingers){case 1:this.goBackToPreviousSlide(\"handleSwipeEvent\");",
+          "after": "else if(\"right\"===g)switch(B.fingers){case 1:this.goBackToPreviousBuild(\"handleSwipeEvent\");"
+        }
+      ]
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/pdf.worker.min.js",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 1073996,
+      "sha256": "b0ed2293c86c9d0c11762c65435e8ef20bfb97db74e96f3e2f2133ba2bb61c46",
+      "originalSha256": "b0ed2293c86c9d0c11762c65435e8ef20bfb97db74e96f3e2f2133ba2bb61c46"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/78-EUC-H.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 2404,
+      "sha256": "d92a261336dc18b8c03a46eb4d462382d33f4338fa195d303256b2031434c874",
+      "originalSha256": "d92a261336dc18b8c03a46eb4d462382d33f4338fa195d303256b2031434c874"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/78-EUC-V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 173,
+      "sha256": "61670bebc4e4827b67230c054fd0d820d6e30c3584d02e386804e62bbedc032a",
+      "originalSha256": "61670bebc4e4827b67230c054fd0d820d6e30c3584d02e386804e62bbedc032a"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/78-H.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 2379,
+      "sha256": "ece6415b853d61e1b2560165151407d35cf16e6556932b85a13ea75276b77402",
+      "originalSha256": "ece6415b853d61e1b2560165151407d35cf16e6556932b85a13ea75276b77402"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/78-RKSJ-H.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 2398,
+      "sha256": "696b1f973c97623496703809eaaa5f9b40696c77540057413f4b826a08edfa7b",
+      "originalSha256": "696b1f973c97623496703809eaaa5f9b40696c77540057413f4b826a08edfa7b"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/78-RKSJ-V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 173,
+      "sha256": "53cb6d560ab377da48cf65d6dcacb0bdb31f13fab7066c580de38c12a73a7ff9",
+      "originalSha256": "53cb6d560ab377da48cf65d6dcacb0bdb31f13fab7066c580de38c12a73a7ff9"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/78-V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 169,
+      "sha256": "289000f02fd34872b6975503217f33abae6bee676e7d28f640473a67c8db1712",
+      "originalSha256": "289000f02fd34872b6975503217f33abae6bee676e7d28f640473a67c8db1712"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/78ms-RKSJ-H.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 2651,
+      "sha256": "a2442595218f5f8bd8e1b42188e368587d876cfe0cc4cd87196f077c878f72e2",
+      "originalSha256": "a2442595218f5f8bd8e1b42188e368587d876cfe0cc4cd87196f077c878f72e2"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/78ms-RKSJ-V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 290,
+      "sha256": "f8ddceba96bfd9d3740bd1789ee30d1f47c78371520a8084f71f7df58f19be0b",
+      "originalSha256": "f8ddceba96bfd9d3740bd1789ee30d1f47c78371520a8084f71f7df58f19be0b"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/83pv-RKSJ-H.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 905,
+      "sha256": "44040051ec818fe09b9703472bea72efd2759d5eeb5ff0d77c718d6bb5e6d1df",
+      "originalSha256": "44040051ec818fe09b9703472bea72efd2759d5eeb5ff0d77c718d6bb5e6d1df"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/90ms-RKSJ-H.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 721,
+      "sha256": "c13e043e85ff715b75bb03801e8fd0fb8f3a75e4a48496faa6baaf92b5b48ba1",
+      "originalSha256": "c13e043e85ff715b75bb03801e8fd0fb8f3a75e4a48496faa6baaf92b5b48ba1"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/90ms-RKSJ-V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 290,
+      "sha256": "499bb916ce1adbe4289b6e5811f4dc20eb238cdc2ffad20cf26ae56716885bab",
+      "originalSha256": "499bb916ce1adbe4289b6e5811f4dc20eb238cdc2ffad20cf26ae56716885bab"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/90msp-RKSJ-H.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 715,
+      "sha256": "7b8b3b8bbf821702e9a4df9f3596ce292380c8c1b0925dedadbb4e4b2d80498b",
+      "originalSha256": "7b8b3b8bbf821702e9a4df9f3596ce292380c8c1b0925dedadbb4e4b2d80498b"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/90msp-RKSJ-V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 291,
+      "sha256": "6296c2b5c07dca8128e96d5296d621a3268803d4fa0e5812a21e52fe2802aacb",
+      "originalSha256": "6296c2b5c07dca8128e96d5296d621a3268803d4fa0e5812a21e52fe2802aacb"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/90pv-RKSJ-H.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 982,
+      "sha256": "fb5103f03d3a34547e18d316e52b6d9b26e485c662999222f84d2ba54c2e4fa8",
+      "originalSha256": "fb5103f03d3a34547e18d316e52b6d9b26e485c662999222f84d2ba54c2e4fa8"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/90pv-RKSJ-V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 260,
+      "sha256": "7bcb5ad2ba55b9662ce379e16c2d9cc2b82d621a579807353741172e4af615c2",
+      "originalSha256": "7bcb5ad2ba55b9662ce379e16c2d9cc2b82d621a579807353741172e4af615c2"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/Add-H.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 2419,
+      "sha256": "a2ffab28b990998181bcca9b0e914bb2207820f100ae31d5c469444892e5ad8e",
+      "originalSha256": "a2ffab28b990998181bcca9b0e914bb2207820f100ae31d5c469444892e5ad8e"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/Add-RKSJ-H.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 2413,
+      "sha256": "b29f4b52e2465d0485856d5e69f1ba69927deb2848d8fd328c8035583b35bb7e",
+      "originalSha256": "b29f4b52e2465d0485856d5e69f1ba69927deb2848d8fd328c8035583b35bb7e"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/Add-RKSJ-V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 287,
+      "sha256": "2aa2232c283a3f5d0997c2834a36cead0b79ce2657944cfeed08140c293460ff",
+      "originalSha256": "2aa2232c283a3f5d0997c2834a36cead0b79ce2657944cfeed08140c293460ff"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/Add-V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 282,
+      "sha256": "25125d3b1be64e86b2df5b3344170b45a42bcaa0b46e43a34314ef73c166e542",
+      "originalSha256": "25125d3b1be64e86b2df5b3344170b45a42bcaa0b46e43a34314ef73c166e542"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/Adobe-CNS1-0.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 317,
+      "sha256": "8c65be9d51a9f269a547dc12460707aaf4031ab67ebe8a2900f4b4cc6b3e450e",
+      "originalSha256": "8c65be9d51a9f269a547dc12460707aaf4031ab67ebe8a2900f4b4cc6b3e450e"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/Adobe-CNS1-1.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 371,
+      "sha256": "73152bc1a59cc594b414ac6068be48e5512b96ae85920c40e32a99269fdb0c04",
+      "originalSha256": "73152bc1a59cc594b414ac6068be48e5512b96ae85920c40e32a99269fdb0c04"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/Adobe-CNS1-2.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 376,
+      "sha256": "a1b8d353bdef9584c820464e8f1c9e2013d64ebf433cba0aa831dddf515818c2",
+      "originalSha256": "a1b8d353bdef9584c820464e8f1c9e2013d64ebf433cba0aa831dddf515818c2"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/Adobe-CNS1-3.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 401,
+      "sha256": "2ffc0c75c79fafde506163d3c08c390d183251009f3fbf6ae50d1167d14b9570",
+      "originalSha256": "2ffc0c75c79fafde506163d3c08c390d183251009f3fbf6ae50d1167d14b9570"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/Adobe-CNS1-4.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 405,
+      "sha256": "98a1f470c878c6b9691a4d7aef776af8ac9b55f5587c9fafa00547f3bf655716",
+      "originalSha256": "98a1f470c878c6b9691a4d7aef776af8ac9b55f5587c9fafa00547f3bf655716"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/Adobe-CNS1-5.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 406,
+      "sha256": "ddd6e29955eb8cb545f2ebd09c628c3bbda5023256eda1b728f743c75fb77829",
+      "originalSha256": "ddd6e29955eb8cb545f2ebd09c628c3bbda5023256eda1b728f743c75fb77829"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/Adobe-CNS1-6.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 406,
+      "sha256": "317bb2db71e0e5b7b0c47b75de1da915c2e22f65f0c0861507f9ca7ba238f8a2",
+      "originalSha256": "317bb2db71e0e5b7b0c47b75de1da915c2e22f65f0c0861507f9ca7ba238f8a2"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/Adobe-CNS1-UCS2.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 41193,
+      "sha256": "e665837f2197c6bd08cd8955ad4d6932cee2398e2e328b25b00e6bfb3bd72af9",
+      "originalSha256": "e665837f2197c6bd08cd8955ad4d6932cee2398e2e328b25b00e6bfb3bd72af9"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/Adobe-GB1-0.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 217,
+      "sha256": "8b81cce8a11d510e505704953cfa4e4ab080c1a0cab991145a3512ee433946b9",
+      "originalSha256": "8b81cce8a11d510e505704953cfa4e4ab080c1a0cab991145a3512ee433946b9"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/Adobe-GB1-1.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 250,
+      "sha256": "0426983081788ec7202703e71f1efa4b860f75b936994236010b39d89251a81e",
+      "originalSha256": "0426983081788ec7202703e71f1efa4b860f75b936994236010b39d89251a81e"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/Adobe-GB1-2.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 465,
+      "sha256": "e67b37a83b160ab3831306a71a605893b24454ee81ac9b6123bf2d3984d268d5",
+      "originalSha256": "e67b37a83b160ab3831306a71a605893b24454ee81ac9b6123bf2d3984d268d5"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/Adobe-GB1-3.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 470,
+      "sha256": "aa299afc3e12a28726147305f191be28c7498078c8b182ece7886ac79cd99078",
+      "originalSha256": "aa299afc3e12a28726147305f191be28c7498078c8b182ece7886ac79cd99078"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/Adobe-GB1-4.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 601,
+      "sha256": "8fbd7d74c2ddb1350c1cecce54a73fde3f5453093d4bed445283ec0033d2097f",
+      "originalSha256": "8fbd7d74c2ddb1350c1cecce54a73fde3f5453093d4bed445283ec0033d2097f"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/Adobe-GB1-5.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 625,
+      "sha256": "c22cb2fcff24112fa31dab2111bdc51957006576d31aad5a25e67793ac01428c",
+      "originalSha256": "c22cb2fcff24112fa31dab2111bdc51957006576d31aad5a25e67793ac01428c"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/Adobe-GB1-UCS2.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 33974,
+      "sha256": "20507620260c0c935c35afc1e70e5888aa7125d5ec7ffc03cef1959feb2c1641",
+      "originalSha256": "20507620260c0c935c35afc1e70e5888aa7125d5ec7ffc03cef1959feb2c1641"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/Adobe-Japan1-0.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 225,
+      "sha256": "464f08905236f5703b1f5cf8358767c8b18e6bcc808840d081f1de2c7ab38134",
+      "originalSha256": "464f08905236f5703b1f5cf8358767c8b18e6bcc808840d081f1de2c7ab38134"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/Adobe-Japan1-1.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 226,
+      "sha256": "4c823848722187d1ffe75ae3f5f9126ccd2d7895a05fad14c919fb119e037008",
+      "originalSha256": "4c823848722187d1ffe75ae3f5f9126ccd2d7895a05fad14c919fb119e037008"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/Adobe-Japan1-2.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 233,
+      "sha256": "7810fb808e367e70429e90a9478fe6a3fdc3e214f25c7582ce9c2da6a242315c",
+      "originalSha256": "7810fb808e367e70429e90a9478fe6a3fdc3e214f25c7582ce9c2da6a242315c"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/Adobe-Japan1-3.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 242,
+      "sha256": "84deb1828711ad3d390c9899c38abce1bf619d65ff7bf1a326ec95acc45f08f8",
+      "originalSha256": "84deb1828711ad3d390c9899c38abce1bf619d65ff7bf1a326ec95acc45f08f8"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/Adobe-Japan1-4.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 337,
+      "sha256": "3f8a4f974919c2b8bae5d10175ffa2673be140481e00840542c85d48ef184067",
+      "originalSha256": "3f8a4f974919c2b8bae5d10175ffa2673be140481e00840542c85d48ef184067"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/Adobe-Japan1-5.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 430,
+      "sha256": "1d3ce4ff28d977f8cf37a912ae4ec811f4175c3167b1ec0b2567feec3e79e1db",
+      "originalSha256": "1d3ce4ff28d977f8cf37a912ae4ec811f4175c3167b1ec0b2567feec3e79e1db"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/Adobe-Japan1-6.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 485,
+      "sha256": "5609797b9401b30be72ef9645da62a87829f058c3be4b5c623383119f584b1d9",
+      "originalSha256": "5609797b9401b30be72ef9645da62a87829f058c3be4b5c623383119f584b1d9"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/Adobe-Japan1-UCS2.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 40951,
+      "sha256": "66c5d0dc4964f4093e77b194023f3a0f689324028ec8330e1e1d0570bcba7c2f",
+      "originalSha256": "66c5d0dc4964f4093e77b194023f3a0f689324028ec8330e1e1d0570bcba7c2f"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/Adobe-Korea1-0.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 241,
+      "sha256": "dfb8c3874f0e5a8c3acf597d2c12d2b63e90bc5e4f0fce990ec4c56077d80b32",
+      "originalSha256": "dfb8c3874f0e5a8c3acf597d2c12d2b63e90bc5e4f0fce990ec4c56077d80b32"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/Adobe-Korea1-1.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 386,
+      "sha256": "62f277b7b1c441c007797ae707d5c37258d029ce4661a2b911e2e1ee35e6adc1",
+      "originalSha256": "62f277b7b1c441c007797ae707d5c37258d029ce4661a2b911e2e1ee35e6adc1"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/Adobe-Korea1-2.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 391,
+      "sha256": "1d77068af462f96d7ad28ad7e7d43eef6423c685b479d7dc25ff5df38db0380d",
+      "originalSha256": "1d77068af462f96d7ad28ad7e7d43eef6423c685b479d7dc25ff5df38db0380d"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/Adobe-Korea1-UCS2.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 23293,
+      "sha256": "857b723088be97255053562bfa41bd1075a7f7910d3bab59a0645c8bbc7060ff",
+      "originalSha256": "857b723088be97255053562bfa41bd1075a7f7910d3bab59a0645c8bbc7060ff"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/B5-H.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 1086,
+      "sha256": "718ad0ffbef4c34f8f3f31292c462e519cd567a5511fc8b346c60010d64f4ef9",
+      "originalSha256": "718ad0ffbef4c34f8f3f31292c462e519cd567a5511fc8b346c60010d64f4ef9"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/B5-V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 142,
+      "sha256": "b5c37383517477620ced927b6b4ffd4f4cc6230d8051b5b46a21d6768e07f7d8",
+      "originalSha256": "b5c37383517477620ced927b6b4ffd4f4cc6230d8051b5b46a21d6768e07f7d8"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/B5pc-H.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 1099,
+      "sha256": "bab6028aead1d6149400e904ab10cfd319082d826473ed4c582c8eeed920f17e",
+      "originalSha256": "bab6028aead1d6149400e904ab10cfd319082d826473ed4c582c8eeed920f17e"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/B5pc-V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 144,
+      "sha256": "41543142b9767f3b76133899fc8453282b01ad3c653acaeea42d78c5a7d08c63",
+      "originalSha256": "41543142b9767f3b76133899fc8453282b01ad3c653acaeea42d78c5a7d08c63"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/CNS-EUC-H.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 1780,
+      "sha256": "e8f89cd61e6486b948205da46499d659ed0aed949b7095fd3c8e95ffe2b0e7a9",
+      "originalSha256": "e8f89cd61e6486b948205da46499d659ed0aed949b7095fd3c8e95ffe2b0e7a9"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/CNS-EUC-V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 1920,
+      "sha256": "cae422bec2ac6dbe86bf921cec942bacd2d0b733ffcca5f91b3ba14e917025a0",
+      "originalSha256": "cae422bec2ac6dbe86bf921cec942bacd2d0b733ffcca5f91b3ba14e917025a0"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/CNS1-H.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 706,
+      "sha256": "e8487971ab20cd16f3de3e8ac56ec994b72b658ad113f2818239dfd5108f501a",
+      "originalSha256": "e8487971ab20cd16f3de3e8ac56ec994b72b658ad113f2818239dfd5108f501a"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/CNS1-V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 143,
+      "sha256": "42df8076aaa7574505e7304af83a3323ec032c4177d64b1309db8c043d594a8a",
+      "originalSha256": "42df8076aaa7574505e7304af83a3323ec032c4177d64b1309db8c043d594a8a"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/CNS2-H.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 504,
+      "sha256": "bc6024d274d440f0625c69e25f37036ef6cb6689432ceaa160d3432a2a716ca7",
+      "originalSha256": "bc6024d274d440f0625c69e25f37036ef6cb6689432ceaa160d3432a2a716ca7"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/CNS2-V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 93,
+      "sha256": "2e4f70a8afd23a121030fc2e5b5f3816e903b11e7ba8b8c09654b31c80399c38",
+      "originalSha256": "2e4f70a8afd23a121030fc2e5b5f3816e903b11e7ba8b8c09654b31c80399c38"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/ETHK-B5-H.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 4426,
+      "sha256": "d2f10fa519336bc4efcc7b6deb9604b75429946b40d82e311cb3a97a1994c89a",
+      "originalSha256": "d2f10fa519336bc4efcc7b6deb9604b75429946b40d82e311cb3a97a1994c89a"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/ETHK-B5-V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 158,
+      "sha256": "1fea3fd0d9f0f679f80505800851ef2e4131d81127e18c006938ffa2f4c8b247",
+      "originalSha256": "1fea3fd0d9f0f679f80505800851ef2e4131d81127e18c006938ffa2f4c8b247"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/ETen-B5-H.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 1125,
+      "sha256": "87ee6b3f5bfda5fe26fa35431264c7d73070d10dbbf398a75185d63ae322c18d",
+      "originalSha256": "87ee6b3f5bfda5fe26fa35431264c7d73070d10dbbf398a75185d63ae322c18d"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/ETen-B5-V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 158,
+      "sha256": "47dc0d2c21e3bde317947aec1675ceabc1d5460a60bf9c24334b8c407a17172c",
+      "originalSha256": "47dc0d2c21e3bde317947aec1675ceabc1d5460a60bf9c24334b8c407a17172c"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/ETenms-B5-H.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 101,
+      "sha256": "d5f5a73da4173b7da9a3a20e16f26f9cd5d12deb1553409919e0cec6fd37fdee",
+      "originalSha256": "d5f5a73da4173b7da9a3a20e16f26f9cd5d12deb1553409919e0cec6fd37fdee"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/ETenms-B5-V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 172,
+      "sha256": "18252fca90f472f479af1bddd60d6ab51c8e1b55dcf6845951426504934543e0",
+      "originalSha256": "18252fca90f472f479af1bddd60d6ab51c8e1b55dcf6845951426504934543e0"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/EUC-H.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 578,
+      "sha256": "f9939cd57fccdc65c5d9f4c205fd497ebdbd283643308da5663801a8c1d9c595",
+      "originalSha256": "f9939cd57fccdc65c5d9f4c205fd497ebdbd283643308da5663801a8c1d9c595"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/EUC-V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 170,
+      "sha256": "1283a50a706507c4436da83ede9ad7a4440be25378f2e96f6c81a430081426a3",
+      "originalSha256": "1283a50a706507c4436da83ede9ad7a4440be25378f2e96f6c81a430081426a3"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/Ext-H.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 2536,
+      "sha256": "4000ed4e61a1c668ef453bbd0603cfa383defa793abd46a57ed870d7f527350b",
+      "originalSha256": "4000ed4e61a1c668ef453bbd0603cfa383defa793abd46a57ed870d7f527350b"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/Ext-RKSJ-H.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 2542,
+      "sha256": "e0d2f0df337660e73813238dd4a725f11f0621b90f3273857db253d0e7694caa",
+      "originalSha256": "e0d2f0df337660e73813238dd4a725f11f0621b90f3273857db253d0e7694caa"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/Ext-RKSJ-V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 218,
+      "sha256": "f617a22b6d67febb187990952006c91a9f5a4db21155d268c656252d0c21985d",
+      "originalSha256": "f617a22b6d67febb187990952006c91a9f5a4db21155d268c656252d0c21985d"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/Ext-V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 215,
+      "sha256": "c2087fb845a9e3acea0c2922cd40e6af67e11957bec74dcd597f1285edd490ce",
+      "originalSha256": "c2087fb845a9e3acea0c2922cd40e6af67e11957bec74dcd597f1285edd490ce"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/GB-EUC-H.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 549,
+      "sha256": "928bad06fd84a48f5ba7150d7716609119fb660f2aaa73eccad81ddab9b9d203",
+      "originalSha256": "928bad06fd84a48f5ba7150d7716609119fb660f2aaa73eccad81ddab9b9d203"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/GB-EUC-V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 179,
+      "sha256": "a9ad88ac2479da529b16dc48abc5952332e27bc355335f91df5729a587533324",
+      "originalSha256": "a9ad88ac2479da529b16dc48abc5952332e27bc355335f91df5729a587533324"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/GB-H.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 528,
+      "sha256": "1018c777a8910b5bb46d7d54a4aee9d51ca5cff8addb2b41c969d9101cb3fd1c",
+      "originalSha256": "1018c777a8910b5bb46d7d54a4aee9d51ca5cff8addb2b41c969d9101cb3fd1c"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/GB-V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 175,
+      "sha256": "0b96789143c0bbf9f1641ae7165b3456dccd14dabffcbb0bd654d5bf6f94f863",
+      "originalSha256": "0b96789143c0bbf9f1641ae7165b3456dccd14dabffcbb0bd654d5bf6f94f863"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/GBK-EUC-H.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 14692,
+      "sha256": "2103fed28650ede096a2281104a1a8a4304dae0db414342c636867522307123b",
+      "originalSha256": "2103fed28650ede096a2281104a1a8a4304dae0db414342c636867522307123b"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/GBK-EUC-V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 180,
+      "sha256": "a7fd35dd14d9dbdb955f34e6c0630618b6620dfd09d4283b2f65a65ce77fcaea",
+      "originalSha256": "a7fd35dd14d9dbdb955f34e6c0630618b6620dfd09d4283b2f65a65ce77fcaea"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/GBK2K-H.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 19662,
+      "sha256": "3d919ae72af16c5cc6846ec87a4326a9f125e493c59d3628429d35c2c95fe8c4",
+      "originalSha256": "3d919ae72af16c5cc6846ec87a4326a9f125e493c59d3628429d35c2c95fe8c4"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/GBK2K-V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 219,
+      "sha256": "b927fdfd595c07ce9158bf2ec13f4641b2e83b01c70989dadfabd6ed7c6ac2dc",
+      "originalSha256": "b927fdfd595c07ce9158bf2ec13f4641b2e83b01c70989dadfabd6ed7c6ac2dc"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/GBKp-EUC-H.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 14686,
+      "sha256": "d15ebd8e81fb4fe8a244f1b1e877922e03500ac69eddf5001093e502430451d2",
+      "originalSha256": "d15ebd8e81fb4fe8a244f1b1e877922e03500ac69eddf5001093e502430451d2"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/GBKp-EUC-V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 181,
+      "sha256": "fdc736d46e642625dccc8ad8c59f2c69fc7db7a13f2e799c6c6b779e707bb97a",
+      "originalSha256": "fdc736d46e642625dccc8ad8c59f2c69fc7db7a13f2e799c6c6b779e707bb97a"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/GBT-EUC-H.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 7290,
+      "sha256": "dc5f44e48a39f3367ae28665027d8ab1d8cedb5a9dcc5068a900acd6709f60f9",
+      "originalSha256": "dc5f44e48a39f3367ae28665027d8ab1d8cedb5a9dcc5068a900acd6709f60f9"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/GBT-EUC-V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 180,
+      "sha256": "a1ad24e63653b8aa388c18fa5e498f007564e43dde699a9f91ccb4645c999be8",
+      "originalSha256": "a1ad24e63653b8aa388c18fa5e498f007564e43dde699a9f91ccb4645c999be8"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/GBT-H.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 7269,
+      "sha256": "8afda745a505763f3ff54c8126eeb48ef376ea9ed07d9f42ff9a22c5c547ec57",
+      "originalSha256": "8afda745a505763f3ff54c8126eeb48ef376ea9ed07d9f42ff9a22c5c547ec57"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/GBT-V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 176,
+      "sha256": "cdc2ec5c3c7c7033290c9a8894878202f08674eb9b1ae7d36218430326768771",
+      "originalSha256": "cdc2ec5c3c7c7033290c9a8894878202f08674eb9b1ae7d36218430326768771"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/GBTpc-EUC-H.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 7298,
+      "sha256": "7b23e2f7bfdb6c918f567b7324bf858f398bd8cd5f268d74ece19a3c91bf4f32",
+      "originalSha256": "7b23e2f7bfdb6c918f567b7324bf858f398bd8cd5f268d74ece19a3c91bf4f32"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/GBTpc-EUC-V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 182,
+      "sha256": "d7a1b13ead9ab511cf2cd01de6ce8b02aa8e8767e84895337d7a3b67f039f93b",
+      "originalSha256": "d7a1b13ead9ab511cf2cd01de6ce8b02aa8e8767e84895337d7a3b67f039f93b"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/GBpc-EUC-H.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 557,
+      "sha256": "3c4a4eb82f05abe51f6650985c630e180438bfdd491318f5d20d2ec29236e1c3",
+      "originalSha256": "3c4a4eb82f05abe51f6650985c630e180438bfdd491318f5d20d2ec29236e1c3"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/GBpc-EUC-V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 181,
+      "sha256": "215bdfa2842705624b4cf4cd29b8e3c720f1e192365e0305c11030a424c84d7c",
+      "originalSha256": "215bdfa2842705624b4cf4cd29b8e3c720f1e192365e0305c11030a424c84d7c"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/H.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 553,
+      "sha256": "a0233e21047ec00b852125b243cbcf30abee511155b6d8159c24f944384bc9ee",
+      "originalSha256": "a0233e21047ec00b852125b243cbcf30abee511155b6d8159c24f944384bc9ee"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/HKdla-B5-H.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 2654,
+      "sha256": "5242bce18fb13ab4cc59b146a03eba36e4ce42667eeff09e10981a9d2aa4996b",
+      "originalSha256": "5242bce18fb13ab4cc59b146a03eba36e4ce42667eeff09e10981a9d2aa4996b"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/HKdla-B5-V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 148,
+      "sha256": "2e0537f786c0791d41a925f72bad2d4e7268aa6cbf15a1400a722672cec38e2c",
+      "originalSha256": "2e0537f786c0791d41a925f72bad2d4e7268aa6cbf15a1400a722672cec38e2c"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/HKdlb-B5-H.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 2414,
+      "sha256": "fdc8159984bf5dbe475c0d5dfcb621ecee4dea07c38c668bd77f4c679e23b9b3",
+      "originalSha256": "fdc8159984bf5dbe475c0d5dfcb621ecee4dea07c38c668bd77f4c679e23b9b3"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/HKdlb-B5-V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 148,
+      "sha256": "b249eb9dcb915ab45057c5d4d7aa55ef88d0efbb092af6bae0b2d4705d139abf",
+      "originalSha256": "b249eb9dcb915ab45057c5d4d7aa55ef88d0efbb092af6bae0b2d4705d139abf"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/HKgccs-B5-H.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 2292,
+      "sha256": "ab64c7fc5e9b2e97750cc4f269b0da14fd8649e49151b7598c8df86599bac591",
+      "originalSha256": "ab64c7fc5e9b2e97750cc4f269b0da14fd8649e49151b7598c8df86599bac591"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/HKgccs-B5-V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 149,
+      "sha256": "02ebdf7cdffb5395fb21091cd58a013a18ae5388922822f9dc6292ef16b98956",
+      "originalSha256": "02ebdf7cdffb5395fb21091cd58a013a18ae5388922822f9dc6292ef16b98956"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/HKm314-B5-H.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 1772,
+      "sha256": "bfd8bbde6b36a9da4c1c902c74121a30d9807a7079a00eeea218be6adc223cef",
+      "originalSha256": "bfd8bbde6b36a9da4c1c902c74121a30d9807a7079a00eeea218be6adc223cef"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/HKm314-B5-V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 149,
+      "sha256": "2a64a815cfb6fdd480674a868762e3d161fda17543b20c9209978559f0667164",
+      "originalSha256": "2a64a815cfb6fdd480674a868762e3d161fda17543b20c9209978559f0667164"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/HKm471-B5-H.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 2171,
+      "sha256": "49d7c037758826b5b6c0fa329c35bbf25d3943197754e72ecd30c6fb04d745e6",
+      "originalSha256": "49d7c037758826b5b6c0fa329c35bbf25d3943197754e72ecd30c6fb04d745e6"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/HKm471-B5-V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 149,
+      "sha256": "be24c109e78aa4fe3c1f27d30aab3ed0741e783fa1b6b6c2719741072b54b132",
+      "originalSha256": "be24c109e78aa4fe3c1f27d30aab3ed0741e783fa1b6b6c2719741072b54b132"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/HKscs-B5-H.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 4437,
+      "sha256": "08599378f41d96b40537adef6e6edcc4a787bc63f5accf47c026df4905a13914",
+      "originalSha256": "08599378f41d96b40537adef6e6edcc4a787bc63f5accf47c026df4905a13914"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/HKscs-B5-V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 159,
+      "sha256": "d073542b7dad1c4cbf01c1af5f0cd13218d1281a491956e310c55702fc8705c4",
+      "originalSha256": "d073542b7dad1c4cbf01c1af5f0cd13218d1281a491956e310c55702fc8705c4"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/Hankaku.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 132,
+      "sha256": "b454701f7aecd7856769016dfd04ca64280a060f2c67a2466d50b4395d24974e",
+      "originalSha256": "b454701f7aecd7856769016dfd04ca64280a060f2c67a2466d50b4395d24974e"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/Hiragana.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 124,
+      "sha256": "2ed669394756dd9458651cd9995ab29ab691ecb7686659003306cdf22767a414",
+      "originalSha256": "2ed669394756dd9458651cd9995ab29ab691ecb7686659003306cdf22767a414"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/KSC-EUC-H.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 1848,
+      "sha256": "6784e16dbc5861c036c23d3e55f0d4ba0975a3e464da0ee8e49bcfff0be070c4",
+      "originalSha256": "6784e16dbc5861c036c23d3e55f0d4ba0975a3e464da0ee8e49bcfff0be070c4"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/KSC-EUC-V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 164,
+      "sha256": "fdb36bad85e9924823d49db374067988e024cf80fc894711f2c9178951cbbe95",
+      "originalSha256": "fdb36bad85e9924823d49db374067988e024cf80fc894711f2c9178951cbbe95"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/KSC-H.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 1831,
+      "sha256": "c1f6d61f1d3304fd539a65ae72624fa567ecc3853bf52e283958a7a2515b3eee",
+      "originalSha256": "c1f6d61f1d3304fd539a65ae72624fa567ecc3853bf52e283958a7a2515b3eee"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/KSC-Johab-H.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 16791,
+      "sha256": "939993d213f68db763bf156217c217ae23af082b91a0eacecf3d11eb4ff8ef8c",
+      "originalSha256": "939993d213f68db763bf156217c217ae23af082b91a0eacecf3d11eb4ff8ef8c"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/KSC-Johab-V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 166,
+      "sha256": "5d61967aac0e666def721e8b8d0fed8f95a879a14f2e76ce516c3d11c621e519",
+      "originalSha256": "5d61967aac0e666def721e8b8d0fed8f95a879a14f2e76ce516c3d11c621e519"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/KSC-V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 160,
+      "sha256": "d7da5afd9f1fe74816d79c9325f0139a4efb6438664ebfdf9a7aa92f3034360f",
+      "originalSha256": "d7da5afd9f1fe74816d79c9325f0139a4efb6438664ebfdf9a7aa92f3034360f"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/KSCms-UHC-H.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 2787,
+      "sha256": "5b70d8f6a4fa9e2283dc649f0ff95d906d56efbee50a20e8d2faec3a8fed078e",
+      "originalSha256": "5b70d8f6a4fa9e2283dc649f0ff95d906d56efbee50a20e8d2faec3a8fed078e"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/KSCms-UHC-HW-H.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 2789,
+      "sha256": "a5e6ba22aceb02fdedee11bfb9ed138463d89e85b87810b9f075b469d936f8ec",
+      "originalSha256": "a5e6ba22aceb02fdedee11bfb9ed138463d89e85b87810b9f075b469d936f8ec"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/KSCms-UHC-HW-V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 169,
+      "sha256": "890332a6a26880d463a12f2a6ff048bf9cf7e45077cfb1ca8815b89baa7bf411",
+      "originalSha256": "890332a6a26880d463a12f2a6ff048bf9cf7e45077cfb1ca8815b89baa7bf411"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/KSCms-UHC-V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 166,
+      "sha256": "1631b531c9a40c8cbe24c2317dba107362e49fa6e18af620414d627c111d570c",
+      "originalSha256": "1631b531c9a40c8cbe24c2317dba107362e49fa6e18af620414d627c111d570c"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/KSCpc-EUC-H.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 2024,
+      "sha256": "709480682c55cedbb0124b9960d78e28febeee0df2e34607d61aac6601647ec7",
+      "originalSha256": "709480682c55cedbb0124b9960d78e28febeee0df2e34607d61aac6601647ec7"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/KSCpc-EUC-V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 166,
+      "sha256": "031707887d6fc2378a36cdb6775334fd7a236c3f95048d8436abf43fe26fc49d",
+      "originalSha256": "031707887d6fc2378a36cdb6775334fd7a236c3f95048d8436abf43fe26fc49d"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/Katakana.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 100,
+      "sha256": "3b6ca6642fbf8822da00d5e58a8aa275216d5c32dbf2bd73e934197fc9fc5c53",
+      "originalSha256": "3b6ca6642fbf8822da00d5e58a8aa275216d5c32dbf2bd73e934197fc9fc5c53"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/LICENSE",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 2080,
+      "sha256": "aa92ab5a472974865a96fd4a4e9c13bb41bf6fe1b309cb6b8da48bc9e19839a2",
+      "originalSha256": "aa92ab5a472974865a96fd4a4e9c13bb41bf6fe1b309cb6b8da48bc9e19839a2"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/NWP-H.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 2765,
+      "sha256": "286c6c9e335da330928a01edc3c97a3a623f1f7f3c42762b0a7dc2f651b1a78f",
+      "originalSha256": "286c6c9e335da330928a01edc3c97a3a623f1f7f3c42762b0a7dc2f651b1a78f"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/NWP-V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 252,
+      "sha256": "3a75fb7b59adfb172710758c425d8ac6c93fd5360a64dd4afd5dd04e60ab4b4d",
+      "originalSha256": "3a75fb7b59adfb172710758c425d8ac6c93fd5360a64dd4afd5dd04e60ab4b4d"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/RKSJ-H.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 534,
+      "sha256": "a70de61a22a898f693f02cc011c3e3cff2e10aaa7cddb4661e456a21ae859f78",
+      "originalSha256": "a70de61a22a898f693f02cc011c3e3cff2e10aaa7cddb4661e456a21ae859f78"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/RKSJ-V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 170,
+      "sha256": "68c1a64506471a524ea5cfc3b3a9f8f70031989a6bd95427b1351f33ccf50b06",
+      "originalSha256": "68c1a64506471a524ea5cfc3b3a9f8f70031989a6bd95427b1351f33ccf50b06"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/Roman.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 96,
+      "sha256": "1c6b3ef9d9e5cb1aa329142ce9414b90f9b6d7f9182a2a9e927378dab8f0d43f",
+      "originalSha256": "1c6b3ef9d9e5cb1aa329142ce9414b90f9b6d7f9182a2a9e927378dab8f0d43f"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/UniCNS-UCS2-H.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 48280,
+      "sha256": "779428116752f34e2490a1941d24e4634c71e3c22d053b811d2090ae2fb3c704",
+      "originalSha256": "779428116752f34e2490a1941d24e4634c71e3c22d053b811d2090ae2fb3c704"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/UniCNS-UCS2-V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 156,
+      "sha256": "1e5cc184b850ea44abc2df8ae5674279df668e8edf5e2a1a2ea2bd77adbd280f",
+      "originalSha256": "1e5cc184b850ea44abc2df8ae5674279df668e8edf5e2a1a2ea2bd77adbd280f"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/UniCNS-UTF16-H.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 50419,
+      "sha256": "32ff139b3c7b91d6ad25f994701f3ce7b242906022c418fd73e6493fc228bfe5",
+      "originalSha256": "32ff139b3c7b91d6ad25f994701f3ce7b242906022c418fd73e6493fc228bfe5"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/UniCNS-UTF16-V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 156,
+      "sha256": "278eb1e68d1a236c60ef59472cf0176ee0d45f364285e76ca12419a08d46fb9a",
+      "originalSha256": "278eb1e68d1a236c60ef59472cf0176ee0d45f364285e76ca12419a08d46fb9a"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/UniCNS-UTF32-H.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 52679,
+      "sha256": "bf26eb67fe19ee5ba915799e80ca72408400aa8342fdf6a244a4f44de8f97336",
+      "originalSha256": "bf26eb67fe19ee5ba915799e80ca72408400aa8342fdf6a244a4f44de8f97336"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/UniCNS-UTF32-V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 160,
+      "sha256": "f7da3caf83ceb1cb37936fa10700d9ba6e9c3f72c5bc9724e3ac79bff0c0179e",
+      "originalSha256": "f7da3caf83ceb1cb37936fa10700d9ba6e9c3f72c5bc9724e3ac79bff0c0179e"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/UniCNS-UTF8-H.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 53629,
+      "sha256": "2f2a742bcd1a84a148a4a518b9eed51a8f9c6ca5ed3bc5e2e41fff97de5dc2d8",
+      "originalSha256": "2f2a742bcd1a84a148a4a518b9eed51a8f9c6ca5ed3bc5e2e41fff97de5dc2d8"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/UniCNS-UTF8-V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 157,
+      "sha256": "b7c3f10780a8c62dd1c8ff6c30dc1e4e23b6cdc87c3a96fcd514cc98ffd3af9d",
+      "originalSha256": "b7c3f10780a8c62dd1c8ff6c30dc1e4e23b6cdc87c3a96fcd514cc98ffd3af9d"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/UniGB-UCS2-H.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 43366,
+      "sha256": "9201569b402e81ad8860650bd86350c4fa28e5dd5971f05fcacaf40f51de18ed",
+      "originalSha256": "9201569b402e81ad8860650bd86350c4fa28e5dd5971f05fcacaf40f51de18ed"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/UniGB-UCS2-V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 193,
+      "sha256": "f10282335e4d64203bc2a653a3a47d745ec76c8ae04549f4d50180c1899be216",
+      "originalSha256": "f10282335e4d64203bc2a653a3a47d745ec76c8ae04549f4d50180c1899be216"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/UniGB-UTF16-H.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 44086,
+      "sha256": "386fd39581245c034da016a92d23f3df1117d169f996100050b264fc09a84e35",
+      "originalSha256": "386fd39581245c034da016a92d23f3df1117d169f996100050b264fc09a84e35"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/UniGB-UTF16-V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 178,
+      "sha256": "0473cfbba612b92dd9918f0ff8aee9112897c48e0ffdc0eb82da3144ed8ea84a",
+      "originalSha256": "0473cfbba612b92dd9918f0ff8aee9112897c48e0ffdc0eb82da3144ed8ea84a"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/UniGB-UTF32-H.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 45738,
+      "sha256": "f48a145dc4e3ed1dca1dde7111716a72306a2a4191ab05c6bae3a5c3a961cd2f",
+      "originalSha256": "f48a145dc4e3ed1dca1dde7111716a72306a2a4191ab05c6bae3a5c3a961cd2f"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/UniGB-UTF32-V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 182,
+      "sha256": "106acc49b7118bdef944e32107b4f348238f3929a0a15d3b7aab7b9101535993",
+      "originalSha256": "106acc49b7118bdef944e32107b4f348238f3929a0a15d3b7aab7b9101535993"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/UniGB-UTF8-H.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 46837,
+      "sha256": "f217b439c80ee5fa1bc2cf6d1defcc319f8d84483d166a00ee199e05a68588df",
+      "originalSha256": "f217b439c80ee5fa1bc2cf6d1defcc319f8d84483d166a00ee199e05a68588df"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/UniGB-UTF8-V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 181,
+      "sha256": "a64df947632878eacc532fa193c735c92a383b7d66e6f8374ac193af7c64fc63",
+      "originalSha256": "a64df947632878eacc532fa193c735c92a383b7d66e6f8374ac193af7c64fc63"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/UniJIS-UCS2-H.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 25439,
+      "sha256": "ad2352f40870880fbf7f8ee5abadff743fbd025fbf9830b8ada472d1c5e4da0b",
+      "originalSha256": "ad2352f40870880fbf7f8ee5abadff743fbd025fbf9830b8ada472d1c5e4da0b"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/UniJIS-UCS2-HW-H.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 119,
+      "sha256": "16e87edca954177c0881c874859d6783220925d821b5cdfb8755b61ebd93f9ce",
+      "originalSha256": "16e87edca954177c0881c874859d6783220925d821b5cdfb8755b61ebd93f9ce"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/UniJIS-UCS2-HW-V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 680,
+      "sha256": "1973457e2c0192819947e56068625b34fb9a72ecc8a476ce6d7eaae5f73e2e5c",
+      "originalSha256": "1973457e2c0192819947e56068625b34fb9a72ecc8a476ce6d7eaae5f73e2e5c"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/UniJIS-UCS2-V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 664,
+      "sha256": "42a133d8e2ce9dd6d2288018e01592d2bf2435b326d39b94ea0b6e6a44ac33d3",
+      "originalSha256": "42a133d8e2ce9dd6d2288018e01592d2bf2435b326d39b94ea0b6e6a44ac33d3"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/UniJIS-UTF16-H.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 39443,
+      "sha256": "f6a89c5688978548c83fcee990e205bc63c74274d5c69b49032a3bd4c49a05ee",
+      "originalSha256": "f6a89c5688978548c83fcee990e205bc63c74274d5c69b49032a3bd4c49a05ee"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/UniJIS-UTF16-V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 643,
+      "sha256": "c67126fc7c73850855186bb0d6482ac0a365057e0b58778c4ab9f234683fef53",
+      "originalSha256": "c67126fc7c73850855186bb0d6482ac0a365057e0b58778c4ab9f234683fef53"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/UniJIS-UTF32-H.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 40539,
+      "sha256": "96195950ce0fe24443d8eb426fa6b88534ec421d7bef9046f0b2362809cfba73",
+      "originalSha256": "96195950ce0fe24443d8eb426fa6b88534ec421d7bef9046f0b2362809cfba73"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/UniJIS-UTF32-V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 677,
+      "sha256": "ed4dafda402bdd19c4d5d8bf2ab41473c0f86f384552b4c7b963d6627daedeb1",
+      "originalSha256": "ed4dafda402bdd19c4d5d8bf2ab41473c0f86f384552b4c7b963d6627daedeb1"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/UniJIS-UTF8-H.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 41695,
+      "sha256": "798fb0bf06ab0788d1f6a91c2db7de581612eef03c628f10e8f7ecd8f70ab448",
+      "originalSha256": "798fb0bf06ab0788d1f6a91c2db7de581612eef03c628f10e8f7ecd8f70ab448"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/UniJIS-UTF8-V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 678,
+      "sha256": "1021611424f913b2df0bfdbe94bd327c04e224ec89d8e821c6501ea3d21f4265",
+      "originalSha256": "1021611424f913b2df0bfdbe94bd327c04e224ec89d8e821c6501ea3d21f4265"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/UniJIS2004-UTF16-H.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 39534,
+      "sha256": "710a32d7cb43fd6bd9dbf30da5971f8c941590f74441e208d852c2be0e74cc97",
+      "originalSha256": "710a32d7cb43fd6bd9dbf30da5971f8c941590f74441e208d852c2be0e74cc97"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/UniJIS2004-UTF16-V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 647,
+      "sha256": "3b149aff5c5707b57fb3215d1775852c8b1f413ec0f679ea628f25cf87fe098d",
+      "originalSha256": "3b149aff5c5707b57fb3215d1775852c8b1f413ec0f679ea628f25cf87fe098d"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/UniJIS2004-UTF32-H.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 40630,
+      "sha256": "8d2658e18741af7937d586a57c89729a6fec0d86121197c1f8518aa58b29cdfb",
+      "originalSha256": "8d2658e18741af7937d586a57c89729a6fec0d86121197c1f8518aa58b29cdfb"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/UniJIS2004-UTF32-V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 681,
+      "sha256": "6dd475782f2897648a683c48b2fa015a15b8f06856760bddc8a17a63f418bacb",
+      "originalSha256": "6dd475782f2897648a683c48b2fa015a15b8f06856760bddc8a17a63f418bacb"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/UniJIS2004-UTF8-H.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 41779,
+      "sha256": "691c614ce432b3e62486efb54e5c84c6da5afe9b51b21253bde4758feb484183",
+      "originalSha256": "691c614ce432b3e62486efb54e5c84c6da5afe9b51b21253bde4758feb484183"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/UniJIS2004-UTF8-V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 682,
+      "sha256": "40a8c7ea2d46711c5f78fc9a878a7db68b1543ba5cd60ecf14f519a2deb829b7",
+      "originalSha256": "40a8c7ea2d46711c5f78fc9a878a7db68b1543ba5cd60ecf14f519a2deb829b7"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/UniJISPro-UCS2-HW-V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 705,
+      "sha256": "6826f94d789d7bf1960668c1c5819c34c9585c1b23152fbc19ee81c7df08524b",
+      "originalSha256": "6826f94d789d7bf1960668c1c5819c34c9585c1b23152fbc19ee81c7df08524b"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/UniJISPro-UCS2-V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 689,
+      "sha256": "493de9fd1a08f7946065d8ab58f0c3c9fe489f5a0f109f2d05a3169b4bd5789f",
+      "originalSha256": "493de9fd1a08f7946065d8ab58f0c3c9fe489f5a0f109f2d05a3169b4bd5789f"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/UniJISPro-UTF8-V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 726,
+      "sha256": "6181d382cf736c5e09492e8be9f26f31fa25b7462253f23ab16646af432cad81",
+      "originalSha256": "6181d382cf736c5e09492e8be9f26f31fa25b7462253f23ab16646af432cad81"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/UniJISX0213-UTF32-H.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 40517,
+      "sha256": "692044e1fb33445668632bc9fe7386805c624864be1ddeb29d65bb0c99fc630c",
+      "originalSha256": "692044e1fb33445668632bc9fe7386805c624864be1ddeb29d65bb0c99fc630c"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/UniJISX0213-UTF32-V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 684,
+      "sha256": "dd54e16ca7bffb3a886242549b2bf7d78a277087f7c60d2636f118c21a5b0646",
+      "originalSha256": "dd54e16ca7bffb3a886242549b2bf7d78a277087f7c60d2636f118c21a5b0646"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/UniJISX02132004-UTF32-H.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 40608,
+      "sha256": "f80ea5a989be30ccda5a8804baef6d3b4b044d2b339bf8b31c671b2466171cf6",
+      "originalSha256": "f80ea5a989be30ccda5a8804baef6d3b4b044d2b339bf8b31c671b2466171cf6"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/UniJISX02132004-UTF32-V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 688,
+      "sha256": "94c22bd99e771c5fbe0dd8dc39850570d4db0075074aca13e272813edd7cc57f",
+      "originalSha256": "94c22bd99e771c5fbe0dd8dc39850570d4db0075074aca13e272813edd7cc57f"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/UniKS-UCS2-H.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 25783,
+      "sha256": "a1081396ab4adb6f4a5b6c15f896963c244c1c9bcb65ce5616d06096a1b9811c",
+      "originalSha256": "a1081396ab4adb6f4a5b6c15f896963c244c1c9bcb65ce5616d06096a1b9811c"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/UniKS-UCS2-V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 178,
+      "sha256": "6cab547431958fbdc1d401d06ebd4dd61a73f5509a10f974df32bcbca11a2e43",
+      "originalSha256": "6cab547431958fbdc1d401d06ebd4dd61a73f5509a10f974df32bcbca11a2e43"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/UniKS-UTF16-H.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 26327,
+      "sha256": "42d35b396286499dfae1737a07adb3a64500df37b426580bfb1d3ea872938519",
+      "originalSha256": "42d35b396286499dfae1737a07adb3a64500df37b426580bfb1d3ea872938519"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/UniKS-UTF16-V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 164,
+      "sha256": "5bdb7390c80dcc136cb47d41dc7460082560969c17322ee739fe3020fb642410",
+      "originalSha256": "5bdb7390c80dcc136cb47d41dc7460082560969c17322ee739fe3020fb642410"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/UniKS-UTF32-H.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 26451,
+      "sha256": "3a01ec51ed1b828101351e337ffb8250abe11880032e5210f881170fed2588de",
+      "originalSha256": "3a01ec51ed1b828101351e337ffb8250abe11880032e5210f881170fed2588de"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/UniKS-UTF32-V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 168,
+      "sha256": "dfda895eceaed081af030dbbb962b49629eea817fc3c02bae15db93d0c68acd7",
+      "originalSha256": "dfda895eceaed081af030dbbb962b49629eea817fc3c02bae15db93d0c68acd7"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/UniKS-UTF8-H.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 27790,
+      "sha256": "3fac9c65145f72d7d42157a3b9c5ed6904632184e6a0888f2b828699afd2002f",
+      "originalSha256": "3fac9c65145f72d7d42157a3b9c5ed6904632184e6a0888f2b828699afd2002f"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/UniKS-UTF8-V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 169,
+      "sha256": "9ecc6cf30dd354b9778ddba163b6cc7302b087ce9f39d1ba73472d2b75ed13ca",
+      "originalSha256": "9ecc6cf30dd354b9778ddba163b6cc7302b087ce9f39d1ba73472d2b75ed13ca"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/V.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 166,
+      "sha256": "b9ad1c0c09ff14bca52f9a28a9767eb857ad0e8946e64ba14c7387a7eb69866a",
+      "originalSha256": "b9ad1c0c09ff14bca52f9a28a9767eb857ad0e8946e64ba14c7387a7eb69866a"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/pdfjs/web/cmaps/WP-Symbol.bcmap",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 179,
+      "sha256": "543923bead225732aba30976690ee89095a19628277b5863efecc2c728d5d7bf",
+      "originalSha256": "543923bead225732aba30976690ee89095a19628277b5863efecc2c728d5d7bf"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/spinner.png",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 25327,
+      "sha256": "c94391e9e328188e8c11e90b9684055d8e53353ea0b02f72d4dd7dfefd82518c",
+      "originalSha256": "c94391e9e328188e8c11e90b9684055d8e53353ea0b02f72d4dd7dfefd82518c"
+    },
+    {
+      "path": "public/presentations/physiq/assets/player/waiting_bezel.png",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 1431,
+      "sha256": "b4c342b16b3eb8b97d8e668d059ccdb446dd4ab67285b876b63499317e19a2f8",
+      "originalSha256": "b4c342b16b3eb8b97d8e668d059ccdb446dd4ab67285b876b63499317e19a2f8"
+    },
+    {
+      "path": "public/presentations/physiq/assets/thumbnail.jpeg",
+      "kind": "generated",
+      "mode": "100644",
+      "bytes": 5772,
+      "sha256": "19fdf6a50177b35519beb79dbf9e470d5cb81e240cb11f494162ad857e138246",
+      "originalSha256": "19fdf6a50177b35519beb79dbf9e470d5cb81e240cb11f494162ad857e138246"
+    },
+    {
+      "path": "public/presentations/physiq/index.html",
+      "kind": "authored",
+      "mode": "100644",
+      "bytes": 1311,
+      "sha256": "e8c8c5d8178983b44d66a2829411fbf8a37cb32ee6e9d5f59fd45e6541ea3981",
+      "originalSha256": "1c46e613f9180fbeaeb97926c0a1b666a5fae1be69d0e24364a9e7d22df37491"
+    }
+  ]
+}
