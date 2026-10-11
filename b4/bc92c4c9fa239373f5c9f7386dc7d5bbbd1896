@@ -1,0 +1,31 @@
+deploy/pr132-followup/offline_migration_proof.mts
+  s_edc3df130cc253::t_d791028c32c4e2 1-199
+deploy/pr132-followup/offline_restore_proof.py
+  s_edc3df130cc253::t_3f98045b472720 1-71
+deploy/pr132-followup/offline_rollback_proof.mts
+  s_edc3df130cc253::t_5d4665a08e1452 1-34
+deploy/pr132-followup/private_fixture.py
+  s_edc3df130cc253::t_dc5fbd56deefd2 1-275
+deploy/pr132-followup/test_offline_migration_proof.mts
+  s_edc3df130cc253::t_546685d71010e0 1-59
+deploy/pr132-followup/test_offline_restore_proof.py
+  s_edc3df130cc253::t_970a063db0ac71 1-43
+deploy/pr132-followup/test_private_fixture.py
+  s_edc3df130cc253::t_a9b839d6708ece 1-100
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b4bc92c4c9fa239373f5c9f7386dc7d5bbbd1896",
+  "prompts": {},
+  "sessions": {
+    "s_edc3df130cc253": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12b0b-aaa6-7d90-aa4e-5bcfe9db3ea5",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
