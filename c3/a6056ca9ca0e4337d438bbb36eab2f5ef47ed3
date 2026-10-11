@@ -1,0 +1,27 @@
+docs/automation/ai-visual-review.md
+  s_a3d57fd6983d88::t_9e5b39e6a5a422 51
+scripts/visual-review/ai-review.mjs
+  s_a3d57fd6983d88::t_e50574e59aa433 198-213,216-217,356,409
+scripts/visual-review/recovery.mjs
+  s_a3d57fd6983d88::t_bb1d36ba26ba2a 3,62-63
+tests/ai-visual-recovery.test.mjs
+  s_a3d57fd6983d88::t_3a17cc9b4e8883 34-35,113,125-134
+tests/ai-visual-review.test.mjs
+  s_a3d57fd6983d88::t_6dd48bbaa041d8 6,834,838-843,864-878
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c3a6056ca9ca0e4337d438bbb36eab2f5ef47ed3",
+  "prompts": {},
+  "sessions": {
+    "s_a3d57fd6983d88": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a125dc-d51e-7583-9ad7-4135793b24dc",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
