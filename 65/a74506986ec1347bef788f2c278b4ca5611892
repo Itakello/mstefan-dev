@@ -1,0 +1,33 @@
+tests/ai-visual-recovery.test.mjs
+  s_5cd4729d0fa8ea::t_a80a742598be21 84
+  s_5cd4729d0fa8ea::t_69033f5e00459c 10,12-13,23,25,70-72,93-98
+tests/ai-visual-review.test.mjs
+  s_5cd4729d0fa8ea::t_5201ded42a92ef 851,855-856,864,877
+  s_5cd4729d0fa8ea::t_d3dfda737468bf 768-806,808-811
+  s_5cd4729d0fa8ea::t_e32041ecdc8a93 846-850,852-854,857-863,865-876,878-888
+  s_5cd4729d0fa8ea::t_60ae0d7bf2bd14 807
+docs/automation/ai-visual-review.md
+  s_5cd4729d0fa8ea::t_fbdaa1925fe112 15-16
+scripts/visual-review/ai-review.mjs
+  s_5cd4729d0fa8ea::t_0bce6dd2e80fd7 169-177,181,187,321-324
+scripts/visual-review/recovery.mjs
+  s_5cd4729d0fa8ea::t_0bce6dd2e80fd7 6-7,16,31,59,61,64
+.github/workflows/ai-visual-review.yml
+  s_5cd4729d0fa8ea::t_0bce6dd2e80fd7 14
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "65a74506986ec1347bef788f2c278b4ca5611892",
+  "prompts": {},
+  "sessions": {
+    "s_5cd4729d0fa8ea": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12cda-35e2-7a30-8fed-911abfcf8056",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
