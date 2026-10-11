@@ -323,7 +323,7 @@ with zipfile.ZipFile(sys.argv[1]+'/fixture.zip','w') as z:
     const calls=[],writes=[];
     const fetcher=async(url,options)=>{
       calls.push(url);
-      if(url.startsWith('https://api.openai.com')) return new Response(JSON.stringify(url.endsWith('/input_tokens') ? {object:'response.input_tokens',input_tokens:10} : {status:'completed',output:[{type:'message',content:[{type:'output_text',text:JSON.stringify(clean)}]}]}));
+      if(new URL(url).origin === 'https://api.openai.com') return new Response(JSON.stringify(url.endsWith('/input_tokens') ? {object:'response.input_tokens',input_tokens:10} : {status:'completed',output:[{type:'message',content:[{type:'output_text',text:JSON.stringify(clean)}]}]}));
       if(options.method==='POST') {writes.push(JSON.parse(options.body));return new Response('{}');}
       let response;
       if(url.endsWith('/actions/runs/7')) response=run;
@@ -344,20 +344,20 @@ with zipfile.ZipFile(sys.argv[1]+'/fixture.zip','w') as z:
     const env={GITHUB_REPOSITORY:repository,GITHUB_EVENT_PATH:event,GITHUB_EVENT_NAME:'workflow_dispatch',GITHUB_RUN_ATTEMPT:'1',GITHUB_RUN_ID:'5',GITHUB_OUTPUT:output,RUNNER_TEMP:directory,OPENAI_API_KEY:'opaque'};
     await main({env,fetcher});
     assert.equal(readFileSync(output,'utf8'),'ready=true\n');
-    assert.equal(calls.some(url=>url.startsWith('https://api.openai.com')),false);
+    assert.equal(calls.some(url=>new URL(url).origin === 'https://api.openai.com'),false);
     requestPhase=true;
     await main({env,fetcher,request:true});
-    assert.equal(calls.filter(url=>url.startsWith('https://api.openai.com')).length,2);
+    assert.equal(calls.filter(url=>new URL(url).origin === 'https://api.openai.com').length,2);
     assert.match(writes.at(-1).description,/complete review: 16 captures/);
     calls.length=0;reservations=5;
     await assert.rejects(main({env,fetcher,request:true}),/paid attempt cap/);
-    assert.equal(calls.some(url=>url.startsWith('https://api.openai.com')),false);
+    assert.equal(calls.some(url=>new URL(url).origin === 'https://api.openai.com'),false);
     calls.length=0;stale=true;
     await assert.rejects(main({env,fetcher,request:true}),/Stale head/);
     assert.equal(calls.length,2);
     stale=false;replayed=true;calls.length=0;
     await main({env,fetcher,request:true});
-    assert.equal(calls.some(url=>url.includes('/jobs?') || url.startsWith('https://api.openai.com')),false);
+    assert.equal(calls.some(url=>url.includes('/jobs?') || new URL(url).origin === 'https://api.openai.com'),false);
   } finally {rmSync(directory,{recursive:true,force:true});}
 });
 
@@ -394,7 +394,7 @@ test('revision changes during budget history or job lookup cannot claim or call 
       };
       await assert.rejects(main({env,fetcher,request:true}),/Revisions changed before request/);
       assert.equal(retargeted,true);
-      assert.equal(calls.some(url=>url.startsWith('https://api.openai.com')),false);
+      assert.equal(calls.some(url=>new URL(url).origin === 'https://api.openai.com'),false);
       assert.equal(writes.some(status=>status.description.includes('request claimed')),false);
     }
   } finally {rmSync(directory,{recursive:true,force:true});}
