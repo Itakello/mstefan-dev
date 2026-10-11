@@ -130,7 +130,7 @@ test.describe("Public website review", () => {
       for (const mode of ["Paper", "Slides"]) {
         await researchModes.getByRole("button", { name: mode, exact: true }).click();
         await expect(reader.getByRole("status")).toHaveCount(0);
-        const mediaBox = (await reader.boundingBox())!;
+        const mediaBox = (await page.locator("[data-media-preview]").boundingBox())!;
         const toggleBox = (await researchModes.boundingBox())!;
         expect(toggleBox.y).toBeGreaterThanOrEqual(mediaBox.y + mediaBox.height);
         expect(Math.abs(toggleBox.x + toggleBox.width - mediaBox.x - mediaBox.width)).toBeLessThan(2);
@@ -139,19 +139,25 @@ test.describe("Public website review", () => {
     await page.setViewportSize({ width: 1280, height: 720 });
     await researchModes.getByRole("button", { name: "Paper", exact: true }).click();
     await expect(reader.getByRole("status")).toHaveCount(0);
-    await expect(reader.getByRole("link", { name: "Open PDF", exact: true })).toHaveAttribute("href", "https://arxiv.org/pdf/2410.07109");
+    await expect(reader.getByRole("link", { name: "Download PDF", exact: true })).toHaveAttribute("href", "https://arxiv.org/pdf/2410.07109");
+    await expect.poll(() => reader.locator("[data-document-stage]").evaluate(node => node.scrollHeight <= node.clientHeight + 1)).toBeTruthy();
     await reader.getByRole("button", { name: "Next page" }).click();
     await expect(reader.getByRole("img", { name: "LLM Interaction Simulator · page 2", exact: true })).toBeVisible();
     await expect(reader.getByRole("status")).toHaveCount(0);
     await reader.getByRole("button", { name: "Zoom in" }).click();
     await expect(reader.getByText("125%", { exact: true })).toBeVisible();
-    const paperStageHeight = await reader.locator("[data-document-stage]").evaluate(node => node.clientHeight);
+    await page.getByRole("button", { name: "Enlarge preview", exact: true }).click();
+    await expect(page.locator("[data-media-preview]")).toHaveJSProperty("open", true);
+    await expect.poll(() => page.locator("[data-media-preview]").evaluate(node => node.matches(":modal"))).toBeTruthy();
+    await expect(reader.getByText("125%", { exact: true })).toBeVisible();
+    await expect(reader.getByRole("img", { name: "LLM Interaction Simulator · page 2", exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Close preview", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Enlarge preview", exact: true })).toBeFocused();
     await page.getByRole("button", { name: "Slides", exact: true }).click();
-    await expect(reader.getByRole("link", { name: "Open PDF", exact: true })).toHaveAttribute("href", "https://example.com/research-slides.pdf");
+    await expect(reader.getByRole("link", { name: "Download PDF", exact: true })).toHaveAttribute("href", "https://example.com/research-slides.pdf");
     await expect(reader.getByText("1 / 2", { exact: true })).toBeVisible();
     await expect(reader.getByRole("status")).toHaveCount(0);
     const slideStage = reader.locator("[data-document-stage]");
-    expect(await slideStage.evaluate(node => node.clientHeight)).toBeLessThan(paperStageHeight);
     await expect.poll(() => slideStage.evaluate(node => node.scrollHeight <= node.clientHeight + 1 && node.scrollWidth <= node.clientWidth + 1)).toBeTruthy();
     await page.setViewportSize({ width: 1440, height: 600 });
     await expect.poll(() => slideStage.evaluate(node => node.clientHeight)).toBeLessThan(335);
