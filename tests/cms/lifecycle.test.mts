@@ -715,7 +715,9 @@ test('degree results are optional metadata downloads while other attachments ret
               await expect(link).toBeFocused();
               await page.screenshot({ path: `.artifacts/playwright/master-download/${degree}-${locale}-${size}-${theme}.png`, fullPage: true });
               await link.hover();
-              await page.screenshot({ path: `.artifacts/playwright/master-download/${degree}-${locale}-${size}-${theme}-hover.png`, fullPage: true });
+              if ((locale === 'en' && size === 'desktop' && theme === 'light') || (locale === 'it' && size === 'mobile' && theme === 'dark')) {
+                await page.screenshot({ path: `.artifacts/playwright/master-download/${degree}-${locale}-${size}-${theme}-hover.png`, fullPage: true });
+              }
             }
           }
         }
