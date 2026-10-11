@@ -5,7 +5,7 @@ import type { Locale } from "@/lib/i18n/config";
 
 export function PowerPointPreview({ url, title, locale }: { url: string; title: string; locale: Locale }) {
   const source = documentMediaUrl(url);
-  const viewer = powerPointPreviewUrl(source, locale);
+  const viewer = powerPointPreviewUrl(url, locale);
   const italian = locale === "it";
   const link = "inline-flex items-center gap-1 rounded-md px-2 py-2 text-xs hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[hsl(var(--accent))]";
   return <section data-powerpoint-preview aria-label={`${title}: PowerPoint`} className="overflow-hidden rounded-xl border border-[var(--surface-border)]">

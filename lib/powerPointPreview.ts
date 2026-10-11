@@ -2,6 +2,8 @@ import { documentMediaUrl } from "./documentMedia";
 import type { Locale } from "./i18n/config";
 
 export function powerPointPreviewUrl(value: string, locale: Locale): string | null {
+  const original = new URL(value);
+  if (original.search || original.hash || original.username || original.password || original.port) return null;
   const source = new URL(documentMediaUrl(value));
   if (source.hostname !== "raw.githubusercontent.com" || source.port || source.search || source.hash
     || !source.pathname.toLowerCase().endsWith(".pptx")) return null;

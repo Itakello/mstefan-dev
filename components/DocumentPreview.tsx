@@ -130,7 +130,7 @@ function PdfDocumentPreview({ url, title, locale, filename, presentation = false
         const dy = event.changedTouches[0].clientY - start.y;
         if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5) setPage(current => Math.max(1, Math.min(document.numPages, current + (dx < 0 ? 1 : -1))));
       }}>
-    <div ref={host} data-document-stage className={`relative ${presentation ? "max-h-[min(480px,55svh)]" : "max-h-[min(680px,75svh)]"} overflow-auto overscroll-contain bg-[var(--surface-bg)] p-3`}>
+    <div ref={host} data-document-stage className={`relative ${presentation ? "max-h-[min(480px,55svh)]" : "max-h-[min(680px,75svh)]"} overflow-auto bg-[var(--surface-bg)] p-3`}>
       {status === "loading" && <p role="status" className="absolute left-4 top-4 rounded bg-white/90 px-2 py-1 text-sm text-black">{italian ? "Caricamento documento…" : "Loading document…"}</p>}
       {status === "error" && <p role="status" className="text-sm">{italian ? "Anteprima non disponibile. Usa Apri PDF per leggere il documento." : "Preview unavailable. Use Open PDF to read the document."}</p>}
       <div ref={pageHost} className={`relative mx-auto ${status === "error" ? "hidden" : ""}`}><canvas ref={canvas} role="img" aria-label={`${title} · ${italian ? "pagina" : "page"} ${page}`} className="bg-white shadow-sm" /><div ref={text} data-document-text /></div>
