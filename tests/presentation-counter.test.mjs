@@ -5,7 +5,7 @@ import { runInNewContext } from "node:vm";
 
 test("native slide events drive the presentation counter across animation steps", () => {
   const html = readFileSync(new URL("../public/presentations/physiq/index.html", import.meta.url), "utf8");
-  const script = html.match(/<script>([\s\S]*?)<\/script>/)[1];
+  const script = html.match(/<script>([\s\S]*?)<\/script>/i)[1];
   const listeners = {}, messages = [];
   const parent = { postMessage: (value, origin) => messages.push({ ...value, origin }) };
   runInNewContext(script, { parent, location: { origin: "https://mstefan.dev" }, document: { addEventListener: (name, handler) => { listeners[name] = handler; } }, window: { addEventListener: (name, handler) => { listeners[name] = handler; } } });
