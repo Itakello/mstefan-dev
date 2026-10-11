@@ -21,3 +21,25 @@ Run synthetic verification:
 ```sh
 python3 -m unittest discover -s deploy/payload-production -p 'test_backup.py' -v
 ```
+
+## Prepare an on-demand staging refresh
+
+See [Website environments](ENVIRONMENTS.md) for the environment boundaries, Notion reconciliation, deployment cutover and recovery procedure.
+
+`staging_restore.py` prepares a new offline volume; it does not switch deployments. Stop all existing staging writers and checkpoint its SQLite database first. Nonempty WAL/SHM/journal sidecars are refused. Create a new empty caller-owned target directory outside production, existing staging, and backup directories, without group/world write permission. Use absolute paths without symlinks.
+
+```sh
+python3 deploy/payload-production/staging_restore.py \
+  --archive /absolute/private-backups/payload-20260918-before-deploy.tar \
+  --run-id 20260918-before-deploy \
+  --production-data-dir /absolute/stopped-data \
+  --staging-db /absolute/existing-staging/.payload-local.db \
+  --target-dir /absolute/new-staging-volume \
+  --staging-stopped
+```
+
+The production path must match the archive's original source path and is used only for identity and overlap checks. The command verifies the backup manifest/hashes, copies production content and uploads, and replaces accounts with existing staging identities and password credentials. It removes sessions, password-reset/login-lock state, preferences, and document locks; production credentials are also removed from freed SQLite pages. Existing staging, production data, and the archive remain unchanged. Account schemas must match the supported migrations; unfamiliar user relationships, missing staging password credentials, or failed SQLite/FK checks refuse preparation. Every refresh requires a fresh empty target; switching the deployment and validating staging sign-in/content remain separate operator steps.
+
+```sh
+python3 -m unittest discover -s deploy/payload-production -p 'test_staging_restore.py' -v
+```
