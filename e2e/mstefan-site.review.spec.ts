@@ -295,6 +295,9 @@ test.describe("Public website review", () => {
     await expect(controls).toContainText("Homepage · 1 / 3");
     await expect(page.getByRole("combobox", { name: "Preview page", exact: true })).toHaveCount(0);
     await page.screenshot({ path: ".artifacts/playwright/work-preview-arrows-desktop.png", fullPage: true });
+    await page.getByRole("button", { name: "Toggle theme", exact: true }).click();
+    await page.screenshot({ path: ".artifacts/playwright/work-preview-arrows-desktop-dark.png", fullPage: true });
+    await page.getByRole("button", { name: "Toggle theme", exact: true }).click();
     await next.focus();
     await next.press("Enter");
     await expect(next).toBeFocused();
@@ -318,6 +321,10 @@ test.describe("Public website review", () => {
     const preview = page.locator("[data-work-preview]");
     await preview.scrollIntoViewIfNeeded();
     await page.screenshot({ path: ".artifacts/playwright/work-preview-arrows-mobile.png", fullPage: true });
+    await page.getByRole("button", { name: "Toggle theme", exact: true }).click();
+    await page.screenshot({ path: ".artifacts/playwright/work-preview-arrows-mobile-dark.png", fullPage: true });
+    await page.getByRole("button", { name: "Toggle theme", exact: true }).click();
+    await preview.scrollIntoViewIfNeeded();
     const box = (await preview.boundingBox())!;
     const cdp = await context.newCDPSession(page);
     const swipe = async (dx: number, dy: number) => {
