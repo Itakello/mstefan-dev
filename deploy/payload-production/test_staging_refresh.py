@@ -216,6 +216,49 @@ class RefreshLifecycleTests(unittest.TestCase):
         self.assert_original_data()
         self.assertEqual(len([call for call in self.client.calls if call[0] == 'POST']), 1)
 
+    def test_restart_waits_for_transient_gateway_failures(self):
+        failures = [refresh.Refused('HTTP GET failed with status 502'),
+                    refresh.Refused('HTTP GET failed with status 503'), {}]
+        with patch.object(self.client, 'health', side_effect=failures) as health, \
+                patch.object(self.runner, 'sleep') as sleep:
+            self.runner.ready_health()
+        self.assertEqual(health.call_count, 3)
+        self.assertEqual(sleep.call_count, 2)
+
+    def test_apply_survives_production_startup_gateway_failure(self):
+        original = self.client.health
+        failures = []
+        def health(staging=False):
+            if not staging and self.state['phase'] == 'restarting_production' and not failures:
+                failures.append(True)
+                raise refresh.Refused('HTTP GET failed with status 502')
+            return original(staging=staging)
+        with patch.object(self.client, 'health', side_effect=health):
+            self.apply()
+        self.assertEqual(failures, [True])
+        self.assertEqual(self.state['phase'], 'ready')
+        self.assert_original_data()
+
+    def test_restart_health_deadline_and_access_refusal(self):
+        for reason, clock in [('HTTP GET failed with status 502', [0, 60]),
+                              ('HTTP GET failed with status 403', [0, 1])]:
+            with self.subTest(reason=reason), \
+                    patch.object(self.client, 'health', side_effect=refresh.Refused(reason)), \
+                    patch.object(refresh.time, 'monotonic', side_effect=clock), \
+                    patch.object(self.runner, 'sleep') as sleep:
+                with self.assertRaisesRegex(refresh.Refused, reason):
+                    self.runner.ready_health(staging=True)
+                sleep.assert_not_called()
+
+    def test_restart_does_not_start_health_pass_after_retry_window(self):
+        with patch.object(self.client, 'health', side_effect=refresh.Refused('HTTP GET failed with status 502')) as health, \
+                patch.object(refresh.time, 'monotonic', side_effect=[0, 59.5, 60]), \
+                patch.object(self.runner, 'sleep') as sleep:
+            with self.assertRaisesRegex(refresh.Refused, 'status 502'):
+                self.runner.ready_health()
+        self.assertEqual(health.call_count, 1)
+        sleep.assert_called_once_with(0.5)
+
     def test_failures_restore_original_runtime_and_declared_mount(self):
         for event in ('stop:production', 'backup:before', 'backup:after', 'restart:production',
                       'stop:staging', 'restore:before', 'restore:after', 'notion:after', 'mount:after'):
@@ -311,6 +354,22 @@ class RefreshLifecycleTests(unittest.TestCase):
         self.assertEqual(self.state['phase'], 'rolled_back')
         self.assertTrue(self.host.running['production'])
         self.assertEqual(self.client.projects[refresh.STAGE]['volumes'], ['staging-data:/data'])
+        self.assert_original_data()
+
+    def test_resumed_recovery_waits_for_staging_before_login(self):
+        self.state.update(current=self.state['staging'], recovering=True, phase='recovery_required')
+        original = self.client.health
+        calls = []
+        def health(staging=False):
+            calls.append('staging' if staging else 'production')
+            if staging and len(calls) == 1:
+                raise refresh.Refused('HTTP GET failed with status 502')
+            return original(staging=staging)
+        with patch.object(self.client, 'health', side_effect=health), \
+                patch.object(self.client, 'login', side_effect=lambda: calls.append('login')):
+            self.runner.recover(self.state, self.save)
+        self.assertEqual(calls, ['staging', 'staging', 'login', 'production'])
+        self.assertEqual(self.state['phase'], 'rolled_back')
         self.assert_original_data()
 
     def test_known_ready_native_submission_is_reconciled_before_recovery(self):
