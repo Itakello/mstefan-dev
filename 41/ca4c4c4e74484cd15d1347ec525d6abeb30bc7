@@ -1,0 +1,19 @@
+components/WorkExplorer.tsx
+  s_a3d57fd6983d88::t_e43feba649984b 204
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "41ca4c4c4e74484cd15d1347ec525d6abeb30bc7",
+  "prompts": {},
+  "sessions": {
+    "s_a3d57fd6983d88": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a125dc-d51e-7583-9ad7-4135793b24dc",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
