@@ -154,7 +154,6 @@ for (const theme of ["light", "dark"] as const) {
         }
         if (mode !== "Photos") {
           const name = `work-media-${mode.toLowerCase()}-${size}-${theme}.png`;
-          await page.locator("main").screenshot({ path: testInfo.outputPath(name), animations: "disabled" });
           await expect.soft(page.locator("main")).toHaveScreenshot(name, { animations: "disabled", maxDiffPixels: 40 });
         }
         await media.getByRole("button", { name: "Enlarge preview" }).click();
@@ -166,7 +165,6 @@ for (const theme of ["light", "dark"] as const) {
             Math.abs(node.getBoundingClientRect().width - window.innerWidth))).toBeLessThan(2);
         }
         const expandedName = `work-media-${mode.toLowerCase()}-expanded-${size}-${theme}.png`;
-        await page.screenshot({ path: testInfo.outputPath(expandedName), animations: "disabled" });
         await expect.soft(page).toHaveScreenshot(expandedName, { animations: "disabled", maxDiffPixels: 40 });
         if (mode === "Slides") await page.frameLocator("[data-powerpoint-preview] iframe").locator("#stage").click();
         await page.keyboard.press("Escape");
