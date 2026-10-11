@@ -87,7 +87,7 @@ The refresh uses no model, allows at most 100 pages per run and 2 MB per image, 
 
 Projects may also provide `Preview images` as a text property containing a JSON array of `{ "url", "label", "labelIT" }` objects (up to ten). Each caption is required in both languages. Images use reviewed `/work-previews/` assets, raw GitHub sources, or the owned preview store. Image previews reuse the arrows and mobile swipe, precede research documents, and omit the website viewport switch. Missing images retain the unavailable state.
 
-PDF resources are rendered inside Work with page navigation and selectable text. Papers retain zoom; PDF slides fit automatically. Use public PDF sources that allow cross-origin reading (CORS), such as raw GitHub files or arXiv. GitHub blob links are converted to raw content for the reader. Hosts that require sign-in, block CORS, or serve a non-PDF retain an external Open PDF link when the inline preview is unavailable.
+PDF resources are rendered inside Work with page navigation and selectable text. Papers retain zoom; PDF slides fit automatically. Use public PDF sources that allow cross-origin reading (CORS), such as raw GitHub files or arXiv. GitHub blob links are converted to raw content for the reader. Hosts that require sign-in, block CORS, or serve a non-PDF retain a Download PDF link when the inline preview is unavailable.
 
 For animated slides, retain the original public `.pptx` in `Slides URL` and set `Slides preview URL` to its self-hosted HTML export. Work embeds that export with arrows and swipe; the original PowerPoint remains downloadable. Missing preview references show a download fallback. See [Presentation previews](docs/presentation-previews.md) for export and verification steps.
 
