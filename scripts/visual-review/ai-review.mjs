@@ -21,7 +21,7 @@ const VERIFIED_ZERO_COST_STEPS = new Map([
 ]);
 const MAX_OUTPUT = 12000;
 const MAX_REVIEW_MICRO_USD = 2000000;
-const MAX_DAILY_MICRO_USD = 10000000;
+const MAX_DAILY_MICRO_USD = 15000000;
 const MAX_BYTES = 60 * 1024 * 1024;
 export const ASSET_MANIFEST = 'scripts/visual-review/physiq-export.json';
 const ASSET_ROOT = 'public/presentations/physiq/';
