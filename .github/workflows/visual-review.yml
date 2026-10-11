@@ -69,7 +69,7 @@ jobs:
         continue-on-error: true
         env:
           VISUAL_REVIEW_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        run: node scripts/visual-review/run-fixture.mjs
+        run: node scripts/visual-review/run-fixture.mjs --update-snapshots
 
       - name: Package current-head evidence
         if: always()
