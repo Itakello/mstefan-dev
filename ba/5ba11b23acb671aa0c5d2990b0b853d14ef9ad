@@ -1,0 +1,43 @@
+components/WorkExplorer.tsx
+  s_a3d57fd6983d88::t_8f33f0ec34cfaf 195
+  s_a3d57fd6983d88::t_12829668b1a366 189-191,193
+  s_a3d57fd6983d88::t_b876db75a60c80 102-105,114,207,210,217,219-230
+tests/cms/notion-publication-fixture.mjs
+  s_a3d57fd6983d88::t_2b482a65a2183b 57,64-67
+tests/notion-projects.test.ts
+  s_a3d57fd6983d88::t_b8c94b4dbbc4dd 397-429
+tests/cms/offline-fetch.mjs
+  s_a3d57fd6983d88::t_20713c8c7566a4 7-8
+  s_a3d57fd6983d88::t_b8c94b4dbbc4dd 9
+lib/notion.ts
+  s_a3d57fd6983d88::t_78f8cb7c3a9c2e 141
+  s_a3d57fd6983d88::t_6cb99539d17ff9 21,130-140,142-150,185
+README.md
+  s_a3d57fd6983d88::t_3e6db0b3e339c6 87-88
+lib/projectPublication.ts
+  s_a3d57fd6983d88::t_db9dc1a7b87979 13
+lib/publicProjects.ts
+  s_a3d57fd6983d88::t_b06e1c897858b6 44
+lib/websiteShowcase.ts
+  s_a3d57fd6983d88::t_f3d6a1de8f80a8 6,45
+public/work-previews/job-application-workflow.svg
+  s_a3d57fd6983d88::t_67950ce231e0c4 1
+public/work-previews/lecture-workflow.svg
+  s_a3d57fd6983d88::t_ade43e9ac1f2ac 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ba5ba11b23acb671aa0c5d2990b0b853d14ef9ad",
+  "prompts": {},
+  "sessions": {
+    "s_a3d57fd6983d88": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a125dc-d51e-7583-9ad7-4135793b24dc",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
