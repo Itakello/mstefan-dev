@@ -1,0 +1,24 @@
+next.config.mjs
+  s_010799367a456c::t_143fb4987f8a16 14-15
+components/CareerGraph.module.css
+  s_010799367a456c::t_0b8359912f236f 41
+  s_010799367a456c::t_0b1f2be75d640a 39-40
+components/CareerGraph.tsx
+  s_010799367a456c::t_0b8359912f236f 199,205
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "59f3e95c01f077f5e7fda8200e07c13c9278a21b",
+  "prompts": {},
+  "sessions": {
+    "s_010799367a456c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1282a-038e-7652-8a7a-c5197bbdad36",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
