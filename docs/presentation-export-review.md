@@ -1,0 +1,7 @@
+# Presentation export review
+
+The visual model receives complete authored source changes, current rendered captures, and approved byte identities for the PhysIQ Keynote export. `scripts/visual-review/physiq-export.json` belongs to the trusted pull-request base; a proposed manifest cannot authorize its own asset omission. The engine validates the complete exact Git diff and authoritative file counts before projecting the visual context. Independent general and security review still cover the complete current head.
+
+The export derives from Academic-Repository commit `0f53a1cdf0355e334e63def6735c1c36246b79a8`, `2025/04-Thesis_Master/presentation.pptx`, imported into Keynote and exported at 1920 × 1080. An attended comparison with the preserved original HD export established 311 unchanged files, the two verbatim player adaptations recorded in the manifest, authored title/viewport/progress HTML, and three videos with identical encoded video bytes after audio removal. Container durations can change during remuxing. Hashes establish byte identity, not security clearance.
+
+A new export or vendor adaptation requires a separately reviewed base inventory with original and approved identities and transformation evidence before the changed assets can use this projection. Unknown paths, modes, sizes, digests and transformations fail closed. Authored HTML remains complete model input. The model input limits and $2 per-review ceiling remain in force.
