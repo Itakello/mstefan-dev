@@ -95,7 +95,7 @@ class Client:
         self.opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), NoRedirect)
 
     def request(self, method, url, token=None, body=None, headers=None, raw=False):
-        headers = {'Accept': 'application/json', **(headers or {})}
+        headers = {'Accept': 'application/json', 'User-Agent': 'mstefan-staging-refresh/1', **(headers or {})}
         if token:
             headers['Authorization'] = 'Bearer ' + token
         data = None if body is None else json.dumps(body).encode()
