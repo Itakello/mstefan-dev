@@ -433,14 +433,14 @@ test('nested career branches share junctions and synchronize graph and Experienc
   const photoBytes = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6ks8AAAAASUVORK5CYII=', 'base64');
   form.set('file', new Blob([photoBytes], { type: 'image/png' }), 'synthetic-experience.png');
   form.set('_payload', JSON.stringify({ alt: 'Synthetic experience portrait' }));
-  const upload = await fetch(`${base}/api/media`, { method: 'POST', headers: { Cookie: cookie }, body: form });
+  const upload = await fetch(`${base}/api/media?locale=en`, { method: 'POST', headers: { Cookie: cookie }, body: form });
   assert.equal(upload.status, 201);
   const photo = (await upload.json()).doc;
   assert.ok([401, 403, 404].includes((await fetch(new URL(photo.url, base))).status), 'Unpublished experience photo must be private');
   const hiddenForm = new FormData();
   hiddenForm.set('file', new Blob([photoBytes], { type: 'image/png' }), 'hidden-experience.png');
   hiddenForm.set('_payload', JSON.stringify({ alt: 'Hidden experience portrait' }));
-  const hiddenUpload = await fetch(`${base}/api/media`, { method: 'POST', headers: { Cookie: cookie }, body: hiddenForm });
+  const hiddenUpload = await fetch(`${base}/api/media?locale=en`, { method: 'POST', headers: { Cookie: cookie }, body: hiddenForm });
   assert.equal(hiddenUpload.status, 201);
   const hiddenPhoto = (await hiddenUpload.json()).doc;
   const pdfBytes = syntheticPDF();
