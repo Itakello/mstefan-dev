@@ -38,9 +38,10 @@ jobs:
         id: prepare
         env:
           GITHUB_TOKEN: ${{ github.token }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           ENABLED: ${{ vars.MSTEFAN_AI_VISUAL_REVIEW_ENABLED }}
         run: node scripts/visual-review/ai-review.mjs
-      - name: Reserve paid AI visual review attempt
+      - name: Reserve paid AI visual review attempt (${{ steps.prepare.outputs.reserved_micro_usd }} microUSD)
         if: steps.prepare.outputs.ready == 'true'
         env:
           GITHUB_TOKEN: ${{ github.token }}
