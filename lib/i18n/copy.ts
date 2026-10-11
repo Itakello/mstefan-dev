@@ -19,6 +19,7 @@ type SiteCopy = {
   metadata: Record<PublicPage, { title: string; description: string }>;
   header: {
     homeLabel: string;
+    portraitAlt: string;
     themeToggle: string;
     openNavigation: string;
     closeNavigation: string;
@@ -99,6 +100,7 @@ export const copy = {
     },
     header: {
       homeLabel: "Massimo Stefan home",
+      portraitAlt: "Portrait of Massimo Stefan",
       themeToggle: "Toggle theme",
       openNavigation: "Open navigation",
       closeNavigation: "Close navigation",
@@ -197,6 +199,7 @@ export const copy = {
     },
     header: {
       homeLabel: "Home di Massimo Stefan",
+      portraitAlt: "Ritratto di Massimo Stefan",
       themeToggle: "Cambia tema",
       openNavigation: "Apri navigazione",
       closeNavigation: "Chiudi navigazione",
