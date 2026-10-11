@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpen, Presentation, ChevronDown, ChevronLeft, ChevronRight, ExternalLink, Monitor, Smartphone, Trophy } from "lucide-react";
+import { BookOpen, Images, Presentation, ChevronDown, ChevronLeft, ChevronRight, ExternalLink, Monitor, Smartphone, Trophy } from "lucide-react";
 import { AnimatePresence, motion, useIsPresent, useReducedMotion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -16,13 +16,16 @@ import { getCopy } from "@/lib/i18n/copy";
 import type { Locale } from "@/lib/i18n/config";
 import { type ShowcaseWebsite, websitePreviewUrl } from "@/lib/websiteShowcase";
 
-function ScreenshotPreview({ url, title, mobile, unavailable, direction }: { url: string; title: string; mobile: boolean; unavailable: string; direction: number }) {
+function ScreenshotPreview({ url, title, mobile, unavailable, direction, onSize }: { url: string; title: string; mobile: boolean; unavailable: string; direction: number; onSize: (ratio: number) => void }) {
   const image = useRef<HTMLImageElement>(null);
   const [failed, setFailed] = useState(false);
   const reducedMotion = useReducedMotion();
   const present = useIsPresent();
   useEffect(() => {
-    if (image.current?.complete && image.current.naturalWidth === 0) setFailed(true);
+    if (image.current?.complete) {
+      if (image.current.naturalWidth === 0) setFailed(true);
+      else onSize(image.current.naturalWidth / image.current.naturalHeight);
+    }
   }, []);
   return (
     <motion.div className="absolute inset-0 flex justify-center" custom={direction} aria-hidden={!present}
@@ -30,14 +33,15 @@ function ScreenshotPreview({ url, title, mobile, unavailable, direction }: { url
       initial="enter" animate={{ x: 0 }} exit="exit" transition={{ duration: reducedMotion ? 0 : 0.26, ease: [0.22, 0.61, 0.36, 1] }}>
       {failed ? <p role="status" className="text-sm text-black/60 dark:text-white/60">{unavailable}</p> : <img ref={image} src={url} alt={title} width={mobile ? 390 : 1280} height={mobile ? 844 : 800}
         className="h-full w-auto max-w-full rounded-xl border border-black/10 object-contain dark:border-white/15"
-        draggable={false} onError={() => setFailed(true)} />}
+        draggable={false} onLoad={event => onSize(event.currentTarget.naturalWidth / event.currentTarget.naturalHeight)} onError={() => setFailed(true)} />}
     </motion.div>
   );
 }
 
 export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; items: ShowcaseWebsite[]; stackCatalog: WebsiteStackState }) {
   const copy = getCopy(locale);
-  const [documentKind, setDocumentKind] = useState<"paper" | "slides">("paper");
+  const [documentKind, setDocumentKind] = useState<"photos" | "paper" | "slides">("photos");
+  const [imageRatio, setImageRatio] = useState(8 / 5);
   const [pageIndex, setPageIndex] = useState(0);
   const [pageDirection, setPageDirection] = useState(1);
   const swipeStart = useRef<{ x: number; y: number } | null>(null);
@@ -105,12 +109,13 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
     : selected.screenshotPages;
   const selectedPage = previewPages?.[pageIndex] || previewPages?.[0];
   const screenshotUrl = selectedPage?.screenshots[mobile ? "mobile" : "desktop"];
+  const activeKind = documentKind === "photos" && screenshotUrl ? "photos" : documentKind === "slides" && selected.slidesUrl ? "slides" : selected.paperUrl ? "paper" : selected.slidesUrl ? "slides" : "photos";
   const visitUrl = websitePreviewUrl(selected, locale);
   const groups = groupStackEntries(resolveProjectStack(projectStackLabels(selected), stackCatalog.entries));
   const hasStackColumn = groups.length > 0 || Boolean(stackCatalog.message);
   const metadata = [selected.type ? copy.work.types[selected.type] : undefined, selected.year, groups.length ? undefined : selected.language].filter(Boolean);
   const linkClass = `inline-flex items-center gap-2 text-sm font-medium ${ICON_LINK_COLOR_CLASS}`;
-  const selectProject = (id: string) => { setSelectedId(id); setDocumentKind("paper"); setPageIndex(0); };
+  const selectProject = (id: string) => { setSelectedId(id); setDocumentKind("photos"); setPageIndex(0); };
   const changePreview = (direction: number) => {
     const count = previewPages?.length ?? 0;
     if (count < 2) return;
@@ -186,11 +191,12 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
             </div>
           </aside> : stackCatalog.message && <p role="status" className="text-xs leading-5 text-black/55 dark:text-white/55">{copy.publication.stack[stackCatalog.message]}</p>}
         </div>
-        {screenshotUrl && <div className="mt-7">
-            {previewPages && (previewPages.length > 1 || selected.previewImages?.length) && <div role="group" aria-label={copy.work.previewPage} className="mb-4 flex items-center justify-between gap-3 text-sm">
+        {(screenshotUrl || selected.paperUrl || selected.slidesUrl) && <section aria-label={copy.work.research} className="mt-7">
+        {activeKind === "photos" && screenshotUrl && <div>
+            {previewPages && (previewPages.length > 1 || selected.previewImages?.length) && <div role="group" aria-label={copy.work.previewPage} className="mb-4 text-center text-sm">
               <span aria-live="polite" aria-atomic="true">{selectedPage.label} <span className="text-[var(--page-muted)]">· {pageIndex + 1} / {previewPages.length}</span></span>
             </div>}
-            <div data-work-preview data-preview-stage className={`relative ${selected.previewImages?.length ? "aspect-[4/3] max-h-[min(620px,70svh)]" : "aspect-[8/5] max-h-[min(620px,70svh)]"} w-full overflow-hidden`} style={{ touchAction: "pan-y pinch-zoom" }}
+            <div data-work-preview data-preview-stage className="relative mx-auto overflow-hidden" style={{ touchAction: "pan-y pinch-zoom", aspectRatio: imageRatio, width: `min(100%, calc(min(620px, 70svh) * ${imageRatio}))` }}
               onTouchStart={event => { swipeStart.current = event.touches.length === 1 && window.matchMedia("(max-width: 639px)").matches ? { x: event.touches[0].clientX, y: event.touches[0].clientY } : null; }}
               onTouchCancel={() => { swipeStart.current = null; }}
               onTouchEnd={event => {
@@ -202,7 +208,7 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
                 if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5) changePreview(dx < 0 ? 1 : -1);
               }}>
               <AnimatePresence key={`${selected.id}-${mobile}`} initial={false} custom={pageDirection}>
-                <ScreenshotPreview key={screenshotUrl} url={screenshotUrl} title={selected.previewImages?.length ? `${selected.name}: ${selectedPage.label}` : `${mobile ? copy.work.mobile : copy.work.desktop}: ${copy.websites.previewTitle(selected.name)}`} mobile={mobile && !selected.previewImages?.length} unavailable={copy.websites.unavailable} direction={pageDirection} />
+                <ScreenshotPreview key={screenshotUrl} url={screenshotUrl} title={selected.previewImages?.length ? `${selected.name}: ${selectedPage.label}` : `${mobile ? copy.work.mobile : copy.work.desktop}: ${copy.websites.previewTitle(selected.name)}`} mobile={mobile && !selected.previewImages?.length} unavailable={copy.websites.unavailable} direction={pageDirection} onSize={setImageRatio} />
               </AnimatePresence>
               {previewPages && previewPages.length > 1 && <PreviewArrows previous={copy.work.previousPreview} next={copy.work.nextPreview} onPrevious={() => changePreview(-1)} onNext={() => changePreview(1)} />}
             </div>
@@ -215,17 +221,12 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
               ))}
             </div>}
           </div>}
-        {(selected.paperUrl || selected.slidesUrl) && <section aria-label={copy.work.research} className="mt-4 border-t border-black/10 pt-4 dark:border-white/10">
-          <h3 className="text-sm font-semibold">{copy.work.research}</h3>
-          {(selected.paperUrl || selected.slidesUrl) && <>
-            <DocumentPreview key={`${selected.id}-${documentKind}`} url={(documentKind === "slides" && selected.slidesUrl ? selected.slidesUrl : selected.paperUrl || selected.slidesUrl)!} title={selected.name} locale={locale} presentation={Boolean(selected.slidesUrl && (documentKind === "slides" || !selected.paperUrl))} />
-            <div role="group" aria-label={copy.work.research} className="mt-4 ml-auto flex w-fit gap-1 rounded-lg border border-black/10 p-1 dark:border-white/15">
-              {([{ kind: "paper", url: selected.paperUrl, label: copy.work.paper, Icon: BookOpen }, { kind: "slides", url: selected.slidesUrl, label: copy.work.slides, Icon: Presentation }] as const).filter(resource => resource.url).map(resource => {
-                const active = (documentKind === "slides" && selected.slidesUrl ? "slides" : selected.paperUrl ? "paper" : "slides") === resource.kind;
-                return <button key={resource.kind} type="button" aria-pressed={active} onClick={() => setDocumentKind(resource.kind)} className={`inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-[hsl(var(--accent))] ${active ? "bg-[hsl(var(--accent))] text-white" : "hover:bg-black/5 dark:hover:bg-white/5"}`}><resource.Icon size={16} aria-hidden /><span>{resource.label}</span></button>;
-              })}
-            </div>
-          </>}
+        {activeKind !== "photos" && <DocumentPreview key={`${selected.id}-${activeKind}`} url={(activeKind === "slides" ? selected.slidesUrl : selected.paperUrl)!} title={selected.name} locale={locale} presentation={activeKind === "slides"} />}
+        {[screenshotUrl, selected.paperUrl, selected.slidesUrl].filter(Boolean).length > 1 && <div role="group" aria-label={copy.work.research} className="mt-4 mx-auto flex w-fit gap-1 rounded-lg border border-[var(--surface-border)] p-1">
+          {([{ kind: "photos", url: screenshotUrl, label: copy.work.photos, Icon: Images }, { kind: "paper", url: selected.paperUrl, label: copy.work.paper, Icon: BookOpen }, { kind: "slides", url: selected.slidesUrl, label: copy.work.slides, Icon: Presentation }] as const).filter(resource => resource.url).map(resource => (
+            <button key={resource.kind} type="button" aria-pressed={activeKind === resource.kind} onClick={() => setDocumentKind(resource.kind)} className={`inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-[hsl(var(--accent))] ${activeKind === resource.kind ? "bg-[hsl(var(--accent))] text-white" : "hover:bg-black/5 dark:hover:bg-white/5"}`}><resource.Icon size={16} aria-hidden /><span>{resource.label}</span></button>
+          ))}
+        </div>}
         </section>}
         {selected.url && !selected.preview && <p className="mt-6 text-sm text-black/60 dark:text-white/60">{copy.websites.linkOnly}</p>}
       </section>
