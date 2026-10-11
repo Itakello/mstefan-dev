@@ -44,7 +44,7 @@ test('one generation request after exact token budget preflight; no retry on fai
   await assert.rejects(modelReview(requestBody('',[]),'opaque',async () => {calls++; return new Response('',{status:429});}), /429/);
   assert.equal(calls,1);
   calls=0;
-  await assert.rejects(modelReview(requestBody('',[]),'opaque',async () => {calls++; return new Response(JSON.stringify({object:'response.input_tokens',input_tokens:999999}));}), /budget/);
+  await assert.rejects(modelReview(requestBody('',[]),'opaque',async () => {calls++; return new Response(JSON.stringify({object:'response.input_tokens',input_tokens:400000}));}), /budget/);
   assert.equal(calls,1);
 });
 test('attempted head/base claims suppress a second call; disabled validation can be retried', () => {

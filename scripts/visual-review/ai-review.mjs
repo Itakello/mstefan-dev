@@ -103,7 +103,7 @@ export async function modelReview(body, key, fetcher = fetch) {
     const text = await response.text(); ensure(Buffer.byteLength(text) <= 500000, 'Oversized OpenAI response'); return JSON.parse(text);
   }
   const count = await call('/input_tokens', {model:body.model,instructions:body.instructions,input:body.input,text:body.text,tools:[]});
-  ensure(count.object === 'response.input_tokens' && Number.isSafeInteger(count.input_tokens) && count.input_tokens > 0 && (count.input_tokens*4 + MAX_OUTPUT*15)/1e6 <= 2, 'Unverified or over-budget input tokens');
+  ensure(count.object === 'response.input_tokens' && Number.isSafeInteger(count.input_tokens) && count.input_tokens > 0 && (count.input_tokens*5 + MAX_OUTPUT*15)/1e6 <= 2, 'Unverified or over-budget input tokens');
   return call('', body);
 }
 export function alreadyAttempted(statuses, marker) { return statuses.some(status => status.context === CONTEXT && status.description.includes(`${marker}: request claimed`)); }
