@@ -1,0 +1,23 @@
+components/Header.tsx
+  s_f792a2a2b302b5::t_56611cf3570ef6 38,41-42
+e2e/theme-icons.smoke.spec.ts
+  s_f792a2a2b302b5::t_7e17967230a70e 16,18,20-21,24,30-31,33-34,36-37
+proxy.ts
+  s_f792a2a2b302b5::t_301676383ede1c 7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1a4610c8c5c7e49ed7a12e4aebb5396212404fb8",
+  "prompts": {},
+  "sessions": {
+    "s_f792a2a2b302b5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12cbb-dc6f-7ca0-a58e-4b0d809a1763",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
