@@ -71,16 +71,21 @@ export function nativeGitDiff(repository, base, head, {execute = execFileSync, c
     git(['init','--bare']);
     git(['fetch','--no-tags','--filter=blob:none',`https://github.com/${repository}.git`,base,head]);
     const diff = git(['diff','--no-ext-diff','--no-textconv','--find-renames','--src-prefix=a/','--dst-prefix=b/',`${base}...${head}`,'--']);
+    const tree = git(['ls-tree','-r','-z',head,'--',ASSET_ROOT]).split('\0').filter(Boolean).map(entry => {
+      const [metadata,path] = entry.split('\t'), [mode,type] = metadata.split(' ');
+      return {path,mode,type};
+    });
     return consume(diff,path => {
       const entry = git(['ls-tree','-z',head,'--',path]);
       ensure(entry.endsWith(`\t${path}\0`), 'Missing export blob');
       const [mode,type] = entry.split(' ');
       return {mode,type,data:git(['cat-file','blob',`${head}:${path}`],null)};
-    });
+    },tree);
   } finally { rmSync(directory,{recursive:true,force:true}); }
 }
 export function verifyDiff(diff, files) {
   ensure(diff.trim() && files.length > 0 && files.length < 1000, 'Empty/truncated diff inventory');
+  ensure(new Set(files.map(file => file.filename)).size === files.length, 'Duplicate PR filenames');
   ensure((diff.match(/^diff --git /gm) ?? []).length === files.length, 'Raw diff file coverage mismatch');
   for (const file of files) {
     const old = file.previous_filename ?? file.filename;
@@ -106,7 +111,7 @@ export function verifyDiff(diff, files) {
     ensure(content && additions === file.additions && deletions === file.deletions, `Raw diff line coverage mismatch: ${file.filename}`);
   }
 }
-export function projectVisualDiff(diff, files, manifest, readBlob) {
+export function projectVisualDiff(diff, files, manifest, readBlob, tree) {
   verifyDiff(diff,files);
   const digest = data => createHash('sha256').update(data).digest('hex');
   const hash = value => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value);
@@ -123,6 +128,7 @@ export function projectVisualDiff(diff, files, manifest, readBlob) {
     if (player) ensure(Array.isArray(item.patches) && item.patches.length === 2 && item.patches.every(patch => typeof patch.before === 'string' && patch.before && typeof patch.after === 'string' && patch.after), 'Missing authored player patches');
     approved.set(item.path,item);
   }
+  ensure(Array.isArray(tree) && tree.length === approved.size && new Set(tree.map(item => item.path)).size === tree.length && tree.every(item => item.type === 'blob' && item.mode === approved.get(item.path)?.mode), 'Incomplete or unapproved export tree inventory');
   const source = [], represented = [];
   for (const file of files) {
     const start = diff.indexOf(`diff --git a/${file.previous_filename ?? file.filename} b/${file.filename}\n`);
@@ -303,6 +309,7 @@ export async function main({env = process.env, fetcher = fetch, gitDiff = native
       if (batch.length < 100) break;
     }
     ensure(files.length === pr.changed_files && files.length < 1000, 'PR file inventory truncated');
+    ensure(new Set(files.map(file => file.filename)).size === files.length, 'Duplicate PR filenames');
     const decision = classifyVisualReview(files.flatMap(file => [file.filename,...(file.previous_filename ? [file.previous_filename] : [])]),{force:pr.labels.some(label => label.name === 'visual-review')});
     if (!decision.run) {
       pr = await github(`/pulls/${pr.number}`); ensure(currentRevision(pr,repository,sha,base),'Revisions changed before classification');
@@ -352,7 +359,7 @@ export async function main({env = process.env, fetcher = fetch, gitDiff = native
       if (assetsChanged) {
         ensure(tree.tree.some(item => item.path === ASSET_MANIFEST && item.type === 'blob'), 'Missing trusted base export inventory');
         const manifest = JSON.parse(await file(ASSET_MANIFEST));
-        context = gitDiff(repository,base,sha,{consume:(diff,readBlob) => projectVisualDiff(diff,files,manifest,readBlob)});
+        context = gitDiff(repository,base,sha,{consume:(diff,readBlob,tree) => projectVisualDiff(diff,files,manifest,readBlob,tree)});
       } else {
         const diff = files.length >= 300 ? gitDiff(repository,base,sha) : await github(`/pulls/${pr.number}`,{raw:true,accept:'application/vnd.github.diff'});
         verifyDiff(diff,files);context = `Full current diff:\n${diff}`;
