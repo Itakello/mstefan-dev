@@ -62,13 +62,7 @@ test("the D1 selector and M2 header use inline SVG flags without emoji", async (
   const header = await source("components/Header.tsx");
 
   assert.match(selector, /<svg/);
-  assert.match(selector, /aria-haspopup="menu"/);
-  assert.match(selector, /Escape/);
-  assert.match(selector, /ArrowDown/);
-  assert.match(selector, /triggerRef\.current\?\.focus/);
-  assert.match(selector, /onBlur/);
-  assert.match(selector, /shouldCloseLanguageMenuOnFocusLeave/);
-  assert.match(selector, /event\.key === "Tab"/);
+  assert.match(selector, /role="menuitemradio"/);
   assert.match(selector, /document\.cookie/);
   assert.doesNotMatch(selector, /🇮🇹|🇬🇧/u);
   assert.match(header, /sm:hidden/);

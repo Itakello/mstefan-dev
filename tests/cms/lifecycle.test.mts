@@ -693,7 +693,11 @@ test('master results are an optional download while other attachments retain pre
           await page.setViewportSize({ width, height });
           for (const theme of ['light', 'dark'] as const) {
             const dark = (await page.locator('html').getAttribute('class'))?.split(' ').includes('dark') ?? false;
-            if (dark !== (theme === 'dark')) await page.getByRole('button', { name: locale === 'it' ? 'Cambia tema' : 'Toggle theme' }).click();
+            if (dark !== (theme === 'dark')) {
+              await page.getByRole('button', { name: locale === 'it' ? 'Apri navigazione' : 'Open navigation', exact: true }).click();
+              await page.getByRole('button', { name: locale === 'it' ? 'Cambia tema' : 'Toggle theme', exact: true }).click();
+              await page.getByRole('button', { name: locale === 'it' ? 'Chiudi navigazione' : 'Close navigation', exact: true }).click();
+            }
             await expect(page.locator('html')).toHaveClass(theme === 'dark' ? /\bdark\b/ : /^(?!.*\bdark\b)/);
             await expect(link).toBeVisible();
             await link.focus();
