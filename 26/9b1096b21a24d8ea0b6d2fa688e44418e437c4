@@ -1,0 +1,112 @@
+e2e/components.workshop.spec.ts
+  s_ca9b05cd06e974::t_66fec0c36258ab 89-96
+lib/career-timeline.ts
+  s_ca9b05cd06e974::t_ac0465f4040c86 27-33,35-49,99-101,103
+components/CareerGraph.module.css
+  s_ca9b05cd06e974::t_ac0465f4040c86 39-41
+.github/workflows/ai-visual-review-pending.yml
+  s_ca9b05cd06e974::t_ac0465f4040c86 1-32
+deploy/payload-production/test_staging_restore.py
+  s_ca9b05cd06e974::t_ac0465f4040c86 1-226
+scripts/pr-preview/edge.mjs
+  s_ca9b05cd06e974::t_ac0465f4040c86 1-65
+.github/PR_POLICY.md
+  s_ca9b05cd06e974::t_ac0465f4040c86 31,33-37
+scripts/pr-preview/gateway.test.mjs
+  s_ca9b05cd06e974::t_ac0465f4040c86 1-47
+deploy/payload-production/staging_refresh.py
+  s_ca9b05cd06e974::t_ac0465f4040c86 1-611
+tests/career-timeline.test.ts
+  s_ca9b05cd06e974::t_ac0465f4040c86 147,420-452
+scripts/visual-review/package-evidence.mjs
+  s_ca9b05cd06e974::t_ac0465f4040c86 2,24,34-40
+  s_ca9b05cd06e974::t_775b903411e236 41
+deploy/payload-production/staging_restore.py
+  s_ca9b05cd06e974::t_ac0465f4040c86 1-180
+.github/workflows/visual-review.yml
+  s_ca9b05cd06e974::t_ac0465f4040c86 5,84
+next.config.mjs
+  s_ca9b05cd06e974::t_ac0465f4040c86 14-15
+deploy/payload-production/test_refresh_notion.py
+  s_ca9b05cd06e974::t_ac0465f4040c86 1-308
+tests/cms/lifecycle.test.mts
+  s_ca9b05cd06e974::t_ac0465f4040c86 4,78,82,135-144,147,149-152,175-176,180-181,183,215-216,221,290,497,527,617,625-626,633,656,662-711,713
+  s_ca9b05cd06e974::t_d6c2111dff14ea 712
+.github/workflows/ai-visual-review.yml
+  s_ca9b05cd06e974::t_ac0465f4040c86 1-52
+scripts/pr-preview/README.md
+  s_ca9b05cd06e974::t_ac0465f4040c86 1-44
+scripts/pr-preview/edge.test.mjs
+  s_ca9b05cd06e974::t_ac0465f4040c86 1-97
+tests/ai-visual-review.test.mjs
+  s_ca9b05cd06e974::t_ac0465f4040c86 1-580
+package.json
+  s_ca9b05cd06e974::t_ac0465f4040c86 8
+lib/i18n/copy.ts
+  s_ca9b05cd06e974::t_ac0465f4040c86 73,86,97-98,168,177,185,196-197,269,278
+scripts/pr-preview/gateway.mjs
+  s_ca9b05cd06e974::t_ac0465f4040c86 1-66
+e2e/not-found.smoke.spec.ts
+  s_ca9b05cd06e974::t_ac0465f4040c86 46,54,68,70
+deploy/payload-production/README.md
+  s_ca9b05cd06e974::t_ac0465f4040c86 15,19
+  s_ca9b05cd06e974::t_34da967a850710 20
+deploy/payload-production/BACKUP.md
+  s_ca9b05cd06e974::t_ac0465f4040c86 24-45
+specs/mstefan-site-review.md
+  s_ca9b05cd06e974::t_ac0465f4040c86 21
+components/WorkExplorer.tsx
+  s_ca9b05cd06e974::t_ac0465f4040c86 3-4,18,21-22,26-30,32-33,41-42,47,78,110-115,147-151,198-218
+deploy/event/README.md
+  s_ca9b05cd06e974::t_ac0465f4040c86 9
+docs/automation/ai-visual-review.md
+  s_ca9b05cd06e974::t_ac0465f4040c86 1-17
+payload.config.ts
+  s_ca9b05cd06e974::t_ac0465f4040c86 67,72,154-155
+e2e/mstefan-site.review.spec.ts
+  s_ca9b05cd06e974::t_ac0465f4040c86 179-180,182,206,217,283,291-293,295-305,308-316,318,320-353,355-357,403,406-407,455,464-469
+scripts/visual-review/classify.mjs
+  s_ca9b05cd06e974::t_ac0465f4040c86 8-10
+scripts/pr-preview/controller.test.mjs
+  s_ca9b05cd06e974::t_ac0465f4040c86 1-1169
+.github/workflows/pr-previews.yml
+  s_ca9b05cd06e974::t_ac0465f4040c86 1-50
+deploy/payload-production/test_staging_refresh.py
+  s_ca9b05cd06e974::t_ac0465f4040c86 1-568
+components/cms/AboutContent.tsx
+  s_ca9b05cd06e974::t_ac0465f4040c86 11,32,50-56
+components/CareerGraph.tsx
+  s_ca9b05cd06e974::t_ac0465f4040c86 4,25,158-164,181,184,189,199,204-205
+deploy/payload-production/ENVIRONMENTS.md
+  s_ca9b05cd06e974::t_ac0465f4040c86 1-82
+.github/workflows/ci.yml
+  s_ca9b05cd06e974::t_ac0465f4040c86 148-151
+scripts/visual-review/read-evidence.py
+  s_ca9b05cd06e974::t_ac0465f4040c86 1-37
+deploy/payload-production/refresh_notion.py
+  s_ca9b05cd06e974::t_ac0465f4040c86 1-244
+scripts/pr-preview/controller.mjs
+  s_ca9b05cd06e974::t_ac0465f4040c86 1-676
+README.md
+  s_ca9b05cd06e974::t_ac0465f4040c86 43
+DESIGN.md
+  s_ca9b05cd06e974::t_ac0465f4040c86 5,32
+scripts/visual-review/ai-review.mjs
+  s_ca9b05cd06e974::t_ac0465f4040c86 1-271
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "269b1096b21a24d8ea0b6d2fa688e44418e437c4",
+  "prompts": {},
+  "sessions": {
+    "s_ca9b05cd06e974": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a125e2-8a12-72c0-9b0f-65ad915684a2",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
