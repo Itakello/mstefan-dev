@@ -1,0 +1,16 @@
+.github/workflows/ai-visual-review.yml
+  h_3555645a0dff85 48
+tests/ai-visual-review.test.mjs
+  h_3555645a0dff85 82
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f72d7765fcd972bcabaa90a9b309fdd50088dc11",
+  "prompts": {},
+  "humans": {
+    "h_3555645a0dff85": {
+      "author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
