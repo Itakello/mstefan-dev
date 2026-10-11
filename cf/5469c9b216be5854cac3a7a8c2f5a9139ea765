@@ -1,0 +1,41 @@
+components/CareerGraph.tsx
+  s_edc3df130cc253::t_84a4e70349f186 7,24,219
+components/cms/AboutContent.tsx
+  s_edc3df130cc253::t_146b917a45cef9 10,16-17,56,74
+lib/cms/career-media.ts
+  s_edc3df130cc253::t_cad2c60bd08af8 1-14
+lib/cms/career.ts
+  s_edc3df130cc253::t_b9c7324527d720 7,9,17-20
+migrations/20261011_132233_shared_career_media.json
+  s_edc3df130cc253::t_85f32ea98d250f 1-2877
+migrations/20261011_132233_shared_career_media.ts
+  s_edc3df130cc253::t_5605ba398d7a27 1-174
+migrations/index.ts
+  s_edc3df130cc253::t_85f8a62a5f359d 8,44-49
+payload.config.ts
+  s_edc3df130cc253::t_86bc2c4c981043 39,55,165-177,215
+tests/cms/career.test.mts
+  s_edc3df130cc253::t_141a934d551bc9 132-138,141-142,144,147-148,150-155,157-164,166-179,181,183-188
+tests/cms/lifecycle.test.mts
+  s_edc3df130cc253::t_7153dc1311e6b6 246-247,249,262,471-473,684,711
+tests/cms/migration.test.mts
+  s_edc3df130cc253::t_fc4ea54e4b6888 184
+tests/cms/shared-media-migration.test.mts
+  s_edc3df130cc253::t_960983c168c960 1-119
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "cf5469c9b216be5854cac3a7a8c2f5a9139ea765",
+  "prompts": {},
+  "sessions": {
+    "s_edc3df130cc253": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12b0b-aaa6-7d90-aa4e-5bcfe9db3ea5",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
