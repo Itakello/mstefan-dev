@@ -35,9 +35,11 @@ export function Header({ locale }: { locale: Locale }) {
 
   return (
     <header className="relative flex items-center justify-between pt-8">
+      <link rel="icon" href={isDark ? "/icon.svg" : "/icon-light.svg"} />
       <Link href={localizedPath(locale, "/")} aria-label={copy.header.homeLabel} className="group min-w-0 no-underline">
         <div className="flex min-w-0 items-center gap-3">
-          <Image src="/icon.svg" alt="" width={44} height={44} className="size-11 shrink-0" priority unoptimized />
+          <Image src="/icon-light.svg" alt="" width={44} height={44} className="size-11 shrink-0 dark:hidden" priority unoptimized />
+          <Image src="/icon.svg" alt="" width={44} height={44} className="hidden size-11 shrink-0 dark:block" priority unoptimized />
           <div className="truncate font-semibold tracking-tight max-sm:hidden">Massimo Stefan</div>
         </div>
       </Link>
