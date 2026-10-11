@@ -1,0 +1,19 @@
+migrations/20261011_132233_shared_career_media.ts
+  s_edc3df130cc253::t_34907097b7e563 14-19,26-30,35-41,48-54,61-65,70-77,84-88
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "bfa729d271d283546813fc7400c6b3e1376093bf",
+  "prompts": {},
+  "sessions": {
+    "s_edc3df130cc253": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12b0b-aaa6-7d90-aa4e-5bcfe9db3ea5",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
