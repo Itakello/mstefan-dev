@@ -62,11 +62,40 @@ test('attempted head/base claims suppress a second call; disabled validation can
   assert.equal(alreadyAttempted([{context:'AI visual review',description:'PR1 base: AI review disabled'}],'PR1 base'),false);
   assert.equal(alreadyAttempted([{context:'AI visual review',description:'PR1 oldbase: request claimed'}],'PR1 base'),false);
 });
-test('privileged workflow executes only default-branch code with no install or head checkout', () => {
+test('automatic and normal manual review retain default-branch code without PR execution', () => {
   const workflow=readFileSync(new URL('../.github/workflows/ai-visual-review.yml',import.meta.url),'utf8');
-  assert.match(workflow,/ref: \$\{\{ github.event.repository.default_branch \}\}/);
+  assert.match(workflow,/if: github.event_name != 'workflow_dispatch' \|\| inputs.recovery != true\n        with:\n          ref: \$\{\{ github.event.repository.default_branch \}\}/);
   assert.match(workflow,/statuses: write/); assert.match(workflow,/timeout-minutes: 10/);
   for(const forbidden of ['pull_request_target','head.sha','pnpm install','npm install','download-artifact']) assert.equal(workflow.includes(forbidden),false,forbidden);
+});
+
+
+test('recovery checks the reviewed fixed engine before exposing OpenAI credentials', () => {
+  const workflow=readFileSync(new URL('../.github/workflows/ai-visual-review.yml',import.meta.url),'utf8');
+  const steps=workflow.split('      - ').slice(1);
+  const checkouts=steps.filter(step=>step.startsWith('uses: actions/checkout@'));
+  assert.equal(checkouts.length,2);
+  assert.match(checkouts[1],/if: github.event_name == 'workflow_dispatch' && inputs.recovery == true/);
+  assert.match(checkouts[1],/ref: 185fff586639aef381d07763ad0e8dd9668bb56d\n/);
+  for (const checkout of checkouts) assert.match(checkout,/persist-credentials: false/);
+  assert.match(workflow,/recovery:\n        description: [^\n]+\n        required: false\n        default: false\n        type: boolean/);
+  const gate=steps.findIndex(step=>step.startsWith('name: Validate bounded attended recovery\n'));
+  const prepare=steps.findIndex(step=>step.includes('id: prepare\n'));
+  const marker=steps.findIndex(step=>step.startsWith(`name: ${PAID_STEP}\n`));
+  const paid=steps.findIndex(step=>step.startsWith(`name: ${PAID_STEP} (`));
+  assert.ok(gate>=0 && gate<prepare && prepare<marker && marker<paid);
+  assert.match(steps[gate],/if: github.event_name == 'workflow_dispatch' && inputs.recovery == true/);
+  assert.match(steps[gate],/run: node scripts\/visual-review\/recovery.mjs\n/);
+  assert.match(steps[marker],/if: steps.prepare.outputs.ready == 'true' && github.event_name == 'workflow_dispatch' && inputs.recovery == true/);
+  assert.match(steps[marker],/run: node scripts\/visual-review\/recovery.mjs --reserve\n/);
+  for (const index of [gate,marker]) {
+    assert.match(steps[index],/GITHUB_TOKEN: \$\{\{ github.token \}\}/);
+    assert.equal(steps[index].includes('OPENAI'),false);
+    assert.equal(steps[index].includes('secrets.'),false);
+  }
+  assert.equal(steps.slice(0,prepare).some(step=>step.includes('OPENAI')),false);
+  assert.equal(workflow.includes('inputs.engine'),false);
+  assert.equal(workflow.includes('inputs.ref'),false);
 });
 
 test('actual archive layout includes nested Workshop captures and rejects unsafe paths/symlinks', async () => {
@@ -294,10 +323,10 @@ test('history uses reservation time across old queued runs, overlap, and all att
   await assert.rejects(paidAttempts(async()=>{throw new Error('GitHub unavailable');},now),/unavailable/);
 });
 
-test('paid workflow step is gated by prepared evidence, uniquely named and globally serialized', () => {
+test('fixed compatibility hold and dynamic paid step remain gated and globally serialized', () => {
   const workflow=readFileSync(new URL('../.github/workflows/ai-visual-review.yml',import.meta.url),'utf8');
   assert.match(workflow,/group: ai-visual-review\n  cancel-in-progress: false/);
-  assert.equal(workflow.split(`name: ${PAID_STEP}`).length,2);
+  assert.equal(workflow.split(`name: ${PAID_STEP}`).length,3);
   assert.match(workflow,/if: steps.prepare.outputs.ready == 'true'/);
   assert.match(workflow,/timeout-minutes: 10/);
   assert.match(workflow,/name: Reserve paid AI visual review attempt \(\$\{\{ steps.prepare.outputs.reserved_micro_usd \}\} microUSD\)/);
