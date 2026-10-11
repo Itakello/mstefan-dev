@@ -197,13 +197,13 @@ export function CareerGraph({ career, locale, expanded = false, onSelectionChang
                   </g>
                   <g onClick={(event) => { event.stopPropagation(); selectJunction(headX, entry.headY); }}>
                     <circle cx={headX} cy={entry.headY} r="12" className={styles.hitDot} />
-                    <circle data-career-head cx={headX} cy={entry.headY} r="4.5" fill={job.color} className={`${styles.dot} ${entry.dated && !entry.ongoing ? styles.mergeDot : ""}`} />
+                    <circle data-career-head cx={headX} cy={entry.headY} r="4.5" fill={job.color} className={styles.dot} />
                   </g>
                 </g>;
               })}
               {paintOrder.filter((entry) => highlighted(entry.key)).map((entry) => <g key={entry.key} className={styles.highlightPaths} aria-hidden="true">
                 <circle cx={entry.forkX} cy={entry.forkY} r="4.5" fill={jobs[entry.index].color} />
-                <circle cx={entry.dated ? entry.mergeX : entry.x} cy={entry.headY} r="4.5" fill={entry.dated && !entry.ongoing ? "var(--surface-bg)" : jobs[entry.index].color} stroke={entry.dated && !entry.ongoing ? (focusedID === entry.key ? "var(--page-text)" : jobs[entry.index].color) : undefined} strokeWidth={focusedID === entry.key ? 3 : 2} />
+                <circle cx={entry.dated ? entry.mergeX : entry.x} cy={entry.headY} r="4.5" fill={jobs[entry.index].color} stroke={focusedID === entry.key ? "var(--page-text)" : undefined} strokeWidth={focusedID === entry.key ? 3 : undefined} />
               </g>)}
               </g>
             </svg>
