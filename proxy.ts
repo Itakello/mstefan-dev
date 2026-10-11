@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { buildLocaleRedirectURL, getExplicitLocale, isPublicPathname, resolveLocale } from "@/lib/i18n/routing";
 
 const localeCookie = "site-locale";
-const publicFiles = new Set(["/robots.txt", "/sitemap.xml", "/sitemap-0.xml", "/icon.svg", "/icon-light.svg", "/profile-photo.jpg", "/profile-avatar.jpg"]);
+const publicFiles = new Set(["/robots.txt", "/sitemap.xml", "/sitemap-0.xml", "/icon.png", "/icon-light.png", "/profile-photo.jpg", "/profile-avatar.jpg"]);
 
 function persistLocale(response: NextResponse, locale: string) {
   response.cookies.set(localeCookie, locale, {

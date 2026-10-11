@@ -13,28 +13,28 @@ for (const locale of ["en", "it"]) {
       const icon = page.locator("header img:visible");
       const favicon = page.locator('link[rel="icon"]');
       const toggle = page.getByRole("button", { name: locale === "it" ? "Cambia tema" : "Toggle theme", exact: true });
-      await expect(icon).toHaveAttribute("src", "/icon-light.svg");
+      await expect(icon).toHaveAttribute("src", "/icon-light.png");
       await expect.poll(() => icon.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0)).toBe(true);
-      await expect(favicon).toHaveAttribute("href", "/icon-light.svg");
+      await expect(favicon).toHaveAttribute("href", "/icon-light.png");
       await toggle.click();
-      await expect(icon).toHaveAttribute("src", "/icon.svg");
-      await expect(favicon).toHaveAttribute("href", "/icon.svg");
+      await expect(icon).toHaveAttribute("src", "/icon.png");
+      await expect(favicon).toHaveAttribute("href", "/icon.png");
       await page.getByRole("link", { name: locale === "it" ? "Home di Massimo Stefan" : "Massimo Stefan home", exact: true }).click();
       await expect(page).toHaveURL(new RegExp(`/${locale}$`));
-      await expect(favicon).toHaveAttribute("href", "/icon.svg");
+      await expect(favicon).toHaveAttribute("href", "/icon.png");
       if (width < 640) {
         await page.getByRole("button", { name: locale === "it" ? "Apri navigazione" : "Open navigation", exact: true }).click();
       }
       await page.locator("header").getByRole("link", { name: locale === "it" ? "Lavori" : "Work", exact: true }).click();
       await expect(page).toHaveURL(new RegExp(`/${locale}/projects$`));
-      await expect(icon).toHaveAttribute("src", "/icon.svg");
-      await expect(favicon).toHaveAttribute("href", "/icon.svg");
+      await expect(icon).toHaveAttribute("src", "/icon.png");
+      await expect(favicon).toHaveAttribute("href", "/icon.png");
       await page.reload();
-      await expect(icon).toHaveAttribute("src", "/icon.svg");
-      await expect(favicon).toHaveAttribute("href", "/icon.svg");
+      await expect(icon).toHaveAttribute("src", "/icon.png");
+      await expect(favicon).toHaveAttribute("href", "/icon.png");
       await toggle.click();
-      await expect(icon).toHaveAttribute("src", "/icon-light.svg");
-      await expect(favicon).toHaveAttribute("href", "/icon-light.svg");
+      await expect(icon).toHaveAttribute("src", "/icon-light.png");
+      await expect(favicon).toHaveAttribute("href", "/icon-light.png");
     });
   }
 }
