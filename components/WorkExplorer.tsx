@@ -134,8 +134,8 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
           <div className="min-w-0">
             <h2 id="selected-work-title" className="text-2xl font-semibold tracking-tight [overflow-wrap:anywhere]">{selected.name}</h2>
             {(selected.type || metadata.length > 0) && <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-black/55 dark:text-white/55">
-              {selected.type && <span className="work-category" data-category={selected.type}>{copy.work.types[selected.type]}</span>}
               {metadata.length > 0 && <span>{metadata.join(" · ")}</span>}
+              {selected.type && <span className="work-category" data-category={selected.type}>{copy.work.types[selected.type]}</span>}
             </div>}
             <p className="mt-3 max-w-2xl whitespace-pre-line text-sm leading-6 text-black/70 dark:text-white/70">{selected.description}</p>
             {selected.publication && <p className="mt-3 flex min-w-0 items-center gap-2 text-sm text-black/65 dark:text-white/65">
