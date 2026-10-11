@@ -1,0 +1,16 @@
+docs/automation/ai-visual-review.md
+  h_3555645a0dff85 40-41
+e2e/design.consistency.spec.ts
+  h_3555645a0dff85 70
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "49cf82599ab824bfc2571f115fb1e66d792f8d6e",
+  "prompts": {},
+  "humans": {
+    "h_3555645a0dff85": {
+      "author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
