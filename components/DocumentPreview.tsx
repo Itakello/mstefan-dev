@@ -119,8 +119,8 @@ function PdfDocumentPreview({ url, title, locale, filename, presentation = false
         <a href={resolvedUrl} target="_blank" rel="noreferrer" className={`${control} gap-1`}>{italian ? "Apri PDF" : "Open PDF"}<ExternalLink size={14} /></a>
       </div>
     </div>
-    <div data-preview-stage className="relative" style={{ touchAction: "pan-y pinch-zoom" }}
-      onTouchStart={event => { swipeStart.current = event.touches.length === 1 ? { x: event.touches[0].clientX, y: event.touches[0].clientY } : null; }}
+    <div data-preview-stage className="relative" style={{ touchAction: zoom > 1 ? "pan-x pan-y pinch-zoom" : "pan-y pinch-zoom" }}
+      onTouchStart={event => { swipeStart.current = zoom === 1 && event.touches.length === 1 ? { x: event.touches[0].clientX, y: event.touches[0].clientY } : null; }}
       onTouchCancel={() => { swipeStart.current = null; }}
       onTouchEnd={event => {
         const start = swipeStart.current;
