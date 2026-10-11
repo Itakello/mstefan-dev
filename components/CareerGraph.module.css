@@ -38,9 +38,8 @@
 .visualPaths { opacity: .38; pointer-events: none; }
 .highlightPaths { pointer-events: none; }
 .highlightPaths .branch { stroke-width: 3; }
-.dot { stroke: var(--surface-bg); stroke-width: 2; fill: color-mix(in srgb, var(--branch-color) 45%, var(--surface-bg)); }
+.dot { fill: color-mix(in srgb, var(--branch-color) 45%, var(--surface-bg)); }
 .graphButton[data-highlighted="true"] .dot { fill: var(--branch-color); }
-.highlightDot { stroke: var(--surface-bg); stroke-width: 1.5; }
 .detail { width: 100%; min-height: 150px; max-height: 200px; overflow: auto; overscroll-behavior: contain; padding: 28px 20px 34px; border-top: 1px solid var(--surface-border); }
 .detailRef { display: flex; align-items: center; gap: 7px; color: var(--branch-color); font-family: ui-monospace, monospace; font-size: 11px; overflow-wrap: anywhere; }
 .detailRef svg { flex-shrink: 0; }

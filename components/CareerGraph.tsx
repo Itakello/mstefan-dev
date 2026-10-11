@@ -193,9 +193,8 @@ export function CareerGraph({ career, locale, expanded = false, onSelectionChang
                 </g>;
               })}
               {paintOrder.filter((entry) => highlighted(entry.key)).map((entry) => <g key={entry.key} className={styles.highlightPaths} aria-hidden="true">
-                <circle cx={entry.forkX} cy={entry.forkY} r="4.5" fill={jobs[entry.index].color} className={styles.highlightDot} />
-                <circle cx={entry.dated ? entry.mergeX : entry.x} cy={entry.headY} r="4.5" fill={jobs[entry.index].color} className={styles.highlightDot} />
-                <circle cx={entry.dated ? entry.mergeX : entry.x} cy={entry.headY} r="8.5" fill="none" stroke={jobs[entry.index].color} strokeWidth="1.5" />
+                <circle cx={entry.forkX} cy={entry.forkY} r="4.5" fill={jobs[entry.index].color} />
+                <circle cx={entry.dated ? entry.mergeX : entry.x} cy={entry.headY} r="4.5" fill={jobs[entry.index].color} />
               </g>)}
               </g>
             </svg>
