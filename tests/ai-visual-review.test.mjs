@@ -79,7 +79,7 @@ test('recovery checks the reviewed fixed engine before exposing OpenAI credentia
   assert.match(checkouts[1],/if: github.event_name == 'workflow_dispatch' && inputs.recovery == true && github.ref != 'refs\/heads\/fix\/visual-review-file-inventory'\n/);
   assert.match(checkouts[1],/ref: b21ebdc1658ad6e9622cda54edd2bdee711bfb42\n/);
   assert.match(checkouts[2],/if: github.event_name == 'workflow_dispatch' && inputs.recovery == true && github.ref == 'refs\/heads\/fix\/visual-review-file-inventory'\n/);
-  assert.match(checkouts[2],/ref: 6bd341505c91718287096a532b0c9b3d5a000832\n/);
+  assert.match(checkouts[2],/ref: c3a6056ca9ca0e4337d438bbb36eab2f5ef47ed3\n/);
   for (const checkout of checkouts) assert.match(checkout,/persist-credentials: false/);
   assert.match(workflow,/recovery:\n        description: [^\n]+\n        required: false\n        default: false\n        type: boolean/);
   const gate=steps.findIndex(step=>step.startsWith('name: Validate bounded attended recovery\n'));
