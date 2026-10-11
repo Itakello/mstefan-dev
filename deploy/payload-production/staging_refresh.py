@@ -395,10 +395,13 @@ class Refresh:
             try:
                 return self.client.health(staging=staging)
             except Refused as error:
+                remaining = deadline - time.monotonic()
                 if str(error) not in {'HTTP GET failed with status 502', 'HTTP GET failed with status 503',
-                                      'HTTP GET unavailable or invalid'} or time.monotonic() >= deadline:
+                                      'HTTP GET unavailable or invalid'} or remaining <= 0:
                     raise
-                self.sleep(1)
+                self.sleep(min(1, remaining))
+                if time.monotonic() >= deadline:
+                    raise
 
     def wait(self, state, save_state, baseline, mount):
         self.phase(state, save_state, 'submitting', submitted=None, native_pending=True, native_mount=mount)

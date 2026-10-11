@@ -241,7 +241,7 @@ class RefreshLifecycleTests(unittest.TestCase):
 
     def test_restart_health_deadline_and_access_refusal(self):
         for reason, clock in [('HTTP GET failed with status 502', [0, 60]),
-                              ('HTTP GET failed with status 403', [0])]:
+                              ('HTTP GET failed with status 403', [0, 1])]:
             with self.subTest(reason=reason), \
                     patch.object(self.client, 'health', side_effect=refresh.Refused(reason)), \
                     patch.object(refresh.time, 'monotonic', side_effect=clock), \
@@ -249,6 +249,15 @@ class RefreshLifecycleTests(unittest.TestCase):
                 with self.assertRaisesRegex(refresh.Refused, reason):
                     self.runner.ready_health(staging=True)
                 sleep.assert_not_called()
+
+    def test_restart_does_not_start_health_pass_after_retry_window(self):
+        with patch.object(self.client, 'health', side_effect=refresh.Refused('HTTP GET failed with status 502')) as health, \
+                patch.object(refresh.time, 'monotonic', side_effect=[0, 59.5, 60]), \
+                patch.object(self.runner, 'sleep') as sleep:
+            with self.assertRaisesRegex(refresh.Refused, 'status 502'):
+                self.runner.ready_health()
+        self.assertEqual(health.call_count, 1)
+        sleep.assert_called_once_with(0.5)
 
     def test_failures_restore_original_runtime_and_declared_mount(self):
         for event in ('stop:production', 'backup:before', 'backup:after', 'restart:production',
