@@ -178,7 +178,7 @@ export function CareerGraph({ career, locale, expanded = false, onSelectionChang
               {paintOrder.map((entry) => {
                 const job = jobs[entry.index];
                 const headX = entry.dated ? entry.mergeX : entry.x;
-                return <g key={entry.key} data-career-branch={entry.key} data-highlighted={highlighted(entry.key)} {...interaction(entry.key)} role="button" tabIndex={0} aria-label={`${job.branchName}: ${job.company}, ${job.role}. ${period(entry.index)}`} aria-pressed={activeKey === entry.key} className={styles.graphButton} onFocus={(event) => { if (event.currentTarget.matches(":focus-visible")) { setFocusedID(entry.key); revealHead(entry.key); } }} onClick={() => select(entry.key, true)} onKeyDown={(event) => {
+                return <g key={entry.key} style={{ "--branch-color": job.color } as CSSProperties} data-career-branch={entry.key} data-highlighted={highlighted(entry.key)} {...interaction(entry.key)} role="button" tabIndex={0} aria-label={`${job.branchName}: ${job.company}, ${job.role}. ${period(entry.index)}`} aria-pressed={activeKey === entry.key} className={styles.graphButton} onFocus={(event) => { if (event.currentTarget.matches(":focus-visible")) { setFocusedID(entry.key); revealHead(entry.key); } }} onClick={() => select(entry.key, true)} onKeyDown={(event) => {
                   if (event.key === "Enter" || event.key === " ") { event.preventDefault(); select(entry.key, true); }
                 }}>
                   <path d={entry.path} className={styles.hitPath} />
