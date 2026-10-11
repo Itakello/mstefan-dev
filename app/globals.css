@@ -332,3 +332,13 @@ a {
 }
 [data-document-text] .markedContent { display: contents; }
 [data-document-text] ::selection { background: rgb(124 58 237 / 30%); }
+
+.work-category { display: inline-flex; border: 1px solid currentColor; border-radius: 3px; padding: 1px 5px; font-size: 11px; line-height: 17px; color: var(--category-color); background: color-mix(in srgb, var(--category-color) 12%, transparent); }
+.work-category[data-category="Website"] { --category-color: #055d7d; }
+.work-category[data-category="App"] { --category-color: #7545b9; }
+.work-category[data-category="Tool"] { --category-color: #066b54; }
+.work-category[data-category="Research"] { --category-color: #805718; }
+.dark .work-category[data-category="Website"] { --category-color: #25b8f3; }
+.dark .work-category[data-category="App"] { --category-color: #c084fc; }
+.dark .work-category[data-category="Tool"] { --category-color: #34d399; }
+.dark .work-category[data-category="Research"] { --category-color: #bf8a2b; }
