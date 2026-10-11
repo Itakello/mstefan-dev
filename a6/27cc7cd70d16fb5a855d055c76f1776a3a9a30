@@ -1,0 +1,19 @@
+deploy/payload-production/ENVIRONMENTS.md
+  s_6454a99d25cf16::t_ccfe2a3da1d90e 40
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a627cc7cd70d16fb5a855d055c76f1776a3a9a30",
+  "prompts": {},
+  "sessions": {
+    "s_6454a99d25cf16": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a127bc-4c58-7743-ab47-5dbe3fa6bca9",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
