@@ -96,7 +96,9 @@ export function requestBody(text, images) {
     ensure(bytes <= MAX_BYTES && data.length <= 5*1024*1024 && data.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10])), 'Invalid/oversized PNG');
     content.push({type:'input_text',text:`Image evidence: ${name}`}, {type:'input_image',detail:'high',image_url:`data:image/png;base64,${data.toString('base64')}`});
   }
-  return { model:'gpt-6.1-sol', reasoning:{effort:'medium'}, service_tier:'default', store:false, tools:[], max_output_tokens:MAX_OUTPUT, truncation:'disabled', instructions, input:[{role:'user',content}], text:{format:{type:'json_schema',name:'visual_review',strict:true,schema}} };
+  const names = images.map(image => image.name).filter(name => !name.startsWith('base/'));
+  const resultSchema = {...schema,properties:{...schema.properties,coverage:{type:'array',minItems:names.length,maxItems:names.length,items:{type:'string',...(names.length ? {enum:names} : {})}}}};
+  return { model:'gpt-6.1-sol', reasoning:{effort:'medium'}, service_tier:'default', store:false, tools:[], max_output_tokens:MAX_OUTPUT, truncation:'disabled', instructions, input:[{role:'user',content}], text:{format:{type:'json_schema',name:'visual_review',strict:true,schema:resultSchema}} };
 }
 export async function modelReview(body, key, fetcher = fetch) {
   ensure(key, 'Missing OpenAI credential');
@@ -211,10 +213,12 @@ export async function main({env = process.env, fetcher = fetch, invalidate = fal
       ensure(await paidAttempts(github,Date.now(),env.GITHUB_RUN_ID) <= 5, 'Rolling 24h paid attempt cap reached');
       pr = await github(`/pulls/${pr.number}`); ensure(currentRevision(pr,repository,sha,base),'Revisions changed before request');
       await status('pending','request claimed; no retries');
-      const result = reviewResult(await modelReview(prepared.body,env.OPENAI_API_KEY,fetcher),prepared.names);
+      const response = await modelReview(prepared.body,env.OPENAI_API_KEY,fetcher);
+      if (env.GITHUB_STEP_SUMMARY) writeFileSync(env.GITHUB_STEP_SUMMARY,`Unvalidated model report for ${sha} against ${base}\n\n\`\`\`json\n${JSON.stringify({status:response.status,incomplete_details:response.incomplete_details,messages:Array.isArray(response.output) ? response.output.filter(item => item.type === 'message') : []},null,2)}\n\`\`\`\n`);
+      const result = reviewResult(response,prepared.names);
       pr = await github(`/pulls/${pr.number}`); ensure(currentRevision(pr,repository,sha,base),'Revisions changed during review');
       await status(result.findings.length ? 'failure' : 'success',result.findings.length ? `${result.findings.length} proven design violations` : `complete review: ${prepared.names.length} captures`);
-      if (env.GITHUB_STEP_SUMMARY) writeFileSync(env.GITHUB_STEP_SUMMARY,`Review ${sha} against ${base}\n\n${JSON.stringify(result,null,2)}\n`);
+      if (env.GITHUB_STEP_SUMMARY) writeFileSync(env.GITHUB_STEP_SUMMARY,`Validated review ${sha} against ${base}\n\n\`\`\`json\n${JSON.stringify(result,null,2)}\n\`\`\`\n`);
       return;
     }
     const artifacts = await github(`/actions/runs/${run.id}/artifacts?per_page=100`);

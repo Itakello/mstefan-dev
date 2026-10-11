@@ -350,7 +350,7 @@ with zipfile.ZipFile(sys.argv[1]+'/fixture.zip','w') as z:
       else throw new Error(`Unexpected endpoint ${url}`);
       return new Response(JSON.stringify(response));
     };
-    const env={GITHUB_REPOSITORY:repository,GITHUB_EVENT_PATH:event,GITHUB_EVENT_NAME:'workflow_dispatch',GITHUB_RUN_ATTEMPT:'1',GITHUB_RUN_ID:'5',GITHUB_OUTPUT:output,RUNNER_TEMP:directory,OPENAI_API_KEY:'opaque'};
+    const env={GITHUB_REPOSITORY:repository,GITHUB_EVENT_PATH:event,GITHUB_EVENT_NAME:'workflow_dispatch',GITHUB_RUN_ATTEMPT:'1',GITHUB_RUN_ID:'5',GITHUB_OUTPUT:output,GITHUB_STEP_SUMMARY:join(directory,'summary.md'),RUNNER_TEMP:directory,OPENAI_API_KEY:'opaque'};
     await main({env,fetcher});
     assert.equal(readFileSync(output,'utf8'),'ready=true\n');
     assert.equal(calls.some(url=>new URL(url).origin === 'https://api.openai.com'),false);
@@ -358,6 +358,7 @@ with zipfile.ZipFile(sys.argv[1]+'/fixture.zip','w') as z:
     await main({env,fetcher,request:true});
     assert.equal(calls.filter(url=>new URL(url).origin === 'https://api.openai.com').length,2);
     assert.match(writes.at(-1).description,/complete review: 16 captures/);
+    assert.match(readFileSync(env.GITHUB_STEP_SUMMARY,'utf8'),/^Validated review head against base/);
     calls.length=0;writes.length=0;closeDuringModel=true;
     await assert.rejects(main({env,fetcher,request:true}),/Revisions changed during review/);
     assert.equal(writes.length,1);assert.match(writes[0].description,/request claimed/);
@@ -492,5 +493,68 @@ test('closing the PR during documentation classification publishes no status', a
       return new Response(JSON.stringify(response));
     }}),/Revisions changed before classification/);
     assert.equal(writes.length,0);
+  } finally {rmSync(directory,{recursive:true,force:true});}
+});
+
+test('coverage schema includes current pages and Workshop names, excluding base references', () => {
+  const png=Buffer.from([137,80,78,71,13,10,26,10]);
+  const names=[...REQUIRED,'workshop-example-desktop-dark.png'];
+  const body=requestBody('',[...names,...names.map(name=>`base/${name}`)].map(name=>({name,data:png})));
+  const coverage=body.text.format.schema.properties.coverage;
+  assert.deepEqual(coverage.items.enum,names);
+  assert.equal(coverage.minItems,names.length);assert.equal(coverage.maxItems,names.length);
+  const other=requestBody('',[{name:'other.png',data:png}]);
+  assert.deepEqual(other.text.format.schema.properties.coverage.items.enum,['other.png']);
+  assert.deepEqual(coverage.items.enum,names);
+});
+
+test('rejected reports remain inert diagnostics, never approve and never retry', async () => {
+  const {mkdtempSync,writeFileSync,rmSync}=await import('node:fs');
+  const {tmpdir}=await import('node:os');const {join}=await import('node:path');
+  const directory=mkdtempSync(join(tmpdir(),'visual-rejected-report-'));
+  try {
+    const event=join(directory,'event.json'),summary=join(directory,'summary.md');
+    writeFileSync(event,JSON.stringify({inputs:{source_run_id:'7'}}));
+    writeFileSync(join(directory,'ai-visual-request.json'),JSON.stringify({sha:'head',base:'base',sourceRun:7,names:REQUIRED,body:requestBody('request-only-marker',[])}));
+    const env={GITHUB_REPOSITORY:repository,GITHUB_EVENT_PATH:event,GITHUB_EVENT_NAME:'workflow_dispatch',GITHUB_RUN_ATTEMPT:'1',GITHUB_RUN_ID:'5',RUNNER_TEMP:directory,GITHUB_STEP_SUMMARY:summary,OPENAI_API_KEY:'credential-only-marker'};
+    const rejected=[
+      output({...clean,coverage:REQUIRED.slice(1)}),
+      output({...clean,coverage:[...REQUIRED.slice(1),REQUIRED[1]]}),
+      output({...clean,coverage:[...REQUIRED.slice(1),`base/${REQUIRED[0]}`]}),
+      output({...clean,complete:false,suggestions:['Cannot inspect every capture']}),
+      {status:'completed',output:[{type:'message',content:[{type:'output_text',text:'malformed\n```\n# inert text'}]}]},
+      {status:'completed',output:[{type:'message',content:[{type:'refusal',refusal:'Cannot review'}]}]},
+      {status:'incomplete',incomplete_details:{reason:'max_output_tokens'},output:[{type:'reasoning',summary:'reasoning-only-marker'}]},
+    ];
+    for(const response of rejected) {
+      let attempted=false;const calls=[],writes=[];
+      const fetcher=async(url,options)=>{
+        calls.push(url);
+        if(new URL(url).origin==='https://api.openai.com') return new Response(JSON.stringify(url.endsWith('/input_tokens') ? {object:'response.input_tokens',input_tokens:10} : response));
+        if(options.method==='POST') {const value=JSON.parse(options.body);writes.push(value);if(value.description.includes('request claimed')) attempted=true;return new Response('{}');}
+        let value;
+        if(url.endsWith('/actions/runs/7')) value=run;
+        else if(url.endsWith('/pulls/1')) value={...pr,changed_files:1,labels:[]};
+        else if(url.includes('/statuses?')) value=attempted ? [{context:'AI visual review',description:'PR1 base: request claimed; no retries'}] : [];
+        else if(url.includes('/files?')) value=[{filename:'components/Footer.tsx',additions:1,deletions:1}];
+        else if(url.includes('/workflows/ai-visual-review.yml/runs?')) value={total_count:1,workflow_runs:[{id:5,status:'in_progress',updated_at:new Date().toISOString()}]};
+        else if(url.includes('/jobs?')) value={total_count:1,jobs:[{steps:[{name:PAID_STEP,status:'in_progress',started_at:new Date().toISOString()}]}]};
+        else throw new Error('Unexpected test endpoint');
+        return new Response(JSON.stringify(value));
+      };
+      await assert.rejects(main({env,fetcher,request:true}));
+      assert.deepEqual(writes.map(value=>value.state),['pending','error']);
+      const report=readFileSync(summary,'utf8');
+      assert.match(report,/^Unvalidated model report for head against base/);
+      const diagnostic=JSON.parse(report.split('```json\n')[1].split('\n```\n')[0]);
+      assert.equal(diagnostic.status,response.status);
+      assert.deepEqual(diagnostic.messages,response.output.filter(item=>item.type==='message'));
+      assert.deepEqual(diagnostic.incomplete_details,response.incomplete_details);
+      for(const excluded of ['request-only-marker','credential-only-marker','reasoning-only-marker']) assert.equal(report.includes(excluded),false);
+      calls.length=0;writes.length=0;
+      await main({env,fetcher,request:true});
+      assert.equal(writes.length,0);
+      assert.equal(calls.some(url=>new URL(url).origin==='https://api.openai.com' || url.includes('/jobs?')),false);
+    }
   } finally {rmSync(directory,{recursive:true,force:true});}
 });
