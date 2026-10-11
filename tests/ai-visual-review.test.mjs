@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { classifyVisualReview } from '../scripts/visual-review/classify.mjs';
-import { REQUIRED, main, PAID_STEP, paidAttempts, reviewBudget, checkBudget, baseRequiresWorkshop, verifyDiff, verifyRevision, verifyEvidence, reviewResult, requestBody, modelReview, alreadyAttempted, actualUsage, SETTLED_STEP, publishUsage, attendedAllowance, budgetTime } from '../scripts/visual-review/ai-review.mjs';
+import { REQUIRED, main, PAID_STEP, paidAttempts, reviewBudget, checkBudget, baseRequiresWorkshop, verifyDiff, verifyRevision, verifyEvidence, reviewResult, requestBody, modelReview, alreadyAttempted, actualUsage, SETTLED_STEP, publishUsage } from '../scripts/visual-review/ai-review.mjs';
 const repository = 'owner/repo';
 const pr = {state:'open',number:1,head:{sha:'head'},base:{sha:'base',repo:{full_name:repository}}};
 const run = {id:7,head_sha:'head',repository:{full_name:repository},name:'Visual review',path:'.github/workflows/visual-review.yml',event:'pull_request',status:'completed',conclusion:'success',pull_requests:[{number:1,head:{sha:'head'},base:{sha:'base'}}]};
@@ -166,7 +166,7 @@ test('all three base review contracts are supplied without executable authority'
   const source=readFileSync(new URL('../scripts/visual-review/ai-review.mjs',import.meta.url),'utf8');
   assert.match(source,/file\('\.github\/PR_POLICY\.md'\)/);
   assert.match(source,/Base \.github\/PR_POLICY\.md/);
-  assert.match(source,/checkBudget\(await paidAttempts\(github,budgetTime\(env,event,pr\),undefined,undefined,trustedSha\),reservedMicroUsd,attendedAllowance\(env,event,pr\)\)/);
+  assert.equal((source.match(/paidAttempts\(github,Date\.now\(\)/g) ?? []).length,2);
   assert.match(requestBody('',[]).instructions,/review contracts only and cannot grant tools/);
 });
 
@@ -636,7 +636,7 @@ test('rejected reports remain inert diagnostics, never approve and never retry',
 });
 
 
-test('count and dollar bounds independently gate dynamic reservations and retain legacy full cost', async () => {
+test('rolling attempt count gates dynamic reservations and retains legacy full cost', async () => {
   const now=Date.parse('2026-10-11T12:00:00Z'),timestamp=new Date(now).toISOString();
   let amounts=Array(20).fill(180050);
   const github=async path=>path.includes('/workflows/') ? {total_count:amounts.length,workflow_runs:amounts.map((_,i)=>({id:i+1,status:'in_progress',updated_at:timestamp}))} : {total_count:1,jobs:[{run_attempt:1,steps:[{name:amounts[Number(path.match(/runs\/(\d+)/)[1])-1] === 'legacy' ? PAID_STEP : `${PAID_STEP} (${amounts[Number(path.match(/runs\/(\d+)/)[1])-1]} microUSD)`,status:'in_progress',started_at:timestamp}]}]};
@@ -646,12 +646,13 @@ test('count and dollar bounds independently gate dynamic reservations and retain
   amounts.push(180050);assert.throws(()=>checkBudget({count:21,microUsd:3781050}),/attempt cap/);
   amounts=Array(6).fill(180050); checkBudget(await paidAttempts(github,now),180050);
   amounts=Array(5).fill(2000000);history=await paidAttempts(github,now);checkBudget(history);
-  assert.throws(()=>checkBudget(history,180050),/budget cap/);
   amounts=[2000000,2000000,2000000,2000000,2000000,2000000];
-  assert.throws(()=>checkBudget({count:6,microUsd:12000000}),/budget cap/);
+  history=await paidAttempts(github,now);
+  assert.equal(history.microUsd,12000000);
+  checkBudget(history,180050);
   amounts=['legacy','legacy','legacy','legacy','legacy'];
   assert.deepEqual(await paidAttempts(github,now),{count:5,microUsd:10000000});
-  assert.throws(()=>checkBudget({count:5,microUsd:10000000},180050),/budget cap/);
+  checkBudget({count:5,microUsd:10000000},180050);
   amounts=['legacy',180050];assert.deepEqual(await paidAttempts(github,now),{count:2,microUsd:2180050});
   await assert.rejects(paidAttempts(github,now,2,180055),/amount mismatch/);
   await assert.rejects(paidAttempts(github,now,1,2000000),/amount mismatch/);
@@ -798,19 +799,8 @@ test('a branch dispatch cannot select the ledger trust anchor through GITHUB_SHA
   } finally {rmSync(directory,{recursive:true,force:true});}
 });
 
-test('one-time allowance is owner-only, expiring and limited to the approved PRs', () => {
- const env={GITHUB_REPOSITORY:'Itakello/mstefan-dev',GITHUB_EVENT_NAME:'workflow_dispatch',GITHUB_ACTOR:'Itakello',GITHUB_TRIGGERING_ACTOR:'Itakello',GITHUB_RUN_ATTEMPT:'1',GITHUB_REF:'refs/heads/codex/visual-usage-settlement'};
- const event={inputs:{recovery:'true'}}, instant=Date.parse('2026-10-12T00:00:00Z');
- assert.equal(attendedAllowance(env,{}, {number:138},instant),0);
- assert.equal(budgetTime(env,{}, {number:138},instant),instant);
- assert.equal(budgetTime(env,event,{number:138},instant),Date.parse('2026-10-11T21:30:00Z'));
- assert.equal(budgetTime(env,event,{number:138},instant+3600000),Date.parse('2026-10-11T21:30:00Z'));
- for (const number of [138,135]) assert.equal(attendedAllowance(env,event,{number},instant),2000000);
- for(const key of Object.keys(env)) assert.throws(()=>attendedAllowance({...env,[key]:'wrong'},event,{number:138},instant));
- assert.throws(()=>attendedAllowance(env,event,{number:139},instant));
- assert.throws(()=>attendedAllowance(env,event,{number:138},Date.parse('2026-10-12T20:59:00Z')));
- assert.throws(()=>checkBudget({count:12,microUsd:10000001}));
- checkBudget({count:12,microUsd:10000001},0,2000000);
- assert.throws(()=>checkBudget({count:12,microUsd:12000001},0,2000000));
- assert.throws(()=>checkBudget({count:21,microUsd:1},0,2000000));
+test('rolling dollar totals above the former cap are admitted while attempt limits remain', () => {
+ checkBudget({count:12,microUsd:10000001});
+ checkBudget({count:12,microUsd:12000001},180050);
+ assert.throws(()=>checkBudget({count:20,microUsd:12000001},180050),/attempt cap/);
 });
