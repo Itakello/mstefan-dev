@@ -1,0 +1,45 @@
+docs/automation/ai-visual-review.md
+  s_09b847434b8cc4::t_8982f7c5d1a7dd 13,15-19,49-51
+docs/presentation-export-review.md
+  s_09b847434b8cc4::t_513e74875798f6 7
+scripts/visual-review/ai-review.mjs
+  s_a3d57fd6983d88::t_2445f70abaa67a 198-201,203-205,233,248,262,264,266,268,276,339,341,394,396
+scripts/visual-review/recovery.mjs
+  s_f792a2a2b302b5::t_75853342a759f3 7,16-17,19-20,35,61,63,66-67
+tests/ai-visual-recovery.test.mjs
+  s_f792a2a2b302b5::t_5ec9b3cba3636e 11,18,25-30,32,50,109-122
+tests/ai-visual-review.test.mjs
+  s_a3d57fd6983d88::t_2d3938cbd72e04 6,242,370,373,375,385,389,394,415,419,423,437-438,440,771,773-780,802,804,806-815,832-842,844-845,847-857
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6bd341505c91718287096a532b0c9b3d5a000832",
+  "prompts": {},
+  "sessions": {
+    "s_09b847434b8cc4": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12ca3-eeb5-7c51-b80e-099a5f01a8e5",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    },
+    "s_a3d57fd6983d88": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a125dc-d51e-7583-9ad7-4135793b24dc",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    },
+    "s_f792a2a2b302b5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12cbb-dc6f-7ca0-a58e-4b0d809a1763",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
