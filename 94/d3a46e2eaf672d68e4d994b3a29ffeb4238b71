@@ -1,0 +1,40 @@
+scripts/visual-review/run-workshop.mjs
+  s_a3d57fd6983d88::t_8a63eac2e47027 20
+README.md
+  s_a3d57fd6983d88::t_fde0a1f37d68c1 92
+workshop/WorkExplorer.stories.tsx
+  s_a3d57fd6983d88::t_8834e8530b6204 3,14
+workshop/fixtures.ts
+  s_a3d57fd6983d88::t_8834e8530b6204 62-70
+e2e/mstefan-site.review.spec.ts
+  s_a3d57fd6983d88::t_cb3be777338097 127,168
+  s_a3d57fd6983d88::t_0905d0532d5970 180,307,372
+  s_a3d57fd6983d88::t_fde0a1f37d68c1 61,73,75-76,90,92-93,95-96,309-310,388
+e2e/components.workshop.spec.ts
+  s_a3d57fd6983d88::t_fe999cdb0d3496 119-123
+  s_a3d57fd6983d88::t_8834e8530b6204 8-10,101-113,117-118,124-126,132-137
+  s_a3d57fd6983d88::t_c9d59d11265895 115-116
+  s_a3d57fd6983d88::t_c2e762a69ef82c 127-131
+  s_a3d57fd6983d88::t_4589363ad6934c 114
+  s_a3d57fd6983d88::t_623e7e54818126 138-139
+tests/cms/notion-publication-fixture.mjs
+  s_a3d57fd6983d88::t_fde0a1f37d68c1 67
+.storybook/main.ts
+  s_a3d57fd6983d88::t_af7ceb99b510d5 7-10
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "94d3a46e2eaf672d68e4d994b3a29ffeb4238b71",
+  "prompts": {},
+  "sessions": {
+    "s_a3d57fd6983d88": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a125dc-d51e-7583-9ad7-4135793b24dc",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
