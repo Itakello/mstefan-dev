@@ -136,6 +136,8 @@ test.describe("Public website review", () => {
         const modesBox = (await researchModes.boundingBox())!;
         const enlargeBox = (await page.getByRole("button", { name: "Enlarge preview", exact: true }).boundingBox())!;
         expect(enlargeBox.x).toBeGreaterThanOrEqual(modesBox.x + modesBox.width);
+        expect(enlargeBox.width).toBe(44);
+        expect(enlargeBox.x + enlargeBox.width).toBeLessThanOrEqual(toggleBox.x + toggleBox.width + 1);
         expect(Math.abs(enlargeBox.y + enlargeBox.height / 2 - modesBox.y - modesBox.height / 2)).toBeLessThan(2);
         expect(toggleBox.y).toBeGreaterThanOrEqual(mediaBox.y + mediaBox.height);
         expect(Math.abs(toggleBox.x + toggleBox.width / 2 - mediaBox.x - mediaBox.width / 2)).toBeLessThan(2);

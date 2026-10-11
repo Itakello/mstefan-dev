@@ -125,7 +125,7 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
   };
   const mediaControls = [screenshotUrl, selected.paperUrl, selected.slidesUrl].filter(Boolean).length > 1 && <div role="group" aria-label={copy.work.research} className="flex w-fit gap-1 rounded-lg border border-[var(--surface-border)] p-1">
           {([{ kind: "photos", url: screenshotUrl, label: copy.work.photos, Icon: Images }, { kind: "paper", url: selected.paperUrl, label: copy.work.paper, Icon: BookOpen }, { kind: "slides", url: selected.slidesUrl, label: copy.work.slides, Icon: Presentation }] as const).filter(resource => resource.url).map(resource => (
-            <button key={resource.kind} type="button" aria-pressed={activeKind === resource.kind} onClick={() => setDocumentKind(resource.kind)} className={`inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-[hsl(var(--accent))] ${activeKind === resource.kind ? "bg-[hsl(var(--accent))] text-white" : "hover:bg-black/5 dark:hover:bg-white/5"}`}><resource.Icon size={16} aria-hidden /><span>{resource.label}</span></button>
+            <button key={resource.kind} type="button" aria-pressed={activeKind === resource.kind} onClick={() => setDocumentKind(resource.kind)} className={`inline-flex items-center gap-1 rounded-md px-2 sm:gap-2 sm:px-3 py-2 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-[hsl(var(--accent))] ${activeKind === resource.kind ? "bg-[hsl(var(--accent))] text-white" : "hover:bg-black/5 dark:hover:bg-white/5"}`}><resource.Icon size={16} aria-hidden /><span>{resource.label}</span></button>
           ))}
         </div>;
   return (
