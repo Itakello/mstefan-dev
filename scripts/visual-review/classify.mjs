@@ -31,6 +31,8 @@ const pathPrefixes = [
   ".codex/agents/playwright_test_",
   "app/",
   "components/",
+  ".storybook/",
+  "workshop/",
   "e2e/",
   "lib/",
   "migrations/",

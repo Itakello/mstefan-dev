@@ -34,3 +34,7 @@ The isolated production fixture must render pinned real icon artwork and fail on
 An independent AI reviewer must inspect the complete current diff and its rendered evidence against this contract. Compare the changed pattern with its callers and related pages. Report a concrete rule, affected locations, and visible evidence for each inconsistency; separate proven violations from subjective suggestions. A passing functional journey or recording alone is not design approval.
 
 Fix proven violations before completion. Review intentional visual changes and their baseline diffs before updating references; never auto-accept a snapshot because a check failed. Keep baseline capture and comparison in the same browser/runtime environment. Preserve accessibility and forced-colors behavior.
+
+## Component workshop
+
+`workshop/*.stories.tsx` imports the owning production components; samples and pinned artwork stay test-scoped. Add meaningful component states here before page integration and inspect both themes, responsive layouts, focus and interactions. Run `pnpm test:workshop` alongside the production-fixture page checks. See `docs/component-workshop.md` for commands and reference review. AI review must inspect current component captures together with related page evidence; a workshop pass alone does not prove page integration.
