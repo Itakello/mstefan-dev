@@ -335,6 +335,24 @@ class RefreshLifecycleTests(unittest.TestCase):
         self.assertNotIn('stop:production', self.fault.events)
         self.assert_original_data()
 
+    def test_production_default_host_requires_exact_local_runtime(self):
+        self.client.projects[refresh.PROD]['serverId'] = None
+        self.runner.plan()
+        self.client.projects[refresh.PROD]['activeDeploymentId'] = 'dep_elsewhere'
+        self.client.records['dep_elsewhere'] = {'id': 'dep_elsewhere', 'projectId': refresh.PROD,
+                                               'commitSha': COMMIT, 'status': 'ready'}
+        with self.assertRaises(KeyError):
+            self.runner.plan()
+
+    def test_unexpected_servers_and_staging_default_host_refused(self):
+        for identity, server in ((refresh.PROD, 'another-server'), (refresh.STAGE, None),
+                                 (refresh.STAGE, 'another-server')):
+            original = self.client.projects[identity]['serverId']
+            self.client.projects[identity]['serverId'] = server
+            with self.assertRaisesRegex(refresh.Refused, 'Project identity'):
+                self.runner.project(identity)
+            self.client.projects[identity]['serverId'] = original
+
     def test_compatibility_receipt_binds_images_paths_and_expiry(self):
         receipt_path = self.fixture.root / 'compatibility.json'
         receipt = {name: {key: self.state[name][key] for key in ('commit', 'image')}

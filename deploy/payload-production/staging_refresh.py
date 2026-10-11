@@ -328,10 +328,11 @@ class Refresh:
 
     def project(self, identity):
         project = value(self.client.ship('GET', '/projects/' + identity))
-        expected = {'id': identity, 'organizationId': ORG, 'slug': SLUGS[identity], 'serverId': SERVER,
+        expected = {'id': identity, 'organizationId': ORG, 'slug': SLUGS[identity],
                     'gitProvider': 'github', 'gitOwner': 'Itakello', 'gitRepo': 'mstefan-dev', 'gitBranch': 'master',
                     'autoDeploy': False, 'routeStrategy': 'loopback-port'}
-        if any(project.get(key) != expected_value for key, expected_value in expected.items()):
+        servers = {SERVER, None} if identity == PROD else {SERVER}
+        if project.get('serverId') not in servers or any(project.get(key) != expected_value for key, expected_value in expected.items()):
             raise Refused('Project identity, routing or deployment ownership changed')
         mounts = project.get('volumes')
         if identity == PROD and mounts != ['data:/data']:
