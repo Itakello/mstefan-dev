@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { after, before, test } from 'node:test';
 import { spawn, spawnSync, type ChildProcess } from 'node:child_process';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { randomBytes } from 'node:crypto';
@@ -657,5 +657,57 @@ test('authenticated previews load only the active source draft', { timeout: 60_0
       await expect(page.getByText(privateSummary, { exact: true })).toHaveCount(0);
     }
     await context.close();
+  } finally { await browser.close(); }
+});
+
+test('master results are an optional download while other attachments retain previews', { timeout: 60_000 }, async () => {
+  const pdfBytes = syntheticPDF();
+  const form = new FormData();
+  form.set('file', new Blob([pdfBytes], { type: 'application/pdf' }), 'master-grades.pdf');
+  form.set('_payload', '{}');
+  const upload = await fetch(`${base}/api/documents`, { method: 'POST', headers: { Cookie: cookie }, body: form });
+  assert.equal(upload.status, 201);
+  const file = (await upload.json()).doc;
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const page = await browser.newPage();
+    await mkdir('.artifacts/playwright/master-download', { recursive: true });
+    for (const [locale, title, verb] of [['en', 'Master’s exam results', 'Download'], ['it', 'Risultati degli esami magistrali', 'Scarica']]) {
+      const saved = await (await request(`/api/globals/career?locale=${locale}&draft=false`, undefined, true)).json();
+      const jobs = [
+        { branchName: 'education/trento-master', company: 'Università di Trento', role: 'Artificial Intelligence', summary: 'Master’s degree', color: '#1267ab', documents: [{ title, file: file.id }] },
+        { branchName: 'research/thesis', company: 'Research', role: 'Researcher', color: '#12abcd', documents: [{ title: 'Research attachment', file: file.id }] },
+      ];
+      try {
+        await update('career', locale, { jobs, _status: 'published' }, `&publishSpecificLocale=${locale}`);
+        await page.goto(`${base}/${locale}/about`);
+        await page.locator('button[data-career-job]', { hasText: 'education/trento-master' }).click();
+        const link = page.getByRole('link', { name: `${verb} ${title} (PDF)`, exact: true });
+        await expect(link).toHaveAttribute('href', file.url);
+        await expect(link).toHaveAttribute('download', 'master-grades.pdf');
+        await expect(page.locator('#career-story [data-pdf-document]')).toHaveCount(0);
+        const download = page.waitForEvent('download');
+        await link.click();
+        assert.equal((await download).suggestedFilename(), 'master-grades.pdf');
+        for (const [size, width, height] of [['desktop', 1280, 900], ['mobile', 390, 844]] as const) {
+          await page.setViewportSize({ width, height });
+          for (const theme of ['light', 'dark'] as const) {
+            const dark = (await page.locator('html').getAttribute('class'))?.split(' ').includes('dark') ?? false;
+            if (dark !== (theme === 'dark')) await page.getByRole('button', { name: locale === 'it' ? 'Cambia tema' : 'Toggle theme' }).click();
+            await expect(page.locator('html')).toHaveClass(theme === 'dark' ? /\bdark\b/ : /^(?!.*\bdark\b)/);
+            await expect(link).toBeVisible();
+            await link.focus();
+            await link.press('Tab');
+            await page.keyboard.press('Shift+Tab');
+            await expect(link).toBeFocused();
+            await page.screenshot({ path: `.artifacts/playwright/master-download/${locale}-${size}-${theme}.png`, fullPage: true });
+          }
+        }
+        await page.locator('button[data-career-job]', { hasText: 'research/thesis' }).click();
+        await expect(page.locator('#career-story [data-pdf-document]')).toBeVisible();
+      } finally {
+        await update('career', locale, { jobs: saved.jobs, _status: 'published' }, `&publishSpecificLocale=${locale}`);
+      }
+    }
   } finally { await browser.close(); }
 });
