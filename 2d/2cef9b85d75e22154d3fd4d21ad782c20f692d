@@ -1,0 +1,21 @@
+.github/workflows/visual-review.yml
+  s_ca9b05cd06e974::t_7f5804bff70d27 72
+components/Footer.tsx
+  s_ca9b05cd06e974::t_5f86cb57dbf869 38
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2d2cef9b85d75e22154d3fd4d21ad782c20f692d",
+  "prompts": {},
+  "sessions": {
+    "s_ca9b05cd06e974": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a125e2-8a12-72c0-9b0f-65ad915684a2",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
