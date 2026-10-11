@@ -706,6 +706,9 @@ test('degree results are optional metadata downloads while other attachments ret
               if (dark !== (theme === 'dark')) await page.getByRole('button', { name: locale === 'it' ? 'Cambia tema' : 'Toggle theme' }).click();
               await expect(page.locator('html')).toHaveClass(theme === 'dark' ? /\bdark\b/ : /^(?!.*\bdark\b)/);
               await expect(link).toBeVisible();
+              const metadataBox = await page.locator('#career-story article p', { has: link }).boundingBox();
+              const buttonBox = await link.boundingBox();
+              assert.ok(metadataBox && buttonBox && Math.abs(metadataBox.x + metadataBox.width - buttonBox.x - buttonBox.width) < 1, 'Results button must align with the right edge of the metadata');
               await link.focus();
               await link.press('Tab');
               await page.keyboard.press('Shift+Tab');
