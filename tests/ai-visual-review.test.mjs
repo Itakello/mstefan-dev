@@ -321,6 +321,24 @@ test('exact verified legacy runs and queued or completed-cancelled runs with com
   await assert.rejects(paidAttempts(path=>path.includes('/runs/3/') ? {total_count:0} : github(path),now),/jobs missing or truncated/);
 });
 
+test('only the two proven zero-generation steps are free; failed and variant paid steps retain full reservations', async () => {
+  const now=Date.parse('2026-10-11T12:00:00Z'),timestamp=new Date(now).toISOString();
+  const ids=[38100300733,38100604189,38101000001,38101000002,38101000003,38101000004,38101000005];
+  const runs=ids.map(id=>({id,status:'completed',updated_at:timestamp}));
+  const steps=new Map([
+    [ids[0],{name:'Review inert exact-head evidence with trusted default-branch code',status:'completed',conclusion:'failure',started_at:timestamp}],
+    [ids[1],{name:PAID_STEP,status:'completed',conclusion:'failure',started_at:timestamp}],
+    ...ids.slice(2,5).map(id=>[id,{name:`${PAID_STEP} (2000000 microUSD)`,status:'completed',conclusion:'success',started_at:timestamp}]),
+    ...ids.slice(5).map(id=>[id,{name:`${PAID_STEP} (2000000 microUSD)`,status:'completed',conclusion:'failure',started_at:timestamp}]),
+  ]);
+  const github=async path=>path.includes('/workflows/') ? {total_count:runs.length,workflow_runs:runs} : {total_count:1,jobs:[{steps:[steps.get(Number(path.match(/runs\/(\d+)/)[1]))]}]};
+  assert.deepEqual(await paidAttempts(github,now),{count:5,microUsd:10000000});
+  assert.deepEqual(await paidAttempts(async path=>path.includes('/workflows/') ? {total_count:5,workflow_runs:runs.slice(0,5)} : github(path),now),{count:3,microUsd:6000000});
+  steps.set(ids[1],{name:`${PAID_STEP} (2000000 microUSD)`,status:'completed',conclusion:'failure',started_at:timestamp});
+  assert.deepEqual(await paidAttempts(github,now),{count:6,microUsd:12000000});
+  await assert.rejects(paidAttempts(async path=>path.includes('/workflows/') ? {total_count:1,workflow_runs:[{id:999,status:'completed',updated_at:timestamp}]} : {total_count:1,jobs:[{steps:[{status:'completed',conclusion:'failure',started_at:timestamp}]}]},now));
+});
+
 test('prepared exact-head evidence allows cheap paid requests beyond five; cap, replay and stale revisions issue none', async () => {
   const {mkdtempSync,writeFileSync,rmSync}=await import('node:fs');
   const {tmpdir}=await import('node:os');

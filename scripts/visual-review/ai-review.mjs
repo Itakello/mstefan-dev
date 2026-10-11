@@ -13,6 +13,11 @@ const LEGACY_STEP = 'Review inert exact-head evidence with trusted default-branc
 const VERIFIED_NO_REQUEST_RUNS = new Set([
   38098603752,38098511736,38098397899,38098386258,38098372261,38098223179,38098203117,38098107198,38098091742,38097981789,38097888323,38097869584,38097745015,38097705932,38097526243,38097492576,38097453777,38096596576,38096485905,38096450321,38096448766,38096390404,38096215815,38096104257,38096080891,38096032138,38096010327,38095912444,38095707403,38099278720,38099083901,38099572728,38099994618,38099872504,38099852899,38099846647,38099719186,
 ]);
+// Attended logs prove these exact historical steps stopped before generation; reruns are barred.
+const VERIFIED_ZERO_COST_STEPS = new Map([
+  [38100300733, LEGACY_STEP],
+  [38100604189, PAID_STEP],
+]);
 const MAX_OUTPUT = 12000;
 const MAX_REVIEW_MICRO_USD = 2000000;
 const MAX_DAILY_MICRO_USD = 10000000;
@@ -157,6 +162,7 @@ export async function paidAttempts(github, now = Date.now(), currentRun, expecte
     for (const job of jobs.jobs) {
       ensure(Array.isArray(job.steps), 'Paid attempt steps missing');
       for (const step of job.steps) {
+        if (VERIFIED_ZERO_COST_STEPS.has(run.id) && VERIFIED_ZERO_COST_STEPS.get(run.id) === step.name) continue;
         if (!step.name.startsWith(PAID_STEP) && (step.name !== LEGACY_STEP || VERIFIED_NO_REQUEST_RUNS.has(run.id))) continue;
         if (step.status === 'queued' || step.status === 'pending' || step.conclusion === 'skipped') continue;
         let reserved = MAX_REVIEW_MICRO_USD;
