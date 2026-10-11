@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev --hostname 127.0.0.1 --port 3000",
     "build": "payload generate:types && next build --webpack",
-    "test": "node --test --import tsx tests/*.test.ts",
+    "test": "node --test --import tsx tests/*.test.ts tests/*.test.mjs",
     "test:e2e": "playwright test --project=review",
     "start": "next start",
     "postbuild": "next-sitemap --config next-sitemap.config.mjs",

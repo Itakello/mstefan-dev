@@ -176,10 +176,10 @@ test.describe("Public website review", () => {
     await expect(desktop).toBeVisible();
     await showReviewStep(page, "2 · Work explorer and responsive preview toggle");
 
-    // 3. Open About and verify its portrait and biography.
-    await page.getByRole("link", { name: "About", exact: true }).click();
+    // 3. Open Experience and verify its portrait and biography.
+    await page.getByRole("link", { name: "Experience", exact: true }).click();
     await expect(page).toHaveURL(/\/en\/about$/);
-    await expect(page.locator("#career-story")).toHaveAttribute("aria-label", "About");
+    await expect(page.locator("#career-story")).toHaveAttribute("aria-label", "Experience");
     await expect(page.getByRole("heading", { level: 1, name: "master" })).toBeVisible();
     await expect(page.getByRole("img", { name: "Massimo Stefan standing in an elevator, holding a laptop" })).toBeVisible();
     const story = page.locator("#career-story");
@@ -203,7 +203,7 @@ test.describe("Public website review", () => {
     await aboutCareer.locator("[data-career-main-row]").click();
     await expect(story.getByRole("heading", { level: 1, name: "master" })).toBeVisible();
     await expect(story.getByRole("img", { name: "Massimo Stefan standing in an elevator, holding a laptop" })).toBeVisible();
-    await showReviewStep(page, "3 · About and portrait");
+    await showReviewStep(page, "3 · Experience and portrait");
 
     // 4. Toggle dark mode and verify the rendered theme state.
     await page.getByRole("button", { name: "Toggle theme" }).click();
@@ -214,7 +214,7 @@ test.describe("Public website review", () => {
     await page.getByRole("button", { name: "Select language" }).click();
     await page.getByRole("menuitemradio", { name: /Italiano/ }).click();
     await expect(page).toHaveURL(/\/it\/about$/);
-    await expect(page.locator("#career-story")).toHaveAttribute("aria-label", "Profilo");
+    await expect(page.locator("#career-story")).toHaveAttribute("aria-label", "Esperienza");
     await expect(page.getByRole("heading", { level: 1, name: "master" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Lavori", exact: true })).toBeVisible();
     await page.getByRole("link", { name: "Lavori", exact: true }).click();
@@ -280,7 +280,7 @@ test.describe("Public website review", () => {
     expect(browserErrors, browserErrors.join("\n")).toEqual([]);
   });
 
-  test("Preview pages support selection, both sizes, and localized homepage labels", async ({ page }) => {
+  test("Preview arrows, mobile swipe, size changes, and localized labels", async ({ page, context }) => {
     await writeFile(process.env.VISUAL_NOTION_FIXTURE_STATE!, "pages");
     await page.route("**/website-previews/**", async route => {
       const mobile = route.request().url().includes("-mobile.png");
@@ -288,26 +288,73 @@ test.describe("Public website review", () => {
       await route.fulfill({ body: await readFile(`public${paths[mobile ? "mobile" : "desktop"]}`), contentType: "image/png" });
     });
     await page.goto("/en/projects");
-    const selector = page.getByRole("combobox", { name: "Preview page", exact: true });
-    await expect(selector).toHaveValue("0");
-    await expect(selector.getByRole("option")).toHaveText(["Homepage", "About", "Work"]);
+    const controls = page.getByRole("group", { name: "Preview page", exact: true });
+    const next = controls.getByRole("button", { name: "Next preview", exact: true });
+    const previous = controls.getByRole("button", { name: "Previous preview", exact: true });
     const image = page.getByRole("img", { name: "Desktop: Screenshot of mstefan.dev", exact: true });
-    const homepage = await image.getAttribute("src");
-    await selector.focus();
-    await selector.selectOption("1");
-    await expect(selector).toHaveValue("1");
+    await expect(controls).toContainText("Homepage · 1 / 3");
+    await expect(page.getByRole("combobox", { name: "Preview page", exact: true })).toHaveCount(0);
+    await page.screenshot({ path: ".artifacts/playwright/work-preview-arrows-desktop.png", fullPage: true });
+    await page.getByRole("button", { name: "Toggle theme", exact: true }).click();
+    await expect(page.locator('footer [data-brand-icon="github"]')).toHaveCSS("color", "rgba(255, 255, 255, 0.65)");
+    await page.screenshot({ path: ".artifacts/playwright/work-preview-arrows-desktop-dark.png", fullPage: true });
+    await page.getByRole("button", { name: "Toggle theme", exact: true }).click();
+    await next.focus();
+    await next.press("Enter");
+    await expect(next).toBeFocused();
+    await expect(controls).toContainText("Experience · 2 / 3");
     await expect(image).toHaveAttribute("src", websiteScreenshotPaths("https://www.mstefan.dev/en/about", "en").desktop);
-    expect(await image.getAttribute("src")).not.toBe(homepage);
     await page.getByRole("group", { name: "Preview size" }).getByRole("button", { name: "Mobile", exact: true }).click();
-    await expect(page.getByRole("img", { name: "Mobile: Screenshot of mstefan.dev", exact: true })).toHaveAttribute("src", websiteScreenshotPaths("https://www.mstefan.dev/en/about", "en").mobile);
-    await selector.selectOption("2");
-    await expect(page.getByRole("img", { name: "Mobile: Screenshot of mstefan.dev", exact: true })).toHaveAttribute("src", websiteScreenshotPaths("https://www.mstefan.dev/en/projects", "en").mobile);
+    const mobileImage = page.getByRole("img", { name: "Mobile: Screenshot of mstefan.dev", exact: true });
+    await expect(mobileImage).toHaveAttribute("src", websiteScreenshotPaths("https://www.mstefan.dev/en/about", "en").mobile);
+    await next.click();
+    await expect(controls).toContainText("Work · 3 / 3");
+    await expect(mobileImage).toHaveAttribute("src", websiteScreenshotPaths("https://www.mstefan.dev/en/projects", "en").mobile);
+    await next.click();
+    await expect(controls).toContainText("Homepage · 1 / 3");
+    await previous.click();
+    await expect(controls).toContainText("Work · 3 / 3");
     await page.getByRole("button", { name: "Select The Karakal Times", exact: true }).click();
-    await expect(selector).toHaveCount(0);
+    await expect(controls).toHaveCount(0);
     await page.getByRole("button", { name: "Select mstefan.dev", exact: true }).click();
-    await expect(selector).toHaveValue("0");
+    await expect(controls).toContainText("Homepage · 1 / 3");
+    await page.setViewportSize({ width: 390, height: 844 });
+    const preview = page.locator("[data-work-preview]");
+    await preview.scrollIntoViewIfNeeded();
+    await page.screenshot({ path: ".artifacts/playwright/work-preview-arrows-mobile.png", fullPage: true });
+    await page.getByRole("button", { name: "Toggle theme", exact: true }).click();
+    await expect(page.locator('footer [data-brand-icon="github"]')).toHaveCSS("color", "rgba(255, 255, 255, 0.65)");
+    await page.screenshot({ path: ".artifacts/playwright/work-preview-arrows-mobile-dark.png", fullPage: true });
+    await page.getByRole("button", { name: "Toggle theme", exact: true }).click();
+    await preview.scrollIntoViewIfNeeded();
+    const box = (await preview.boundingBox())!;
+    const cdp = await context.newCDPSession(page);
+    const swipe = async (dx: number, dy: number) => {
+      const x = box.x + box.width / 2, y = box.y + box.height / 2;
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y }] });
+      for (let i = 1; i <= 4; i++) await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: x + dx * i / 4, y: y + dy * i / 4 }] });
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    };
+    await swipe(-90, 0);
+    await expect(controls).toContainText("Experience · 2 / 3");
+    await expect(mobileImage).toHaveAttribute("src", websiteScreenshotPaths("https://www.mstefan.dev/en/about", "en").mobile);
+    await swipe(90, 0);
+    await expect(controls).toContainText("Homepage · 1 / 3");
+    const scrollBefore = await page.evaluate(() => window.scrollY);
+    await swipe(0, -90);
+    await expect(controls).toContainText("Homepage · 1 / 3");
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(scrollBefore);
+    await expect(preview).toHaveCSS("touch-action", "pan-y pinch-zoom");
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await next.click();
+    await expect(mobileImage).toHaveAttribute("src", websiteScreenshotPaths("https://www.mstefan.dev/en/about", "en").mobile);
+    await expect(preview.locator("div").first()).toHaveCSS("transform", "none");
+    await page.setViewportSize({ width: 320, height: 844 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     await page.goto("/it/projects");
-    await expect(page.getByRole("combobox", { name: "Pagina anteprima", exact: true }).getByRole("option").first()).toHaveText("Pagina iniziale");
+    await expect(page.getByRole("group", { name: "Pagina anteprima", exact: true })).toContainText("Pagina iniziale · 1 / 3");
+    await page.getByRole("button", { name: "Anteprima successiva", exact: true }).click();
+    await expect(page.getByRole("group", { name: "Pagina anteprima", exact: true })).toContainText("Esperienza · 2 / 3");
   });
 
   test("Missing screenshots retain the external visit link and recover on switching", async ({ page }) => {
@@ -353,10 +400,11 @@ test.describe("Public website review", () => {
       await page.setViewportSize({ width, height: 800 });
       const details = await page.locator("#selected-work-title").boundingBox();
       const panel = await stack.boundingBox();
-      expect((await stack.locator("[data-work-stack-scroll]").boundingBox())?.height).toBeCloseTo(158, 0);
+      if (width >= 640) expect((await stack.locator("[data-work-stack-scroll]").boundingBox())?.height).toBeCloseTo(158, 0);
       const section = await page.locator("section[aria-labelledby=selected-work-title]").boundingBox();
       expect(panel && section && Math.abs(panel.x + panel.width - section.x - section.width) < 2).toBeTruthy();
-      await expect(stack.getByRole("heading", { name: "Stack", exact: true })).toHaveCSS("text-align", "right");
+      await expect(stack.getByRole("heading", { name: "Stack", exact: true })).toHaveCSS("text-align", width >= 640 ? "right" : "left");
+      if (width < 640) expect(panel && section && Math.abs(panel.x - section.x) < 2).toBeTruthy();
       expect(details && panel && (width >= 640 ? panel.x >= details.x + details.width && Math.abs(panel.y - details.y) < 2 : panel.y > details.y + details.height)).toBeTruthy();
       await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
       if (width === 900) await page.screenshot({ path: ".artifacts/playwright/work-stack-medium.png", fullPage: true });
@@ -404,6 +452,7 @@ test.describe("Public website review", () => {
     expect(headerBox && itemBox && itemBox.y > headerBox.y && Math.abs(itemBox.x - headerBox.x) < 1).toBeTruthy();
     await page.setViewportSize({ width: 640, height: 800 });
     await expect.poll(() => scroller.evaluate(node => node.scrollWidth > node.clientWidth)).toBe(true);
+    await expect(scroller).toHaveAttribute("tabindex", "0");
     const lastIcon = stack.locator("summary").last();
     await lastIcon.focus();
     await expect(lastIcon).toBeVisible();
@@ -412,6 +461,12 @@ test.describe("Public website review", () => {
     await expect.poll(() => scroller.evaluate(node => node.scrollLeft > 0)).toBe(true);
     await scroller.evaluate(node => { node.scrollLeft = 0; });
     await expect(page.locator("[data-work-stack-label]")).toHaveCount(0);
+    await page.setViewportSize({ width: 320, height: 800 });
+    await expect.poll(() => scroller.evaluate(node => node.scrollWidth <= node.clientWidth + 1 && node.scrollHeight <= node.clientHeight + 1)).toBe(true);
+    await expect(scroller).toHaveJSProperty("tabIndex", -1);
+    const firstCategory = await columns.first().boundingBox();
+    const lastCategory = await columns.last().boundingBox();
+    expect(firstCategory && lastCategory && lastCategory.y > firstCategory.y).toBeTruthy();
     await writeFile(state, "empty");
     await page.reload();
     await expect(page.locator('[data-project-publication-status="empty"]')).toBeVisible();

@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { mkdirSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 
 function findFiles(root, extension) {
@@ -21,6 +21,7 @@ const metadata = {
   source: process.env.VISUAL_REVIEW_SOURCE ?? "unspecified",
   repository: process.env.GITHUB_REPOSITORY ?? null,
   pullRequest: process.env.VISUAL_REVIEW_PR_NUMBER ?? null,
+  baseSha: process.env.VISUAL_REVIEW_BASE_SHA ?? null,
   headSha: process.env.VISUAL_REVIEW_HEAD_SHA ?? null,
   previewUrl: process.env.PLAYWRIGHT_BASE_URL ?? null,
   plan: "specs/mstefan-site-review.md",
@@ -29,6 +30,14 @@ const metadata = {
     : null,
 };
 writeFileSync(join(evidenceDirectory, "metadata.json"), `${JSON.stringify(metadata, null, 2)}\n`);
+
+const workshopIndex = resolve(".artifacts/workshop/index.json");
+metadata.workshopIndex = existsSync(workshopIndex) ? ".artifacts/workshop/index.json" : null;
+metadata.workshopStoryIds = existsSync(workshopIndex)
+  ? Object.values(JSON.parse(readFileSync(workshopIndex, "utf8")).entries).filter(entry => entry.type === "story").map(entry => entry.id).sort()
+  : [];
+const workshopEvidenceDirectory = resolve(dirname(resultsDirectory), "workshop");
+metadata.captures = [...findFiles(resultsDirectory, ".png"), ...(existsSync(workshopEvidenceDirectory) ? findFiles(workshopEvidenceDirectory, ".png") : [])].map(path => basename(path)).filter(name => !/-(actual|expected|diff)\.png$/.test(name) && !name.startsWith("test-failed-")).sort();
 
 const videos = findFiles(resultsDirectory, ".webm").sort();
 const expectedRecordings = 5;

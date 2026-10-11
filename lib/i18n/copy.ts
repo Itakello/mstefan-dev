@@ -70,7 +70,7 @@ type SiteCopy = {
   };
   projects: { title: string; description: string };
   notFound: { title: string; description: string; home: string; projects: string };
-  work: { types: { Website: string; App: string; Tool: string; Research: string }; previewSize: string; previewPage: string; homepage: string; selectorLabel: string; desktop: string; mobile: string; source: string; visit: string; research: string; accomplishments: string; paper: string; slides: string };
+  work: { types: { Website: string; App: string; Tool: string; Research: string }; previewSize: string; previewPage: string; previousPreview: string; nextPreview: string; homepage: string; selectorLabel: string; desktop: string; mobile: string; source: string; visit: string; research: string; accomplishments: string; paper: string; slides: string };
   websites: {
     selectSite: (title: string) => string;
     previewTitle: (title: string) => string;
@@ -83,7 +83,7 @@ type SiteCopy = {
 
 export const copy = {
   en: {
-    nav: { home: "Home", projects: "Work", about: "About" },
+    nav: { home: "Home", projects: "Work", about: "Experience" },
     metadata: {
       home: {
         title: "Massimo Stefan",
@@ -94,8 +94,8 @@ export const copy = {
         description: "Selected websites and software projects by Massimo Stefan.",
       },
       about: {
-        title: "About",
-        description: "About Massimo Stefan, a software engineer building dependable AI systems.",
+        title: "Experience",
+        description: "Massimo Stefan’s experience building dependable AI systems as a software engineer.",
       },
     },
     header: {
@@ -165,7 +165,7 @@ export const copy = {
     },
     projects: { title: "My work", description: "Explore the projects, websites and tools I build." },
     notFound: { title: "This page isn't here.", description: "The link may be broken, or the page may have moved. You can head back home or explore my work.", home: "Go home", projects: "Explore projects" },
-    work: { types: { Website: "Website", App: "App", Tool: "Tool", Research: "Research" }, previewSize: "Preview size", previewPage: "Preview page", homepage: "Homepage", selectorLabel: "Choose a project", desktop: "Desktop", mobile: "Mobile", source: "Source code", visit: "Visit website", research: "Research & materials", accomplishments: "Accomplishments", paper: "Paper", slides: "Slides" },
+    work: { types: { Website: "Website", App: "App", Tool: "Tool", Research: "Research" }, previewSize: "Preview size", previewPage: "Preview page", previousPreview: "Previous preview", nextPreview: "Next preview", homepage: "Homepage", selectorLabel: "Choose a project", desktop: "Desktop", mobile: "Mobile", source: "Source code", visit: "Visit website", research: "Research & materials", accomplishments: "Accomplishments", paper: "Paper", slides: "Slides" },
     websites: {
       selectSite: (title) => `Select ${title}`,
       previewTitle: (title) => `Screenshot of ${title}`,
@@ -174,7 +174,7 @@ export const copy = {
 
     },
     about: {
-      title: "About",
+      title: "Experience",
       firstParagraph: "I’m Massimo Stefan, a software engineer based in Italy. I build agents and automation that connect models to the tools and information people already use.",
       secondParagraph: "I prefer systems with one source of truth, deterministic automation where possible, human approval where it matters, and failures that are visible instead of silent. The point is not to add AI everywhere. It is to remove work without losing control.",
       imageAlt: "Massimo Stefan standing in an elevator, holding a laptop",
@@ -182,7 +182,7 @@ export const copy = {
     og: { description: "Software engineer building AI systems for real work." },
   },
   it: {
-    nav: { home: "Home", projects: "Lavori", about: "Profilo" },
+    nav: { home: "Home", projects: "Lavori", about: "Esperienza" },
     metadata: {
       home: {
         title: "Massimo Stefan",
@@ -193,8 +193,8 @@ export const copy = {
         description: "Siti web e progetti software selezionati di Massimo Stefan.",
       },
       about: {
-        title: "Profilo",
-        description: "Profilo di Massimo Stefan, ingegnere del software che realizza sistemi di IA affidabili.",
+        title: "Esperienza",
+        description: "Esperienza di Massimo Stefan, ingegnere del software che realizza sistemi di IA affidabili.",
       },
     },
     header: {
@@ -266,7 +266,7 @@ export const copy = {
     },
     projects: { title: "I miei lavori", description: "Esplora i progetti, i siti web e gli strumenti che realizzo." },
     notFound: { title: "Questa pagina non c’è.", description: "Il link potrebbe essere errato o la pagina potrebbe essere stata spostata. Puoi tornare alla home o esplorare i miei lavori.", home: "Torna alla home", projects: "Esplora i progetti" },
-    work: { types: { Website: "Sito web", App: "App", Tool: "Strumento", Research: "Ricerca" }, previewSize: "Dimensione anteprima", previewPage: "Pagina anteprima", homepage: "Pagina iniziale", selectorLabel: "Scegli un progetto", desktop: "Desktop", mobile: "Mobile", source: "Codice sorgente", visit: "Visita il sito", research: "Ricerca e materiali", accomplishments: "Risultati", paper: "Paper", slides: "Slide" },
+    work: { types: { Website: "Sito web", App: "App", Tool: "Strumento", Research: "Ricerca" }, previewSize: "Dimensione anteprima", previewPage: "Pagina anteprima", previousPreview: "Anteprima precedente", nextPreview: "Anteprima successiva", homepage: "Pagina iniziale", selectorLabel: "Scegli un progetto", desktop: "Desktop", mobile: "Mobile", source: "Codice sorgente", visit: "Visita il sito", research: "Ricerca e materiali", accomplishments: "Risultati", paper: "Paper", slides: "Slide" },
     websites: {
       selectSite: (title) => `Seleziona ${title}`,
       previewTitle: (title) => `Screenshot di ${title}`,
@@ -275,7 +275,7 @@ export const copy = {
 
     },
     about: {
-      title: "Profilo",
+      title: "Esperienza",
       firstParagraph: "Sono Massimo Stefan, ingegnere del software in Italia. Creo agenti e automazioni che collegano i modelli agli strumenti e alle informazioni già usati dalle persone.",
       secondParagraph: "Preferisco sistemi con un'unica fonte di verità, automazione deterministica dove possibile, approvazione umana dove conta e problemi visibili anziché silenziosi. Il punto non è mettere l'IA ovunque: è eliminare lavoro senza perdere il controllo.",
       imageAlt: "Massimo Stefan in ascensore con un laptop in mano",

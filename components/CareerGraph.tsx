@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState, type CSSProperties, type FocusEvent } from "react";
+import { useEffect, useId, useRef, useState, type CSSProperties, type FocusEvent } from "react";
 import { useLivePreview } from "@payloadcms/live-preview-react";
 import type { Career } from "@/payload-types";
 import type { Locale } from "@/lib/i18n/config";
@@ -22,6 +22,7 @@ export function BranchIcon() {
 
 export function CareerGraph({ career, locale, expanded = false, onSelectionChange, showDetails = true }: { career: Career; locale: Locale; expanded?: boolean; onSelectionChange?: (job: NonNullable<Career["jobs"]>[number] | null) => void; showDetails?: boolean }) {
   const content = labels[locale];
+  const gapID = useId();
   const jobs = career.jobs ?? [];
   const [selectedID, setSelectedID] = useState<string | null>(expanded ? MAIN_KEY : null);
   const [hoveredID, setHoveredID] = useState<string | null>(null);
@@ -154,6 +155,13 @@ export function CareerGraph({ career, locale, expanded = false, onSelectionChang
               event.stopPropagation();
               selectJunction(junction.x, junction.y);
             }}>
+              <defs>
+                {timeline.entries.map((entry) => <mask key={entry.key} id={`${gapID}-${entry.index}`} maskUnits="userSpaceOnUse" x="0" y="0" width={graphWidth} height={graphHeight}>
+                  <rect width={graphWidth} height={graphHeight} fill="white" />
+                  <circle cx={entry.forkX} cy={entry.forkY} r="6.5" fill="black" />
+                  <circle cx={entry.dated ? entry.mergeX : entry.x} cy={entry.headY} r="6.5" fill="black" />
+                </mask>)}
+              </defs>
               {timeline.ticks.map((tick) => <g key={tick.timestamp} className={styles.tick}>
                 <line x1="8" x2={graphWidth} y1={tick.y} y2={tick.y} />
                 <text x={timeline.mainX + 12} y={tick.y - 7}>{tick.month ? dateFormat.format(tick.timestamp) : new Date(tick.timestamp).getUTCFullYear()}</text>
@@ -170,15 +178,15 @@ export function CareerGraph({ career, locale, expanded = false, onSelectionChang
                 <path d={`M${timeline.mainX} ${timeline.height} V${timeline.topY}`} className={styles.mainPath} />
               </g>
               <g aria-hidden="true" className={styles.visualPaths}>
-                {paintOrder.map((entry) => <path key={entry.key} data-career-path={entry.key} d={entry.path} stroke={jobs[entry.index].color} className={styles.branch} />)}
+                {paintOrder.map((entry) => <path key={entry.key} data-career-path={entry.key} d={entry.path} stroke={jobs[entry.index].color} mask={`url(#${gapID}-${entry.index})`} className={styles.branch} />)}
               </g>
               <g aria-hidden="true" className={styles.highlightPaths}>
-                {paintOrder.filter((entry) => highlighted(entry.key)).map((entry) => <path key={entry.key} d={entry.path} stroke={jobs[entry.index].color} className={styles.branch} />)}
+                {paintOrder.filter((entry) => highlighted(entry.key)).map((entry) => <path key={entry.key} d={entry.path} stroke={jobs[entry.index].color} mask={`url(#${gapID}-${entry.index})`} className={styles.branch} />)}
               </g>
               {paintOrder.map((entry) => {
                 const job = jobs[entry.index];
                 const headX = entry.dated ? entry.mergeX : entry.x;
-                return <g key={entry.key} data-career-branch={entry.key} data-highlighted={highlighted(entry.key)} {...interaction(entry.key)} role="button" tabIndex={0} aria-label={`${job.branchName}: ${job.company}, ${job.role}. ${period(entry.index)}`} aria-pressed={activeKey === entry.key} className={styles.graphButton} onFocus={(event) => { if (event.currentTarget.matches(":focus-visible")) { setFocusedID(entry.key); revealHead(entry.key); } }} onClick={() => select(entry.key, true)} onKeyDown={(event) => {
+                return <g key={entry.key} style={{ "--branch-color": job.color } as CSSProperties} data-career-branch={entry.key} data-highlighted={highlighted(entry.key)} {...interaction(entry.key)} role="button" tabIndex={0} aria-label={`${job.branchName}: ${job.company}, ${job.role}. ${period(entry.index)}`} aria-pressed={activeKey === entry.key} className={styles.graphButton} onFocus={(event) => { if (event.currentTarget.matches(":focus-visible")) { setFocusedID(entry.key); revealHead(entry.key); } }} onClick={() => select(entry.key, true)} onKeyDown={(event) => {
                   if (event.key === "Enter" || event.key === " ") { event.preventDefault(); select(entry.key, true); }
                 }}>
                   <path d={entry.path} className={styles.hitPath} />
@@ -188,14 +196,13 @@ export function CareerGraph({ career, locale, expanded = false, onSelectionChang
                   </g>
                   <g onClick={(event) => { event.stopPropagation(); selectJunction(headX, entry.headY); }}>
                     <circle cx={headX} cy={entry.headY} r="12" className={styles.hitDot} />
-                    <circle data-career-head cx={headX} cy={entry.headY} r="4.5" fill={job.color} className={styles.dot} />
+                    <circle data-career-head cx={headX} cy={entry.headY} r="4.5" fill={job.color} className={`${styles.dot} ${entry.dated && !entry.ongoing ? styles.mergeDot : ""}`} />
                   </g>
                 </g>;
               })}
               {paintOrder.filter((entry) => highlighted(entry.key)).map((entry) => <g key={entry.key} className={styles.highlightPaths} aria-hidden="true">
-                <circle cx={entry.forkX} cy={entry.forkY} r="4.5" fill={jobs[entry.index].color} className={styles.highlightDot} />
-                <circle cx={entry.dated ? entry.mergeX : entry.x} cy={entry.headY} r="4.5" fill={jobs[entry.index].color} className={styles.highlightDot} />
-                <circle cx={entry.dated ? entry.mergeX : entry.x} cy={entry.headY} r="8.5" fill="none" stroke={jobs[entry.index].color} strokeWidth="1.5" />
+                <circle cx={entry.forkX} cy={entry.forkY} r="4.5" fill={jobs[entry.index].color} />
+                <circle cx={entry.dated ? entry.mergeX : entry.x} cy={entry.headY} r="4.5" fill={entry.dated && !entry.ongoing ? "var(--surface-bg)" : jobs[entry.index].color} stroke={entry.dated && !entry.ongoing ? (focusedID === entry.key ? "var(--page-text)" : jobs[entry.index].color) : undefined} strokeWidth={focusedID === entry.key ? 3 : 2} />
               </g>)}
               </g>
             </svg>

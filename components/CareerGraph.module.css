@@ -27,7 +27,6 @@
 .period { font-family: ui-monospace, monospace; font-size: 10px; color: var(--page-muted); }
 .graph { display: block; max-width: none; }
 .graphButton { cursor: pointer; outline: none; }
-.graphButton:focus-visible .dot { stroke: var(--page-text); stroke-width: 3; }
 .hitPath { fill: none; stroke: transparent; stroke-width: 18; pointer-events: stroke; }
 .hitDot { fill: transparent; }
 .tick line { stroke: var(--surface-border); stroke-width: 1; }
@@ -37,10 +36,9 @@
 .branch { fill: none; stroke-width: 2; stroke-linecap: round; }
 .visualPaths { opacity: .38; pointer-events: none; }
 .highlightPaths { pointer-events: none; }
-.highlightPaths .branch { stroke-width: 3; }
-.dot { stroke: var(--surface-bg); stroke-width: 2; opacity: .45; }
-.graphButton[data-highlighted="true"] .dot { opacity: 1; }
-.highlightDot { stroke: var(--surface-bg); stroke-width: 1.5; }
+.dot { fill: var(--branch-color); }
+.mergeDot { fill: var(--surface-bg); stroke: var(--branch-color); stroke-width: 2; }
+.graphButton:focus-visible .dot { stroke: var(--page-text); stroke-width: 3; }
 .detail { width: 100%; min-height: 150px; max-height: 200px; overflow: auto; overscroll-behavior: contain; padding: 28px 20px 34px; border-top: 1px solid var(--surface-border); }
 .detailRef { display: flex; align-items: center; gap: 7px; color: var(--branch-color); font-family: ui-monospace, monospace; font-size: 11px; overflow-wrap: anywhere; }
 .detailRef svg { flex-shrink: 0; }

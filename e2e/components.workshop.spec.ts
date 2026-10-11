@@ -86,10 +86,14 @@ for (const theme of ["light", "dark"] as const) {
       await expect(page.getByRole("link", { name: /source/i })).toHaveAttribute("href", "https://github.com/example/workshop-task-board");
 
       const scroller = page.locator("[data-work-stack-scroll]");
-      await expect.poll(() => scroller.evaluate(node => node.scrollHeight > node.clientHeight)).toBe(true);
-      await scroller.focus();
-      await scroller.press("End");
-      await expect.poll(() => scroller.evaluate(node => node.scrollTop)).toBeGreaterThan(0);
+      if (size === "desktop") {
+        await expect.poll(() => scroller.evaluate(node => node.scrollHeight > node.clientHeight)).toBe(true);
+        await scroller.focus();
+        await scroller.press("End");
+        await expect.poll(() => scroller.evaluate(node => node.scrollTop)).toBeGreaterThan(0);
+      } else {
+        await expect.poll(() => scroller.evaluate(node => node.scrollHeight <= node.clientHeight)).toBe(true);
+      }
 
       await story(page, "workshop-careergraph--expanded", theme);
       const job = page.getByRole("button", { name: /Sample Platform Team/ }).first();
