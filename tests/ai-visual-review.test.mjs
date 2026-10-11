@@ -5,7 +5,7 @@ import { classifyVisualReview } from '../scripts/visual-review/classify.mjs';
 import { REQUIRED, main, PAID_STEP, paidAttempts, baseRequiresWorkshop, verifyDiff, verifyRevision, verifyEvidence, reviewResult, requestBody, modelReview, alreadyAttempted } from '../scripts/visual-review/ai-review.mjs';
 const repository = 'owner/repo';
 const pr = {state:'open',number:1,head:{sha:'head'},base:{sha:'base',repo:{full_name:repository}}};
-const run = {id:7,repository:{full_name:repository},name:'Visual review',path:'.github/workflows/visual-review.yml',event:'pull_request',status:'completed',conclusion:'success',pull_requests:[{number:1,head:{sha:'head'},base:{sha:'base'}}]};
+const run = {id:7,head_sha:'head',repository:{full_name:repository},name:'Visual review',path:'.github/workflows/visual-review.yml',event:'pull_request',status:'completed',conclusion:'success',pull_requests:[{number:1,head:{sha:'head'},base:{sha:'base'}}]};
 const metadata = {schemaVersion:1,repository,pullRequest:'1',headSha:'head',baseSha:'base',workflowRun:'https://github.com/owner/repo/actions/runs/7',captures:REQUIRED,workshopStoryIds:[]};
 const output = (value) => ({status:'completed',output:[{type:'message',content:[{type:'output_text',text:JSON.stringify(value)}]}]});
 const clean = {complete:true,coverage:REQUIRED,findings:[],suggestions:[]};
@@ -13,6 +13,7 @@ test('source run must prove current repository head and base', () => {
   verifyRevision(pr,run,repository);
   for (const key of ['head','base']) assert.throws(() => verifyRevision({...pr,[key]:{...pr[key],sha:'stale'}},run,repository), /Stale/);
   assert.throws(() => verifyRevision(pr,{...run,event:'workflow_dispatch'},repository), /Untrusted/);
+  assert.throws(() => verifyRevision(pr,{...run,head_sha:'old-head'},repository), /immutable source head/);
 });
 test('complete current page evidence and dynamic Workshop matrix required', () => {
   verifyEvidence(metadata,REQUIRED,pr,run,repository);
@@ -178,8 +179,8 @@ test('manual dispatch reaches bounded acceptance with automatic requests paused'
         else if (url.includes('/actions/runs/7/artifacts?')) response={total_count:0,artifacts:[]};
         else throw new Error('Unexpected test endpoint');
         return new Response(JSON.stringify(response));
-      }}),eventName === 'workflow_dispatch' ? /Missing\/oversized exact-head artifact/ : /Automatic AI review disabled/);
-      assert.equal(urls.some(url=>url.includes('/actions/runs/7/artifacts?')),eventName === 'workflow_dispatch');
+      }}),/Missing\/oversized exact-head artifact/);
+      assert.equal(urls.some(url=>url.includes('/actions/runs/7/artifacts?')),true);
       assert.equal(urls.some(url=>url.includes('/actions/workflows/ai-visual-review.yml/runs?')),false);
       assert.equal(urls.some(url=>new URL(url).origin === 'https://api.openai.com'),false);
     }
@@ -213,7 +214,7 @@ test('retarget invalidates old same-head approval; unchanged tuple preserves cla
     }
   } finally {rmSync(directory,{recursive:true,force:true});}
 });
-test('trusted current failed/cancelled producer writes error; stale failed producer writes nothing', async () => {
+test('failed/cancelled producer without immutable base proof writes nothing', async () => {
   const { mkdtempSync, writeFileSync, rmSync } = await import('node:fs');
   const { tmpdir } = await import('node:os');
   const { join } = await import('node:path');
@@ -225,9 +226,8 @@ test('trusted current failed/cancelled producer writes error; stale failed produ
       await assert.rejects(main({env:{GITHUB_REPOSITORY:repository,GITHUB_TOKEN:'opaque',GITHUB_EVENT_PATH:event},fetcher:async (url,options) => {
         if(options.method==='POST') {writes.push({url,...JSON.parse(options.body)});return new Response('{}');}
         return new Response(JSON.stringify(url.endsWith('/actions/runs/7') ? {...run,conclusion,...(untrusted ? {event:'workflow_dispatch'} : {})} : stale ? {...pr,base:{...pr.base,sha:'new-base'}} : pr));
-      }}),untrusted ? /Untrusted/ : stale ? /Stale/ : /Current visual producer ended/);
-      assert.equal(writes.length,stale || untrusted ? 0 : 1);
-      if(!stale && !untrusted) {assert.equal(writes[0].state,'error');assert.match(writes[0].description,new RegExp(conclusion));}
+      }}),untrusted ? /Untrusted/ : stale ? /Stale/ : /Visual producer ended/);
+      assert.equal(writes.length,0);
     }
   } finally {rmSync(directory,{recursive:true,force:true});}
 });
@@ -296,13 +296,18 @@ test('paid workflow step is gated by prepared evidence, uniquely named and globa
 });
 
 
-test('only exact verified no-request legacy runs are exempt; queued runs without jobs are free', async () => {
+test('exact verified legacy runs and queued or completed-cancelled runs with complete zero-job history are free', async () => {
   const now=Date.parse('2026-10-11T12:00:00Z'),timestamp=new Date(now).toISOString();
   const runs=[{id:38097526243,status:'completed',updated_at:timestamp},{id:2,status:'completed',updated_at:timestamp},{id:3,status:'queued',updated_at:timestamp}];
   const github=async path=>path.includes('/workflows/') ? {total_count:3,workflow_runs:runs} : path.includes('/runs/3/') ? {total_count:0,jobs:[]} : {total_count:1,jobs:[{steps:[{name:'Review inert exact-head evidence with trusted default-branch code',started_at:timestamp,status:'completed',conclusion:'failure'}]}]};
   assert.equal(await paidAttempts(github,now),1);
-  runs[2].status='completed';
+  runs[2].status='completed';runs[2].conclusion='failure';
   await assert.rejects(paidAttempts(github,now),/jobs missing/);
+  runs[2].conclusion='cancelled';
+  assert.equal(await paidAttempts(github,now),1);
+  await assert.rejects(paidAttempts(path=>path.includes('/runs/3/') ? {total_count:1,jobs:[]} : github(path),now),/jobs missing or truncated/);
+  runs[2].status='queued';
+  await assert.rejects(paidAttempts(path=>path.includes('/runs/3/') ? {total_count:0} : github(path),now),/jobs missing or truncated/);
 });
 
 test('prepared exact-head evidence allows the fifth paid request; cap, replay and stale revisions issue none', async () => {
@@ -315,10 +320,11 @@ test('prepared exact-head evidence allows the fifth paid request; cap, replay an
     const event=join(directory,'event.json'),output=join(directory,'output');
     writeFileSync(event,JSON.stringify({inputs:{source_run_id:'7'}}));writeFileSync(output,'');
     const png=Buffer.from([137,80,78,71,13,10,26,10]);
-    execFileSync('python3',['-c',`import sys,json,zipfile
+    const writeArchive=(baseSha=metadata.baseSha)=>execFileSync('python3',['-c',`import sys,json,zipfile
 with zipfile.ZipFile(sys.argv[1]+'/fixture.zip','w') as z:
  m=json.loads(sys.argv[2]); z.writestr('evidence/metadata.json',json.dumps(m))
- for n in m['captures']: z.writestr('test-results/'+n,bytes([137,80,78,71,13,10,26,10]))`,directory,JSON.stringify(metadata)]);
+ for n in m['captures']: z.writestr('test-results/'+n,bytes([137,80,78,71,13,10,26,10]))`,directory,JSON.stringify({...metadata,baseSha})]);
+    writeArchive();
     let reservations=4,requestPhase=false,stale=false,replayed=false;
     const calls=[],writes=[];
     const fetcher=async(url,options)=>{
@@ -353,11 +359,22 @@ with zipfile.ZipFile(sys.argv[1]+'/fixture.zip','w') as z:
     await assert.rejects(main({env,fetcher,request:true}),/paid attempt cap/);
     assert.equal(calls.some(url=>new URL(url).origin === 'https://api.openai.com'),false);
     calls.length=0;stale=true;
-    await assert.rejects(main({env,fetcher,request:true}),/Stale head/);
+    await assert.rejects(main({env,fetcher,request:true}),/Stale immutable source head/);
     assert.equal(calls.length,2);
     stale=false;replayed=true;calls.length=0;
     await main({env,fetcher,request:true});
     assert.equal(calls.some(url=>url.includes('/jobs?') || new URL(url).origin === 'https://api.openai.com'),false);
+    replayed=false;requestPhase=false;reservations=0;calls.length=0;writes.length=0;
+    writeArchive('old-base');
+    await assert.rejects(main({env,fetcher}),/Artifact metadata mismatch/);
+    assert.equal(writes.length,0);
+    assert.equal(calls.some(url=>new URL(url).origin === 'https://api.openai.com'),false);
+    writeArchive();calls.length=0;
+    writeFileSync(event,JSON.stringify({workflow_run:{id:7}}));
+    await assert.rejects(main({env:{...env,GITHUB_EVENT_NAME:'workflow_run'},fetcher}),/Automatic AI review disabled/);
+    assert.equal(writes.length,2);
+    assert.equal(writes.at(-1).state,'error');
+    assert.equal(calls.some(url=>new URL(url).origin === 'https://api.openai.com'),false);
   } finally {rmSync(directory,{recursive:true,force:true});}
 });
 
@@ -395,7 +412,54 @@ test('revision changes during budget history or job lookup cannot claim or call 
       await assert.rejects(main({env,fetcher,request:true}),/Revisions changed before request/);
       assert.equal(retargeted,true);
       assert.equal(calls.some(url=>new URL(url).origin === 'https://api.openai.com'),false);
-      assert.equal(writes.some(status=>status.description.includes('request claimed')),false);
+      assert.equal(writes.length,0);
     }
+  } finally {rmSync(directory,{recursive:true,force:true});}
+});
+
+
+test('mutable associated PR metadata cannot authorize old-head producer statuses or model calls', async () => {
+  const {mkdtempSync,writeFileSync,rmSync}=await import('node:fs');
+  const {tmpdir}=await import('node:os');
+  const {join}=await import('node:path');
+  const directory=mkdtempSync(join(tmpdir(),'visual-immutable-head-'));
+  try {
+    const event=join(directory,'event.json');writeFileSync(event,JSON.stringify({workflow_run:{id:7}}));
+    for(const conclusion of ['success','failure','cancelled']) {
+      const calls=[];
+      await assert.rejects(main({env:{GITHUB_REPOSITORY:repository,GITHUB_EVENT_PATH:event},fetcher:async(url,options)=>{
+        calls.push({url,method:options.method ?? 'GET'});
+        return new Response(JSON.stringify(url.endsWith('/actions/runs/7') ? {...run,head_sha:'old-head',conclusion} : pr));
+      }}),/Stale immutable source head/);
+      assert.equal(calls.length,2);
+      assert.equal(calls.some(call=>call.method==='POST' || new URL(call.url).origin === 'https://api.openai.com'),false);
+    }
+  } finally {rmSync(directory,{recursive:true,force:true});}
+});
+
+
+test('documentation-only approval proves current files and refreshes its tuple without artifacts', async () => {
+  const {mkdtempSync,writeFileSync,rmSync}=await import('node:fs');
+  const {tmpdir}=await import('node:os');
+  const {join}=await import('node:path');
+  const directory=mkdtempSync(join(tmpdir(),'visual-current-docs-'));
+  try {
+    const event=join(directory,'event.json');writeFileSync(event,JSON.stringify({workflow_run:{id:7}}));
+    const calls=[],writes=[];
+    await main({env:{GITHUB_REPOSITORY:repository,GITHUB_EVENT_PATH:event},fetcher:async(url,options)=>{
+      calls.push(url);
+      if(options.method==='POST') {writes.push(JSON.parse(options.body));return new Response('{}');}
+      let response;
+      if(url.endsWith('/actions/runs/7')) response=run;
+      else if(url.endsWith('/pulls/1')) response={...pr,changed_files:1,labels:[]};
+      else if(url.includes('/statuses?')) response=[];
+      else if(url.includes('/files?')) response=[{filename:'README.md',additions:1,deletions:0}];
+      else throw new Error(`Unexpected endpoint ${url}`);
+      return new Response(JSON.stringify(response));
+    }});
+    assert.equal(writes.length,1);assert.equal(writes[0].state,'success');
+    assert.match(writes[0].description,/no UI-impacting paths changed/);
+    assert.equal(calls.filter(url=>url.endsWith('/pulls/1')).length,2);
+    assert.equal(calls.some(url=>url.includes('/artifacts') || new URL(url).origin === 'https://api.openai.com'),false);
   } finally {rmSync(directory,{recursive:true,force:true});}
 });
