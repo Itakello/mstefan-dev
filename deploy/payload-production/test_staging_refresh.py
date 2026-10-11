@@ -216,6 +216,40 @@ class RefreshLifecycleTests(unittest.TestCase):
         self.assert_original_data()
         self.assertEqual(len([call for call in self.client.calls if call[0] == 'POST']), 1)
 
+    def test_restart_waits_for_transient_gateway_failures(self):
+        failures = [refresh.Refused('HTTP GET failed with status 502'),
+                    refresh.Refused('HTTP GET failed with status 503'), {}]
+        with patch.object(self.client, 'health', side_effect=failures) as health, \
+                patch.object(self.runner, 'sleep') as sleep:
+            self.runner.ready_health()
+        self.assertEqual(health.call_count, 3)
+        self.assertEqual(sleep.call_count, 2)
+
+    def test_apply_survives_production_startup_gateway_failure(self):
+        original = self.client.health
+        failures = []
+        def health(staging=False):
+            if not staging and self.state['phase'] == 'restarting_production' and not failures:
+                failures.append(True)
+                raise refresh.Refused('HTTP GET failed with status 502')
+            return original(staging=staging)
+        with patch.object(self.client, 'health', side_effect=health):
+            self.apply()
+        self.assertEqual(failures, [True])
+        self.assertEqual(self.state['phase'], 'ready')
+        self.assert_original_data()
+
+    def test_restart_health_deadline_and_access_refusal(self):
+        for reason, clock in [('HTTP GET failed with status 502', [0, 60]),
+                              ('HTTP GET failed with status 403', [0])]:
+            with self.subTest(reason=reason), \
+                    patch.object(self.client, 'health', side_effect=refresh.Refused(reason)), \
+                    patch.object(refresh.time, 'monotonic', side_effect=clock), \
+                    patch.object(self.runner, 'sleep') as sleep:
+                with self.assertRaisesRegex(refresh.Refused, reason):
+                    self.runner.ready_health(staging=True)
+                sleep.assert_not_called()
+
     def test_failures_restore_original_runtime_and_declared_mount(self):
         for event in ('stop:production', 'backup:before', 'backup:after', 'restart:production',
                       'stop:staging', 'restore:before', 'restore:after', 'notion:after', 'mount:after'):
