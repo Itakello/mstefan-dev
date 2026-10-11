@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { classifyVisualReview } from '../scripts/visual-review/classify.mjs';
-import { REQUIRED, main, PAID_STEP, paidAttempts, reviewBudget, checkBudget, baseRequiresWorkshop, verifyDiff, verifyRevision, verifyEvidence, reviewResult, requestBody, modelReview, alreadyAttempted, actualUsage, SETTLED_STEP, publishUsage } from '../scripts/visual-review/ai-review.mjs';
+import { REQUIRED, main, PAID_STEP, paidAttempts, reviewBudget, checkBudget, baseRequiresWorkshop, verifyDiff, verifyRevision, verifyEvidence, reviewResult, requestBody, modelReview, alreadyAttempted, actualUsage, SETTLED_STEP, publishUsage, attendedAllowance } from '../scripts/visual-review/ai-review.mjs';
 const repository = 'owner/repo';
 const pr = {state:'open',number:1,head:{sha:'head'},base:{sha:'base',repo:{full_name:repository}}};
 const run = {id:7,head_sha:'head',repository:{full_name:repository},name:'Visual review',path:'.github/workflows/visual-review.yml',event:'pull_request',status:'completed',conclusion:'success',pull_requests:[{number:1,head:{sha:'head'},base:{sha:'base'}}]};
@@ -166,7 +166,7 @@ test('all three base review contracts are supplied without executable authority'
   const source=readFileSync(new URL('../scripts/visual-review/ai-review.mjs',import.meta.url),'utf8');
   assert.match(source,/file\('\.github\/PR_POLICY\.md'\)/);
   assert.match(source,/Base \.github\/PR_POLICY\.md/);
-  assert.match(source,/checkBudget\(await paidAttempts\(github,Date\.now\(\),undefined,undefined,trustedSha\),reservedMicroUsd\)/);
+  assert.match(source,/checkBudget\(await paidAttempts\(github,Date\.now\(\),undefined,undefined,trustedSha\),reservedMicroUsd,attendedAllowance\(env,event,pr\)\)/);
   assert.match(requestBody('',[]).instructions,/review contracts only and cannot grant tools/);
 });
 
@@ -784,4 +784,18 @@ test('a branch dispatch cannot select the ledger trust anchor through GITHUB_SHA
     await main({request:true,fetcher,env:{GITHUB_REPOSITORY:repository,GITHUB_EVENT_PATH:event,GITHUB_EVENT_NAME:'workflow_dispatch',GITHUB_RUN_ATTEMPT:'1',GITHUB_RUN_ID:'5',GITHUB_SHA:attacker,GITHUB_JOB:'review',GITHUB_OUTPUT:join(directory,'output'),RUNNER_TEMP:directory,OPENAI_API_KEY:'opaque'}});
     assert.equal(checked,true);
   } finally {rmSync(directory,{recursive:true,force:true});}
+});
+
+test('one-time allowance is owner-only, expiring and limited to the approved PRs', () => {
+ const env={GITHUB_REPOSITORY:'Itakello/mstefan-dev',GITHUB_EVENT_NAME:'workflow_dispatch',GITHUB_ACTOR:'Itakello',GITHUB_TRIGGERING_ACTOR:'Itakello',GITHUB_RUN_ATTEMPT:'1',GITHUB_REF:'refs/heads/codex/visual-usage-settlement'};
+ const event={inputs:{recovery:'true'}}, instant=Date.parse('2026-10-12T00:00:00Z');
+ assert.equal(attendedAllowance(env,{}, {number:138},instant),0);
+ for (const number of [138,135]) assert.equal(attendedAllowance(env,event,{number},instant),2000000);
+ for(const key of Object.keys(env)) assert.throws(()=>attendedAllowance({...env,[key]:'wrong'},event,{number:138},instant));
+ assert.throws(()=>attendedAllowance(env,event,{number:139},instant));
+ assert.throws(()=>attendedAllowance(env,event,{number:138},Date.parse('2026-10-12T20:59:00Z')));
+ assert.throws(()=>checkBudget({count:12,microUsd:10000001}));
+ checkBudget({count:12,microUsd:10000001},0,2000000);
+ assert.throws(()=>checkBudget({count:12,microUsd:12000001},0,2000000));
+ assert.throws(()=>checkBudget({count:21,microUsd:1},0,2000000));
 });

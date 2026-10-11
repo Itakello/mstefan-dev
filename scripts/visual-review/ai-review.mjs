@@ -128,10 +128,17 @@ export async function reviewBudget(body, key, fetcher = fetch) {
 function validReservation(microUsd) {
   ensure(Number.isSafeInteger(microUsd) && microUsd > MAX_OUTPUT*15 && microUsd <= MAX_REVIEW_MICRO_USD, 'Invalid paid reservation amount');
 }
-export function checkBudget(history, plannedMicroUsd = 0) {
+export function attendedAllowance(env, event, pr, now = Date.now()) {
+  if (![true, 'true'].includes(event.inputs?.recovery)) return 0;
+  ensure(env.GITHUB_REPOSITORY === 'Itakello/mstefan-dev' && env.GITHUB_EVENT_NAME === 'workflow_dispatch' && env.GITHUB_ACTOR === 'Itakello' && env.GITHUB_TRIGGERING_ACTOR === 'Itakello' && env.GITHUB_RUN_ATTEMPT === '1' && env.GITHUB_REF === 'refs/heads/codex/visual-usage-settlement', 'Unauthorized attended allowance');
+  ensure([138,135].includes(pr.number) && Number.isFinite(now) && now < Date.parse('2026-10-12T20:59:00Z'), 'Attended allowance expired or outside approved PRs');
+  return 2000000;
+}
+export function checkBudget(history, plannedMicroUsd = 0, extraMicroUsd = 0) {
+  ensure(extraMicroUsd === 0 || extraMicroUsd === 2000000, 'Invalid attended allowance');
   if (plannedMicroUsd) validReservation(plannedMicroUsd);
   ensure(history.count + (plannedMicroUsd ? 1 : 0) <= 20, 'Rolling 24h paid attempt cap reached');
-  ensure(history.microUsd + plannedMicroUsd <= MAX_DAILY_MICRO_USD, 'Rolling 24h paid budget cap reached');
+  ensure(history.microUsd + plannedMicroUsd <= MAX_DAILY_MICRO_USD + extraMicroUsd, 'Rolling 24h paid budget cap reached');
 }
 export async function modelReview(body, key, fetcher = fetch, reservedMicroUsd = MAX_REVIEW_MICRO_USD) {
   validReservation(reservedMicroUsd);
@@ -305,7 +312,7 @@ export async function main({env = process.env, fetcher = fetch, invalidate = fal
       ensure(env.ENABLED === 'true' || env.GITHUB_EVENT_NAME === 'workflow_dispatch','Automatic AI review disabled; activation proof required');
       ensure(env.GITHUB_RUN_ATTEMPT === '1','Reruns do not issue another model request');
       validReservation(prepared.reservedMicroUsd);
-      checkBudget(await paidAttempts(github,Date.now(),env.GITHUB_RUN_ID,prepared.reservedMicroUsd,trustedSha));
+      checkBudget(await paidAttempts(github,Date.now(),env.GITHUB_RUN_ID,prepared.reservedMicroUsd,trustedSha),0,attendedAllowance(env,event,pr));
       pr = await github(`/pulls/${pr.number}`); ensure(currentRevision(pr,repository,sha,base),'Revisions changed before request');
       await status('pending','request claimed; no retries');
       const response = await modelReview(prepared.body,env.OPENAI_API_KEY,fetcher,prepared.reservedMicroUsd);
@@ -352,7 +359,7 @@ export async function main({env = process.env, fetcher = fetch, invalidate = fal
       const body = requestBody(`Base DESIGN.md:\n${design}\nBase AGENTS.md:\n${agents}\nBase .github/PR_POLICY.md:\n${policy}\nExact diff ${base}...${sha}:\n${diff}\nCurrent captures:\n${names.join('\n')}`,images);
       pr = await github(`/pulls/${pr.number}`); ensure(currentRevision(pr,repository,sha,base),'Revisions changed before request');
       const reservedMicroUsd = await reviewBudget(body,env.OPENAI_API_KEY,fetcher);
-      checkBudget(await paidAttempts(github,Date.now(),undefined,undefined,trustedSha),reservedMicroUsd);
+      checkBudget(await paidAttempts(github,Date.now(),undefined,undefined,trustedSha),reservedMicroUsd,attendedAllowance(env,event,pr));
       pr = await github(`/pulls/${pr.number}`); ensure(currentRevision(pr,repository,sha,base),'Revisions changed before preparation');
       writeFileSync(join(env.RUNNER_TEMP,'ai-visual-request.json'),JSON.stringify({sha,base,sourceRun:run.id,names,body,reservedMicroUsd}),{mode:0o600});
       appendFileSync(env.GITHUB_OUTPUT,`reserved_micro_usd=${reservedMicroUsd}\nready=true\n`);

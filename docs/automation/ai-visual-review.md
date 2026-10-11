@@ -41,3 +41,5 @@ PR 133 has an owner-only first-attempt bootstrap on `codex/visual-reservation-se
 AI evidence captures are unmasked. Deterministic screenshot assertions retain their approved masks and baselines; their masks must not obscure the separate images supplied to the model.
 
 An attended historical reconciliation on 2026-10-12 verified three legacy and eight dynamic reviews returned completed model responses. Their records contain no response IDs or token usage, so their full reservations remain. The HTTP 401 preflight and credential-free compatibility marker were reverified and were already excluded; no additional charge was assumed to be zero. Historical exemptions apply only to their proven first attempt.
+
+The attended October 12 allowance is limited to owner-dispatched recovery for accounting PR 138 and category PR 135. It adds at most $2 to the rolling dollar limit until 2026-10-12 20:59 UTC; normal workflows retain the $10 limit. Category recovery requires the accounting merge as its exact base. Per-review limits, attempt counts and no-retry protections still apply. The allowance becomes unusable after both PRs close or the deadline passes.

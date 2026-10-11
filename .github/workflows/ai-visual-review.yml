@@ -11,7 +11,7 @@ on:
         required: true
         type: string
       recovery:
-        description: Expiring owner-only settlement recovery for PR 133
+        description: Expiring owner-only $2 allowance for PRs 138 and 135
         required: false
         default: false
         type: boolean
