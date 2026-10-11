@@ -1,0 +1,21 @@
+deploy/payload-production/staging_refresh.py
+  s_6454a99d25cf16::t_b87729ae6b28d3 331,334-335
+deploy/payload-production/test_staging_refresh.py
+  s_6454a99d25cf16::t_b87729ae6b28d3 338-355
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "cfc0610ebc9843a4345defd43e5a88fc3600db5a",
+  "prompts": {},
+  "sessions": {
+    "s_6454a99d25cf16": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a127bc-4c58-7743-ab47-5dbe3fa6bca9",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
