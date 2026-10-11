@@ -37,7 +37,6 @@
 .visualPaths { opacity: .38; pointer-events: none; }
 .highlightPaths { pointer-events: none; }
 .dot { fill: var(--branch-color); }
-.mergeDot { fill: var(--surface-bg); stroke: var(--branch-color); stroke-width: 2; }
 .graphButton:focus-visible .dot { stroke: var(--page-text); stroke-width: 3; }
 .detail { width: 100%; min-height: 150px; max-height: 200px; overflow: auto; overscroll-behavior: contain; padding: 28px 20px 34px; border-top: 1px solid var(--surface-border); }
 .detailRef { display: flex; align-items: center; gap: 7px; color: var(--branch-color); font-family: ui-monospace, monospace; font-size: 11px; overflow-wrap: anywhere; }
