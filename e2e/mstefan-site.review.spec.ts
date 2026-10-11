@@ -280,7 +280,7 @@ test.describe("Public website review", () => {
     expect(browserErrors, browserErrors.join("\n")).toEqual([]);
   });
 
-  test("Preview pages support selection, both sizes, and localized homepage labels", async ({ page }) => {
+  test("Preview arrows, mobile swipe, size changes, and localized labels", async ({ page, context }) => {
     await writeFile(process.env.VISUAL_NOTION_FIXTURE_STATE!, "pages");
     await page.route("**/website-previews/**", async route => {
       const mobile = route.request().url().includes("-mobile.png");
@@ -288,26 +288,73 @@ test.describe("Public website review", () => {
       await route.fulfill({ body: await readFile(`public${paths[mobile ? "mobile" : "desktop"]}`), contentType: "image/png" });
     });
     await page.goto("/en/projects");
-    const selector = page.getByRole("combobox", { name: "Preview page", exact: true });
-    await expect(selector).toHaveValue("0");
-    await expect(selector.getByRole("option")).toHaveText(["Homepage", "Experience", "Work"]);
+    const controls = page.getByRole("group", { name: "Preview page", exact: true });
+    const next = controls.getByRole("button", { name: "Next preview", exact: true });
+    const previous = controls.getByRole("button", { name: "Previous preview", exact: true });
     const image = page.getByRole("img", { name: "Desktop: Screenshot of mstefan.dev", exact: true });
-    const homepage = await image.getAttribute("src");
-    await selector.focus();
-    await selector.selectOption("1");
-    await expect(selector).toHaveValue("1");
+    await expect(controls).toContainText("Homepage · 1 / 3");
+    await expect(page.getByRole("combobox", { name: "Preview page", exact: true })).toHaveCount(0);
+    await page.screenshot({ path: ".artifacts/playwright/work-preview-arrows-desktop.png", fullPage: true });
+    await page.getByRole("button", { name: "Toggle theme", exact: true }).click();
+    await expect(page.locator('footer [data-brand-icon="github"]')).toHaveCSS("color", "rgba(255, 255, 255, 0.65)");
+    await page.screenshot({ path: ".artifacts/playwright/work-preview-arrows-desktop-dark.png", fullPage: true });
+    await page.getByRole("button", { name: "Toggle theme", exact: true }).click();
+    await next.focus();
+    await next.press("Enter");
+    await expect(next).toBeFocused();
+    await expect(controls).toContainText("Experience · 2 / 3");
     await expect(image).toHaveAttribute("src", websiteScreenshotPaths("https://www.mstefan.dev/en/about", "en").desktop);
-    expect(await image.getAttribute("src")).not.toBe(homepage);
     await page.getByRole("group", { name: "Preview size" }).getByRole("button", { name: "Mobile", exact: true }).click();
-    await expect(page.getByRole("img", { name: "Mobile: Screenshot of mstefan.dev", exact: true })).toHaveAttribute("src", websiteScreenshotPaths("https://www.mstefan.dev/en/about", "en").mobile);
-    await selector.selectOption("2");
-    await expect(page.getByRole("img", { name: "Mobile: Screenshot of mstefan.dev", exact: true })).toHaveAttribute("src", websiteScreenshotPaths("https://www.mstefan.dev/en/projects", "en").mobile);
+    const mobileImage = page.getByRole("img", { name: "Mobile: Screenshot of mstefan.dev", exact: true });
+    await expect(mobileImage).toHaveAttribute("src", websiteScreenshotPaths("https://www.mstefan.dev/en/about", "en").mobile);
+    await next.click();
+    await expect(controls).toContainText("Work · 3 / 3");
+    await expect(mobileImage).toHaveAttribute("src", websiteScreenshotPaths("https://www.mstefan.dev/en/projects", "en").mobile);
+    await next.click();
+    await expect(controls).toContainText("Homepage · 1 / 3");
+    await previous.click();
+    await expect(controls).toContainText("Work · 3 / 3");
     await page.getByRole("button", { name: "Select The Karakal Times", exact: true }).click();
-    await expect(selector).toHaveCount(0);
+    await expect(controls).toHaveCount(0);
     await page.getByRole("button", { name: "Select mstefan.dev", exact: true }).click();
-    await expect(selector).toHaveValue("0");
+    await expect(controls).toContainText("Homepage · 1 / 3");
+    await page.setViewportSize({ width: 390, height: 844 });
+    const preview = page.locator("[data-work-preview]");
+    await preview.scrollIntoViewIfNeeded();
+    await page.screenshot({ path: ".artifacts/playwright/work-preview-arrows-mobile.png", fullPage: true });
+    await page.getByRole("button", { name: "Toggle theme", exact: true }).click();
+    await expect(page.locator('footer [data-brand-icon="github"]')).toHaveCSS("color", "rgba(255, 255, 255, 0.65)");
+    await page.screenshot({ path: ".artifacts/playwright/work-preview-arrows-mobile-dark.png", fullPage: true });
+    await page.getByRole("button", { name: "Toggle theme", exact: true }).click();
+    await preview.scrollIntoViewIfNeeded();
+    const box = (await preview.boundingBox())!;
+    const cdp = await context.newCDPSession(page);
+    const swipe = async (dx: number, dy: number) => {
+      const x = box.x + box.width / 2, y = box.y + box.height / 2;
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y }] });
+      for (let i = 1; i <= 4; i++) await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: x + dx * i / 4, y: y + dy * i / 4 }] });
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    };
+    await swipe(-90, 0);
+    await expect(controls).toContainText("Experience · 2 / 3");
+    await expect(mobileImage).toHaveAttribute("src", websiteScreenshotPaths("https://www.mstefan.dev/en/about", "en").mobile);
+    await swipe(90, 0);
+    await expect(controls).toContainText("Homepage · 1 / 3");
+    const scrollBefore = await page.evaluate(() => window.scrollY);
+    await swipe(0, -90);
+    await expect(controls).toContainText("Homepage · 1 / 3");
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(scrollBefore);
+    await expect(preview).toHaveCSS("touch-action", "pan-y pinch-zoom");
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await next.click();
+    await expect(mobileImage).toHaveAttribute("src", websiteScreenshotPaths("https://www.mstefan.dev/en/about", "en").mobile);
+    await expect(preview.locator("div").first()).toHaveCSS("transform", "none");
+    await page.setViewportSize({ width: 320, height: 844 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     await page.goto("/it/projects");
-    await expect(page.getByRole("combobox", { name: "Pagina anteprima", exact: true }).getByRole("option").first()).toHaveText("Pagina iniziale");
+    await expect(page.getByRole("group", { name: "Pagina anteprima", exact: true })).toContainText("Pagina iniziale · 1 / 3");
+    await page.getByRole("button", { name: "Anteprima successiva", exact: true }).click();
+    await expect(page.getByRole("group", { name: "Pagina anteprima", exact: true })).toContainText("Esperienza · 2 / 3");
   });
 
   test("Missing screenshots retain the external visit link and recover on switching", async ({ page }) => {
