@@ -6,7 +6,7 @@ import { Header } from "@/components/Header";
 function HeaderPreview() {
   const [ready, setReady] = useState(false);
   useEffect(() => { setReady(true); }, []);
-  return <div className="min-h-80">{ready && <Header locale="en" />}</div>;
+  return <div className="min-h-80 max-sm:min-h-96">{ready && <Header locale="en" />}</div>;
 }
 
 const meta = {
