@@ -36,7 +36,7 @@ const publishedMedia: Access = async ({ req }) => {
     if (career._status !== "published") continue;
     for (const job of career.jobs ?? []) {
       if (!job.summary?.trim()) continue;
-      const id = mediaID(job.photo);
+      const id = mediaID(career.assets?.find((asset) => asset.branchName === job.branchName)?.photo);
       if (id !== null) ids.add(id);
     }
   }
@@ -52,7 +52,7 @@ const publishedDocuments: Access = async ({ req }) => {
   for (const career of careers) {
     if (career._status !== "published") continue;
     for (const job of career.jobs ?? []) {
-      for (const document of job.documents ?? []) {
+      for (const document of career.assets?.find((asset) => asset.branchName === job.branchName)?.documents ?? []) {
         const id = mediaID(document.file);
         if (id !== null) ids.add(id);
       }
@@ -152,11 +152,6 @@ const careerGlobal: GlobalConfig = {
       { name: "company", label: "Organization", type: "text", required: true },
       { name: "role", label: "Role or qualification", type: "text", required: true },
       { name: "summary", type: "textarea", admin: { description: "Write this experience's story to show it in Experience when selected." } },
-      { name: "photo", type: "upload", relationTo: "media", admin: { description: "Shown with this experience in Experience only when its summary has content." } },
-      { name: "documents", type: "array", fields: [
-        { name: "title", type: "text", required: true },
-        { name: "file", type: "upload", relationTo: "documents", required: true },
-      ] },
       { name: "startDate", type: "date" },
       { name: "ongoing", label: "Currently ongoing", type: "checkbox", defaultValue: false,
         admin: { description: "Keep this experience open through today. Any stored end date is ignored while enabled." } },
@@ -166,6 +161,19 @@ const careerGlobal: GlobalConfig = {
         admin: { description: "Branch color as a six-digit hex value, for example #c77835." },
         validate: validateHexColor,
       },
+    ],
+  }, {
+    name: "assets", type: "array", label: "Shared experience media",
+    admin: { description: "Shared by English and Italian using the experience branch name. Saving a draft keeps media private; publishing Career in either language publishes shared media and only that language’s text." },
+    validate: (value: unknown) => !Array.isArray(value) || new Set(value.map((asset) => asset.branchName)).size === value.length
+      ? true : "Each shared media entry must have a unique branch name.",
+    fields: [
+      { name: "branchName", type: "text", required: true },
+      { name: "photo", type: "upload", relationTo: "media" },
+      { name: "documents", type: "array", fields: [
+        { name: "title", type: "text", localized: true },
+        { name: "file", type: "upload", relationTo: "documents", required: true },
+      ] },
     ],
   }],
 };
@@ -204,7 +212,7 @@ export default buildConfig({
       mimeTypes: ["image/jpeg", "image/png", "image/webp", "image/gif"],
     },
     access: { read: publishedMedia, create: authenticated, update: authenticated, delete: authenticated },
-    fields: [{ name: "alt", type: "text" }],
+    fields: [{ name: "alt", type: "text", localized: true }],
   }, {
     slug: "documents",
     labels: { singular: "Document", plural: "Documents" },

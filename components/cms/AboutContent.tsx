@@ -7,13 +7,14 @@ import { Prose } from "@/components/Prose";
 import { PdfPreview } from "@/components/PdfPreview";
 import { BranchIcon, CareerGraph } from "@/components/CareerGraph";
 import type { Career } from "@/payload-types";
+import { withCareerMedia, type CareerContent } from "@/lib/cms/career-media";
 import type { Locale } from "@/lib/i18n/config";
 import { getCopy } from "@/lib/i18n/copy";
 import type { PageContent } from "@/lib/cms/types";
 import styles from "./AboutContent.module.css";
 
-type Job = NonNullable<Career["jobs"]>[number];
-type Props = { content: PageContent<"about">; career: Career; locale: Locale };
+type Job = NonNullable<CareerContent["jobs"]>[number];
+type Props = { content: PageContent<"about">; career: CareerContent; locale: Locale };
 
 export function AboutContent({ content, career, locale }: Props) {
   const [selectedJob, setSelected] = useState<Job | null>(null);
@@ -52,7 +53,7 @@ export function AboutContent({ content, career, locale }: Props) {
           if (!file || typeof file !== "object" || !file.url || !/^(?:\/(?!\/)|https?:\/\/)/i.test(file.url)) return null;
           return selected?.branchName === "education/trento-master" && file.filename === "master-grades.pdf"
             ? <a key={document.id || file.id} href={file.url} download={file.filename} className={styles.readStory}>{locale === "it" ? "Scarica" : "Download"} {document.title} (PDF)</a>
-            : <PdfPreview key={document.id || file.id} title={document.title} url={file.url} filename={file.filename} locale={locale} />;
+            : <PdfPreview key={document.id || file.id} title={document.title || file.filename || "PDF"} url={file.url} filename={file.filename} locale={locale} />;
         })}
       </section>
       <div className={styles.explorer}>
@@ -70,5 +71,5 @@ export function AboutLivePreview(props: Props) {
 
 export function AboutCareerLivePreview(props: Props) {
   const { data } = useLivePreview<Career>({ initialData: props.career, serverURL: typeof window === "undefined" ? "" : window.location.origin, depth: 1 });
-  return <AboutContent {...props} career={data} />;
+  return <AboutContent {...props} career={withCareerMedia(data)} />;
 }

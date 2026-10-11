@@ -243,10 +243,10 @@ test('production drafts, active-locale UI publishing, media privacy, and restart
   assert.ok([401, 403, 404].includes((await fetch(new URL(document.url, base))).status), 'Unreferenced PDF became public');
   assert.ok([401, 403, 404].includes((await publicRequest(document.url, publicHeaders)).status), 'Public host accepted private PDF authentication');
   const careerBeforeDocument = await (await request('/api/globals/career?locale=en&draft=false', undefined, true)).json();
-  const withDocument = careerBeforeDocument.jobs.map((job: { branchName: string }) => ({ ...job, documents: job.branchName === 'work/amazon' ? [{ title: 'Synthetic career PDF', file: document.id }] : [] }));
-  await update('career', 'en', { jobs: withDocument }, '&draft=true');
+  const withDocument = [{ branchName: 'work/amazon', documents: [{ title: 'Synthetic career PDF', file: document.id }] }];
+  await update('career', 'en', { assets: withDocument }, '&draft=true');
   assert.ok([401, 403, 404].includes((await fetch(new URL(document.url, base))).status), 'Draft-only PDF became public');
-  await update('career', 'en', { jobs: withDocument, _status: 'published' }, '&publishSpecificLocale=en');
+  await update('career', 'en', { assets: withDocument, _status: 'published' }, '&publishSpecificLocale=en');
   const publishedDocument = await fetch(new URL(document.url, base));
   assert.equal(publishedDocument.status, 200);
   assert.match(publishedDocument.headers.get('content-type') ?? '', /^application\/pdf/);
@@ -259,7 +259,7 @@ test('production drafts, active-locale UI publishing, media privacy, and restart
   const localPDFHead = await fetch(new URL(document.url, base), { method: 'HEAD' });
   assert.equal(publicPDFHead.status, localPDFHead.status, 'Public proxy must pass document HEAD through like loopback');
   assert.equal((await publicRequest(`/api/documents/${document.id}`, publicHeaders)).status, 404, 'Public document API must remain private');
-  await update('career', 'en', { jobs: careerBeforeDocument.jobs.map((job: unknown) => ({ ...(job as object), documents: [] })), _status: 'published' }, '&publishSpecificLocale=en');
+  await update('career', 'en', { assets: careerBeforeDocument.assets, _status: 'published' }, '&publishSpecificLocale=en');
   assert.ok([401, 403, 404].includes((await fetch(new URL(document.url, base))).status), 'Removed PDF remained public');
   assert.equal((await fetch(new URL(document.url, base), { headers: { Cookie: cookie } })).status, 200);
   const secondRegistration = await request('/api/users/first-register', { email: 'another@example.invalid', password });
@@ -468,7 +468,9 @@ test('nested career branches share junctions and synchronize graph and Experienc
     ...(company === 'H' ? { photo: hiddenPhoto.id, documents: [{ title: 'Synthetic document-only PDF', file: pdfFile.id }] } : {}),
     startDate: new Date(Date.UTC(2024, start, 1)).toISOString(), endDate: new Date(Date.UTC(2024, end, 1)).toISOString(),
   }));
-  await update('career', 'en', { jobs, laneSpacing: 24, _status: 'published' }, '&publishSpecificLocale=en');
+  const assets = jobs.filter((job) => job.photo || job.documents).map(({ branchName, photo, documents }) => ({ branchName, photo, documents }));
+  const localizedJobs = jobs.map(({ photo, documents, ...job }) => job);
+  await update('career', 'en', { jobs: localizedJobs, assets, laneSpacing: 24, _status: 'published' }, '&publishSpecificLocale=en');
   const publishedPhoto = await fetch(new URL(photo.url, base));
   assert.equal(publishedPhoto.status, 200);
   assert.deepEqual(Buffer.from(await publishedPhoto.arrayBuffer()), photoBytes);
@@ -679,7 +681,7 @@ test('master results are an optional download while other attachments retain pre
         { branchName: 'research/thesis', company: 'Research', role: 'Researcher', color: '#12abcd', documents: [{ title: 'Research attachment', file: file.id }] },
       ];
       try {
-        await update('career', locale, { jobs, _status: 'published' }, `&publishSpecificLocale=${locale}`);
+        await update('career', locale, { jobs: jobs.map(({ documents, ...job }) => job), assets: jobs.map(({ branchName, documents }) => ({ branchName, documents })), _status: 'published' }, `&publishSpecificLocale=${locale}`);
         await page.goto(`${base}/${locale}/about`);
         await page.locator('button[data-career-job]', { hasText: 'education/trento-master' }).click();
         const link = page.getByRole('link', { name: `${verb} ${title} (PDF)`, exact: true });
@@ -706,7 +708,7 @@ test('master results are an optional download while other attachments retain pre
         await page.locator('button[data-career-job]', { hasText: 'research/thesis' }).click();
         await expect(page.locator('#career-story [data-pdf-document]')).toBeVisible();
       } finally {
-        await update('career', locale, { jobs: saved.jobs, _status: 'published' }, `&publishSpecificLocale=${locale}`);
+        await update('career', locale, { jobs: saved.jobs, assets: saved.assets, _status: 'published' }, `&publishSpecificLocale=${locale}`);
       }
     }
   } finally { await browser.close(); }

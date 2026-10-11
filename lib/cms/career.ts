@@ -4,9 +4,9 @@ import { notFound } from "next/navigation";
 import { getPayload } from "payload";
 import config from "@payload-config";
 import type { Locale } from "@/lib/i18n/config";
-import type { Career } from "@/payload-types";
+import { withCareerMedia, type CareerContent } from "./career-media";
 
-export async function getCareerContent(locale: Locale, preview: boolean): Promise<Career> {
+export async function getCareerContent(locale: Locale, preview: boolean): Promise<CareerContent> {
   const payload = await getPayload({ config });
   const user = preview ? (await payload.auth({ headers: await headers() })).user : null;
   if (preview && !user) notFound();
@@ -14,7 +14,8 @@ export async function getCareerContent(locale: Locale, preview: boolean): Promis
     slug: "career", locale, fallbackLocale: false, draft: preview, depth: 1,
     overrideAccess: !preview, user,
   });
-  if (preview) return career;
-  if (career._status !== "published") return { ...career, jobs: [] };
-  return { ...career, jobs: career.jobs?.map((job) => job.summary?.trim() ? job : { ...job, photo: null }) };
+  if (preview) return withCareerMedia(career);
+  if (career._status !== "published") return { ...career, assets: null, jobs: [] };
+  const content = withCareerMedia(career);
+  return { ...content, assets: null, jobs: content.jobs?.map((job) => job.summary?.trim() ? job : { ...job, photo: null }) };
 }
