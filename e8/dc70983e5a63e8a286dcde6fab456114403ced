@@ -1,0 +1,22 @@
+components/PowerPointPreview.tsx
+  s_a3d57fd6983d88::t_53f9fe2d2057cc 26-36
+e2e/components.workshop.spec.ts
+  s_a3d57fd6983d88::t_53f9fe2d2057cc 139,141-143
+  s_a3d57fd6983d88::t_926f482ab6ed34 135,140
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e8dc70983e5a63e8a286dcde6fab456114403ced",
+  "prompts": {},
+  "sessions": {
+    "s_a3d57fd6983d88": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a125dc-d51e-7583-9ad7-4135793b24dc",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
