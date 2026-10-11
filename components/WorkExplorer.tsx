@@ -1,6 +1,7 @@
 "use client";
 
-import { BookOpen, Presentation, ChevronDown, ChevronRight, ExternalLink, Monitor, Smartphone, Trophy } from "lucide-react";
+import { BookOpen, Presentation, ChevronDown, ChevronLeft, ChevronRight, ExternalLink, Monitor, Smartphone, Trophy } from "lucide-react";
+import { AnimatePresence, motion, useIsPresent, useReducedMotion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { DocumentPreview } from "@/components/DocumentPreview";
@@ -14,18 +15,22 @@ import { getCopy } from "@/lib/i18n/copy";
 import type { Locale } from "@/lib/i18n/config";
 import { type ShowcaseWebsite, websitePreviewUrl } from "@/lib/websiteShowcase";
 
-function ScreenshotPreview({ url, title, mobile, unavailable }: { url: string; title: string; mobile: boolean; unavailable: string }) {
+function ScreenshotPreview({ url, title, mobile, unavailable, direction }: { url: string; title: string; mobile: boolean; unavailable: string; direction: number }) {
   const image = useRef<HTMLImageElement>(null);
   const [failed, setFailed] = useState(false);
+  const reducedMotion = useReducedMotion();
+  const present = useIsPresent();
   useEffect(() => {
     if (image.current?.complete && image.current.naturalWidth === 0) setFailed(true);
   }, []);
-  return failed ? <p role="status" className="text-sm text-black/60 dark:text-white/60">{unavailable}</p> : (
-    <div className="flex aspect-[8/5] max-h-[min(620px,70svh)] w-full justify-center">
-      <img ref={image} src={url} alt={title} width={mobile ? 390 : 1280} height={mobile ? 844 : 800}
+  return (
+    <motion.div className="absolute inset-0 flex justify-center" custom={direction} aria-hidden={!present}
+      variants={{ enter: (step: number) => ({ x: reducedMotion ? 0 : `${step * 100}%` }), exit: (step: number) => ({ x: reducedMotion ? 0 : `${step * -100}%` }) }}
+      initial="enter" animate={{ x: 0 }} exit="exit" transition={{ duration: reducedMotion ? 0 : 0.26, ease: [0.22, 0.61, 0.36, 1] }}>
+      {failed ? <p role="status" className="text-sm text-black/60 dark:text-white/60">{unavailable}</p> : <img ref={image} src={url} alt={title} width={mobile ? 390 : 1280} height={mobile ? 844 : 800}
         className="h-full w-auto max-w-full rounded-xl border border-black/10 object-contain dark:border-white/15"
-        onError={() => setFailed(true)} />
-    </div>
+        draggable={false} onError={() => setFailed(true)} />}
+    </motion.div>
   );
 }
 
@@ -33,6 +38,8 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
   const copy = getCopy(locale);
   const [documentKind, setDocumentKind] = useState<"paper" | "slides">("paper");
   const [pageIndex, setPageIndex] = useState(0);
+  const [pageDirection, setPageDirection] = useState(1);
+  const swipeStart = useRef<{ x: number; y: number } | null>(null);
   const [mobile, setMobile] = useState(false);
   const stackScroll = useRef<HTMLDivElement>(null);
   const [moreStack, setMoreStack] = useState(false);
@@ -100,6 +107,12 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
   const metadata = [selected.type ? copy.work.types[selected.type] : undefined, selected.year, groups.length ? undefined : selected.language].filter(Boolean);
   const linkClass = `inline-flex items-center gap-2 text-sm font-medium ${ICON_LINK_COLOR_CLASS}`;
   const selectProject = (id: string) => { setSelectedId(id); setDocumentKind("paper"); setPageIndex(0); };
+  const changePreview = (direction: number) => {
+    const count = selected.screenshotPages?.length ?? 0;
+    if (count < 2) return;
+    setPageDirection(direction);
+    setPageIndex(index => (index + direction + count) % count);
+  };
   return (
     <div className="mt-8 grid min-w-0 gap-8 lg:grid-cols-[288px_minmax(0,1fr)] lg:gap-6">
       <label className="block min-w-0 text-sm font-medium lg:hidden">
@@ -182,13 +195,27 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
           </>}
         </section>}
         {screenshotUrl && <div className="mt-7">
-            {selected.screenshotPages && selected.screenshotPages.length > 1 && <label className="mb-4 flex items-center gap-3 text-sm">
-              {copy.work.previewPage}
-              <select value={pageIndex} onChange={event => setPageIndex(Number(event.target.value))} className="min-w-0 rounded-lg border border-black/10 bg-transparent px-3 py-2 dark:border-white/15">
-                {selected.screenshotPages.map((page, index) => <option key={page.url} value={index}>{page.label}</option>)}
-              </select>
-            </label>}
-            <ScreenshotPreview key={screenshotUrl} url={screenshotUrl} title={`${mobile ? copy.work.mobile : copy.work.desktop}: ${copy.websites.previewTitle(selected.name)}`} mobile={mobile} unavailable={copy.websites.unavailable} />
+            {selected.screenshotPages && selected.screenshotPages.length > 1 && <div role="group" aria-label={copy.work.previewPage} className="mb-4 flex items-center justify-between gap-3 text-sm">
+              <span aria-live="polite" aria-atomic="true">{selectedPage.label} <span className="text-[var(--page-muted)]">· {pageIndex + 1} / {selected.screenshotPages.length}</span></span>
+              <div className="flex shrink-0 gap-2">
+                {([{ direction: -1, label: copy.work.previousPreview, Icon: ChevronLeft }, { direction: 1, label: copy.work.nextPreview, Icon: ChevronRight }]).map(control => <button key={control.direction} type="button" aria-label={control.label} onClick={() => changePreview(control.direction)} className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-[var(--surface-border)] text-[var(--page-text)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[hsl(var(--accent))]"><control.Icon size={18} aria-hidden /></button>)}
+              </div>
+            </div>}
+            <div data-work-preview className="relative aspect-[8/5] max-h-[min(620px,70svh)] w-full touch-pan-y overflow-hidden"
+              onTouchStart={event => { swipeStart.current = event.touches.length === 1 && window.matchMedia("(max-width: 639px)").matches ? { x: event.touches[0].clientX, y: event.touches[0].clientY } : null; }}
+              onTouchCancel={() => { swipeStart.current = null; }}
+              onTouchEnd={event => {
+                const start = swipeStart.current;
+                swipeStart.current = null;
+                if (!start || !event.changedTouches.length) return;
+                const dx = event.changedTouches[0].clientX - start.x;
+                const dy = event.changedTouches[0].clientY - start.y;
+                if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5) changePreview(dx < 0 ? 1 : -1);
+              }}>
+              <AnimatePresence key={`${selected.id}-${mobile}`} initial={false} custom={pageDirection}>
+                <ScreenshotPreview key={screenshotUrl} url={screenshotUrl} title={`${mobile ? copy.work.mobile : copy.work.desktop}: ${copy.websites.previewTitle(selected.name)}`} mobile={mobile} unavailable={copy.websites.unavailable} direction={pageDirection} />
+              </AnimatePresence>
+            </div>
             <div role="group" aria-label={copy.work.previewSize} className="mt-4 ml-auto flex w-fit gap-1 rounded-lg border border-black/10 p-1 dark:border-white/15">
               {([{ mobile: false, label: copy.work.desktop, Icon: Monitor }, { mobile: true, label: copy.work.mobile, Icon: Smartphone }]).map(mode => (
                 <button key={mode.label} type="button" aria-pressed={mobile === mode.mobile} onClick={() => setMobile(mode.mobile)}
