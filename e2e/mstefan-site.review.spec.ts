@@ -133,7 +133,7 @@ test.describe("Public website review", () => {
         const mediaBox = (await page.locator("[data-media-preview]").boundingBox())!;
         const toggleBox = (await researchModes.boundingBox())!;
         expect(toggleBox.y).toBeGreaterThanOrEqual(mediaBox.y + mediaBox.height);
-        expect(Math.abs(toggleBox.x + toggleBox.width - mediaBox.x - mediaBox.width)).toBeLessThan(2);
+        expect(Math.abs(toggleBox.x + toggleBox.width / 2 - mediaBox.x - mediaBox.width / 2)).toBeLessThan(2);
       }
     }
     await page.setViewportSize({ width: 1280, height: 720 });
