@@ -41,7 +41,7 @@ python3 deploy/payload-production/staging_refresh.py apply --credentials-file /r
 
 Prepare the credential bundle through protected 1Password transport in a root-owned mode-0700 temporary directory; the JSON file must have mode 0600 and exactly these keys:
 
-- `openship`: project/deployment reads for Production and Staging, plus only Staging mount update and native refresh where installed permission granularity permits.
+- `openship`: project/deployment reads for Production and Staging, plus only Staging mount update and native refresh where installed permission granularity permits. The installed native refresh also requires View access to GitHub repository `Itakello/mstefan-dev` for its repository admission check; keep source-file access disabled.
 - `notion_source`: read-only access to the two production source databases.
 - `notion_target`: a separate attended operator connection with read/insert/update content access to only the two Staging databases, including Trash/restore. Do not broaden the website's read-only connection.
 - `staging_email` and `staging_password`: the dedicated Staging CMS login from 1Password.
