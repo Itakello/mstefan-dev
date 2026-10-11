@@ -405,7 +405,7 @@ class Refresh:
 
     def wait(self, state, save_state, baseline, mount):
         self.phase(state, save_state, 'submitting', submitted=None, native_pending=True, native_mount=mount)
-        result = self.client.ship('POST', '/deployments', {'projectId': STAGE, 'environment': 'preview', 'refresh': True})
+        result = value(self.client.ship('POST', '/deployments', {'projectId': STAGE, 'environment': 'preview', 'refresh': True}))
         identity = result.get('deployment_id')
         if not ID.fullmatch(str(identity)):
             raise Refused('Refresh submission result unknown; reconcile before recovery')
