@@ -166,6 +166,13 @@ export async function paidAttempts(github, now = Date.now(), currentRun, expecte
         if (!step.name.startsWith(PAID_STEP) && (step.name !== LEGACY_STEP || VERIFIED_NO_REQUEST_RUNS.has(run.id))) continue;
         if (step.status === 'queued' || step.status === 'pending' || step.conclusion === 'skipped') continue;
         let reserved = MAX_REVIEW_MICRO_USD;
+        // This completed credential-free compatibility marker is covered by the same job's genuine reservation.
+        if (run.id === 38141527547 && step.name === PAID_STEP) {
+          ensure(run.run_attempt === 1 && run.workflow_id === 380891751 && run.head_sha === 'ad6f940266317a84b9e3845abf23a05c5db778ad' && run.status === 'completed' && run.conclusion === 'success', 'Settlement run identity mismatch');
+          ensure(job.id === 114476341498 && job.conclusion === 'success' && step.number === 7 && step.status === 'completed' && step.conclusion === 'success' && step.started_at === '2026-10-11T13:03:14Z' && step.completed_at === '2026-10-11T13:03:44Z', 'Settlement step identity mismatch');
+          ensure(job.steps.some(candidate => candidate.number === 8 && candidate.name === `${PAID_STEP} (429225 microUSD)` && candidate.status === 'completed' && candidate.conclusion === 'success'), 'Settlement genuine reservation missing');
+          reserved = 0;
+        }
         if (step.name !== PAID_STEP && step.name !== LEGACY_STEP) {
           const amount = step.name.match(/^Reserve paid AI visual review attempt \(([1-9]\d*) microUSD\)$/);
           ensure(amount, 'Malformed paid reservation amount');

@@ -684,3 +684,20 @@ test('unresolved dynamic names in skipped or queued steps reserve nothing', asyn
   step.status='in_progress';step.started_at=timestamp;
   await assert.rejects(paidAttempts(github,now),/Malformed paid reservation/);
 });
+
+ test('settle only the immutable credential-free compatibility marker while retaining both counts and genuine cost', async () => {
+  const timestamp = '2026-10-11T13:03:14Z';
+  const run = {id:38141527547,run_attempt:1,workflow_id:380891751,head_sha:'ad6f940266317a84b9e3845abf23a05c5db778ad',status:'completed',conclusion:'success',updated_at:timestamp};
+  const marker = {name:PAID_STEP,number:7,status:'completed',conclusion:'success',started_at:timestamp,completed_at:'2026-10-11T13:03:44Z'};
+  const paid = {name:`${PAID_STEP} (429225 microUSD)`,number:8,status:'completed',conclusion:'success',started_at:'2026-10-11T13:03:44Z'};
+  const job = {id:114476341498,conclusion:'success',steps:[marker,paid]};
+  const github = async path => path.includes('/workflows/') ? {total_count:1,workflow_runs:[run]} : {total_count:1,jobs:[job]};
+  const now = Date.parse('2026-10-11T14:00:00Z');
+  assert.deepEqual(await paidAttempts(github,now),{count:2,microUsd:429225});
+  for (const [object,key,value] of [[run,'run_attempt',2],[run,'head_sha','other'],[run,'conclusion','failure'],[job,'id',1],[marker,'number',8],[marker,'completed_at',timestamp],[paid,'conclusion','failure']]) {
+    const previous=object[key]; object[key]=value;
+    await assert.rejects(paidAttempts(github,now),/Settlement/); object[key]=previous;
+  }
+  run.id=38141527548;
+  assert.deepEqual(await paidAttempts(github,now),{count:2,microUsd:2429225});
+});
