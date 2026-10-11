@@ -525,8 +525,8 @@ class Refresh:
                 self.host.stopped(state['current'])
                 current = state['current']
         if current and current['volume'] == staging['volume'] and state.get('recovering'):
+            self.ready_health(staging=True)
             self.client.login()
-            self.client.health(staging=True)
             self.client.health()
             self.phase(state, save_state, 'rolled_back')
             return

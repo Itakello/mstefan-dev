@@ -356,6 +356,22 @@ class RefreshLifecycleTests(unittest.TestCase):
         self.assertEqual(self.client.projects[refresh.STAGE]['volumes'], ['staging-data:/data'])
         self.assert_original_data()
 
+    def test_resumed_recovery_waits_for_staging_before_login(self):
+        self.state.update(current=self.state['staging'], recovering=True, phase='recovery_required')
+        original = self.client.health
+        calls = []
+        def health(staging=False):
+            calls.append('staging' if staging else 'production')
+            if staging and len(calls) == 1:
+                raise refresh.Refused('HTTP GET failed with status 502')
+            return original(staging=staging)
+        with patch.object(self.client, 'health', side_effect=health), \
+                patch.object(self.client, 'login', side_effect=lambda: calls.append('login')):
+            self.runner.recover(self.state, self.save)
+        self.assertEqual(calls, ['staging', 'staging', 'login', 'production'])
+        self.assertEqual(self.state['phase'], 'rolled_back')
+        self.assert_original_data()
+
     def test_known_ready_native_submission_is_reconciled_before_recovery(self):
         self.fault.at = 'deployment:read'
         with self.assertRaisesRegex(Injected, 'deployment:read'):
