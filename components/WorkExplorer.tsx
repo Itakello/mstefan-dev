@@ -201,7 +201,7 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
                 {([{ direction: -1, label: copy.work.previousPreview, Icon: ChevronLeft }, { direction: 1, label: copy.work.nextPreview, Icon: ChevronRight }]).map(control => <button key={control.direction} type="button" aria-label={control.label} onClick={() => changePreview(control.direction)} className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-[var(--surface-border)] text-[var(--page-text)] hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[hsl(var(--accent))]"><control.Icon size={18} aria-hidden /></button>)}
               </div>
             </div>}
-            <div data-work-preview className="relative aspect-[8/5] max-h-[min(620px,70svh)] w-full touch-[pan-y_pinch-zoom] overflow-hidden"
+            <div data-work-preview className="relative aspect-[8/5] max-h-[min(620px,70svh)] w-full overflow-hidden" style={{ touchAction: "pan-y pinch-zoom" }}
               onTouchStart={event => { swipeStart.current = event.touches.length === 1 && window.matchMedia("(max-width: 639px)").matches ? { x: event.touches[0].clientX, y: event.touches[0].clientY } : null; }}
               onTouchCancel={() => { swipeStart.current = null; }}
               onTouchEnd={event => {
