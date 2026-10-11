@@ -166,17 +166,25 @@ async function settledCost(github, run, job, paid, reserved, trustedSha) {
   const amount = marker.name.match(/^Settle paid AI visual review usage \(([0-9]+) microUSD\)$/);
   ensure(amount && marker.status === 'completed' && marker.conclusion === 'success' && marker.number > paid.number && Date.parse(marker.started_at) >= Date.parse(paid.completed_at), 'Invalid usage settlement step');
   ensure(/^[a-f0-9]{40}$/.test(trustedSha ?? '') && Number.isSafeInteger(job.id) && job.id > 0 && job.name === 'review' && /^[a-f0-9]{40}$/.test(run.head_sha ?? '') && ['workflow_run','workflow_dispatch'].includes(run.event) && run.name === 'AI visual review' && run.path === '.github/workflows/ai-visual-review.yml' && job.run_attempt === 1, 'Untrusted usage producer');
-  const comparison = await github(`/compare/${run.head_sha}...${trustedSha}`);
+  let producerTrustSha = trustedSha;
+  // Preserve the completed reviewed recovery's provenance after the policy changes.
+  if (run.head_sha === 'bb6af4b2b143abcea1582badd84b4732206e4566' && run.head_branch === 'codex/visual-usage-settlement') {
+    const baseline = '9b96c768a2a893e490e79543cb1955ccd59a5aec';
+    const lineage = await github(`/compare/${baseline}...${trustedSha}`);
+    ensure(['ahead','identical'].includes(lineage.status) && lineage.merge_base_commit?.sha === baseline, 'Unapproved historical usage anchor');
+    producerTrustSha = baseline;
+  }
+  const comparison = await github(`/compare/${run.head_sha}...${producerTrustSha}`);
   if (!['ahead','identical'].includes(comparison.status) || run.head_branch !== 'master') {
     // A reviewed immutable recovery may be squash-merged; identical trusted engine/workflow blobs preserve its provenance.
     for (const path of ['.github/workflows/ai-visual-review.yml','scripts/visual-review/ai-review.mjs','scripts/visual-review/recovery.mjs']) {
-      const historical = await github(`/contents/${path}?ref=${run.head_sha}`), trusted = await github(`/contents/${path}?ref=${trustedSha}`);
+      const historical = await github(`/contents/${path}?ref=${run.head_sha}`), trusted = await github(`/contents/${path}?ref=${producerTrustSha}`);
       ensure(historical.type === 'file' && trusted.type === 'file', 'Untrusted usage producer contents');
       if (historical.sha !== trusted.sha) {
         ensure(path === '.github/workflows/ai-visual-review.yml' && historical.encoding === 'base64' && trusted.encoding === 'base64', 'Untrusted usage producer contents');
         const wrapper = Buffer.from(historical.content,'base64').toString('utf8');
         const engineWorkflow = Buffer.from(trusted.content,'base64').toString('utf8');
-        ensure(wrapper === engineWorkflow.replace(/          ref: [a-f0-9]{40}\n/, `          ref: ${trustedSha}\n`), 'Untrusted usage producer contents');
+        ensure(wrapper === engineWorkflow.replace(/          ref: [a-f0-9]{40}\n/, `          ref: ${producerTrustSha}\n`), 'Untrusted usage producer contents');
       }
     }
   }
@@ -310,6 +318,10 @@ export async function main({env = process.env, fetcher = fetch, invalidate = fal
       ensure(env.GITHUB_RUN_ATTEMPT === '1','Reruns do not issue another model request');
       validReservation(prepared.reservedMicroUsd);
       checkBudget(await paidAttempts(github,Date.now(),env.GITHUB_RUN_ID,prepared.reservedMicroUsd,trustedSha));
+      if (event.inputs?.recovery === true || event.inputs?.recovery === 'true') {
+        const {main: validateRecovery} = await import('./recovery.mjs');
+        await validateRecovery({env,fetcher});
+      }
       pr = await github(`/pulls/${pr.number}`); ensure(currentRevision(pr,repository,sha,base),'Revisions changed before request');
       await status('pending','request claimed; no retries');
       const response = await modelReview(prepared.body,env.OPENAI_API_KEY,fetcher,prepared.reservedMicroUsd);

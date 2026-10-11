@@ -765,6 +765,50 @@ test('verified same-job usage settles failed semantic reviews without releasing 
   log='2026-10-11T23:59:01.000Z AI_VISUAL_USAGE invalid';await assert.rejects(read());
 });
 
+test('the exact reviewed historical producer settles only through its merged baseline provenance', async () => {
+  const historical='bb6af4b2b143abcea1582badd84b4732206e4566';
+  const baseline='9b96c768a2a893e490e79543cb1955ccd59a5aec';
+  const trusted='f'.repeat(40),now=Date.parse('2026-10-12T00:00:00Z');
+  const paid={name:`${PAID_STEP} (2000000 microUSD)`,number:6,status:'completed',conclusion:'failure',started_at:'2026-10-11T23:58:00Z',completed_at:'2026-10-11T23:59:00Z'};
+  const marker={name:`${SETTLED_STEP} (1200 microUSD)`,number:7,status:'completed',conclusion:'success',started_at:'2026-10-11T23:59:01Z',completed_at:'2026-10-11T23:59:02Z'};
+  const run={id:14,name:'AI visual review',path:'.github/workflows/ai-visual-review.yml',event:'workflow_dispatch',head_branch:'codex/visual-usage-settlement',head_sha:historical,run_attempt:1,status:'completed',conclusion:'failure',updated_at:'2026-10-11T23:59:03Z'};
+  const job={id:24,name:'review',run_attempt:1,conclusion:'failure',steps:[paid,marker]};
+  const receipt={runId:'14',attempt:'1',workflowSha:historical,job:'review',reservedMicroUsd:2000000,response:{id:'resp_historical',model:'gpt-6.1-sol',service_tier:'default',status:'completed',usage:{input_tokens:100,output_tokens:100,total_tokens:200,input_tokens_details:{cached_tokens:0,cache_write_tokens:0}}}};
+  const log=`2026-10-11T23:59:01.000Z AI_VISUAL_USAGE ${JSON.stringify(receipt)}\n`;
+  let lineageStatus='ahead',mergeBase=baseline,sourceStatus='diverged',mismatchEngine=false;
+  const comparisons=[];
+  const github=async path=> {
+    if(path.includes('/actions/workflows/')) return {total_count:1,workflow_runs:[run]};
+    if(path.includes('/jobs?')) return {total_count:1,jobs:[job]};
+    if(path.startsWith('/compare/')) {
+      comparisons.push(path);
+      if(path===`/compare/${baseline}...${trusted}`) return {status:lineageStatus,merge_base_commit:{sha:mergeBase}};
+      return {status:sourceStatus};
+    }
+    if(path.includes('/contents/')) {
+      const engine=path.includes('scripts/visual-review/ai-review.mjs');
+      const historicalRef=path.endsWith(`ref=${run.head_sha}`);
+      return {type:'file',sha:engine && mismatchEngine && historicalRef ? 'changed-engine' : 'same'};
+    }
+    if(path.includes('/logs')) return log;
+    throw new Error(`Unexpected ${path}`);
+  };
+  const read=()=>paidAttempts(github,now,undefined,undefined,trusted);
+
+  assert.deepEqual(await read(),{count:1,microUsd:1200});
+  for (const [status,baseSha] of [['diverged',baseline],['ahead','e'.repeat(40)]]) {
+    lineageStatus=status;mergeBase=baseSha;
+    await assert.rejects(read(),/Unapproved historical usage anchor/);
+  }
+  lineageStatus='ahead';mergeBase=baseline;mismatchEngine=true;
+  await assert.rejects(read(),/Untrusted usage producer contents/);
+  mismatchEngine=false;comparisons.length=0;
+  run.head_sha='c'.repeat(40);receipt.workflowSha=run.head_sha;
+  mismatchEngine=true;
+  await assert.rejects(read(),/Untrusted usage producer contents/);
+  assert.deepEqual(comparisons,[`/compare/${run.head_sha}...${trusted}`]);
+});
+
 test('a branch dispatch cannot select the ledger trust anchor through GITHUB_SHA', async () => {
   const {mkdtempSync,writeFileSync,rmSync}=await import('node:fs');
   const {execFileSync}=await import('node:child_process');
@@ -797,6 +841,49 @@ test('a branch dispatch cannot select the ledger trust anchor through GITHUB_SHA
     await main({request:true,fetcher,env:{GITHUB_REPOSITORY:repository,GITHUB_EVENT_PATH:event,GITHUB_EVENT_NAME:'workflow_dispatch',GITHUB_RUN_ATTEMPT:'1',GITHUB_RUN_ID:'5',GITHUB_SHA:attacker,GITHUB_JOB:'review',GITHUB_OUTPUT:join(directory,'output'),RUNNER_TEMP:directory,OPENAI_API_KEY:'opaque'}});
     assert.equal(checked,true);
   } finally {rmSync(directory,{recursive:true,force:true});}
+});
+
+test('recovery expiry blocks input counting, generation and request claims after ledger admission', async () => {
+  const {mkdtempSync,writeFileSync,rmSync}=await import('node:fs');
+  const {join}=await import('node:path');const {tmpdir}=await import('node:os');
+  const directory=mkdtempSync(join(tmpdir(),'visual-recovery-expiry-'));
+  const eventPath=join(directory,'event.json'),now=Date.parse('2026-10-12T20:59:00Z');
+  const recoveryRepository='Itakello/mstefan-dev';
+  const sha='a'.repeat(40),base='9bbfa628b146d81abfb60f96b60617b88c5464ef',reserved=1500000;
+  writeFileSync(eventPath,JSON.stringify({inputs:{recovery:'true',source_run_id:'7'}}));
+  writeFileSync(join(directory,'ai-visual-request.json'),JSON.stringify({sha,base,sourceRun:7,reservedMicroUsd:reserved,names:REQUIRED,body:requestBody('',[])}),{mode:0o600});
+  const source={id:7,repository:{full_name:recoveryRepository},name:'Visual review',path:'.github/workflows/visual-review.yml',event:'pull_request',status:'completed',conclusion:'success',head_sha:sha,pull_requests:[{number:140,head:{sha},base:{sha:base}}]};
+  const pr={state:'open',number:140,head:{sha},base:{sha:base,repo:{full_name:recoveryRepository}},changed_files:1,labels:[]};
+  const historyRun={id:7,status:'completed',updated_at:'2026-10-12T20:58:00Z'};
+  const currentRun={id:9,status:'in_progress',updated_at:'2026-10-12T20:58:00Z'};
+  const currentStep={name:`${PAID_STEP} (${reserved} microUSD)`,status:'in_progress',started_at:'2026-10-12T20:58:30Z'};
+  const posts=[],calls=[];let currentVisible=false,modelCalls=0;
+  const fetcher=async(url,options)=> {
+    calls.push(url);
+    if(url.startsWith('https://api.openai.com/')) {modelCalls++;return new Response('{}');}
+    const path=url.slice(`https://api.github.com/repos/${recoveryRepository}`.length);
+    if(options.method==='POST') {posts.push(JSON.parse(options.body));return new Response('{}');}
+    let value;
+    if(path==='/actions/runs/7') value=source;
+    else if(path==='/pulls/140') value=pr;
+    else if(path.includes('/statuses?')) value=[];
+    else if(path.includes('/files?')) value=[{filename:'components/Footer.tsx',additions:1,deletions:1}];
+    else if(path.includes('/workflows/ai-visual-review.yml/runs?')) value={total_count:2,workflow_runs:[historyRun,currentRun]};
+    else if(path==='/actions/runs/7/jobs?filter=all&per_page=100') value={total_count:1,jobs:[{run_attempt:1,steps:[]}]};
+    else if(path==='/actions/runs/9/jobs?filter=all&per_page=100') {currentVisible=true;value={total_count:1,jobs:[{run_attempt:1,steps:[currentStep]}]};}
+    else throw new Error(`Unexpected ${path}`);
+    return new Response(JSON.stringify(value));
+  };
+  const env={GITHUB_REPOSITORY:recoveryRepository,GITHUB_EVENT_PATH:eventPath,GITHUB_EVENT_NAME:'workflow_dispatch',GITHUB_ACTOR:'Itakello',GITHUB_TRIGGERING_ACTOR:'Itakello',GITHUB_RUN_ATTEMPT:'1',GITHUB_REF:'refs/heads/codex/visual-review-no-daily-cap',GITHUB_RUN_ID:'9',GITHUB_SHA:sha,GITHUB_JOB:'review',GITHUB_TOKEN:'mock-only',OPENAI_API_KEY:'mock-only',RUNNER_TEMP:directory};
+  const originalNow=Date.now;
+  try {
+    Date.now=()=>now;
+    await assert.rejects(main({request:true,env,fetcher}),/Recovery expired/);
+    assert.equal(currentVisible,true);
+    assert.equal(modelCalls,0);
+    assert.deepEqual(posts.map(post=>post.state),['error']);
+    assert.equal(posts.some(post=>post.description.includes('request claimed')),false);
+  } finally {Date.now=originalNow;rmSync(directory,{recursive:true,force:true});}
 });
 
 test('rolling dollar totals above the former cap are admitted while attempt limits remain', () => {
