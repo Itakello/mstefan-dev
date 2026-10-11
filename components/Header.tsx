@@ -59,7 +59,7 @@ export function Header({ locale }: { locale: Locale }) {
         <div className="flex min-w-0 items-center gap-3">
           <Image src="/icon-light.png" alt="" width={44} height={44} className="size-11 shrink-0 dark:hidden" priority unoptimized />
           <Image src="/icon.png" alt="" width={44} height={44} className="hidden size-11 shrink-0 dark:block" priority unoptimized />
-          <div className="truncate font-semibold tracking-tight max-sm:hidden">Massimo Stefan</div>
+          <div className="truncate font-semibold tracking-tight">Massimo Stefan</div>
         </div>
       </Link>
       <nav className="ml-auto mr-6 hidden items-center gap-6 text-sm sm:flex">
