@@ -40,7 +40,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         if: github.event_name == 'workflow_dispatch' && inputs.recovery == true
         with:
-          ref: 185fff586639aef381d07763ad0e8dd9668bb56d
+          ref: 175eec0df98b6e4b98672b5f9dd6f6e77ec81a6d
           persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
