@@ -714,6 +714,8 @@ test('degree results are optional metadata downloads while other attachments ret
               await page.keyboard.press('Shift+Tab');
               await expect(link).toBeFocused();
               await page.screenshot({ path: `.artifacts/playwright/master-download/${degree}-${locale}-${size}-${theme}.png`, fullPage: true });
+              await link.hover();
+              await page.screenshot({ path: `.artifacts/playwright/master-download/${degree}-${locale}-${size}-${theme}-hover.png`, fullPage: true });
             }
           }
         }
