@@ -1,0 +1,29 @@
+.github/workflows/ai-visual-review.yml
+  s_09b847434b8cc4::t_9288c4af035bd3 14
+docs/automation/ai-visual-review.md
+  s_09b847434b8cc4::t_b812f0f3b359c9 44-45
+scripts/visual-review/ai-review.mjs
+  s_09b847434b8cc4::t_3a2bc07caebff4 131-138,141,315,362
+scripts/visual-review/recovery.mjs
+  s_09b847434b8cc4::t_9571ab576c0b0e 6-7,15,58,60-65,69
+tests/ai-visual-recovery.test.mjs
+  s_09b847434b8cc4::t_b0cbf186557ed4 10,12-13,23,25,56,61,70-72,84,92-101
+tests/ai-visual-review.test.mjs
+  s_09b847434b8cc4::t_bb6faf2a9b4ee5 5,169,788-801
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f5ee03cd7761104ca4c21537f717a61e7194b23f",
+  "prompts": {},
+  "sessions": {
+    "s_09b847434b8cc4": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12ca3-eeb5-7c51-b80e-099a5f01a8e5",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
