@@ -71,6 +71,12 @@ jobs:
           VISUAL_REVIEW_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: node scripts/visual-review/run-fixture.mjs
 
+      - name: Run component workshop comparisons and interactions
+        if: ${{ !cancelled() }}
+        id: workshop
+        continue-on-error: true
+        run: pnpm test:workshop
+
       - name: Package current-head evidence
         if: always()
         env:
@@ -90,7 +96,7 @@ jobs:
           retention-days: 14
 
       - name: Preserve the Playwright result
-        if: always() && steps.review.outcome != 'success'
+        if: always() && (steps.review.outcome != 'success' || steps.workshop.outcome != 'success')
         run: exit 1
 
   gate:
