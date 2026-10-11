@@ -133,12 +133,12 @@ test.describe("Public website review", () => {
         await expect(reader.getByRole("status")).toHaveCount(0);
         const mediaBox = (await page.locator("[data-media-preview]").boundingBox())!;
         const toggleBox = (await page.locator("[data-media-controls]").boundingBox())!;
-        const modesBox = (await researchModes.boundingBox())!;
+        const stageBox = (await reader.locator("[data-preview-stage]").boundingBox())!;
         const enlargeBox = (await page.getByRole("button", { name: "Enlarge preview", exact: true }).boundingBox())!;
-        expect(enlargeBox.x).toBeGreaterThanOrEqual(modesBox.x + modesBox.width);
         expect(enlargeBox.width).toBe(44);
-        expect(enlargeBox.x + enlargeBox.width).toBeLessThanOrEqual(toggleBox.x + toggleBox.width + 1);
-        expect(Math.abs(enlargeBox.y + enlargeBox.height / 2 - modesBox.y - modesBox.height / 2)).toBeLessThan(2);
+        expect(enlargeBox.x + enlargeBox.width).toBeLessThanOrEqual(stageBox.x + stageBox.width);
+        expect(enlargeBox.y + enlargeBox.height).toBeLessThanOrEqual(stageBox.y + stageBox.height);
+        expect(enlargeBox.y).toBeGreaterThan(stageBox.y);
         expect(toggleBox.y).toBeGreaterThanOrEqual(mediaBox.y + mediaBox.height);
         expect(Math.abs(toggleBox.x + toggleBox.width / 2 - mediaBox.x - mediaBox.width / 2)).toBeLessThan(2);
       }

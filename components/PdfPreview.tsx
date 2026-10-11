@@ -9,6 +9,6 @@ export function PdfPreview({ title, url, filename, locale = "en" }: { title: str
   if (!/^(?:\/(?!\/)|https?:\/\/)/i.test(url)) return null;
   return <section className={styles.document} data-pdf-document>
     <h3>{title}</h3>
-    <MediaPreview title={title} locale={locale}><DocumentPreview url={url} title={title} filename={filename} locale={locale} /></MediaPreview>
+    <MediaPreview title={title} locale={locale}>{enlarge => <DocumentPreview url={url} title={title} filename={filename} locale={locale} enlarge={enlarge} />}</MediaPreview>
   </section>;
 }

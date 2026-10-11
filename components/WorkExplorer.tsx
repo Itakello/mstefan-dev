@@ -125,7 +125,7 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
   };
   const mediaControls = [screenshotUrl, selected.paperUrl, selected.slidesUrl].filter(Boolean).length > 1 && <div role="group" aria-label={copy.work.research} className="flex w-fit gap-1 rounded-lg border border-[var(--surface-border)] p-1">
           {([{ kind: "photos", url: screenshotUrl, label: copy.work.photos, Icon: Images }, { kind: "paper", url: selected.paperUrl, label: copy.work.paper, Icon: BookOpen }, { kind: "slides", url: selected.slidesUrl, label: copy.work.slides, Icon: Presentation }] as const).filter(resource => resource.url).map(resource => (
-            <button key={resource.kind} type="button" aria-pressed={activeKind === resource.kind} onClick={() => setDocumentKind(resource.kind)} className={`inline-flex items-center gap-1 rounded-md px-2 sm:gap-2 sm:px-3 py-2 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-[hsl(var(--accent))] ${activeKind === resource.kind ? "bg-[hsl(var(--accent))] text-white" : "hover:bg-black/5 dark:hover:bg-white/5"}`}><resource.Icon size={16} aria-hidden /><span>{resource.label}</span></button>
+            <button key={resource.kind} type="button" aria-pressed={activeKind === resource.kind} onClick={() => setDocumentKind(resource.kind)} className={`inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-[hsl(var(--accent))] ${activeKind === resource.kind ? "bg-[hsl(var(--accent))] text-white" : "hover:bg-black/5 dark:hover:bg-white/5"}`}><resource.Icon size={16} aria-hidden /><span>{resource.label}</span></button>
           ))}
         </div>;
   return (
@@ -198,7 +198,7 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
           </aside> : stackCatalog.message && <p role="status" className="text-xs leading-5 text-black/55 dark:text-white/55">{copy.publication.stack[stackCatalog.message]}</p>}
         </div>
         {(screenshotUrl || selected.paperUrl || selected.slidesUrl) && <section aria-label={copy.work.research} className="mt-7">
-        <MediaPreview key={selected.id} title={selected.name} locale={locale} controls={mediaControls}>
+        <MediaPreview key={selected.id} title={selected.name} locale={locale} controls={mediaControls}>{enlarge => <>
         {activeKind === "photos" && screenshotUrl && <div>
             {previewPages && (previewPages.length > 1 || selected.previewImages?.length) && <div role="group" aria-label={copy.work.previewPage} className="mb-4 text-center text-sm">
               <span aria-live="polite" aria-atomic="true">{selectedPage.label} <span className="text-[var(--page-muted)]">· {pageIndex + 1} / {previewPages.length}</span></span>
@@ -217,6 +217,7 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
               <AnimatePresence key={`${selected.id}-${mobile}`} initial={false} custom={pageDirection}>
                 <ScreenshotPreview key={screenshotUrl} url={screenshotUrl} title={selected.previewImages?.length ? `${selected.name}: ${selectedPage.label}` : `${mobile ? copy.work.mobile : copy.work.desktop}: ${copy.websites.previewTitle(selected.name)}`} mobile={mobile && !selected.previewImages?.length} unavailable={copy.websites.unavailable} direction={pageDirection} onSize={setImageRatio} />
               </AnimatePresence>
+              {enlarge}
               {previewPages && previewPages.length > 1 && <PreviewArrows previous={copy.work.previousPreview} next={copy.work.nextPreview} onPrevious={() => changePreview(-1)} onNext={() => changePreview(1)} />}
             </div>
             {!selected.previewImages?.length && <div role="group" aria-label={copy.work.previewSize} className="mt-4 ml-auto flex w-fit gap-1 rounded-lg border border-black/10 p-1 dark:border-white/15">
@@ -228,9 +229,9 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
               ))}
             </div>}
           </div>}
-        {activeKind !== "photos" && <DocumentPreview key={`${selected.id}-${activeKind}`} url={(activeKind === "slides" ? selected.slidesUrl : selected.paperUrl)!} title={selected.name} locale={locale} presentation={activeKind === "slides"} previewUrl={activeKind === "slides" ? selected.slidesPreviewUrl : undefined} />}
+        {activeKind !== "photos" && <DocumentPreview key={`${selected.id}-${activeKind}`} url={(activeKind === "slides" ? selected.slidesUrl : selected.paperUrl)!} title={selected.name} locale={locale} presentation={activeKind === "slides"} previewUrl={activeKind === "slides" ? selected.slidesPreviewUrl : undefined} enlarge={enlarge} />}
 
-        </MediaPreview>
+        </>}</MediaPreview>
         </section>}
         {selected.url && !selected.preview && <p className="mt-6 text-sm text-black/60 dark:text-white/60">{copy.websites.linkOnly}</p>}
       </section>
