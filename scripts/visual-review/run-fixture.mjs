@@ -1,7 +1,7 @@
 import { spawn } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { once } from 'node:events';
-import { appendFile, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { appendFile, cp, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -41,6 +41,11 @@ try {
   await new Promise((resolve) => probe.close(resolve));
   const base = `http://127.0.0.1:${port}`;
   environment.PLAYWRIGHT_BASE_URL = base;
+  environment.CMS_TEST_PORT = String(port);
+  if (!smokeOnly) {
+    await rm('.artifacts/playwright/master-download', { recursive: true, force: true });
+    await run(['--import', 'tsx', '--test', '--test-name-pattern=degree results are optional metadata downloads', 'tests/cms/lifecycle.test.mts']);
+  }
   if (process.env.GITHUB_ENV) await appendFile(process.env.GITHUB_ENV, `PLAYWRIGHT_BASE_URL=${base}\n`);
   if (process.env.GITHUB_STEP_SUMMARY) await appendFile(process.env.GITHUB_STEP_SUMMARY,
     `## Exact-head production fixture\n\nHead SHA: ${process.env.VISUAL_REVIEW_HEAD_SHA}\n\nDisposable SQLite, seeded bilingual copy, private fixture mode, offline integrations; live public integrations are not validated.\n`);
@@ -61,6 +66,7 @@ try {
   }
   if (!ready) throw new Error(`Production fixture startup timed out: ${serverLog}`);
   await run(['node_modules/@playwright/test/cli.js', 'test', ...(smokeOnly ? ['--project=smoke'] : ['--project=review', '--project=consistency']), ...(updateSnapshots ? ['--update-snapshots'] : [])], 300_000);
+  if (!smokeOnly) await cp('.artifacts/playwright/master-download', '.artifacts/playwright/test-results/degree-results', { recursive: true });
 } finally {
   if (server && server.exitCode === null) {
     const exited = once(server, 'exit');
