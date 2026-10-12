@@ -1,7 +1,7 @@
-import { spawn } from 'node:child_process';
+import { execFileSync, spawn } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { once } from 'node:events';
-import { appendFile, cp, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { appendFile, cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -10,6 +10,7 @@ const dataDir = await mkdtemp(path.join(tmpdir(), 'payload-visual-review-'));
 const smokeOnly = process.argv.includes('--smoke');
 const reuseBuild = process.argv.includes('--reuse-build');
 const updateSnapshots = process.argv.includes('--update-snapshots');
+const nativeFavicon = process.env.VISUAL_REVIEW_NATIVE_FAVICON === 'true';
 if (process.argv.slice(2).some((arg) => !['--smoke', '--reuse-build', '--update-snapshots'].includes(arg)) || (updateSnapshots && smokeOnly)) {
   throw new Error('Usage: run-fixture.mjs [--smoke] [--reuse-build] [--update-snapshots]');
 }
@@ -34,6 +35,11 @@ try {
   await run(['node_modules/payload/bin.js', 'migrate']);
   await run(['node_modules/payload/bin.js', 'generate:types']);
   if (!reuseBuild) await run(['node_modules/next/dist/bin/next', 'build', '--webpack']);
+  if (nativeFavicon && !reuseBuild) {
+    const headSha = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
+    if (headSha !== process.env.VISUAL_REVIEW_HEAD_SHA) throw new Error('Native favicon source head differs from the requested review');
+    await writeFile('.next/visual-review-build.json', JSON.stringify({ headSha, buildId: (await readFile('.next/BUILD_ID', 'utf8')).trim() }));
+  }
   const probe = createServer();
   probe.listen(0, '127.0.0.1');
   await once(probe, 'listening');
@@ -67,6 +73,7 @@ try {
   if (!ready) throw new Error(`Production fixture startup timed out: ${serverLog}`);
   await run(['node_modules/@playwright/test/cli.js', 'test', ...(smokeOnly ? ['--project=smoke'] : ['--project=review', '--project=consistency']), ...(updateSnapshots ? ['--update-snapshots'] : [])], 300_000);
   if (!smokeOnly) await cp('.artifacts/playwright/master-download', '.artifacts/playwright/test-results/degree-results', { recursive: true });
+  if (nativeFavicon) await run(['--import', 'tsx', 'scripts/visual-review/native-favicon.mjs'], 90_000);
 } finally {
   if (server && server.exitCode === null) {
     const exited = once(server, 'exit');

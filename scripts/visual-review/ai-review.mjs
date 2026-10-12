@@ -51,7 +51,7 @@ export function verifyRevision(pr, run, repository) {
 }
 export function verifyEvidence(metadata, names, pr, run, repository, {workshopRequired = false} = {}) {
   ensure(metadata.schemaVersion === 1 && metadata.repository === repository && String(metadata.pullRequest) === String(pr.number) && metadata.headSha === pr.head.sha && metadata.baseSha === pr.base.sha && metadata.workflowRun === `https://github.com/${repository}/actions/runs/${run.id}`, 'Artifact metadata mismatch');
-  ensure(names.length <= 100 && new Set(names).size === names.length, 'Image count or duplicate names');
+  ensure(names.length <= 102 && new Set(names).size === names.length, 'Image count or duplicate names');
   for (const name of REQUIRED) ensure(names.includes(name), `Missing current capture: ${name}`);
   ensure(Array.isArray(metadata.captures) && metadata.captures.length === names.length && metadata.captures.every(name => names.includes(name)), 'Incomplete capture manifest');
   for (const name of names) ensure(/^[a-z0-9-]+\.png$/.test(name), 'Invalid capture name');
@@ -247,7 +247,8 @@ async function settledCost(github, run, job, paid, reserved, trustedSha) {
   let producerTrustSha = trustedSha;
   // Preserve completed reviewed recoveries' provenance after their squash merges and policy changes.
   const baseline = run.head_sha === 'bb6af4b2b143abcea1582badd84b4732206e4566' && run.head_branch === 'codex/visual-usage-settlement' ? '9b96c768a2a893e490e79543cb1955ccd59a5aec'
-    : run.head_sha === 'a5f7d5c0d453ee73b0832944d52bb1e205a3d2fc' && run.head_branch === 'codex/visual-review-no-daily-cap' ? 'fd275d216d5c5c8185d99b293932aeeb1662180d' : undefined;
+    : run.head_sha === 'a5f7d5c0d453ee73b0832944d52bb1e205a3d2fc' && run.head_branch === 'codex/visual-review-no-daily-cap' ? 'fd275d216d5c5c8185d99b293932aeeb1662180d'
+    : run.head_sha === 'e7afed453384dec632250d7677ad8f24a3ca02e4' && run.head_branch === 'codex/restore-daily-visual-budget' ? '89f998809fb39e92d081629ec7af777f1c7a31bd' : undefined;
   if (baseline) {
     const lineage = await github(`/compare/${baseline}...${trustedSha}`);
     ensure(['ahead','identical'].includes(lineage.status) && lineage.merge_base_commit?.sha === baseline, 'Unapproved historical usage anchor');
@@ -419,7 +420,7 @@ export async function main({env = process.env, fetcher = fetch, gitDiff = native
       pr = await github(`/pulls/${pr.number}`); ensure(currentRevision(pr,repository,sha,base),'Revisions changed during review');
       await status(result.findings.length ? 'failure' : 'success',result.findings.length ? `${result.findings.length} proven design violations` : `complete review: ${prepared.names.length} captures`);
       if (env.GITHUB_STEP_SUMMARY) writeFileSync(env.GITHUB_STEP_SUMMARY,`Validated review ${sha} against ${base}\n\n\`\`\`json\n${JSON.stringify(result,null,2)}\n\`\`\`\n`);
-      return;
+      return result.findings.length === 0;
     }
     const artifacts = await github(`/actions/runs/${run.id}/artifacts?per_page=100`);
     ensure(artifacts.total_count === artifacts.artifacts.length,'Artifact list truncated');
@@ -482,5 +483,5 @@ export function publishUsage(env = process.env) {
   console.log(USAGE_PREFIX+JSON.stringify({...record,response:actual}));
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  Promise.resolve().then(() => process.argv.includes('--settle') ? publishUsage() : main({invalidate:process.argv.includes('--invalidate'),request:process.argv.includes('--request')})).catch(error => { console.error(error.message); process.exitCode=1; });
+  Promise.resolve().then(() => process.argv.includes('--settle') ? publishUsage() : main({invalidate:process.argv.includes('--invalidate'),request:process.argv.includes('--request')})).then(approved => { if (approved === false) process.exitCode=1; }).catch(error => { console.error(error.message); process.exitCode=1; });
 }

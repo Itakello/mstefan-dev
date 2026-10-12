@@ -20,7 +20,7 @@ const stack: StackEntry[] = [{ name: "TypeScript", category: "Language", iconKey
 
 test("publishes one validated Projects and Stack snapshot", async () => {
   let validated: readonly StackEntry[] | undefined;
-  const snapshot = await loadNotionPublicationSnapshot({
+  const snapshot = await refreshNotionPublicationSnapshot({
     fetchProjects: async () => projects,
     fetchStack: async () => stack,
     validateIcons: async (entries) => { validated = entries; },
@@ -41,12 +41,10 @@ test("rejects the entire snapshot when either Notion source is unavailable", asy
   await assert.rejects(loadNotionPublicationSnapshot({
     fetchProjects: async () => null,
     fetchStack: async () => stack,
-    validateIcons: async () => {},
   }), /Projects source is unavailable/);
   await assert.rejects(loadNotionPublicationSnapshot({
     fetchProjects: async () => projects,
     fetchStack: async () => null,
-    validateIcons: async () => {},
   }), /Stack source is unavailable or empty/);
 });
 
@@ -54,9 +52,8 @@ test("does not return the snapshot when project-stack coverage or icon validatio
   await assert.rejects(loadNotionPublicationSnapshot({
     fetchProjects: async () => [{ ...projects[0], tags: ["Unlisted"] }],
     fetchStack: async () => stack,
-    validateIcons: async () => {},
   }), /missing Stack entries/);
-  await assert.rejects(loadNotionPublicationSnapshot({
+  await assert.rejects(refreshNotionPublicationSnapshot({
     fetchProjects: async () => projects,
     fetchStack: async () => stack,
     validateIcons: async () => { throw new Error("icon unavailable"); },
@@ -67,7 +64,6 @@ test("allows an empty approved Projects result so withdrawals are published", as
   const snapshot = await loadNotionPublicationSnapshot({
     fetchProjects: async () => [],
     fetchStack: async () => stack,
-    validateIcons: async () => {},
   });
 
   assert.deepEqual(snapshot.projects, []);
