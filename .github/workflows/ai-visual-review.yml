@@ -11,7 +11,7 @@ on:
         required: true
         type: string
       recovery:
-        description: Expiring owner-only review bootstrap for daily-cap removal PR 140
+        description: Expiring owner-only acceptance bootstrap for daily-budget restoration PR 143
         required: false
         default: false
         type: boolean
