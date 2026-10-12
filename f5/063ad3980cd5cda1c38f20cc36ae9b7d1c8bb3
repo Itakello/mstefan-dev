@@ -1,0 +1,30 @@
+tests/ai-visual-review.test.mjs
+  s_ca9b05cd06e974::t_c67d0221ed6ad1 835
+  s_ca9b05cd06e974::t_1f0adfbfc0343b 832-834
+  s_ca9b05cd06e974::t_76e2676be995fa 826,828,831,844,853
+tests/ai-visual-recovery.test.mjs
+  s_ca9b05cd06e974::t_97a25d41a9295e 51,57
+  s_ca9b05cd06e974::t_11c7e224560efa 10,12-13,23,25,58,63,72-74,86,95-96
+.github/workflows/ai-visual-review.yml
+  s_ca9b05cd06e974::t_3a7d7abd10724f 14
+docs/automation/ai-visual-review.md
+  s_ca9b05cd06e974::t_65d4cb4f626d14 15,17
+scripts/visual-review/recovery.mjs
+  s_ca9b05cd06e974::t_cc66bba495d969 6-8,16,31
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f5063ad3980cd5cda1c38f20cc36ae9b7d1c8bb3",
+  "prompts": {},
+  "sessions": {
+    "s_ca9b05cd06e974": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a125e2-8a12-72c0-9b0f-65ad915684a2",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
