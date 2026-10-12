@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { after, before, test } from 'node:test';
 import { spawn, spawnSync, type ChildProcess } from 'node:child_process';
-import { mkdir, mkdtemp, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { randomBytes } from 'node:crypto';
@@ -680,6 +680,12 @@ test('degree results are optional metadata downloads while other attachments ret
   const bachelorUpload = await fetch(`${base}/api/documents`, { method: 'POST', headers: { Cookie: cookie }, body: form });
   assert.equal(bachelorUpload.status, 201);
   const bachelorFile = (await bachelorUpload.json()).doc;
+  const photoForm = new FormData();
+  photoForm.set('file', new Blob([new Uint8Array(await readFile('public/profile-photo.jpg'))], { type: 'image/jpeg' }), 'bachelor-portrait-fixture.jpg');
+  photoForm.set('_payload', JSON.stringify({ alt: 'Document-backed degree portrait fixture' }));
+  const photoUpload = await fetch(`${base}/api/media`, { method: 'POST', headers: { Cookie: cookie }, body: photoForm });
+  assert.equal(photoUpload.status, 201);
+  const bachelorPhoto = (await photoUpload.json()).doc;
   const browser = await chromium.launch({ headless: true });
   try {
     const page = await browser.newPage();
@@ -689,7 +695,7 @@ test('degree results are optional metadata downloads while other attachments ret
       const bachelorTitle = locale === 'it' ? 'Risultati degli esami triennali' : 'Bachelor’s exam results';
       const jobs = [
         { branchName: 'education/trento-master', company: 'Università di Trento', role: 'Artificial Intelligence', summary: 'Master’s degree', color: '#1267ab', documents: [{ title, file: file.id }] },
-        { branchName: 'education/trento-bachelor', company: 'Università di Trento', role: 'Computer Science', color: '#1267ab', documents: [{ title: bachelorTitle, file: bachelorFile.id }] },
+        { branchName: 'education/trento-bachelor', company: 'Università di Trento', role: 'Computer Science', color: '#1267ab', photo: bachelorPhoto.id, documents: [{ title: bachelorTitle, file: bachelorFile.id }] },
         { branchName: 'research/thesis', company: 'Research', role: 'Researcher', color: '#12abcd', documents: [{ title: 'Research attachment', file: file.id }] },
       ];
       try {
@@ -714,6 +720,11 @@ test('degree results are optional metadata downloads while other attachments ret
               if (dark !== (theme === 'dark')) await page.getByRole('button', { name: locale === 'it' ? 'Cambia tema' : 'Toggle theme' }).click();
               await expect(page.locator('html')).toHaveClass(theme === 'dark' ? /\bdark\b/ : /^(?!.*\bdark\b)/);
               await expect(link).toBeVisible();
+              if (degree === 'bachelor') {
+                const photo = page.locator('#career-story img');
+                await expect(photo).toHaveAttribute('src', bachelorPhoto.url);
+                await expect.poll(() => photo.evaluate((image) => image instanceof HTMLImageElement && image.complete && image.naturalWidth > 0)).toBe(true);
+              }
               const metadataBox = await page.locator('#career-story article p', { has: link }).boundingBox();
               const buttonBox = await link.boundingBox();
               assert.ok(metadataBox && buttonBox && Math.abs(metadataBox.x + metadataBox.width - buttonBox.x - buttonBox.width) < 1, 'Results button must align with the right edge of the metadata');
