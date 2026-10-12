@@ -29,6 +29,7 @@ async function run(args, timeout = 600_000) {
   if (code !== 0) throw new Error(`${args[0]} failed (${signal ?? code}).`);
 }
 try {
+  await rm('.next/cache/fetch-cache', { recursive: true, force: true });
   await writeFile(environment.VISUAL_NOTION_FIXTURE_STATE, 'multiple');
   // Payload's onInit seeds the checked-in bilingual copy after migrations.
   await run(['node_modules/payload/bin.js', 'migrate']);
