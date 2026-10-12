@@ -27,6 +27,7 @@ export function Header({ locale }: { locale: Locale }) {
     const nextDark = !document.documentElement.classList.contains("dark");
     setIsDark(nextDark);
     document.documentElement.classList.toggle("dark", nextDark);
+    document.querySelector('link[rel="icon"]')?.setAttribute("href", nextDark ? "/icon.png" : "/icon-light.png");
     try {
       localStorage.setItem("theme", nextDark ? "dark" : "light");
     } catch {}
@@ -35,11 +36,11 @@ export function Header({ locale }: { locale: Locale }) {
 
   return (
     <header className="relative flex items-center justify-between pt-8">
-      <link rel="icon" href={isDark ? "/icon.png" : "/icon-light.png"} />
       <Link href={localizedPath(locale, "/")} aria-label={copy.header.homeLabel} className="group min-w-0 no-underline">
         <div className="flex min-w-0 items-center gap-3">
-          <Image src="/icon-light.png" alt="" width={44} height={44} className="size-11 shrink-0 dark:hidden" priority unoptimized />
-          <Image src="/icon.png" alt="" width={44} height={44} className="hidden size-11 shrink-0 dark:block" priority unoptimized />
+          <Image src="/icon-light.png" alt="" width={44} height={44} className="header-logo-image size-11 shrink-0 dark:hidden" priority unoptimized />
+          <Image src="/icon.png" alt="" width={44} height={44} className="header-logo-image hidden size-11 shrink-0 dark:block" priority unoptimized />
+          <span aria-hidden="true" className="header-mark-forced hidden size-11 shrink-0" />
           <div className="truncate font-semibold tracking-tight max-sm:hidden">Massimo Stefan</div>
         </div>
       </Link>

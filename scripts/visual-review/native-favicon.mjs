@@ -53,6 +53,14 @@ for (const theme of ['light', 'dark']) {
     await session.send('Browser.setWindowBounds', { windowId: tabs[0].windowId, bounds: { left: 0, top: 0, width: 1280, height: 900, windowState: 'normal' } });
     const { bounds } = await session.send('Browser.getWindowBounds', { windowId: tabs[0].windowId });
     assert.deepEqual({ left: bounds.left, top: bounds.top, width: bounds.width, height: bounds.height }, { left: 0, top: 0, width: 1280, height: 900 });
+    const forcedPalette = theme === 'dark' ? 'light' : 'dark';
+    await active.emulateMedia({ forcedColors: 'active', colorScheme: forcedPalette });
+    await expect(active.locator('header img:visible')).toHaveCount(0);
+    await expect(active.locator('.header-mark-forced')).toBeVisible();
+    assert.ok(await active.locator('.header-mark-forced').evaluate(element => {
+      const style = getComputedStyle(element);
+      return style.backgroundColor === getComputedStyle(document.body).color && style.maskImage.includes('/icon.png');
+    }), 'Forced-color mark must use the system text color and exact logo silhouette');
     await active.evaluate(async () => {
       await document.fonts.ready;
       await Promise.all([...document.images].map(image => image.decode()));
@@ -64,7 +72,7 @@ for (const theme of ['light', 'dark']) {
     assert.equal(png.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
     assert.equal(png.readUInt32BE(16), 1280);
     assert.equal(png.readUInt32BE(20), 900);
-    proof.captures.push({ file, theme, tabs, sha256: createHash('sha256').update(png).digest('hex') });
+    proof.captures.push({ file, theme, tabs, forcedPalette, sha256: createHash('sha256').update(png).digest('hex') });
   } finally {
     await browser.close();
   }
