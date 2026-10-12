@@ -1,0 +1,73 @@
+.github/workflows/visual-review.yml
+  s_f792a2a2b302b5::t_0d6ebda3980903 22,73-80
+README.md
+  s_f792a2a2b302b5::t_78b1e3aa58fb28 93,95,97
+app/api/webhooks/notion/route.ts
+  s_f792a2a2b302b5::t_d4bec06deda9bc 1,12
+app/globals.css
+  s_f792a2a2b302b5::t_30a2c1864807d8 24-36
+components/Header.tsx
+  s_f792a2a2b302b5::t_ba3a9523a3561d 43,60-62
+docs/automation/ai-visual-review.md
+  s_f792a2a2b302b5::t_b56d1c0ffb4a5e 19
+e2e/design.consistency.spec.ts
+  s_f792a2a2b302b5::t_41ac49b11fabb9 5
+e2e/theme-icons.smoke.spec.ts
+  s_f792a2a2b302b5::t_5b54359ab2507e 3-31
+e2e/visual-ready.ts
+  s_f792a2a2b302b5::t_0db66a75134201 1-22
+lib/notionPublicationSnapshot.ts
+  s_f792a2a2b302b5::t_780717c7fe633b 21-24,32-33,40,42,45,49-50,52,63-71,79-80
+lib/theme.ts
+  s_f792a2a2b302b5::t_fe528e2628d325 11-14
+lib/websiteStack.ts
+  s_f792a2a2b302b5::t_3e60c9243452ec 5,73,77-78,123
+scripts/visual-review/ai-review.mjs
+  s_f792a2a2b302b5::t_a8274aaa4fb98b 54,250-251,423,486
+scripts/visual-review/classify.d.mts
+  s_f792a2a2b302b5::t_69b2cbb7603a4f 6
+scripts/visual-review/classify.mjs
+  s_f792a2a2b302b5::t_0c5c4fe5f6b0c5 45-49,57,65,76,95
+scripts/visual-review/native-favicon.mjs
+  s_f792a2a2b302b5::t_9e058457f56e6d 1-83
+scripts/visual-review/package-evidence.mjs
+  s_f792a2a2b302b5::t_a2666d158db1d6 41-42
+scripts/visual-review/read-evidence.py
+  s_f792a2a2b302b5::t_fbdfe350deff1a 30
+scripts/visual-review/run-fixture.mjs
+  s_f792a2a2b302b5::t_0ebbcb2e7b93e7 1,4,13,38-42,76
+tests/ai-visual-review.test.mjs
+  s_f792a2a2b302b5::t_56f43da9614b96 32-59,580,601,605-606,994
+tests/cms/lifecycle.test.mts
+  s_f792a2a2b302b5::t_527bae83c43113 12-13,680-684,727-729,732
+tests/cms/notion-publication-fixture.mjs
+  s_f792a2a2b302b5::t_4a439049aa37fe 31,42,57-61
+tests/cms/offline-fetch.mjs
+  s_f792a2a2b302b5::t_6158d5eef27d2a 13-14
+tests/cms/publication.test.mts
+  s_f792a2a2b302b5::t_6dfaa26c41c77d 98-102,109,326-336,339-340,343
+tests/notion-publication-cache.test.ts
+  s_f792a2a2b302b5::t_dc0fe02ffc0387 1-48
+tests/notion-publication-snapshot.test.ts
+  s_f792a2a2b302b5::t_affd1475c750c8 23,56
+tests/theme-init.test.ts
+  s_f792a2a2b302b5::t_22991ef84bf7cd 31-32,36-45,71-73
+tests/visual-review.test.ts
+  s_f792a2a2b302b5::t_6c39396114c8fa 38-46
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2c9887331227a7c601a46f1c38831374c9b899f5",
+  "prompts": {},
+  "sessions": {
+    "s_f792a2a2b302b5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12cbb-dc6f-7ca0-a58e-4b0d809a1763",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
