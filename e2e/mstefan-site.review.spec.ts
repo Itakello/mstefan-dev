@@ -141,6 +141,19 @@ test.describe("Public website review", () => {
     await researchModes.getByRole("button", { name: "Paper", exact: true }).click();
     await expect(reader.getByRole("status")).toHaveCount(0);
     await expect(reader.getByRole("link", { name: "Open PDF", exact: true })).toHaveAttribute("href", "https://arxiv.org/pdf/2410.07109");
+    await reader.locator("canvas").evaluate((canvas: HTMLCanvasElement) => {
+      const getContext = canvas.getContext.bind(canvas);
+      canvas.getContext = () => {
+        canvas.getContext = getContext;
+        throw new Error("Synthetic canvas render failure");
+      };
+    });
+    await reader.getByRole("button", { name: "Next page" }).click();
+    await expect(reader.getByRole("status")).toContainText("Preview unavailable.");
+    await expect(reader.getByRole("button", { name: "Previous page" })).toBeEnabled();
+    await reader.getByRole("button", { name: "Previous page" }).click();
+    await expect(reader.getByRole("status")).toHaveCount(0);
+    await expect(reader.getByText("Research paper first page", { exact: true })).toBeVisible();
     await reader.getByRole("button", { name: "Next page" }).click();
     await expect(reader.getByRole("img", { name: "LLM Interaction Simulator · page 2", exact: true })).toBeVisible();
     await expect(reader.getByRole("status")).toHaveCount(0);

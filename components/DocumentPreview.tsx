@@ -96,14 +96,14 @@ export function DocumentPreview({ url, title, locale, filename, presentation = f
   return <section data-pdf-preview aria-label={`${title}: ${italian ? "Lettore documenti" : "Document reader"}`} className="overflow-hidden rounded-xl border border-black/10 dark:border-white/15">
     <div className="flex flex-wrap items-center justify-between gap-2 border-b border-black/10 px-2 py-2 text-xs dark:border-white/15">
       <div className="flex items-center gap-1">
-        <button type="button" className={control} disabled={status !== "ready" || page === 1} aria-label={italian ? "Pagina precedente" : "Previous page"} onClick={() => setPage(page - 1)}><ChevronLeft size={16} /></button>
+        <button type="button" className={control} disabled={status === "loading" || !document || page === 1} aria-label={italian ? "Pagina precedente" : "Previous page"} onClick={() => setPage(page - 1)}><ChevronLeft size={16} /></button>
         <span aria-live="polite">{page} / {document?.numPages ?? "…"}</span>
-        <button type="button" className={control} disabled={status !== "ready" || !document || page === document.numPages} aria-label={italian ? "Pagina successiva" : "Next page"} onClick={() => setPage(page + 1)}><ChevronRight size={16} /></button>
+        <button type="button" className={control} disabled={status === "loading" || !document || page === document.numPages} aria-label={italian ? "Pagina successiva" : "Next page"} onClick={() => setPage(page + 1)}><ChevronRight size={16} /></button>
       </div>
       <div className="flex items-center gap-1">
-        <button type="button" className={control} disabled={status !== "ready" || zoom <= 1} aria-label={italian ? "Riduci" : "Zoom out"} onClick={() => setZoom(value => Math.max(1, value - 0.25))}><Minus size={16} /></button>
+        <button type="button" className={control} disabled={status === "loading" || !document || zoom <= 1} aria-label={italian ? "Riduci" : "Zoom out"} onClick={() => setZoom(value => Math.max(1, value - 0.25))}><Minus size={16} /></button>
         <span>{Math.round(zoom * 100)}%</span>
-        <button type="button" className={control} disabled={status !== "ready" || zoom >= 2} aria-label={italian ? "Ingrandisci" : "Zoom in"} onClick={() => setZoom(value => Math.min(2, value + 0.25))}><Plus size={16} /></button>
+        <button type="button" className={control} disabled={status === "loading" || !document || zoom >= 2} aria-label={italian ? "Ingrandisci" : "Zoom in"} onClick={() => setZoom(value => Math.min(2, value + 0.25))}><Plus size={16} /></button>
         <a href={resolvedUrl} download={filename || true} className={`${control} gap-1`}>{italian ? "Scarica PDF" : "Download PDF"}<Download size={14} /></a>
         <a href={resolvedUrl} target="_blank" rel="noreferrer" className={`${control} gap-1`}>{italian ? "Apri PDF" : "Open PDF"}<ExternalLink size={14} /></a>
       </div>
