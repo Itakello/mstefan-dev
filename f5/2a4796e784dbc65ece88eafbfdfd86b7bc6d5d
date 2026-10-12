@@ -1,0 +1,32 @@
+tests/exploring-ui-review.test.mjs
+  s_9187b460bc5f15::t_86f1161d2c710c 1-35
+scripts/visual-review/run-fixture.mjs
+  s_9187b460bc5f15::t_8f5b618f55c59e 102,128
+  s_9187b460bc5f15::t_e8048551a2a2b1 8-9,12-15,17-20,23-24,28-29,37,70-71,74-77,86,110,122-125
+  s_9187b460bc5f15::t_4bcf18169b6a20 10,16,21,26-27,31,111-116,120-121
+  s_9187b460bc5f15::t_6d4632a1635718 41-54,56,58,60-61,101,117-119,138-140
+scripts/visual-review/explore.mjs
+  s_9187b460bc5f15::t_86f1161d2c710c 1-130
+docs/automation/exploring-ui-review.md
+  s_9187b460bc5f15::t_be70b7c58e9f3a 1-14
+package.json
+  s_9187b460bc5f15::t_b74e7f0eeb4c79 23-24,50
+pnpm-lock.yaml
+  s_9187b460bc5f15::t_b416eb5a5a6f53 84-86,1373-1377,3167-3171,3177-3181,5061-5065,6964-6965,6972-6975
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f52a4796e784dbc65ece88eafbfdfd86b7bc6d5d",
+  "prompts": {},
+  "sessions": {
+    "s_9187b460bc5f15": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1322d-99dc-7371-ad0a-de21c7f04cb8",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
