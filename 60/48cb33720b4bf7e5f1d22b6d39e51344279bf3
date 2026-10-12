@@ -1,0 +1,29 @@
+deploy/pr132-followup/offline_migration_proof.mts
+  s_edc3df130cc253::t_401be339d21b8a 65,79,81-82,96-113,182-183,190-192,196-199,210,217
+deploy/pr132-followup/offline_rollback_proof.mts
+  s_edc3df130cc253::t_379572c4ce3a9e 3-4,13,15-16,33
+deploy/pr132-followup/private_fixture.py
+  s_edc3df130cc253::t_acf105037e361d 25,28,173,209-211,252,268
+deploy/pr132-followup/test_offline_migration_proof.mts
+  s_edc3df130cc253::t_392386ad05b045 60-106
+deploy/pr132-followup/test_private_fixture.py
+  s_edc3df130cc253::t_ebd83b686b307f 16,103
+migrations/20261011_132233_shared_career_media.ts
+  s_edc3df130cc253::t_e2deabf941c6fa 1-5,10-18,116-152
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6048cb33720b4bf7e5f1d22b6d39e51344279bf3",
+  "prompts": {},
+  "sessions": {
+    "s_edc3df130cc253": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12b0b-aaa6-7d90-aa4e-5bcfe9db3ea5",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
