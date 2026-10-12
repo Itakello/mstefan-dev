@@ -1,0 +1,44 @@
+tests/cms/migration.test.mts
+  s_b1329ee52d7897::t_4f09b28376958e 47
+migrations/index.ts
+  s_b1329ee52d7897::t_4f09b28376958e 8,44-49
+components/CareerGraph.tsx
+  s_b1329ee52d7897::t_cfa19db516f489 9,112
+  s_b1329ee52d7897::t_cf686d396f6fc2 13-14
+workshop/AboutContent.stories.tsx
+  s_b1329ee52d7897::t_cfa19db516f489 9-10
+e2e/components.workshop.spec.ts
+  s_b1329ee52d7897::t_4f09b28376958e 44-48
+components/cms/AboutContent.tsx
+  s_b1329ee52d7897::t_cfa19db516f489 12,39-43
+lib/career-timeline.ts
+  s_b1329ee52d7897::t_cfa19db516f489 14-25
+tests/career-timeline.test.ts
+  s_b1329ee52d7897::t_4f09b28376958e 453-464
+tests/cms/career.test.mts
+  s_b1329ee52d7897::t_4f09b28376958e 50,69-71
+migrations/20261012_224409_experience_metadata.json
+  s_b1329ee52d7897::t_4f09b28376958e 1-2630
+tests/cms/lifecycle.test.mts
+  s_b1329ee52d7897::t_4f09b28376958e 532,602
+payload.config.ts
+  s_b1329ee52d7897::t_cfa19db516f489 154-155
+migrations/20261012_224409_experience_metadata.ts
+  s_b1329ee52d7897::t_4f09b28376958e 1-15
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d18caed66f8062ae750c9e906916b6b907e7ef3b",
+  "prompts": {},
+  "sessions": {
+    "s_b1329ee52d7897": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a13248-670c-7541-a891-01e97bc48447",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
