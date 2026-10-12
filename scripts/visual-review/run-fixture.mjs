@@ -67,7 +67,7 @@ try {
   }
   if (!ready) throw new Error(`Production fixture startup timed out: ${serverLog}`);
   await run(['node_modules/@playwright/test/cli.js', 'test', ...(smokeOnly ? ['--project=smoke'] : ['--project=review', '--project=consistency']), ...(updateSnapshots ? ['--update-snapshots'] : [])], 300_000);
-  if (!smokeOnly) await cp('.artifacts/playwright/master-download', '.artifacts/playwright/test-results/degree-results', { recursive: true });
+  if (!smokeOnly) await cp('.artifacts/playwright/master-download', '.artifacts/playwright/degree-results', { recursive: true });
 } finally {
   if (server && server.exitCode === null) {
     const exited = once(server, 'exit');
