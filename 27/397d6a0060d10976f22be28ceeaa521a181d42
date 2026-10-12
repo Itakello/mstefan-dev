@@ -1,0 +1,48 @@
+components/DocumentPreview.tsx
+  s_a3d57fd6983d88::t_e8a8097274fdcc 24-28
+  s_a3d57fd6983d88::t_1d734bf10a384d 7,14,29
+lib/projectPublication.ts
+  s_a3d57fd6983d88::t_1d734bf10a384d 43-46,88,99
+tests/document-download.test.ts
+  s_a3d57fd6983d88::t_e8a8097274fdcc 26
+  s_a3d57fd6983d88::t_117ff9f18c4d9e 14,20-25,27-36
+  s_ca9b05cd06e974::t_51cb2c08631dd5 37-38
+app/[locale]/page.tsx
+  s_a3d57fd6983d88::t_1d734bf10a384d 15,46,48
+lib/i18n/copy.ts
+  s_a3d57fd6983d88::t_1a0e2e9e100c3a 73,168,269
+e2e/mstefan-site.review.spec.ts
+  s_a3d57fd6983d88::t_c5b5a87a50647f 42
+tests/projects-publication.test.ts
+  s_a3d57fd6983d88::t_117ff9f18c4d9e 6,24-31
+  s_a3d57fd6983d88::t_ef78e8c6b09b90 32
+tests/work-media.test.ts
+  s_a3d57fd6983d88::t_117ff9f18c4d9e 1-9,11,13-16
+  s_a3d57fd6983d88::t_c5b5a87a50647f 10,12
+components/WorkExplorer.tsx
+  s_a3d57fd6983d88::t_1d734bf10a384d 203
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "27397d6a0060d10976f22be28ceeaa521a181d42",
+  "prompts": {},
+  "sessions": {
+    "s_a3d57fd6983d88": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a125dc-d51e-7583-9ad7-4135793b24dc",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    },
+    "s_ca9b05cd06e974": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a125e2-8a12-72c0-9b0f-65ad915684a2",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
