@@ -1,0 +1,31 @@
+app/globals.css
+  s_f792a2a2b302b5::t_6b65eb4e624dc1 24-25,27-36
+  s_f792a2a2b302b5::t_dcc25a38dcfdc8 26
+e2e/theme-icons.smoke.spec.ts
+  s_f792a2a2b302b5::t_3b29512f560bd7 16,28
+  s_f792a2a2b302b5::t_6099c045e44a2d 3-15,17-27,29-31
+tests/theme-init.test.ts
+  s_f792a2a2b302b5::t_6b65eb4e624dc1 31-32,36-45,71-73
+lib/theme.ts
+  s_f792a2a2b302b5::t_6b65eb4e624dc1 11-14
+scripts/visual-review/native-favicon.mjs
+  s_f792a2a2b302b5::t_3b29512f560bd7 56-63,75
+components/Header.tsx
+  s_f792a2a2b302b5::t_6b65eb4e624dc1 30,41-43
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e50e6152454585484461d586f704e9fc0522a32b",
+  "prompts": {},
+  "sessions": {
+    "s_f792a2a2b302b5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12cbb-dc6f-7ca0-a58e-4b0d809a1763",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
