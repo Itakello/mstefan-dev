@@ -1,0 +1,19 @@
+README.md
+  s_09b847434b8cc4::t_34c116f5e20274 95,97
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4e7434bc70adb5678977c39d2528d375cb1fa46a",
+  "prompts": {},
+  "sessions": {
+    "s_09b847434b8cc4": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12ca3-eeb5-7c51-b80e-099a5f01a8e5",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
