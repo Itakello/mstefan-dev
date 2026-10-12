@@ -1,0 +1,33 @@
+scripts/visual-review/run-fixture.mjs
+  s_f792a2a2b302b5::t_54062b255d5d36 1,4,13,38-42,76
+scripts/visual-review/package-evidence.mjs
+  s_f792a2a2b302b5::t_54062b255d5d36 41-42
+scripts/visual-review/native-favicon.mjs
+  s_f792a2a2b302b5::t_c423d489da3ec5 1-72
+tests/visual-review.test.ts
+  s_f792a2a2b302b5::t_54062b255d5d36 38-46
+.github/workflows/visual-review.yml
+  s_f792a2a2b302b5::t_54062b255d5d36 22,73-80
+scripts/visual-review/classify.d.mts
+  s_f792a2a2b302b5::t_54062b255d5d36 6
+scripts/visual-review/classify.mjs
+  s_f792a2a2b302b5::t_54062b255d5d36 45-49,57,65,76,95
+tests/cms/lifecycle.test.mts
+  s_f792a2a2b302b5::t_176493eb66cd09 716-717,720
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3c7bf501879abf2a871c91335c7df38458dbb9be",
+  "prompts": {},
+  "sessions": {
+    "s_f792a2a2b302b5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12cbb-dc6f-7ca0-a58e-4b0d809a1763",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
