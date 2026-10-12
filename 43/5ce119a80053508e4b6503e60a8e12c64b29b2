@@ -1,0 +1,42 @@
+e2e/components.workshop.spec.ts
+  s_3ab581f7ad8edf::t_20d8bd138e02dd 2,29,31,44-48
+  s_3ab581f7ad8edf::t_da631a996ee696 12
+  s_3ab581f7ad8edf::t_43af3706256f64 32
+components/cms/AboutContent.tsx
+  s_3ab581f7ad8edf::t_cf29d2445db972 19-30,65
+components/DocumentPreview.tsx
+  s_3ab581f7ad8edf::t_9cfe8cb3214a92 66,111,114
+  s_3ab581f7ad8edf::t_c467496f52e33b 99,101,104,106,112
+workshop/AboutContent.stories.tsx
+  s_3ab581f7ad8edf::t_20d8bd138e02dd 26-28,30,32-34
+  s_3ab581f7ad8edf::t_8d3605f84dcf49 29
+  s_3ab581f7ad8edf::t_e0079b881c1c2c 31
+tests/cms/lifecycle.test.mts
+  s_3ab581f7ad8edf::t_ec54ff7ff71594 530,542,627,629-632,634,637-640,642
+  s_3ab581f7ad8edf::t_ddca73fb449354 633,635-636,641
+  s_3ab581f7ad8edf::t_c0ef7db660fa28 505-510,519-529,531-537
+  s_3ab581f7ad8edf::t_d3d544102883be 499,571,617
+  s_3ab581f7ad8edf::t_da631a996ee696 512
+components/cms/AboutContent.module.css
+  s_3ab581f7ad8edf::t_cf29d2445db972 9-10
+scripts/visual-review/run-workshop.mjs
+  s_3ab581f7ad8edf::t_ddca73fb449354 20
+e2e/mstefan-site.review.spec.ts
+  s_3ab581f7ad8edf::t_cf29d2445db972 165
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "435ce119a80053508e4b6503e60a8e12c64b29b2",
+  "prompts": {},
+  "sessions": {
+    "s_3ab581f7ad8edf": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1313e-f515-73e0-98b1-190bff959658",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
