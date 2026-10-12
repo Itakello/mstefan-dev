@@ -41,7 +41,7 @@ const stackRows = [['TypeScript', 'Language', 'logos:typescript-icon'], ['Python
 function fixturePayload() {
   const mode = readFileSync(process.env.VISUAL_NOTION_FIXTURE_STATE, 'utf8').trim();
   if (mode === 'error') return { status: 503, body: { object: 'error', code: 'service_unavailable', message: 'Synthetic publication outage' } };
-  if (!['multiple', 'one', 'empty', 'dense', 'publication', 'changedsummary', 'recovered', 'pages', 'media'].includes(mode)) throw new Error('Unexpected publication fixture state');
+  if (!['multiple', 'one', 'empty', 'dense', 'publication', 'changedsummary', 'changedicon', 'recovered', 'pages', 'media'].includes(mode)) throw new Error('Unexpected publication fixture state');
   const denseRow = { ...fixtureRows[0], properties: { ...fixtureRows[0].properties, Tags: { multi_select: stackRows.map(row => ({ name: row.properties.Name.title[0].plain_text })) } } };
   const publicationRows = fixtureRows.map((row, index) => index === 0 ? { ...row, properties: { ...row.properties,
     Name: { title: [{ plain_text: mode === 'changedsummary' ? 'Renamed portfolio' : 'mstefan-dev' }] },
@@ -52,7 +52,7 @@ function fixturePayload() {
   } } : row);
   const pageRow = { ...fixtureRows[0], properties: { ...fixtureRows[0].properties, 'Preview URLs': { type: 'rich_text', rich_text: [{ plain_text: 'https://www.mstefan.dev/en/about\nhttps://www.mstefan.dev/en/projects' }] } } };
   const rows = mode === 'media' ? [...fixtureRows, mediaRow] : mode === 'pages' ? [pageRow, fixtureRows[1]] : mode === 'dense' ? [denseRow] : mode === 'empty' ? [] : mode === 'one' ? fixtureRows.slice(0, 1)
-    : ['publication', 'changedsummary', 'recovered'].includes(mode) ? publicationRows : fixtureRows;
+    : ['publication', 'changedsummary', 'changedicon', 'recovered'].includes(mode) ? publicationRows : fixtureRows;
   return { status: 200, body: { object: 'list', results: rows, has_more: false, next_cursor: null } };
 }
 const provider = http.createServer((request, response) => {
@@ -67,7 +67,12 @@ const provider = http.createServer((request, response) => {
     const parsed = JSON.parse(query);
     if (request.url === '/v1/databases/visual-stack-fixture/query') {
       if (parsed.filter || parsed.start_cursor) { response.writeHead(400).end('Unexpected Stack query'); return; }
-      response.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify({ object: 'list', results: process.env.WORK_CONTENT_REVIEW_FIXTURE ? JSON.parse(readFileSync(process.env.WORK_CONTENT_REVIEW_FIXTURE, 'utf8')).stack : stackRows, has_more: false, next_cursor: null }));
+      const changedIcon = readFileSync(process.env.VISUAL_NOTION_FIXTURE_STATE, 'utf8').trim() === 'changedicon';
+      const sourceRows = process.env.WORK_CONTENT_REVIEW_FIXTURE ? JSON.parse(readFileSync(process.env.WORK_CONTENT_REVIEW_FIXTURE, 'utf8')).stack : stackRows;
+      const rows = sourceRows.map((row, index) => changedIcon && index === 0 ? { ...row, properties: { ...row.properties,
+        'Icon key': { rich_text: [{ plain_text: 'logos:typescript' }] },
+      } } : row);
+      response.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify({ object: 'list', results: rows, has_more: false, next_cursor: null }));
       return;
     }
     if (parsed.filter?.property !== 'Status' || parsed.filter?.status?.equals !== 'Added' || parsed.start_cursor) {

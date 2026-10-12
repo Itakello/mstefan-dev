@@ -1,12 +1,20 @@
 // spec: specs/mstefan-site-review.md
 // seed: e2e/seed.ts
 
+import type { Page } from "@playwright/test";
+
 import { readFile, writeFile } from "node:fs/promises";
 import { installOfflineReview } from "./offline-review";
 
 import { websiteScreenshotPaths } from "../lib/websiteScreenshots";
 
 import { expect, showReviewStep, test } from "./seed";
+
+async function toggleTheme(page: Page) {
+  await page.getByRole("button", { name: "Open navigation", exact: true }).click();
+  await page.getByRole("button", { name: "Toggle theme", exact: true }).click();
+  await page.getByRole("button", { name: "Close navigation", exact: true }).click();
+}
 
 test.describe("Public website review", () => {
   test.beforeEach(async ({ context }) => {
@@ -224,12 +232,12 @@ test.describe("Public website review", () => {
     await showReviewStep(page, "3 · Experience and portrait");
 
     // 4. Toggle dark mode and verify the rendered theme state.
-    await page.getByRole("button", { name: "Toggle theme" }).click();
+    await toggleTheme(page);
     await expect(page.locator("html")).toHaveClass(/\bdark\b/);
     await showReviewStep(page, "4 · Dark theme");
 
     // 5. Switch to Italian and verify localized navigation and content.
-    await page.getByRole("button", { name: "Select language" }).click();
+    await page.getByRole("button", { name: "Open navigation", exact: true }).click();
     await page.getByRole("menuitemradio", { name: /Italiano/ }).click();
     await expect(page).toHaveURL(/\/it\/about$/);
     await expect(page.locator("#career-story")).toHaveAttribute("aria-label", "Esperienza");
@@ -237,7 +245,7 @@ test.describe("Public website review", () => {
     await expect(page.getByRole("link", { name: "Lavori", exact: true })).toBeVisible();
     await page.getByRole("link", { name: "Lavori", exact: true }).click();
     await expect(page).toHaveURL(/\/it\/projects$/);
-    await page.getByRole("button", { name: "Seleziona lingua" }).click();
+    await page.getByRole("button", { name: "Apri navigazione", exact: true }).click();
     await page.getByRole("menuitemradio", { name: /English/ }).click();
     await expect(page).toHaveURL(/\/en\/projects$/);
     await showReviewStep(page, "5 · Italian localization");
@@ -251,8 +259,10 @@ test.describe("Public website review", () => {
     });
     await page.goto("/en");
     await expect(page.locator("html")).toHaveClass(/\bdark\b/);
+    await page.getByRole("button", { name: "Open navigation", exact: true }).click();
     await expect(page.getByRole("button", { name: "Toggle theme" }).first().locator(".lucide-sun")).toBeVisible();
     await page.getByRole("button", { name: "Toggle theme" }).first().click();
+    await page.getByRole("button", { name: "Close navigation", exact: true }).click();
     await expect(page.locator("html")).not.toHaveClass(/\bdark\b/);
 
     await page.setViewportSize({ width: 360, height: 800 });
@@ -314,10 +324,10 @@ test.describe("Public website review", () => {
     await expect(controls).toContainText("Homepage · 1 / 3");
     await expect(page.getByRole("combobox", { name: "Preview page", exact: true })).toHaveCount(0);
     await page.screenshot({ path: ".artifacts/playwright/work-preview-arrows-desktop.png", fullPage: true });
-    await page.getByRole("button", { name: "Toggle theme", exact: true }).click();
+    await toggleTheme(page);
     await expect(page.locator('footer [data-brand-icon="github"]')).toHaveCSS("color", "rgba(255, 255, 255, 0.65)");
     await page.screenshot({ path: ".artifacts/playwright/work-preview-arrows-desktop-dark.png", fullPage: true });
-    await page.getByRole("button", { name: "Toggle theme", exact: true }).click();
+    await toggleTheme(page);
     await next.focus();
     await next.press("Enter");
     await expect(next).toBeFocused();
@@ -341,10 +351,10 @@ test.describe("Public website review", () => {
     const preview = page.locator("[data-work-preview]");
     await preview.scrollIntoViewIfNeeded();
     await page.screenshot({ path: ".artifacts/playwright/work-preview-arrows-mobile.png", fullPage: true });
-    await page.getByRole("button", { name: "Toggle theme", exact: true }).click();
+    await toggleTheme(page);
     await expect(page.locator('footer [data-brand-icon="github"]')).toHaveCSS("color", "rgba(255, 255, 255, 0.65)");
     await page.screenshot({ path: ".artifacts/playwright/work-preview-arrows-mobile-dark.png", fullPage: true });
-    await page.getByRole("button", { name: "Toggle theme", exact: true }).click();
+    await toggleTheme(page);
     await preview.scrollIntoViewIfNeeded();
     const box = (await preview.boundingBox())!;
     const cdp = await context.newCDPSession(page);

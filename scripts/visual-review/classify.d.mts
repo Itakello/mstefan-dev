@@ -3,6 +3,7 @@ export type VisualReviewClassification = {
   reason: string;
   changed: string[];
   matched: string[];
+  nativeFavicon: boolean;
 };
 
 export function isUiImpactingPath(path: string): boolean;

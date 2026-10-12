@@ -1,14 +1,12 @@
 "use client";
 
-import { Check, ChevronDown } from "lucide-react";
+import { Check } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
-
+import { useRef } from "react";
 import { getCopy, type PublicPath } from "@/lib/i18n/copy";
-import { type Locale } from "@/lib/i18n/config";
-import { getLanguageMenuFocusIndex, shouldCloseLanguageMenuOnFocusLeave } from "@/lib/i18n/languageMenu";
+import type { Locale } from "@/lib/i18n/config";
+import { getLanguageMenuFocusIndex } from "@/lib/i18n/languageMenu";
 import { getPublicPathname, localizedPath } from "@/lib/i18n/routing";
-import clsx from "clsx";
 
 function Flag({ locale }: { locale: Locale }) {
   if (locale === "it") {
@@ -34,46 +32,14 @@ function Flag({ locale }: { locale: Locale }) {
 
 const localeOptions: Locale[] = ["en", "it"];
 
-export function LanguageSelector({ locale, compact = false }: { locale: Locale; compact?: boolean }) {
+export function LanguageSelector({ locale }: { locale: Locale }) {
   const pathname = usePathname();
-  const [open, setOpen] = useState(false);
-  const [activeIndex, setActiveIndex] = useState(() => localeOptions.indexOf(locale));
-  const selectorRef = useRef<HTMLDivElement>(null);
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  const menuItemRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const copy = getCopy(locale);
-
-  useEffect(() => {
-    function closeOnOutsideClick(event: PointerEvent) {
-      if (!selectorRef.current?.contains(event.target as Node)) setOpen(false);
-    }
-
-    document.addEventListener("pointerdown", closeOnOutsideClick);
-    return () => {
-      document.removeEventListener("pointerdown", closeOnOutsideClick);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!open) return;
-    const frame = requestAnimationFrame(() => menuItemRefs.current[activeIndex]?.focus());
-    return () => cancelAnimationFrame(frame);
-  }, [activeIndex, open]);
-
-  function openMenu(index = localeOptions.indexOf(locale)) {
-    setActiveIndex(index);
-    setOpen(true);
-  }
-
-  function closeMenuAndRestoreFocus() {
-    setOpen(false);
-    requestAnimationFrame(() => triggerRef.current?.focus());
-  }
+  const itemRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
   function selectLocale(nextLocale: Locale) {
     if (new URLSearchParams(window.location.search).get("preview") === "1" && window.parent !== window) {
       window.parent.postMessage({ type: "mstefan:preview-locale", locale: nextLocale }, window.location.origin);
-      setOpen(false);
       return;
     }
     const publicPath: PublicPath = getPublicPathname(pathname ?? "/") ?? "/";
@@ -82,87 +48,29 @@ export function LanguageSelector({ locale, compact = false }: { locale: Locale; 
     window.location.assign(`${localizedPath(nextLocale, publicPath)}${query}`);
   }
 
-  function handleMenuItemKeyDown(event: React.KeyboardEvent<HTMLButtonElement>, index: number) {
-    if (event.key === "Tab") {
-      setOpen(false);
-      return;
-    }
-    if (event.key === "Escape") {
-      event.preventDefault();
-      closeMenuAndRestoreFocus();
-      return;
-    }
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      selectLocale(localeOptions[index]);
-      return;
-    }
-
-    const nextIndex = getLanguageMenuFocusIndex(index, event.key, localeOptions.length);
-    if (nextIndex === null) return;
-    event.preventDefault();
-    setActiveIndex(nextIndex);
-  }
-
   return (
-    <div
-      ref={selectorRef}
-      className="relative"
-      onBlur={(event) => {
-        const nextFocusIsWithinSelector = event.relatedTarget instanceof Node
-          && event.currentTarget.contains(event.relatedTarget);
-        if (open && shouldCloseLanguageMenuOnFocusLeave(nextFocusIsWithinSelector)) setOpen(false);
-      }}
-    >
-      <button
-        ref={triggerRef}
-        type="button"
-        aria-label={copy.language.select}
-        aria-haspopup="menu"
-        aria-expanded={open}
-        onClick={() => {
-          if (open) setOpen(false);
-          else openMenu();
-        }}
-        onKeyDown={(event) => {
-          if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
-          event.preventDefault();
-          openMenu(event.key === "ArrowDown" ? 0 : localeOptions.length - 1);
-        }}
-        className={clsx(
-          "inline-flex items-center gap-2 rounded-md border border-black/10 px-2 py-1.5 text-sm transition-colors hover:border-black/20 dark:border-white/10 dark:hover:border-white/20",
-          compact && "gap-1.5 px-1.5",
-        )}
-      >
-        <Flag locale={locale} />
-        <span className={clsx(compact && "sr-only")}>{copy.language[locale === "en" ? "English" : "Italiano"]}</span>
-        <ChevronDown className="size-3.5" aria-hidden="true" />
-      </button>
-      {open && (
-        <div
-          role="menu"
-          aria-label={copy.language.label}
-          className="absolute right-0 top-full z-30 mt-2 min-w-36 rounded-lg border border-black/10 bg-[var(--page-bg)] p-1 shadow-soft dark:border-white/10 dark:shadow-softDark"
+    <div role="menu" aria-label={copy.language.label} className="grid gap-1">
+      {localeOptions.map((optionLocale, index) => (
+        <button
+          key={optionLocale}
+          ref={(element) => { itemRefs.current[index] = element; }}
+          type="button"
+          role="menuitemradio"
+          aria-checked={locale === optionLocale}
+          onClick={() => selectLocale(optionLocale)}
+          onKeyDown={(event) => {
+            const nextIndex = getLanguageMenuFocusIndex(index, event.key, localeOptions.length);
+            if (nextIndex === null) return;
+            event.preventDefault();
+            itemRefs.current[nextIndex]?.focus();
+          }}
+          className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm transition-colors hover:bg-black/5 dark:hover:bg-white/10"
         >
-          {localeOptions.map((optionLocale, index) => (
-            <button
-              key={optionLocale}
-              ref={(element) => { menuItemRefs.current[index] = element; }}
-              type="button"
-              role="menuitemradio"
-              aria-checked={locale === optionLocale}
-              onClick={() => selectLocale(optionLocale)}
-              onKeyDown={(event) => handleMenuItemKeyDown(event, index)}
-              tabIndex={activeIndex === index ? 0 : -1}
-              className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm no-underline transition-colors hover:bg-black/5 dark:hover:bg-white/10"
-            >
-              <Flag locale={optionLocale} />
-              <span className="flex-1">{copy.language[optionLocale === "en" ? "English" : "Italiano"]}</span>
-              {locale === optionLocale && <Check className="size-4" aria-label={copy.language.selected} />}
-            </button>
-          ))}
-        </div>
-      )}
+          <Flag locale={optionLocale} />
+          <span className="flex-1">{copy.language[optionLocale === "en" ? "English" : "Italiano"]}</span>
+          {locale === optionLocale && <Check className="size-4" aria-label={copy.language.selected} />}
+        </button>
+      ))}
     </div>
   );
 }

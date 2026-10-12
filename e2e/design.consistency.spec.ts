@@ -2,26 +2,7 @@ import { expect, test, type Locator, type Page, type TestInfo } from "@playwrigh
 import { writeFile } from "node:fs/promises";
 import { randomBytes } from "node:crypto";
 import { installOfflineReview } from "./offline-review";
-
-async function expectDrawnIcons(icons: Locator) {
-  await expect.poll(() => icons.count()).toBeGreaterThan(0);
-  for (const icon of await icons.all()) {
-    await expect(icon).toBeVisible();
-    await expect.poll(() => icon.evaluate(node => {
-      const box = (node as SVGGraphicsElement).getBBox();
-      return box.width > 0 && box.height > 0 && node.querySelectorAll("path, circle, rect, polygon, polyline, line, ellipse, use").length > 0;
-    })).toBe(true);
-  }
-}
-
-async function stablePage(page: Page) {
-  await page.evaluate(async () => {
-    await document.fonts.ready;
-    await Promise.all(Array.from(document.images).map(image => image.decode().catch(() => {})));
-  });
-  await expectDrawnIcons(page.locator("footer [data-brand-icon]"));
-  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
-}
+import { expectDrawnIcons, stablePage } from "./visual-ready";
 
 async function expectIconLinkColors(page: Page, icons: Locator, theme: "light" | "dark") {
   const neutral = theme === "light" ? "rgba(0, 0, 0, 0.65)" : "rgba(255, 255, 255, 0.65)";
