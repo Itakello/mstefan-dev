@@ -12,7 +12,7 @@ gh workflow run ai-visual-review.yml --ref master -f source_run_id=RUN_ID
 
 Current budget policy: each review remains limited to $2, with at most $10 and 20 paid attempts in a rolling 24-hour window plus a conservative 10-minute overlap. Trusted actual-usage receipts settle reservation bounds; unknown, interrupted and in-flight requests retain their full bounds. Temporary extra allowances and frozen-window behavior below are historical and do not apply. No history is reset, removed, or rewritten.
 
-The recovery workflow pins independently reviewed restoration engine `f5063ad3980cd5cda1c38f20cc36ae9b7d1c8bb3`; dispatch inputs cannot choose or change that revision.
+The recovery workflow pins independently reviewed restoration engine `23083026b9b8ad02fb5fb21f0b66d2b68cf3051b`; dispatch inputs cannot choose or change that revision.
 
 The restoration acceptance bootstrap is limited to owner-dispatched, first-attempt recovery for PR 143 on `codex/restore-daily-visual-budget`, with immutable base `d12bf03124b2a46b8078e260fdebc55ccf6e361c`, expiring at 2026-10-12 12:00 UTC. The normal $2 per-review, $10 rolling-dollar and 20-attempt limits apply; there is no extra allowance or frozen accounting window. Its fixed engine validates the exact successful Visual review producer and live head/base before credentials are exposed, then repeats the scope and expiry validation immediately before claiming a paid request. Normal review continues to use default-branch code.
 
