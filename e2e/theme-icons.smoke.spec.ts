@@ -49,6 +49,7 @@ for (const locale of ["en", "it"]) {
       await expect(favicon).toHaveAttribute("href", "/icon-light.png");
       await expect(toggle).toBeHidden();
       await open.click();
+      await expect(toggle).toHaveAttribute("aria-pressed", "false");
       await expect(page.getByRole("menuitemradio", { name: /English/ })).toBeVisible();
       await page.getByRole("menuitemradio", { name: /English/ }).press("Escape");
       await expect(open).toBeFocused();
@@ -58,6 +59,7 @@ for (const locale of ["en", "it"]) {
       await expect(toggle).toBeHidden();
       await open.click();
       await toggle.click();
+      await expect(toggle).toHaveAttribute("aria-pressed", "true");
       await expect(icon).toHaveAttribute("src", "/icon.png");
       await expect(favicon).toHaveAttribute("href", "/icon.png");
       await close.click();
@@ -87,4 +89,35 @@ for (const locale of ["en", "it"]) {
       await expect(page.getByRole("menuitemradio", { name: /English/ })).toBeHidden();
     });
   }
+}
+
+for (const width of [1280, 390]) {
+  test(`${width}px menu closes when keyboard focus leaves`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 800 });
+    await page.goto("/en/icon-check");
+    await page.getByRole("button", { name: "Open navigation", exact: true }).click();
+    const theme = page.getByRole("button", { name: "Toggle theme", exact: true });
+    await theme.press("Tab");
+    await expect(theme).toBeHidden();
+    await expect(page.getByRole("button", { name: "Open navigation", exact: true })).toHaveAttribute("aria-expanded", "false");
+  });
+
+  test(`${width}px navigation landmarks have distinct names`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 800 });
+    await page.goto("/en/icon-check");
+    await page.getByRole("button", { name: "Open navigation", exact: true }).click();
+    if (width >= 640) await expect(page.getByRole("navigation", { name: "Main navigation", exact: true })).toBeVisible();
+    await expect(page.getByRole("navigation", { name: "Navigation and preferences", exact: true })).toBeVisible();
+  });
+
+  test(`${width}px menu closes after browser history navigation`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 800 });
+    await page.goto("/en/projects");
+    await page.getByRole("link", { name: "Massimo Stefan home", exact: true }).click();
+    await expect(page).toHaveURL(/\/en$/);
+    await page.getByRole("button", { name: "Open navigation", exact: true }).click();
+    await page.goBack();
+    await expect(page).toHaveURL(/\/en\/projects$/);
+    await expect(page.getByRole("button", { name: "Open navigation", exact: true })).toHaveAttribute("aria-expanded", "false");
+  });
 }

@@ -36,6 +36,8 @@ export function Header({ locale }: { locale: Locale }) {
     setReady(true);
   }, []);
 
+  useEffect(() => { setMenuOpen(false); }, [pathname]);
+
   function toggleTheme() {
     const nextDark = !document.documentElement.classList.contains("dark");
     setIsDark(nextDark);
@@ -48,7 +50,9 @@ export function Header({ locale }: { locale: Locale }) {
   const links = pages.map((page) => ({ href: localizedPath(locale, publicPagePaths[page]), label: copy.nav[page] }));
 
   return (
-    <header ref={headerRef} onKeyDown={(event) => {
+    <header ref={headerRef} onBlur={(event) => {
+      if (!event.currentTarget.contains(event.relatedTarget)) setMenuOpen(false);
+    }} onKeyDown={(event) => {
       if (event.key === "Escape" && menuOpen) {
         event.preventDefault();
         setMenuOpen(false);
@@ -63,7 +67,7 @@ export function Header({ locale }: { locale: Locale }) {
           <div className="truncate font-semibold tracking-tight">Massimo Stefan</div>
         </div>
       </Link>
-      <nav className="ml-auto mr-6 hidden items-center gap-6 text-sm sm:flex">
+      <nav aria-label={copy.header.primaryNavigation} className="ml-auto mr-6 hidden items-center gap-6 text-sm sm:flex">
         {links.map((link) => (
           <Link
             key={link.href}
@@ -92,7 +96,7 @@ export function Header({ locale }: { locale: Locale }) {
         </button>
       </div>
       {menuOpen && (
-        <nav className="absolute right-0 top-[4.75rem] z-20 grid min-w-44 gap-1 rounded-xl border border-black/10 bg-[var(--page-bg)] p-2 text-sm shadow-soft dark:border-white/10 dark:shadow-softDark">
+        <nav aria-label={copy.header.navigationPreferences} className="absolute right-0 top-[4.75rem] z-20 grid min-w-44 gap-1 rounded-xl border border-black/10 bg-[var(--page-bg)] p-2 text-sm shadow-soft dark:border-white/10 dark:shadow-softDark">
           <div className="grid gap-1 sm:hidden">
           {links.map((link) => (
             <Link
@@ -114,6 +118,7 @@ export function Header({ locale }: { locale: Locale }) {
           <button
             type="button"
             aria-label={copy.header.themeToggle}
+            aria-pressed={isDark}
             onClick={toggleTheme}
             className="mt-1 flex items-center gap-2 rounded-md border-t border-black/10 px-3 py-2 text-left transition-colors hover:bg-black/5 dark:border-white/10 dark:hover:bg-white/10"
           >
