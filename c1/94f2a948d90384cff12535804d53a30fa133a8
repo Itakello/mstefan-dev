@@ -1,0 +1,19 @@
+tests/cms/lifecycle.test.mts
+  s_19d9d114290977::t_d6de8cf19b49a1 4,683-688,698,723-727
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c194f2a948d90384cff12535804d53a30fa133a8",
+  "prompts": {},
+  "sessions": {
+    "s_19d9d114290977": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12d23-296a-7f40-99ea-7c893f4231b0",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
