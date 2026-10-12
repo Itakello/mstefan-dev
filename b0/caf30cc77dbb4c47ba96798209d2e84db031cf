@@ -1,0 +1,21 @@
+e2e/work-media.consistency.spec.ts
+  s_a3d57fd6983d88::t_8344b67f62d29d 86-95
+components/MediaPreview.tsx
+  s_a3d57fd6983d88::t_8344b67f62d29d 31
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b0caf30cc77dbb4c47ba96798209d2e84db031cf",
+  "prompts": {},
+  "sessions": {
+    "s_a3d57fd6983d88": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a125dc-d51e-7583-9ad7-4135793b24dc",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
