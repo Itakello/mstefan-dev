@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { chromium, expect } from '@playwright/test';
 import { installOfflineReview } from '../../e2e/offline-review.ts';
+import { expectDrawnIcons } from '../../e2e/visual-ready.ts';
 
 assert.equal(process.platform, 'linux', 'Native evidence requires the isolated Linux display');
 assert.match(process.env.DISPLAY ?? '', /^:\d+(?:\.\d+)?$/, 'Missing isolated Xvfb display');
@@ -61,6 +62,8 @@ for (const theme of ['light', 'dark']) {
       const style = getComputedStyle(element);
       return style.backgroundColor === getComputedStyle(document.body).color && style.maskImage.includes('/icon.png');
     }), 'Forced-color mark must use the system text color and exact logo silhouette');
+    await expect(active.locator('footer a svg')).toHaveCount(4);
+    await expectDrawnIcons(active.locator('footer a svg'));
     await active.evaluate(async () => {
       await document.fonts.ready;
       await Promise.all([...document.images].map(image => image.decode()));
