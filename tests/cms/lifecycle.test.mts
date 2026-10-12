@@ -9,6 +9,8 @@ import { once } from 'node:events';
 import { createServer } from 'node:net';
 import { request as httpRequest } from 'node:http';
 import { chromium, expect } from '@playwright/test';
+import { iconFixtureResponse } from '../../e2e/offline-review';
+import { stablePage } from '../../e2e/visual-ready';
 
 const port = Number(process.env.CMS_TEST_PORT || 3000);
 const base = `http://127.0.0.1:${port}`;
@@ -675,6 +677,11 @@ test('degree results are optional metadata downloads while other attachments ret
   const browser = await chromium.launch({ headless: true });
   try {
     const page = await browser.newPage();
+    for (const host of ['api.iconify.design', 'api.simplesvg.com', 'api.unisvg.com']) {
+      await page.route(`https://${host}/**`, async route => {
+        await route.fulfill({ json: await iconFixtureResponse(new URL(route.request().url())), headers: { 'access-control-allow-origin': '*' } });
+      });
+    }
     await mkdir('.artifacts/playwright/master-download', { recursive: true });
     for (const [locale, title, verb] of [['en', 'Master’s exam results', 'Download'], ['it', 'Risultati degli esami magistrali', 'Scarica']]) {
       const saved = await (await request(`/api/globals/career?locale=${locale}&draft=false`, undefined, true)).json();
@@ -713,10 +720,12 @@ test('degree results are optional metadata downloads while other attachments ret
               await link.press('Tab');
               await page.keyboard.press('Shift+Tab');
               await expect(link).toBeFocused();
-              await page.screenshot({ path: `.artifacts/playwright/master-download/${degree}-${locale}-${size}-${theme}.png`, fullPage: true });
+              await expect(page.locator('footer a').first()).toHaveCSS('color', theme === 'dark' ? 'rgba(255, 255, 255, 0.65)' : 'rgba(0, 0, 0, 0.65)');
+              await stablePage(page);
+              await page.screenshot({ path: `.artifacts/playwright/master-download/${degree}-${locale}-${size}-${theme}.png`, fullPage: true, animations: 'disabled' });
               await link.hover();
               if ((locale === 'en' && size === 'desktop' && theme === 'light') || (locale === 'it' && size === 'mobile' && theme === 'dark')) {
-                await page.screenshot({ path: `.artifacts/playwright/master-download/${degree}-${locale}-${size}-${theme}-hover.png`, fullPage: true });
+                await page.screenshot({ path: `.artifacts/playwright/master-download/${degree}-${locale}-${size}-${theme}-hover.png`, fullPage: true, animations: 'disabled' });
               }
             }
           }
