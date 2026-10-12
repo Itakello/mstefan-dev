@@ -51,7 +51,7 @@ export function verifyRevision(pr, run, repository) {
 }
 export function verifyEvidence(metadata, names, pr, run, repository, {workshopRequired = false} = {}) {
   ensure(metadata.schemaVersion === 1 && metadata.repository === repository && String(metadata.pullRequest) === String(pr.number) && metadata.headSha === pr.head.sha && metadata.baseSha === pr.base.sha && metadata.workflowRun === `https://github.com/${repository}/actions/runs/${run.id}`, 'Artifact metadata mismatch');
-  ensure(names.length <= 102 && new Set(names).size === names.length, 'Image count or duplicate names');
+  ensure(names.length <= 132 && new Set(names).size === names.length, 'Image count or duplicate names');
   for (const name of REQUIRED) ensure(names.includes(name), `Missing current capture: ${name}`);
   ensure(Array.isArray(metadata.captures) && metadata.captures.length === names.length && metadata.captures.every(name => names.includes(name)), 'Incomplete capture manifest');
   for (const name of names) ensure(/^[a-z0-9-]+\.png$/.test(name), 'Invalid capture name');
@@ -172,7 +172,7 @@ export function reviewResult(response, names, evidenceNames = names) {
   return result;
 }
 export function requestBody(text, images) {
-  ensure(Buffer.byteLength(text) <= 500000 && images.length <= 200, 'Review input limit');
+  ensure(Buffer.byteLength(text) <= 500000 && images.length <= 264, 'Review input limit');
   let bytes = 0;
   const content = [{type:'input_text',text}];
   for (const {name,data} of images) {

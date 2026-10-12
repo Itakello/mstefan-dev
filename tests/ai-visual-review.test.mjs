@@ -29,16 +29,16 @@ test('malformed, truncated, refused and partial review cannot approve', () => {
   for (const response of [{status:'incomplete'},output({...clean,coverage:REQUIRED.slice(1)}),output({...clean,complete:false}),output({...clean,findings:[{rule:'rule'}]})]) assert.throws(() => reviewResult(response,REQUIRED));
   assert.throws(() => reviewResult({status:'completed',output:[{type:'message',content:[{type:'refusal'}]}]},REQUIRED));
 });
-test('menu evidence accepts 102 captures but rejects overflow and duplicates at both boundaries', async () => {
+test('combined media evidence accepts 132 captures but rejects overflow and duplicates at both boundaries', async () => {
   const { mkdtempSync, rmSync } = await import('node:fs');
   const { tmpdir } = await import('node:os');
   const { join } = await import('node:path');
   const { spawnSync } = await import('node:child_process');
-  const names = [...REQUIRED, ...Array.from({length:86}, (_, index) => `menu-evidence-${index}.png`)];
+  const names = [...REQUIRED, ...Array.from({length:116}, (_, index) => `media-evidence-${index}.png`)];
   verifyEvidence({...metadata,captures:names},names,pr,run,repository);
   assert.throws(() => verifyEvidence({...metadata,captures:[...names,'overflow.png']},[...names,'overflow.png'],pr,run,repository), /Image count/);
   assert.throws(() => verifyEvidence({...metadata,captures:[...names.slice(1),names[1]]},[...names.slice(1),names[1]],pr,run,repository), /duplicate names/);
-  for (const count of [102,103]) {
+  for (const count of [132,133]) {
     const directory = mkdtempSync(join(tmpdir(),'visual-capture-limit-'));
     try {
       const create = spawnSync('python3',['-c',`import sys,zipfile
@@ -47,15 +47,23 @@ with zipfile.ZipFile(sys.argv[1]+'/artifact.zip','w') as z:
  for index in range(int(sys.argv[2])): z.writestr(f'test-results/capture-{index}.png','png')`,directory,String(count)]);
       assert.equal(create.status,0);
       const result = spawnSync('python3',['scripts/visual-review/read-evidence.py',directory]);
-      if (count === 102) {
+      if (count === 132) {
         assert.equal(result.status,0);
-        assert.equal(JSON.parse(readFileSync(join(directory,'inventory.json'),'utf8')).captures.length,102);
+        assert.equal(JSON.parse(readFileSync(join(directory,'inventory.json'),'utf8')).captures.length,132);
       } else {
         assert.notEqual(result.status,0);
         assert.match(result.stderr.toString(),/Capture limit/);
       }
     } finally { rmSync(directory,{recursive:true,force:true}); }
   }
+});
+test('all 132 current captures may retain one base reference each within the total image bound', () => {
+  const data = Buffer.from([137,80,78,71,13,10,26,10]);
+  const images = Array.from({length:132}, (_, index) => ({name:`media-evidence-${index}.png`,data}));
+  const references = images.map(image => ({...image,name:`base/${image.name}`}));
+  const body = requestBody('',[...images,...references]);
+  assert.equal(body.input[0].content.filter(item => item.type === 'input_image').length,264);
+  assert.throws(() => requestBody('',[...images,...references,{name:'overflow.png',data}]),/Review input limit/);
 });
 test('findings may compare supplied baselines but require current evidence', () => {
   const finding = {rule:'Transparent artwork wrappers',location:'components/Footer.tsx',explanation:'Opaque X wrapper',evidence:['footer-desktop-light.png','base/footer-desktop-light.png']};
