@@ -19,6 +19,7 @@ jobs:
     outputs:
       run: ${{ steps.classify.outputs.run }}
       reason: ${{ steps.classify.outputs.reason }}
+      native_favicon: ${{ steps.classify.outputs.native_favicon }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -69,7 +70,14 @@ jobs:
         continue-on-error: true
         env:
           VISUAL_REVIEW_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        run: node scripts/visual-review/run-fixture.mjs
+          VISUAL_REVIEW_NATIVE_FAVICON: ${{ needs.classify.outputs.native_favicon }}
+        run: |
+          if [[ "$VISUAL_REVIEW_NATIVE_FAVICON" == "true" ]]; then
+            command -v xvfb-run
+            xvfb-run --auto-servernum --server-args='-screen 0 1280x900x24' node scripts/visual-review/run-fixture.mjs
+          else
+            node scripts/visual-review/run-fixture.mjs
+          fi
 
       - name: Run component workshop comparisons and interactions
         if: ${{ !cancelled() }}
