@@ -29,14 +29,17 @@ export async function loadNotionPublicationSnapshot({
   fetchProjects = fetchProjectsFromNotion,
   fetchStack = fetchStackFromNotion,
 }: SnapshotOptions = {}): Promise<NotionPublicationSnapshot> {
+  const startedAt = Date.now();
+  const generation = publicationGeneration();
   const [projects, stack] = await Promise.all([fetchProjects(), fetchStack()]);
   if (projects === null) throw new Error("Notion Projects source is unavailable");
   if (stack === null || stack.length === 0) throw new Error("Notion Stack source is unavailable or empty");
 
   approvedWebsiteUrls(projects);
   assertProjectStackCoverage(projects, stack);
+  if (generation !== publicationGeneration()) throw new Error("Notion changed during publication refresh");
   const digest = createHash("sha256").update(JSON.stringify({ projects, stack })).digest("hex");
-  return { projects, stack, digest, checkedAt: Date.now() };
+  return { projects, stack, digest, checkedAt: startedAt };
 }
 
 export async function refreshNotionPublicationSnapshot(options: RefreshOptions = {}) {

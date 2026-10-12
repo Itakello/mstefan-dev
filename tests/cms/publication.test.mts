@@ -95,7 +95,11 @@ async function unusedLoopbackPort() {
 }
 
 async function request(url: string, init?: RequestInit) {
-  return fetch(`${base}${url}`, { signal: AbortSignal.timeout(10_000), ...init });
+  try {
+    return await fetch(`${base}${url}`, { signal: AbortSignal.timeout(10_000), ...init });
+  } catch (error) {
+    throw new Error(`Publication request failed: ${url}\n${serverLog}`, { cause: error });
+  }
 }
 
 async function setFixtureMode(mode: string) {
