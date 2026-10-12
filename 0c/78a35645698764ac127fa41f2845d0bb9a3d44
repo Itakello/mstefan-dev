@@ -1,0 +1,25 @@
+tests/cms/lifecycle.test.mts
+  s_f792a2a2b302b5::t_54d380d64ba17e 12-13,680-684,724
+e2e/design.consistency.spec.ts
+  s_f792a2a2b302b5::t_54d380d64ba17e 5
+scripts/visual-review/native-favicon.mjs
+  s_f792a2a2b302b5::t_54d380d64ba17e 7,65-66
+e2e/visual-ready.ts
+  s_f792a2a2b302b5::t_3a9de383523dbd 1-22
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0c78a35645698764ac127fa41f2845d0bb9a3d44",
+  "prompts": {},
+  "sessions": {
+    "s_f792a2a2b302b5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12cbb-dc6f-7ca0-a58e-4b0d809a1763",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
