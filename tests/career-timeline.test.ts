@@ -450,3 +450,15 @@ test('short shared joins and compressed lanes cannot hide real overlap', () => {
   const narrow = layoutCareerTimeline(jobs.slice(0, 2), now, 24, 64);
   assert.notEqual(narrow.entries[0].lane, narrow.entries[1].lane);
 });
+
+
+test('story and timeline periods share localized dates and missing-date behavior', async () => {
+  const { formatCareerPeriod } = await import('../lib/career-timeline');
+  const now = Date.parse('2026-10-13');
+  assert.equal(formatCareerPeriod({ startDate: '2022-09-01', endDate: '2024-07-01' }, 'en', now), 'Sep 2022 – Jul 2024');
+  assert.equal(formatCareerPeriod({ startDate: '2022-09-01', ongoing: true, endDate: '2020-01-01' }, 'it', now), 'set 2022 – Presente');
+  assert.equal(formatCareerPeriod({}, 'en', now), 'Dates not provided');
+  for (const job of [{ startDate: '2024-02-30', endDate: '2025-01-01' }, { startDate: '2024-01-01' }, { startDate: '2025-01-01', endDate: '2024-01-01' }]) {
+    assert.equal(formatCareerPeriod(job, 'en', now), 'Date range incomplete');
+  }
+});

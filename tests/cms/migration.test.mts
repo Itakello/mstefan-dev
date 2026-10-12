@@ -44,7 +44,7 @@ test(`preview ${schemaVersion} baseline preserves drafts and rejects unexpected 
       INSERT INTO _career_v (id, version__status, latest) VALUES (1, 'draft', 1);
       INSERT INTO _career_v_version_jobs (_order, _parent_id, _locale, id, branch_name, company, role, start_date, ongoing${schemaVersion === 'photo' ? ', photo_id' : ''}) VALUES (1, 1, 'en', 1, 'work/current', 'Draft company', 'Engineer', '2024-01-01', 1${schemaVersion === 'photo' ? ', 1' : ''});`);
   }
-  const careerRows = () => ['ongoing', 'photo'].includes(schemaVersion) ? ['career_jobs', '_career_v_version_jobs'].map((table) => db.prepare(`SELECT * FROM ${table} ORDER BY id`).all().map((row) => { if (schemaVersion === 'ongoing') delete row.photo_id; return row; })) : [];
+  const careerRows = () => ['ongoing', 'photo'].includes(schemaVersion) ? ['career_jobs', '_career_v_version_jobs'].map((table) => db.prepare(`SELECT * FROM ${table} ORDER BY id`).all().map((row) => { if (schemaVersion === 'ongoing') delete row.photo_id; delete row.position_title; delete row.place; return row; })) : [];
   const currentBefore = careerRows();
   const mediaBefore = schemaVersion === 'photo' ? db.prepare('SELECT * FROM media ORDER BY id').all() : [];
   const before = db.prepare('SELECT * FROM _about_v_locales ORDER BY id').all();

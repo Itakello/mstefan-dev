@@ -9,6 +9,7 @@ import { PdfPreview } from "@/components/PdfPreview";
 import { BranchIcon, CareerGraph } from "@/components/CareerGraph";
 import type { Career } from "@/payload-types";
 import type { Locale } from "@/lib/i18n/config";
+import { formatCareerPeriod } from "@/lib/career-timeline";
 import { getCopy } from "@/lib/i18n/copy";
 import type { PageContent } from "@/lib/cms/types";
 import styles from "./AboutContent.module.css";
@@ -27,8 +28,6 @@ export function AboutContent({ content, career, locale }: Props) {
   const photo = selected ? experiencePhoto : profilePhoto;
   const photoURL = selected ? photo?.url : photo?.url || "/profile-photo.jpg";
   const imageAlt = selected ? experiencePhoto?.alt || `${selected.company} · ${selected.role}` : content.imageAlt;
-  const readStory = locale === "it" ? "Leggi la storia" : "Read story";
-  const viewDocuments = locale === "it" ? "Vedi i documenti" : "View documents";
   return (
     <div className={styles.layout}>
       <section id="career-story" className={styles.story} aria-label={selected?.company || getCopy(locale).nav.about}>
@@ -37,7 +36,11 @@ export function AboutContent({ content, career, locale }: Props) {
             {selected ? <>
               <p className={styles.branch} style={{ color: selected.color }}><BranchIcon /><span>{selected.branchName}</span></p>
               <h1>{selected.company}</h1>
-              <p className={styles.metadata}><span>{selected.role}</span>{results.map((document) => {
+              <p className={styles.metadata}><span>{selected.role}</span>
+                {selected.positionTitle && <span>{selected.positionTitle}</span>}
+                {selected.place && <span>{selected.place}</span>}
+                <span>{formatCareerPeriod(selected, locale, Date.now())}</span>
+                {results.map((document) => {
                 const file = document.file;
                 if (!file || typeof file !== "object" || !file.url) return null;
                 return <a key={document.id || file.id} href={file.url} download={`massimo-stefan-${selected.branchName === "education/trento-master" ? "masters" : "bachelors"}-exam-results.pdf`} className={styles.results} aria-label={`${locale === "it" ? "Scarica" : "Download"} ${document.title} (PDF)`}><Download size={14} aria-hidden="true" />{locale === "it" ? "Risultati" : "Results"}</a>;
@@ -61,7 +64,6 @@ export function AboutContent({ content, career, locale }: Props) {
       </section>
       <div className={styles.explorer}>
         <CareerGraph career={career} locale={locale} expanded showDetails={false} onSelectionChange={select} />
-        {selected && <a className={styles.readStory} href="#career-story">{selected.company} · {selected.summary?.trim() ? readStory : viewDocuments}</a>}
       </div>
     </div>
   );

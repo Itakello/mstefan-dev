@@ -47,7 +47,7 @@ test('career seed, localized order, authenticated drafts, colors, and deletion s
       slug: 'career', locale: 'en', publishSpecificLocale: 'en', overrideAccess: false, user,
       data: {
         mainlineColor: '#123ABC', _status: 'published', jobs: [
-          { branchName: 'work/newer-employer', company: 'Newer employer', role: 'Newer role', summary: 'English summary', color: '#aB12Cd' },
+          { branchName: 'work/newer-employer', company: 'Newer employer', role: 'Newer role', positionTitle: 'Employee', place: 'Iași', summary: 'English summary', color: '#aB12Cd' },
           { branchName: 'work/amazon', company: 'Amazon', role: 'Software Development Engineer I', color: '#c77835' },
         ],
       },
@@ -66,6 +66,9 @@ test('career seed, localized order, authenticated drafts, colors, and deletion s
     const draft = await payload.findGlobal({ slug: 'career', locale: 'en', draft: true, overrideAccess: false, user });
     assert.deepEqual(publicEnglish.jobs!.map((job) => job.role), ['Newer role', 'Software Development Engineer I']);
     assert.deepEqual(publicItalian.jobs!.map((job) => job.role), ['Ruolo più recente', 'Software Development Engineer I']);
+    assert.equal(publicEnglish.jobs![0].positionTitle, 'Employee');
+    assert.equal(publicEnglish.jobs![0].place, 'Iași');
+    assert.equal(draft.jobs![0].place, 'Iași');
     assert.equal(publicEnglish.jobs![0].summary, 'English summary');
     assert.equal(publicItalian.jobs![0].summary, 'Sintesi italiana');
     assert.equal(publicEnglish.mainlineColor, '#123ABC');

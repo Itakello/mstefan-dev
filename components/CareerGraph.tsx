@@ -6,12 +6,12 @@ import { useLivePreview } from "@payloadcms/live-preview-react";
 import type { Career } from "@/payload-types";
 import type { Locale } from "@/lib/i18n/config";
 import { localizedPath } from "@/lib/i18n/routing";
-import { layoutCareerTimeline, nearestCareerJunction } from "@/lib/career-timeline";
+import { formatCareerPeriod, layoutCareerTimeline, nearestCareerJunction } from "@/lib/career-timeline";
 import styles from "./CareerGraph.module.css";
 
 const labels = {
-  en: { title: "Career", main: "Full-stack developer", details: "Explore my background", graph: "Graph", order: "Time moves upward", description: "Career mainline and job branches", role: "Experience", undated: "Dates not provided", incomplete: "Date range incomplete", present: "Present" },
-  it: { title: "Percorso", main: "Sviluppatore full-stack", details: "Scopri il mio percorso", graph: "Grafo", order: "Il tempo scorre verso l’alto", description: "Percorso professionale e rami delle esperienze", role: "Esperienza", undated: "Date non indicate", incomplete: "Intervallo di date incompleto", present: "Presente" },
+  en: { title: "Career", main: "Full-stack developer", details: "Explore my background", graph: "Graph", order: "Time moves upward", description: "Career mainline and job branches", role: "Experience", undated: "Dates not provided" },
+  it: { title: "Percorso", main: "Sviluppatore full-stack", details: "Scopri il mio percorso", graph: "Grafo", order: "Il tempo scorre verso l’alto", description: "Percorso professionale e rami delle esperienze", role: "Esperienza", undated: "Date non indicate" },
 };
 
 const MAIN_KEY = "__career_main__";
@@ -109,10 +109,7 @@ export function CareerGraph({ career, locale, expanded = false, onSelectionChang
 
   if (!jobs.length) return null;
   const dateFormat = new Intl.DateTimeFormat(locale, { month: "short", year: "numeric", timeZone: "UTC" });
-  const period = (index: number) => {
-    const entry = timeline.entries[index];
-    return entry.dated ? `${dateFormat.format(entry.start!)} – ${entry.ongoing ? content.present : dateFormat.format(entry.end!)}` : (jobs[index].startDate || jobs[index].endDate ? content.incomplete : content.undated);
-  };
+  const period = (index: number) => formatCareerPeriod(jobs[index], locale, now);
 
   return (
     <section className={styles.section} aria-label={content.title} style={{ "--career-main": career.mainlineColor || "#25b8f3" } as CSSProperties}>

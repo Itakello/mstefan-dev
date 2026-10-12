@@ -529,7 +529,7 @@ test('nested career branches share junctions and synchronize graph and Experienc
     await expect(page.locator('#career-story')).toHaveAttribute('aria-label', 'H');
     await expect(page.locator('#career-story img')).toHaveCount(0);
     await expect(page.locator('#career-story [data-pdf-document]')).toBeVisible();
-    await expect(page.getByRole('link', { name: /H · View documents/i })).toHaveAttribute('href', '#career-story');
+    await expect(page.getByRole('link', { name: /View documents/i })).toHaveCount(0);
     await expect(page.getByRole('link', { name: /Read story/i })).toHaveCount(0);
     await projectTitle.click();
     await expect(page.locator('#career-story h1')).toHaveText('F');
@@ -599,7 +599,7 @@ test('nested career branches share junctions and synchronize graph and Experienc
     await projectTitle.press('Enter');
     await expect(project).toHaveAttribute('aria-pressed', 'true');
     assert.ok((await centeredPhotoOffset()) < 2, 'Experience photo should be centered on mobile');
-    await expect(page.getByRole('link', { name: /F · Read story/i })).toHaveAttribute('href', '#career-story');
+    await expect(page.getByRole('link', { name: /Read story/i })).toHaveCount(0);
     await expect(page.locator('#career-story [data-document-text]')).toContainText('Synthetic career PDF');
     await page.screenshot({ path: path.join(dataDir, 'career-pdf-reader-gallery-mobile.png'), fullPage: true });
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), 'Career page overflows at 320px');
