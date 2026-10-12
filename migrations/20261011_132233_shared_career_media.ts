@@ -1,15 +1,21 @@
+import { createHash } from 'node:crypto'
+import { constants } from 'node:fs'
+import { lstat, open } from 'node:fs/promises'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { MigrateUpArgs, MigrateDownArgs, sql } from '@payloadcms/db-sqlite'
 
 export async function up({ db }: MigrateUpArgs): Promise<void> {
   // Validate every snapshot before schema changes; retain original rows for historical evidence.
-  const published = planSharedAssets(
-    await db.all(sql`SELECT * FROM career_jobs ORDER BY _parent_id, _order`),
-    await db.all(sql`SELECT * FROM career_jobs_documents ORDER BY _parent_id, _order`),
-  );
-  const versions = planSharedAssets(
-    await db.all(sql`SELECT * FROM _career_v_version_jobs ORDER BY _parent_id, _order`),
-    await db.all(sql`SELECT * FROM _career_v_version_jobs_documents ORDER BY _parent_id, _order`),
-  );
+  const jobs = await db.all<Row>(sql`SELECT * FROM career_jobs ORDER BY _parent_id, _order`);
+  const versionJobs = await db.all<Row>(sql`SELECT * FROM _career_v_version_jobs ORDER BY _parent_id, _order`);
+  const published = planSharedAssets(normalizeAmazonPhotos(jobs),
+    await db.all(sql`SELECT * FROM career_jobs_documents ORDER BY _parent_id, _order`));
+  const versions = planSharedAssets(normalizeAmazonPhotos(versionJobs),
+    await db.all(sql`SELECT * FROM _career_v_version_jobs_documents ORDER BY _parent_id, _order`));
+  if ([...jobs, ...versionJobs].some((job) => job.branch_name === 'work/amazon' && job.photo_id != null)) {
+    await verifyAmazonPhotos(await db.all(sql`SELECT id, filename FROM media WHERE id IN (1, 2)`));
+  }
   await db.run(sql`CREATE TABLE \`career_assets_documents\` (
     \`_order\` integer NOT NULL,
     \`_parent_id\` text NOT NULL,
@@ -106,6 +112,43 @@ export async function down({ db }: MigrateDownArgs): Promise<void> {
 
 type Row = Record<string, unknown>;
 type SharedAsset = { parent: number; branchName: string; photo: number | null; documents: { file: number; titles: Record<string, string | null> }[] };
+
+export function normalizeAmazonPhotos(jobs: Row[]): Row[] {
+  return jobs.map((job) => {
+    if (job.branch_name !== 'work/amazon') return job;
+    if (job.photo_id != null && job.photo_id !== 1 && job.photo_id !== 2) {
+      throw new Error(`Unexpected Amazon photo in snapshot ${job._parent_id}.`);
+    }
+    return { ...job, photo_id: job.photo_id === 2 ? 1 : job.photo_id };
+  });
+}
+
+async function verifyAmazonPhotos(media: Row[]) {
+  const dataDir = path.resolve(process.env.PAYLOAD_DATA_DIR || path.dirname(path.dirname(fileURLToPath(import.meta.url))));
+  const uploadDir = path.join(dataDir, '.payload-media');
+  for (const directory of [dataDir, uploadDir]) {
+    const metadata = await lstat(directory);
+    if (!metadata.isDirectory() || metadata.isSymbolicLink()) throw new Error('Unsafe Amazon upload directory.');
+  }
+  for (const [id, length, digest] of [
+    [1, 519689, '775cf00360e9afdb0602a042401e9d4fd6b3126d7f71f2c3584e9aa5a601ed85'],
+    [2, 244090, 'ff3bb370ebf73912c2bef8861bb5276e40e9d2b207922d2048154ee688d45c9b'],
+  ] as const) {
+    const rows = media.filter((row) => row.id === id);
+    const filename = rows[0]?.filename;
+    if (rows.length !== 1 || typeof filename !== 'string' || !filename || path.basename(filename) !== filename || filename === '.' || filename === '..') throw new Error('Unexpected Amazon media identity.');
+    const file = path.join(uploadDir, filename);
+    const metadata = await lstat(file);
+    if (!metadata.isFile() || metadata.isSymbolicLink()) throw new Error('Unsafe Amazon upload file.');
+    const handle = await open(file, constants.O_RDONLY | constants.O_NOFOLLOW);
+    try {
+      const opened = await handle.stat();
+      if (!opened.isFile() || opened.ino !== metadata.ino || opened.dev !== metadata.dev) throw new Error('Amazon upload identity changed.');
+      const bytes = await handle.readFile();
+      if (bytes.length !== length || createHash('sha256').update(bytes).digest('hex') !== digest) throw new Error('Amazon upload identity mismatch.');
+    } finally { await handle.close(); }
+  }
+}
 
 export function planSharedAssets(jobs: Row[], documents: Row[]): SharedAsset[] {
   const grouped = new Map<string, Row[]>();

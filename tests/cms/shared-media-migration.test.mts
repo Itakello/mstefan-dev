@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { DatabaseSync } from 'node:sqlite';
 import { migrations } from '../../migrations/index';
-import { planSharedAssets, up } from '../../migrations/20261011_132233_shared_career_media';
+import { normalizeAmazonPhotos, planSharedAssets, up } from '../../migrations/20261011_132233_shared_career_media';
 
 test('shared media migration preserves all original localized rows and version text, and maps titles by file identity', async () => {
   const { SQLiteSyncDialect } = await import('@payloadcms/db-sqlite/drizzle/sqlite-core');
@@ -58,6 +58,85 @@ test('migration fails closed on conflicting photos, document order, missing bran
   assert.throws(() => planSharedAssets([en], [document, document]), /Duplicate document/);
   assert.throws(() => planSharedAssets([en], [{ ...document, file_id: null }]), /Missing document file/);
   assert.throws(() => planSharedAssets([en, { ...it, photo_id: 1 }], [document, { ...document, _parent_id: 'it', file_id: 2 }]), /Conflicting career documents/);
+});
+
+test('all Amazon shared projections choose the portrait without rewriting localized history', () => {
+  for (const reverse of [false, true]) {
+    const jobs = Array.from({ length: 21 }, (_, index) => {
+      const photos = index === 0 || index === 15 || index === 16 ? [1, 2] : index <= 14 ? [2, 2] : [1, 1];
+      return ['en', 'it'].map((_locale, localeIndex) => Object.freeze({
+        id: `${index}-${_locale}`, _parent_id: index, _locale, branch_name: 'work/amazon',
+        photo_id: photos[localeIndex], summary: `${_locale} original story ${index}`,
+      }));
+    }).flat();
+    if (reverse) jobs.reverse();
+    const unrelated = [
+      { id: 'profile', _parent_id: 0, _locale: 'en', branch_name: 'profile', photo_id: 4 },
+      { id: 'master', _parent_id: 0, _locale: 'en', branch_name: 'education/trento-master', photo_id: null },
+      { id: 'bachelor', _parent_id: 0, _locale: 'en', branch_name: 'education/trento-bachelor', photo_id: null },
+    ];
+    const documents = [
+      { _parent_id: 'master', file_id: 3, title: 'Master original' },
+      { _parent_id: 'bachelor', file_id: 5, title: 'Bachelor original' },
+    ];
+    const original = structuredClone([...jobs, ...unrelated]);
+    const projected = planSharedAssets(normalizeAmazonPhotos([...jobs, ...unrelated]), documents);
+    assert.equal(projected.filter((asset) => asset.branchName === 'work/amazon').length, 21);
+    assert.ok(projected.filter((asset) => asset.branchName === 'work/amazon').every((asset) => asset.photo === 1));
+    assert.equal(projected.find((asset) => asset.branchName === 'profile')!.photo, 4);
+    assert.equal(projected.find((asset) => asset.branchName === 'education/trento-master')!.documents[0].file, 3);
+    assert.equal(projected.find((asset) => asset.branchName === 'education/trento-bachelor')!.documents[0].file, 5);
+    assert.deepEqual([...jobs, ...unrelated], original);
+    assert.deepEqual(documents.map((document) => document.title), ['Master original', 'Bachelor original']);
+    assert.equal(normalizeAmazonPhotos([{ branch_name: 'work/amazon', photo_id: null }])[0].photo_id, null);
+  }
+});
+
+test('unexpected Amazon references and unsafe or changed upload identities fail before DDL', async () => {
+  const { mkdtemp, mkdir, writeFile, symlink, rm } = await import('node:fs/promises');
+  const { tmpdir } = await import('node:os');
+  const path = await import('node:path');
+  const { SQLiteSyncDialect } = await import('@payloadcms/db-sqlite/drizzle/sqlite-core');
+  const dialect = new SQLiteSyncDialect();
+  const dataDir = await mkdtemp(path.join(tmpdir(), 'amazon-migration-identity-'));
+  const previous = process.env.PAYLOAD_DATA_DIR;
+  process.env.PAYLOAD_DATA_DIR = dataDir;
+  let photo: unknown = 2;
+  let filename = 'portrait.png';
+  let writes = 0;
+  const args = { db: {
+    all: (query: Parameters<typeof dialect.sqlToQuery>[0]) => {
+      const text = dialect.sqlToQuery(query).sql;
+      if (text.includes('FROM career_jobs ORDER')) return [{ id: 'amazon', _parent_id: 1, _locale: 'en', branch_name: 'work/amazon', photo_id: photo }];
+      if (text.includes('FROM media')) return [{ id: 1, filename }, { id: 2, filename: 'office.png' }];
+      return [];
+    },
+    run: () => { writes++; },
+  } } as unknown as Parameters<typeof up>[0];
+  try {
+    const upload = path.join(dataDir, '.payload-media');
+    await mkdir(upload);
+    for (const invalid of [3, 4, '1']) {
+      photo = invalid;
+      await assert.rejects(up(args), /Unexpected Amazon photo/);
+    }
+    photo = 2;
+    await writeFile(path.join(upload, filename), Buffer.alloc(519689));
+    await assert.rejects(up(args), /identity mismatch/);
+    filename = '../portrait.png';
+    await assert.rejects(up(args), /Unexpected Amazon media identity/);
+    filename = 'portrait-link.png';
+    await symlink(path.join(upload, 'portrait.png'), path.join(upload, filename));
+    await assert.rejects(up(args), /Unsafe Amazon upload file/);
+    await rm(upload, { recursive: true });
+    await mkdir(path.join(dataDir, 'actual-uploads'));
+    await symlink(path.join(dataDir, 'actual-uploads'), upload);
+    await assert.rejects(up(args), /Unsafe Amazon upload directory/);
+    assert.equal(writes, 0, 'No schema or data writes precede reference and physical identity validation');
+  } finally {
+    if (previous === undefined) delete process.env.PAYLOAD_DATA_DIR; else process.env.PAYLOAD_DATA_DIR = previous;
+    await rm(dataDir, { recursive: true, force: true });
+  }
 });
 
 test('populated migration history restarts without reseeding and exposes original revisions with shared media', { timeout: 60_000 }, async () => {
