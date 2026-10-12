@@ -1,0 +1,19 @@
+.storybook/main.ts
+  s_a3d57fd6983d88::t_adeb70f3e820bc 9-10
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0a01a692032f4472277a2f8ae8b478738f071691",
+  "prompts": {},
+  "sessions": {
+    "s_a3d57fd6983d88": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a125dc-d51e-7583-9ad7-4135793b24dc",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
