@@ -660,7 +660,7 @@ test('authenticated previews load only the active source draft', { timeout: 60_0
   } finally { await browser.close(); }
 });
 
-test('master results are an optional download while other attachments retain previews', { timeout: 60_000 }, async () => {
+test('degree results are optional metadata downloads while other attachments retain previews', { timeout: 90_000 }, async () => {
   const pdfBytes = syntheticPDF();
   const form = new FormData();
   form.set('file', new Blob([pdfBytes], { type: 'application/pdf' }), 'master-grades.pdf');
@@ -668,39 +668,57 @@ test('master results are an optional download while other attachments retain pre
   const upload = await fetch(`${base}/api/documents`, { method: 'POST', headers: { Cookie: cookie }, body: form });
   assert.equal(upload.status, 201);
   const file = (await upload.json()).doc;
+  form.set('file', new Blob([pdfBytes], { type: 'application/pdf' }), 'bachelor-grades.pdf');
+  const bachelorUpload = await fetch(`${base}/api/documents`, { method: 'POST', headers: { Cookie: cookie }, body: form });
+  assert.equal(bachelorUpload.status, 201);
+  const bachelorFile = (await bachelorUpload.json()).doc;
   const browser = await chromium.launch({ headless: true });
   try {
     const page = await browser.newPage();
     await mkdir('.artifacts/playwright/master-download', { recursive: true });
     for (const [locale, title, verb] of [['en', 'Master’s exam results', 'Download'], ['it', 'Risultati degli esami magistrali', 'Scarica']]) {
       const saved = await (await request(`/api/globals/career?locale=${locale}&draft=false`, undefined, true)).json();
+      const bachelorTitle = locale === 'it' ? 'Risultati degli esami triennali' : 'Bachelor’s exam results';
       const jobs = [
         { branchName: 'education/trento-master', company: 'Università di Trento', role: 'Artificial Intelligence', summary: 'Master’s degree', color: '#1267ab', documents: [{ title, file: file.id }] },
+        { branchName: 'education/trento-bachelor', company: 'Università di Trento', role: 'Computer Science', color: '#1267ab', documents: [{ title: bachelorTitle, file: bachelorFile.id }] },
         { branchName: 'research/thesis', company: 'Research', role: 'Researcher', color: '#12abcd', documents: [{ title: 'Research attachment', file: file.id }] },
       ];
       try {
         await update('career', locale, { jobs, _status: 'published' }, `&publishSpecificLocale=${locale}`);
         await page.goto(`${base}/${locale}/about`);
-        await page.locator('button[data-career-job]', { hasText: 'education/trento-master' }).click();
-        const link = page.getByRole('link', { name: `${verb} ${title} (PDF)`, exact: true });
-        await expect(link).toHaveAttribute('href', file.url);
-        await expect(link).toHaveAttribute('download', 'master-grades.pdf');
-        await expect(page.locator('#career-story [data-pdf-document]')).toHaveCount(0);
-        const download = page.waitForEvent('download');
-        await link.click();
-        assert.equal((await download).suggestedFilename(), 'master-grades.pdf');
-        for (const [size, width, height] of [['desktop', 1280, 900], ['mobile', 390, 844]] as const) {
-          await page.setViewportSize({ width, height });
-          for (const theme of ['light', 'dark'] as const) {
-            const dark = (await page.locator('html').getAttribute('class'))?.split(' ').includes('dark') ?? false;
-            if (dark !== (theme === 'dark')) await page.getByRole('button', { name: locale === 'it' ? 'Cambia tema' : 'Toggle theme' }).click();
-            await expect(page.locator('html')).toHaveClass(theme === 'dark' ? /\bdark\b/ : /^(?!.*\bdark\b)/);
-            await expect(link).toBeVisible();
-            await link.focus();
-            await link.press('Tab');
-            await page.keyboard.press('Shift+Tab');
-            await expect(link).toBeFocused();
-            await page.screenshot({ path: `.artifacts/playwright/master-download/${locale}-${size}-${theme}.png`, fullPage: true });
+        for (const [degree, attachment, role] of [['master', file, 'Artificial Intelligence'], ['bachelor', bachelorFile, 'Computer Science']] as const) {
+          await page.locator('button[data-career-job]', { hasText: `education/trento-${degree}` }).click();
+          const link = page.getByRole('link', { name: `${verb} ${degree === 'master' ? title : bachelorTitle} (PDF)`, exact: true });
+          await expect(link).toHaveText(locale === 'it' ? 'Risultati' : 'Results');
+          await expect(link.locator('svg.lucide-download')).toHaveCount(1);
+          await expect(page.locator('#career-story article p', { has: link })).toContainText(role);
+          await expect(link).toHaveAttribute('href', attachment.url);
+          await expect(link).toHaveAttribute('download', `massimo-stefan-${degree}s-exam-results.pdf`);
+          await expect(page.locator('#career-story [data-pdf-document]')).toHaveCount(0);
+          const download = page.waitForEvent('download');
+          await link.click();
+          assert.equal((await download).suggestedFilename(), `massimo-stefan-${degree}s-exam-results.pdf`);
+          for (const [size, width, height] of [['desktop', 1280, 900], ['mobile', 390, 844]] as const) {
+            await page.setViewportSize({ width, height });
+            for (const theme of ['light', 'dark'] as const) {
+              const dark = (await page.locator('html').getAttribute('class'))?.split(' ').includes('dark') ?? false;
+              if (dark !== (theme === 'dark')) await page.getByRole('button', { name: locale === 'it' ? 'Cambia tema' : 'Toggle theme' }).click();
+              await expect(page.locator('html')).toHaveClass(theme === 'dark' ? /\bdark\b/ : /^(?!.*\bdark\b)/);
+              await expect(link).toBeVisible();
+              const metadataBox = await page.locator('#career-story article p', { has: link }).boundingBox();
+              const buttonBox = await link.boundingBox();
+              assert.ok(metadataBox && buttonBox && Math.abs(metadataBox.x + metadataBox.width - buttonBox.x - buttonBox.width) < 1, 'Results button must align with the right edge of the metadata');
+              await link.focus();
+              await link.press('Tab');
+              await page.keyboard.press('Shift+Tab');
+              await expect(link).toBeFocused();
+              await page.screenshot({ path: `.artifacts/playwright/master-download/${degree}-${locale}-${size}-${theme}.png`, fullPage: true });
+              await link.hover();
+              if ((locale === 'en' && size === 'desktop' && theme === 'light') || (locale === 'it' && size === 'mobile' && theme === 'dark')) {
+                await page.screenshot({ path: `.artifacts/playwright/master-download/${degree}-${locale}-${size}-${theme}-hover.png`, fullPage: true });
+              }
+            }
           }
         }
         await page.locator('button[data-career-job]', { hasText: 'research/thesis' }).click();
