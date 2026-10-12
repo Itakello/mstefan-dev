@@ -19,9 +19,9 @@ test('a no-findings report cannot pass without concrete browser evidence', () =>
 });
 
 test('complete exploration preserves findings and fails closed on partial or wrong-ref evidence', () => {
-  const events = ['browser_navigate', 'browser_snapshot', 'browser_take_screenshot'].map(tool => ({ type: 'item.completed', item: { type: 'mcp_tool_call', status: 'completed', tool } }));
+  const events = ['browser_navigate', 'browser_snapshot', 'browser_take_screenshot', 'browser_stop_tracing'].map(tool => ({ type: 'item.completed', item: { type: 'mcp_tool_call', status: 'completed', tool } }));
   events[2].item.result = { content: [{ type: 'image', mimeType: 'image/png', data: 'test-image' }] };
-  const files = ['page.png', 'trace-123.zip', 'session.json'];
+  const files = ['page.png', 'trace-123.trace', 'session.json'];
   const report = { base_sha: 'base', head_sha: 'head', status: 'complete', scenarios: [{ observed: 'Menu remained usable in the narrow viewport', screenshot: 'page.png' }], findings: [], evidence_gaps: [] };
   assert.equal(assessEvidence(report, events, files, 'base', 'head').status, 'complete');
   const textOnly = events.map(event => ({ ...event, item: { ...event.item, result: { content: [{ type: 'text', text: 'Saved screenshot' }] } } }));
