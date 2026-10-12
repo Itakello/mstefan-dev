@@ -28,7 +28,7 @@ export function MediaPreview({ title, locale, children, controls }: { title: str
       dialog.current?.show();
       requestAnimationFrame(() => enlarge.current?.focus());
     }}>
-    <div className={expanded ? "mb-2 flex justify-end" : "hidden"}>
+    <div className={expanded ? "mb-2 flex justify-end p-1" : "hidden"}>
       <button ref={close} type="button" onClick={() => dialog.current?.close()} aria-label={italian ? "Chiudi anteprima" : "Close preview"} className="media-preview-control"><X size={18} aria-hidden /></button>
     </div>
     {children(<button ref={enlarge} type="button" data-media-enlarge onClick={() => setExpanded(true)} aria-label={italian ? "Ingrandisci anteprima" : "Enlarge preview"} style={expanded ? { display: "none" } : undefined} className="media-preview-control absolute bottom-3 right-3 z-20 transition-opacity"><Maximize2 size={18} aria-hidden /></button>)}

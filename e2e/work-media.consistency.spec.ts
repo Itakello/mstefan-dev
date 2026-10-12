@@ -83,6 +83,16 @@ for (const size of ["desktop", "mobile"] as const) {
           if (size === "desktop") {
             expect(await close.evaluate(node => node.matches(":focus-visible"))).toBe(true);
             await expect(close).toHaveCSS("outline-width", "2px");
+            const ring = await close.evaluate(node => {
+              const button = node.getBoundingClientRect();
+              const dialog = node.closest("dialog")!;
+              const boundary = dialog.getBoundingClientRect();
+              const style = getComputedStyle(node);
+              const outset = parseFloat(style.outlineWidth) + parseFloat(style.outlineOffset);
+              return { top: button.top - outset - boundary.top - dialog.clientTop, right: boundary.left + dialog.clientLeft + dialog.clientWidth - button.right - outset };
+            });
+            expect(ring.top).toBeGreaterThanOrEqual(0);
+            expect(ring.right).toBeGreaterThanOrEqual(0);
           }
           if (kind === "Paper") await expect(media.getByRole("status")).toHaveCount(0);
           if (kind === "Slides") await expect.poll(() => page.frameLocator("[data-powerpoint-preview] iframe").locator("#stage").evaluate(node => Math.abs(node.getBoundingClientRect().width - window.innerWidth))).toBeLessThan(2);
