@@ -1,0 +1,21 @@
+scripts/visual-review/ai-review.mjs
+  s_ca9b05cd06e974::t_d520d744e49fc3 25-30,310-315
+tests/ai-visual-review.test.mjs
+  s_ca9b05cd06e974::t_67e2f139fa8457 1047-1086
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "90459c9643d0ed828d5cd93ba840caa43473dad4",
+  "prompts": {},
+  "sessions": {
+    "s_ca9b05cd06e974": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a125e2-8a12-72c0-9b0f-65ad915684a2",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
