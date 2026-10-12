@@ -29,6 +29,34 @@ test('malformed, truncated, refused and partial review cannot approve', () => {
   for (const response of [{status:'incomplete'},output({...clean,coverage:REQUIRED.slice(1)}),output({...clean,complete:false}),output({...clean,findings:[{rule:'rule'}]})]) assert.throws(() => reviewResult(response,REQUIRED));
   assert.throws(() => reviewResult({status:'completed',output:[{type:'message',content:[{type:'refusal'}]}]},REQUIRED));
 });
+test('menu evidence accepts 102 captures but rejects overflow and duplicates at both boundaries', async () => {
+  const { mkdtempSync, rmSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const { join } = await import('node:path');
+  const { spawnSync } = await import('node:child_process');
+  const names = [...REQUIRED, ...Array.from({length:86}, (_, index) => `menu-evidence-${index}.png`)];
+  verifyEvidence({...metadata,captures:names},names,pr,run,repository);
+  assert.throws(() => verifyEvidence({...metadata,captures:[...names,'overflow.png']},[...names,'overflow.png'],pr,run,repository), /Image count/);
+  assert.throws(() => verifyEvidence({...metadata,captures:[...names.slice(1),names[1]]},[...names.slice(1),names[1]],pr,run,repository), /duplicate names/);
+  for (const count of [102,103]) {
+    const directory = mkdtempSync(join(tmpdir(),'visual-capture-limit-'));
+    try {
+      const create = spawnSync('python3',['-c',`import sys,zipfile
+with zipfile.ZipFile(sys.argv[1]+'/artifact.zip','w') as z:
+ z.writestr('evidence/metadata.json','{}')
+ for index in range(int(sys.argv[2])): z.writestr(f'test-results/capture-{index}.png','png')`,directory,String(count)]);
+      assert.equal(create.status,0);
+      const result = spawnSync('python3',['scripts/visual-review/read-evidence.py',directory]);
+      if (count === 102) {
+        assert.equal(result.status,0);
+        assert.equal(JSON.parse(readFileSync(join(directory,'inventory.json'),'utf8')).captures.length,102);
+      } else {
+        assert.notEqual(result.status,0);
+        assert.match(result.stderr.toString(),/Capture limit/);
+      }
+    } finally { rmSync(directory,{recursive:true,force:true}); }
+  }
+});
 test('findings may compare supplied baselines but require current evidence', () => {
   const finding = {rule:'Transparent artwork wrappers',location:'components/Footer.tsx',explanation:'Opaque X wrapper',evidence:['footer-desktop-light.png','base/footer-desktop-light.png']};
   const result = {...clean,findings:[finding]};
@@ -961,6 +989,7 @@ test('exact reviewed historical producers settle only through their merged basel
   for (const [historical,branch,baseline,reserved,actual,usage] of [
     ['bb6af4b2b143abcea1582badd84b4732206e4566','codex/visual-usage-settlement','9b96c768a2a893e490e79543cb1955ccd59a5aec',2000000,1200,{input_tokens:100,output_tokens:100,total_tokens:200,input_tokens_details:{cached_tokens:0,cache_write_tokens:0}}],
     ['a5f7d5c0d453ee73b0832944d52bb1e205a3d2fc','codex/visual-review-no-daily-cap','fd275d216d5c5c8185d99b293932aeeb1662180d',558280,198009,{input_tokens:49014,output_tokens:10000,total_tokens:59014,input_tokens_details:{cached_tokens:10,cache_write_tokens:0}}],
+    ['e7afed453384dec632250d7677ad8f24a3ca02e4','codex/restore-daily-visual-budget','89f998809fb39e92d081629ec7af777f1c7a31bd',2000000,1200,{input_tokens:100,output_tokens:100,total_tokens:200,input_tokens_details:{cached_tokens:0,cache_write_tokens:0}}],
   ]) {
     const trusted='f'.repeat(40),now=Date.parse('2026-10-12T00:00:00Z');
     const paid={name:`${PAID_STEP} (${reserved} microUSD)`,number:6,status:'completed',conclusion:'failure',started_at:'2026-10-11T23:58:00Z',completed_at:'2026-10-11T23:59:00Z'};

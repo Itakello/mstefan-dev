@@ -27,7 +27,7 @@ with zipfile.ZipFile(root / 'artifact.zip') as archive:
                 raise ValueError('Metadata limit')
             metadata = json.loads(archive.read(entry))
         elif path.parts[0] in ('test-results', 'workshop') and path.suffix == '.png' and not path.name.endswith(('-actual.png', '-expected.png', '-diff.png')) and not path.name.startswith('test-failed-'):
-            if entry.file_size > 5 * 1024 * 1024 or len(captures) >= 100:
+            if entry.file_size > 5 * 1024 * 1024 or len(captures) >= 102:
                 raise ValueError('Capture limit')
             target = f'capture-{len(captures)}.png'
             (root / target).write_bytes(archive.read(entry))
