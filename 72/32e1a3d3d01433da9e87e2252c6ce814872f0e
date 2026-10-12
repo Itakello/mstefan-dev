@@ -1,0 +1,25 @@
+deploy/pr132-followup/pr132-proof-fixture.service
+  s_edc3df130cc253::t_7dd5a9de61e81b 1-11
+deploy/pr132-followup/test_backup_window.py
+  s_edc3df130cc253::t_1da41bfed2e77e 54-70
+deploy/pr132-followup/pr132-proof-backup.service
+  s_edc3df130cc253::t_7dd5a9de61e81b 1-11
+deploy/pr132-followup/backup_window.py
+  s_edc3df130cc253::t_1da41bfed2e77e 110
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "7232e1a3d3d01433da9e87e2252c6ce814872f0e",
+  "prompts": {},
+  "sessions": {
+    "s_edc3df130cc253": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12b0b-aaa6-7d90-aa4e-5bcfe9db3ea5",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
