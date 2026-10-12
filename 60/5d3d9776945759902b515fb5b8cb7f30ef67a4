@@ -1,0 +1,88 @@
+tests/cms/notion-publication-fixture.mjs
+  s_a3d57fd6983d88::t_cadff11e01a029 55,70,73-75
+  s_a3d57fd6983d88::t_00b8f22e1cb7cc 44,71-72
+tests/visual-review.test.ts
+  s_a3d57fd6983d88::t_cadff11e01a029 38-46
+e2e/visual-ready.ts
+  s_a3d57fd6983d88::t_cadff11e01a029 1-22
+lib/theme.ts
+  s_a3d57fd6983d88::t_cadff11e01a029 11-14
+lib/websiteStack.ts
+  s_a3d57fd6983d88::t_cadff11e01a029 5,73,77-78,123
+e2e/mstefan-site.review.spec.ts
+  s_a3d57fd6983d88::t_cadff11e01a029 4-5,13-18,235,240,248,262,265,327,330,354,357
+scripts/visual-review/classify.d.mts
+  s_a3d57fd6983d88::t_cadff11e01a029 6
+tests/notion-publication-snapshot.test.ts
+  s_a3d57fd6983d88::t_cadff11e01a029 23,56
+tests/ai-visual-review.test.mjs
+  s_a3d57fd6983d88::t_cadff11e01a029 32-59,580,601,605-606,994
+e2e/not-found.smoke.spec.ts
+  s_a3d57fd6983d88::t_cadff11e01a029 45,48,58,67
+e2e/design.consistency.spec.ts
+  s_a3d57fd6983d88::t_cadff11e01a029 5
+app/globals.css
+  s_a3d57fd6983d88::t_cadff11e01a029 24-36
+docs/automation/ai-visual-review.md
+  s_a3d57fd6983d88::t_cadff11e01a029 19
+.github/workflows/visual-review.yml
+  s_a3d57fd6983d88::t_cadff11e01a029 22,73-80
+tests/theme-init.test.ts
+  s_a3d57fd6983d88::t_cadff11e01a029 31-32,36-45,71-73
+components/LanguageSelector.tsx
+  s_a3d57fd6983d88::t_cadff11e01a029 3,5,7-8,35,38,52-67,69-73
+components/Header.tsx
+  s_a3d57fd6983d88::t_cadff11e01a029 6,21-32,36,39-40,45,53-62,64-67,70,75,85,88-89,99-100,114-117,120-121,123
+lib/notionPublicationSnapshot.ts
+  s_a3d57fd6983d88::t_cadff11e01a029 21-24,32-33,40,42,45,49-50,52,63-71,79-80
+scripts/visual-review/read-evidence.py
+  s_a3d57fd6983d88::t_cadff11e01a029 30
+tests/localized-public-site.test.ts
+  s_a3d57fd6983d88::t_cadff11e01a029 65
+scripts/visual-review/run-fixture.mjs
+  s_a3d57fd6983d88::t_cadff11e01a029 1,4,13,39-43,76-77
+app/api/webhooks/notion/route.ts
+  s_a3d57fd6983d88::t_cadff11e01a029 1,12
+scripts/visual-review/package-evidence.mjs
+  s_a3d57fd6983d88::t_cadff11e01a029 41-42
+tests/cms/publication.test.mts
+  s_a3d57fd6983d88::t_cadff11e01a029 98-102,109,327-337,340-341,344
+scripts/visual-review/classify.mjs
+  s_a3d57fd6983d88::t_cadff11e01a029 45-49,57,65,76,95
+scripts/visual-review/native-favicon.mjs
+  s_a3d57fd6983d88::t_cadff11e01a029 1-83
+tests/cms/offline-fetch.mjs
+  s_a3d57fd6983d88::t_cadff11e01a029 16-17
+workshop/Header.stories.tsx
+  s_a3d57fd6983d88::t_cadff11e01a029 1-27
+tests/notion-publication-cache.test.ts
+  s_a3d57fd6983d88::t_cadff11e01a029 1-48
+proxy.ts
+  s_a3d57fd6983d88::t_cadff11e01a029 7
+e2e/theme-icons.smoke.spec.ts
+  s_a3d57fd6983d88::t_cadff11e01a029 1-123
+lib/i18n/copy.ts
+  s_a3d57fd6983d88::t_cadff11e01a029 22-23,105-106,206-207
+scripts/visual-review/ai-review.mjs
+  s_a3d57fd6983d88::t_cadff11e01a029 54,250-251,423,486
+tests/cms/lifecycle.test.mts
+  s_a3d57fd6983d88::t_cadff11e01a029 12-13,680-684,713-717,727-729,732
+README.md
+  s_a3d57fd6983d88::t_cadff11e01a029 98,100,102
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "605d3d9776945759902b515fb5b8cb7f30ef67a4",
+  "prompts": {},
+  "sessions": {
+    "s_a3d57fd6983d88": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a125dc-d51e-7583-9ad7-4135793b24dc",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
