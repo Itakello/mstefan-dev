@@ -5,7 +5,7 @@ import { verifyRevision, alreadyAttempted } from './ai-review.mjs';
 const REPOSITORY = 'Itakello/mstefan-dev';
 const PULL_REQUEST = 143;
 const BASE = 'd12bf03124b2a46b8078e260fdebc55ccf6e361c';
-const EXPIRES = Date.parse('2026-10-12T04:00:00Z');
+const EXPIRES = Date.parse('2026-10-12T12:00:00Z');
 class RecoveryError extends Error {}
 function ensure(value, message) { if (!value) throw new RecoveryError(message); }
 function context(env, now) {

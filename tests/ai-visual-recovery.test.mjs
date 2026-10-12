@@ -48,19 +48,19 @@ async function fixture(run) {
 test('valid attended recovery reads only GitHub without model calls', () => fixture(async ({execute,calls,event}) => {
   await execute(); assert.equal(calls.length,3);
   event.inputs.recovery = true; await execute();
-  await execute({now:()=>Date.parse('2026-10-12T04:00:00Z')-1});
+  await execute({now:()=>Date.parse('2026-10-12T12:00:00Z')-1});
 }));
 test('recovery rejects wrong principal, route, rerun and expiry before reading APIs', async () => {
   for (const [key,value] of Object.entries({GITHUB_REPOSITORY:'other/repo',GITHUB_EVENT_NAME:'workflow_run',GITHUB_ACTOR:'other',GITHUB_TRIGGERING_ACTOR:'other',GITHUB_REF:'refs/heads/master',GITHUB_RUN_ATTEMPT:'2',GITHUB_SHA:'bad',GITHUB_RUN_ID:'0'})) {
     await fixture(async ({env,execute,calls}) => {env[key]=value; await assert.rejects(execute()); assert.equal(calls.length,0);});
   }
   await fixture(async ({env,execute,calls}) => {env.GITHUB_REF='refs/heads/codex/visual-review-no-daily-cap'; await assert.rejects(execute(),/ref mismatch/); assert.equal(calls.length,0);});
-  await fixture(async ({execute,calls}) => {await assert.rejects(execute({now:()=>Date.parse('2026-10-12T04:00:00Z')}),/expired/); assert.equal(calls.length,0);});
+  await fixture(async ({execute,calls}) => {await assert.rejects(execute({now:()=>Date.parse('2026-10-12T12:00:00Z')}),/expired/); assert.equal(calls.length,0);});
 });
 test('expiry is checked again after live verification', async () => {
   await fixture(async ({execute}) => {
     let count=0;
-    await assert.rejects(execute({now:()=>++count === 1 ? instant : Date.parse('2026-10-12T04:00:00Z')}),/expired/);
+    await assert.rejects(execute({now:()=>++count === 1 ? instant : Date.parse('2026-10-12T12:00:00Z')}),/expired/);
   });
 });
 test('recovery input is explicit and source IDs are positive decimal strings', async () => {

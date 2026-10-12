@@ -823,16 +823,16 @@ test('recovery expiry blocks input counting, generation and request claims after
   const {mkdtempSync,writeFileSync,rmSync}=await import('node:fs');
   const {join}=await import('node:path');const {tmpdir}=await import('node:os');
   const directory=mkdtempSync(join(tmpdir(),'visual-recovery-expiry-'));
-  const eventPath=join(directory,'event.json'),now=Date.parse('2026-10-12T04:00:00Z');
+  const eventPath=join(directory,'event.json'),now=Date.parse('2026-10-12T12:00:00Z');
   const recoveryRepository='Itakello/mstefan-dev';
   const sha='a'.repeat(40),base='d12bf03124b2a46b8078e260fdebc55ccf6e361c',reserved=1500000;
   writeFileSync(eventPath,JSON.stringify({inputs:{recovery:'true',source_run_id:'7'}}));
   writeFileSync(join(directory,'ai-visual-request.json'),JSON.stringify({sha,base,sourceRun:7,reservedMicroUsd:reserved,names:REQUIRED,body:requestBody('',[])}),{mode:0o600});
   const source={id:7,repository:{full_name:recoveryRepository},name:'Visual review',path:'.github/workflows/visual-review.yml',event:'pull_request',status:'completed',conclusion:'success',head_sha:sha,pull_requests:[{number:143,head:{sha},base:{sha:base}}]};
   const pr={state:'open',number:143,head:{sha},base:{sha:base,repo:{full_name:recoveryRepository}},changed_files:1,labels:[]};
-  const historyRun={id:7,status:'completed',updated_at:'2026-10-12T03:59:00Z'};
-  const currentRun={id:9,status:'in_progress',updated_at:'2026-10-12T03:59:00Z'};
-  const currentStep={name:`${PAID_STEP} (${reserved} microUSD)`,status:'in_progress',started_at:'2026-10-12T03:59:30Z'};
+  const historyRun={id:7,status:'completed',updated_at:'2026-10-12T11:59:00Z'};
+  const currentRun={id:9,status:'in_progress',updated_at:'2026-10-12T11:59:00Z'};
+  const currentStep={name:`${PAID_STEP} (${reserved} microUSD)`,status:'in_progress',started_at:'2026-10-12T11:59:30Z'};
   const posts=[],calls=[];let currentVisible=false,modelCalls=0;
   const fetcher=async(url,options)=> {
     calls.push(url);
