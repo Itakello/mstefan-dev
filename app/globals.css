@@ -21,6 +21,19 @@
   --scrollbar-thumb: #71717a;
 }
 
+@media (forced-colors: active) {
+  .header-logo-image {
+    display: none !important;
+  }
+
+  .header-mark-forced {
+    display: block;
+    background: CanvasText;
+    mask: url("/icon.png") center / contain no-repeat;
+    forced-color-adjust: none;
+  }
+}
+
 @media (forced-colors: none) {
   * {
     scrollbar-width: thin;
