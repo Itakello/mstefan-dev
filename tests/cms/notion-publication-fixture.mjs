@@ -54,7 +54,11 @@ const provider = http.createServer((request, response) => {
     const parsed = JSON.parse(query);
     if (request.url === '/v1/databases/visual-stack-fixture/query') {
       if (parsed.filter || parsed.start_cursor) { response.writeHead(400).end('Unexpected Stack query'); return; }
-      response.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify({ object: 'list', results: stackRows, has_more: false, next_cursor: null }));
+      const changedIcon = readFileSync(process.env.VISUAL_NOTION_FIXTURE_STATE, 'utf8').trim() === 'changedicon';
+      const rows = stackRows.map((row, index) => changedIcon && index === 0 ? { ...row, properties: { ...row.properties,
+        'Icon key': { rich_text: [{ plain_text: 'logos:typescript' }] },
+      } } : row);
+      response.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify({ object: 'list', results: rows, has_more: false, next_cursor: null }));
       return;
     }
     if (parsed.filter?.property !== 'Status' || parsed.filter?.status?.equals !== 'Added' || parsed.start_cursor) {

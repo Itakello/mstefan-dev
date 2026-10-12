@@ -18,13 +18,16 @@ export type NotionPublicationSnapshot = {
 type SnapshotOptions = {
   fetchProjects?: () => Promise<NotionProject[] | null>;
   fetchStack?: () => Promise<StackEntry[] | null>;
+};
+
+type RefreshOptions = SnapshotOptions & {
+  loadSnapshot?: () => Promise<NotionPublicationSnapshot>;
   validateIcons?: (entries: readonly StackEntry[]) => Promise<void>;
 };
 
 export async function loadNotionPublicationSnapshot({
   fetchProjects = fetchProjectsFromNotion,
   fetchStack = fetchStackFromNotion,
-  validateIcons = validateStackIcons,
 }: SnapshotOptions = {}): Promise<NotionPublicationSnapshot> {
   const [projects, stack] = await Promise.all([fetchProjects(), fetchStack()]);
   if (projects === null) throw new Error("Notion Projects source is unavailable");
@@ -32,19 +35,18 @@ export async function loadNotionPublicationSnapshot({
 
   approvedWebsiteUrls(projects);
   assertProjectStackCoverage(projects, stack);
-  await validateIcons(stack);
   const digest = createHash("sha256").update(JSON.stringify({ projects, stack })).digest("hex");
   return { projects, stack, digest, checkedAt: Date.now() };
 }
 
-export async function refreshNotionPublicationSnapshot(options: SnapshotOptions = {}) {
+export async function refreshNotionPublicationSnapshot(options: RefreshOptions = {}) {
   const startedAt = Date.now();
   const generation = publicationGeneration();
   try {
-    const snapshot = await loadNotionPublicationSnapshot(options);
+    const snapshot = await (options.loadSnapshot ?? (() => loadNotionPublicationSnapshot(options)))();
+    await (options.validateIcons ?? validateStackIcons)(snapshot.stack);
     if (generation !== publicationGeneration()) throw new Error("Notion changed during publication refresh");
-    snapshot.checkedAt = startedAt;
-    await safelyObservePublication({ kind: "success", startedAt, digest: snapshot.digest,
+    await safelyObservePublication({ kind: "success", startedAt: snapshot.checkedAt, digest: snapshot.digest,
       projects: snapshot.projects.length, stack: snapshot.stack.length });
     if (generation !== publicationGeneration()) throw new Error("Notion changed during publication refresh");
     return snapshot;
@@ -55,7 +57,15 @@ export async function refreshNotionPublicationSnapshot(options: SnapshotOptions 
 }
 
 const loadCachedSnapshot = unstable_cache(
-  () => refreshNotionPublicationSnapshot(),
+  async () => {
+    const startedAt = Date.now();
+    try {
+      return await loadNotionPublicationSnapshot();
+    } catch (error) {
+      await safelyObservePublication({ kind: "failure", startedAt });
+      throw error;
+    }
+  },
   ["notion-publication-snapshot-v1", createHash("sha256").update(JSON.stringify([
     process.env.NOTION_DATABASE_ID, process.env.NOTION_STACK_DATABASE_ID, process.env.NOTION_TOKEN,
   ])).digest("hex")],
@@ -63,5 +73,6 @@ const loadCachedSnapshot = unstable_cache(
 );
 
 export function getNotionPublicationSnapshot() {
-  return loadCachedSnapshot();
+  // Next bypasses nested unstable_cache reads; validate after the source cache returns.
+  return refreshNotionPublicationSnapshot({ loadSnapshot: loadCachedSnapshot });
 }
