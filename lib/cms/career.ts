@@ -17,5 +17,5 @@ export async function getCareerContent(locale: Locale, preview: boolean): Promis
   if (preview) return withCareerMedia(career);
   if (career._status !== "published") return { ...career, assets: null, jobs: [] };
   const content = withCareerMedia(career);
-  return { ...content, assets: null, jobs: content.jobs?.map((job) => job.summary?.trim() ? job : { ...job, photo: null }) };
+  return { ...content, assets: null, jobs: content.jobs?.map((job) => job.summary?.trim() || job.documents?.some((document) => document.file) ? job : { ...job, photo: null }) };
 }

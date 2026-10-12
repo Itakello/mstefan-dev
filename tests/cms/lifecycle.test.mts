@@ -443,6 +443,14 @@ test('nested career branches share junctions and synchronize graph and Experienc
   const hiddenUpload = await fetch(`${base}/api/media?locale=en`, { method: 'POST', headers: { Cookie: cookie }, body: hiddenForm });
   assert.equal(hiddenUpload.status, 201);
   const hiddenPhoto = (await hiddenUpload.json()).doc;
+  const documentPhotoForm = new FormData();
+  documentPhotoForm.set('file', new Blob([photoBytes], { type: 'image/png' }), 'document-only-experience.png');
+  documentPhotoForm.set('_payload', JSON.stringify({ alt: 'Document-only experience portrait' }));
+  const documentPhotoUpload = await fetch(`${base}/api/media?locale=en`, { method: 'POST', headers: { Cookie: cookie }, body: documentPhotoForm });
+  assert.equal(documentPhotoUpload.status, 201);
+  const documentPhoto = (await documentPhotoUpload.json()).doc;
+  assert.equal((await fetch(`${base}/api/media/${documentPhoto.id}?locale=it`, { method: 'PATCH', headers: { Cookie: cookie, 'Content-Type': 'application/json' }, body: JSON.stringify({ alt: 'Ritratto esperienza con documento' }) })).status, 200);
+  assert.equal((await fetch(new URL(documentPhoto.url, base))).status, 403);
   const pdfBytes = syntheticPDF();
   const documentForm = new FormData();
   documentForm.set('file', new Blob([pdfBytes], { type: 'application/pdf' }), 'synthetic-project.pdf');
@@ -465,12 +473,17 @@ test('nested career branches share junctions and synchronize graph and Experienc
     company, branchName, role: 'Synthetic test experience', parentBranchName, color,
     ...(['B', 'C', 'F'].includes(company) ? { summary: `Synthetic story for ${company}` } : {}),
     ...(company === 'F' ? { photo: photo.id, documents: [{ title: 'Synthetic project PDF', file: pdfFile.id }] } : company === 'E' ? { photo: hiddenPhoto.id } : {}),
-    ...(company === 'H' ? { photo: hiddenPhoto.id, documents: [{ title: 'Synthetic document-only PDF', file: pdfFile.id }] } : {}),
+    ...(company === 'H' ? { photo: documentPhoto.id, documents: [{ title: 'Synthetic document-only PDF', file: pdfFile.id }] } : {}),
     startDate: new Date(Date.UTC(2024, start, 1)).toISOString(), endDate: new Date(Date.UTC(2024, end, 1)).toISOString(),
   }));
   const assets = jobs.filter((job) => job.photo || job.documents).map(({ branchName, photo, documents }) => ({ branchName, photo, documents }));
   const localizedJobs = jobs.map(({ photo, documents, ...job }) => job);
+  await update('career', 'en', { jobs: localizedJobs, assets, laneSpacing: 24 }, '&draft=true');
+  assert.equal((await fetch(new URL(documentPhoto.url, base))).status, 403, 'Document-only draft photo must remain private');
   await update('career', 'en', { jobs: localizedJobs, assets, laneSpacing: 24, _status: 'published' }, '&publishSpecificLocale=en');
+  await update('career', 'it', { jobs: localizedJobs, _status: 'published' }, '&publishSpecificLocale=it');
+  assert.equal((await fetch(new URL(documentPhoto.url, base))).status, 200, 'Published document-only photo must be public');
+
   const publishedPhoto = await fetch(new URL(photo.url, base));
   assert.equal(publishedPhoto.status, 200);
   assert.deepEqual(Buffer.from(await publishedPhoto.arrayBuffer()), photoBytes);
@@ -527,7 +540,8 @@ test('nested career branches share junctions and synchronize graph and Experienc
     await graph.locator('button[data-career-job]', { hasText: 'work/next' }).click();
     await expect(page.locator('#career-story h1')).toHaveText('H');
     await expect(page.locator('#career-story')).toHaveAttribute('aria-label', 'H');
-    await expect(page.locator('#career-story img')).toHaveCount(0);
+    await expect(page.locator('#career-story img')).toHaveAttribute('src', documentPhoto.url);
+    await expect(page.locator('#career-story img')).toHaveAttribute('alt', 'Document-only experience portrait');
     await expect(page.locator('#career-story [data-pdf-document]')).toBeVisible();
     await expect(page.getByRole('link', { name: /H · View documents/i })).toHaveAttribute('href', '#career-story');
     await expect(page.getByRole('link', { name: /Read story/i })).toHaveCount(0);
@@ -603,6 +617,19 @@ test('nested career branches share junctions and synchronize graph and Experienc
     await expect(page.locator('#career-story [data-document-text]')).toContainText('Synthetic career PDF');
     await page.screenshot({ path: path.join(dataDir, 'career-pdf-reader-gallery-mobile.png'), fullPage: true });
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), 'Career page overflows at 320px');
+    for (const locale of ['en', 'it']) {
+      await page.goto(`${base}/${locale}/about#career`);
+      await page.locator('button[data-career-job]', { hasText: 'work/next' }).click();
+      await expect(page.locator('#career-story img')).toHaveAttribute('src', documentPhoto.url);
+      await expect(page.locator('#career-story img')).toHaveAttribute('alt', locale === 'en' ? 'Document-only experience portrait' : 'Ritratto esperienza con documento');
+      await mkdir('.artifacts/career-document-photo-shared', { recursive: true });
+      await page.screenshot({ path: `.artifacts/career-document-photo-shared/${locale}-document-only-photo.png`, fullPage: true });
+      const html = await (await request(`/${locale}/about`)).text();
+      assert.ok(!html.includes('hidden-experience.png') && !html.includes('Hidden experience portrait'));
+    }
+    await update('career', 'en', { assets: assets.map((asset) => asset.branchName === 'work/next' ? { ...asset, documents: [] } : asset), _status: 'published' }, '&publishSpecificLocale=en');
+    assert.equal((await fetch(new URL(documentPhoto.url, base))).status, 403, 'Removing the document revokes document-only photo access');
+    assert.equal((await fetch(new URL(hiddenPhoto.url, base))).status, 403);
   } finally { await browser.close(); }
 });
 

@@ -35,8 +35,9 @@ const publishedMedia: Access = async ({ req }) => {
   for (const career of careers) {
     if (career._status !== "published") continue;
     for (const job of career.jobs ?? []) {
-      if (!job.summary?.trim()) continue;
-      const id = mediaID(career.assets?.find((asset) => asset.branchName === job.branchName)?.photo);
+      const asset = career.assets?.find((asset) => asset.branchName === job.branchName);
+      if (!job.summary?.trim() && !asset?.documents?.some((document) => mediaID(document.file) !== null)) continue;
+      const id = mediaID(asset?.photo);
       if (id !== null) ids.add(id);
     }
   }

@@ -139,12 +139,12 @@ test('career seed, localized order, authenticated drafts, colors, and deletion s
       catch (error) { if ((error as { status?: number }).status === 403) return []; throw error; }
     };
     const { withCareerMedia } = await import('../../lib/cms/career-media');
-    const jobs = [{ branchName: 'work/shared', company: 'Shared company', role: 'English role', summary: 'English story', color: '#123456' }];
+    const jobs = [{ branchName: 'work/shared', company: 'Shared company', role: 'English role', summary: '', color: '#123456' }];
     await payload.updateGlobal({ slug: 'career', locale: 'en', publishSpecificLocale: 'en', data: {
       _status: 'published', jobs, assets: [{ branchName: 'work/shared', photo: 1, documents: [{ file: 1, title: 'English PDF' }] }],
     } });
     await payload.updateGlobal({ slug: 'career', locale: 'it', publishSpecificLocale: 'it', data: {
-      _status: 'published', jobs: jobs.map((job) => ({ ...job, role: 'Ruolo italiano', summary: 'Storia italiana' })),
+      _status: 'published', jobs: jobs.map((job) => ({ ...job, role: 'Ruolo italiano', summary: '' })),
       assets: [{ branchName: 'work/shared', photo: 1, documents: [{ file: 1, title: 'PDF italiano' }] }],
     } });
     const read = async (locale: 'en' | 'it', draft = false) => withCareerMedia(await payload.findGlobal({ slug: 'career', locale, draft, depth: 0, fallbackLocale: false }));
@@ -182,6 +182,14 @@ test('career seed, localized order, authenticated drafts, colors, and deletion s
     } });
     assert.deepEqual(await visible('media'), [2]);
     assert.deepEqual(await visible('documents'), [2]);
+    await assert.rejects(payload.updateGlobal({ slug: 'career', locale: 'en', publishSpecificLocale: 'en', data: {
+      _status: 'published', assets: [{ branchName: 'work/shared', photo: 3, documents: [{ title: 'Missing file' }] }],
+    } }));
+    await assert.rejects(payload.updateGlobal({ slug: 'career', locale: 'en', publishSpecificLocale: 'en', data: {
+      _status: 'published', assets: [{ branchName: 'work/shared', photo: 3, documents: [{ file: 999999, title: 'Unknown file' }] }],
+    } }));
+    await payload.delete({ collection: 'documents', id: 2 });
+    assert.deepEqual(await visible('media'), [], 'Deleting the only published document revokes document-only photo access');
     await payload.updateGlobal({ slug: 'career', locale: 'en', publishSpecificLocale: 'en', data: { _status: 'published', assets: [] } });
     assert.deepEqual(await visible('media'), []);
     assert.deepEqual(await visible('documents'), []);
