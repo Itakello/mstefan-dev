@@ -1,0 +1,38 @@
+deploy/pr132-followup/test_backup_window.py
+  s_edc3df130cc253::t_ec412fd4bf305f 50-53
+  s_edc3df130cc253::t_ed07392e50920d 54-74,118-119,188,201-206
+  s_edc3df130cc253::t_a1e127b8d9cd82 2-4,20-48
+  s_edc3df130cc253::t_d64717aaa3a13f 49
+  s_edc3df130cc253::t_d527b1ac508e4f 207
+deploy/pr132-followup/backup_window.py
+  s_edc3df130cc253::t_a1e127b8d9cd82 215-218
+  s_edc3df130cc253::t_827847e98f5f41 14-15,18-20,25,27-28,175-176
+deploy/pr132-followup/offline_migration_proof.mts
+  s_edc3df130cc253::t_a842dcfe395426 166,188
+deploy/pr132-followup/offline_restore_proof.py
+  s_edc3df130cc253::t_1c8386ad9f219c 1,8-9,16-23,30-50,62,91-93,95,97-101
+deploy/pr132-followup/offline_rollback_proof.mts
+  s_edc3df130cc253::t_f766b033e4dfd9 15,29
+deploy/pr132-followup/private_fixture.py
+  s_edc3df130cc253::t_6d8e2698654d5d 15-17,20-21,25-29,31-32,48,50-51,121,177,186-192,234,243-247,249,253,257-259,264,269,276-278,280
+deploy/pr132-followup/test_offline_restore_proof.py
+  s_edc3df130cc253::t_fda5cd7b336a65 3-4,28-31,35,37-39,41,43,45-105
+deploy/pr132-followup/test_private_fixture.py
+  s_edc3df130cc253::t_73090abca513b6 5-7,64,101-156
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "947a1ce9026736262d092cb5f2bd2bb50d9dbd9e",
+  "prompts": {},
+  "sessions": {
+    "s_edc3df130cc253": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12b0b-aaa6-7d90-aa4e-5bcfe9db3ea5",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
