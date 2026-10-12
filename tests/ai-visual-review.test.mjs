@@ -577,7 +577,7 @@ with zipfile.ZipFile(sys.argv[1]+'/fixture.zip','w') as z:
     assert.equal(calls.find(url=>new URL(url).origin === 'https://api.openai.com').endsWith('/input_tokens'),true);
     calls.length=0;
     requestPhase=true;
-    await main({env,fetcher,gitDiff,request:true});
+    assert.equal(await main({env,fetcher,gitDiff,request:true}),true);
     assert.equal(calls.filter(url=>new URL(url).origin === 'https://api.openai.com').length,2);
     assert.match(writes.at(-1).description,/complete review: 16 captures/);
     assert.match(readFileSync(env.GITHUB_STEP_SUMMARY,'utf8'),/^Validated review head against base/);
@@ -598,10 +598,12 @@ with zipfile.ZipFile(sys.argv[1]+'/fixture.zip','w') as z:
     calls.length=0;writes.length=0;
     modelResult={...clean,findings:[{rule:'Transparent artwork wrappers',location:'components/Footer.tsx',explanation:'Opaque X wrapper',evidence:['footer-desktop-light.png','base/footer-desktop-light.png']}]};
     writeFileSync(event,JSON.stringify({workflow_run:{id:7}}));
-    await main({gitDiff,env:{...env,GITHUB_EVENT_NAME:'workflow_run',ENABLED:'true'},fetcher,request:true});
+    assert.equal(await main({gitDiff,env:{...env,GITHUB_EVENT_NAME:'workflow_run',ENABLED:'true'},fetcher,request:true}),false);
     assert.equal(calls.filter(url=>new URL(url).origin === 'https://api.openai.com').length,2);
     assert.equal(writes.at(-1).state,'failure');
     assert.match(writes.at(-1).description,/1 proven design violations/);
+    assert.equal(JSON.parse(readFileSync(join(directory,'ai-visual-usage.json'),'utf8')).response.microUsd,220);
+    assert.match(readFileSync(output,'utf8'),/settled_micro_usd=220\n/);
     assert.match(readFileSync(env.GITHUB_STEP_SUMMARY,'utf8'),/^Validated review head against base/);
     modelResult=clean;writeFileSync(event,JSON.stringify({inputs:{source_run_id:'7'}}));
     calls.length=0;writes.length=0;closeDuringModel=true;

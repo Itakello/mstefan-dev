@@ -420,7 +420,7 @@ export async function main({env = process.env, fetcher = fetch, gitDiff = native
       pr = await github(`/pulls/${pr.number}`); ensure(currentRevision(pr,repository,sha,base),'Revisions changed during review');
       await status(result.findings.length ? 'failure' : 'success',result.findings.length ? `${result.findings.length} proven design violations` : `complete review: ${prepared.names.length} captures`);
       if (env.GITHUB_STEP_SUMMARY) writeFileSync(env.GITHUB_STEP_SUMMARY,`Validated review ${sha} against ${base}\n\n\`\`\`json\n${JSON.stringify(result,null,2)}\n\`\`\`\n`);
-      return;
+      return result.findings.length === 0;
     }
     const artifacts = await github(`/actions/runs/${run.id}/artifacts?per_page=100`);
     ensure(artifacts.total_count === artifacts.artifacts.length,'Artifact list truncated');
@@ -483,5 +483,5 @@ export function publishUsage(env = process.env) {
   console.log(USAGE_PREFIX+JSON.stringify({...record,response:actual}));
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  Promise.resolve().then(() => process.argv.includes('--settle') ? publishUsage() : main({invalidate:process.argv.includes('--invalidate'),request:process.argv.includes('--request')})).catch(error => { console.error(error.message); process.exitCode=1; });
+  Promise.resolve().then(() => process.argv.includes('--settle') ? publishUsage() : main({invalidate:process.argv.includes('--invalidate'),request:process.argv.includes('--request')})).then(approved => { if (approved === false) process.exitCode=1; }).catch(error => { console.error(error.message); process.exitCode=1; });
 }
