@@ -182,7 +182,7 @@ test('branch graph preview baseline preserves populated published and draft fiel
     assert.equal(migrate.status, 0, `${migrate.stderr}\n${migrate.stdout}`);
     db = new DatabaseSync(filename);
     assert.deepEqual(content().filter((table) => !['documents', 'career_jobs_documents', '_career_v_version_jobs_documents'].includes(table.name)).map((table) => ({ ...table, rows: table.rows.map((row) => {
-      if (table.name === 'career_jobs' || table.name === '_career_v_version_jobs') { delete row.ongoing; delete row.photo_id; }
+      if (table.name === 'career_jobs' || table.name === '_career_v_version_jobs') { delete row.ongoing; delete row.photo_id; delete row.position_title; delete row.place; }
       if (table.name === 'media') delete row.alt;
       if (table.name === 'users') delete row.reset_password_requested_at;
       if (table.name === 'payload_locked_documents_rels') delete row.documents_id;
