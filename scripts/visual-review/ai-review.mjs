@@ -22,6 +22,12 @@ const VERIFIED_ZERO_COST_STEPS = new Map([
   [38100300733, LEGACY_STEP],
   [38100604189, PAID_STEP],
 ]);
+// Exact completed legacy requests retain verified usage bounds; attempts and native history remain intact.
+const VERIFIED_LEGACY_BOUNDS = new Map([
+  [38128280294,{sha:'8f0faf48812c2955e8eb93968f206219e6361f97',job:114437102560,start:'2026-10-11T09:25:22Z',end:'2026-10-11T09:26:07Z',conclusion:'failure',microUsd:343515}],
+  [38130196156,{sha:'4920805b11bab2bbb3c987e2fae566cfc7d87a61',job:114442743350,start:'2026-10-11T09:57:43Z',end:'2026-10-11T09:58:20Z',conclusion:'failure',microUsd:343975}],
+  [38131565254,{sha:'a199264327e241c31f3a965b1a320af48fda9f97',job:114446796615,start:'2026-10-11T10:20:32Z',end:'2026-10-11T10:21:04Z',conclusion:'success',microUsd:344110}],
+]);
 const MAX_OUTPUT = 12000;
 const MAX_REVIEW_MICRO_USD = 2000000;
 const MAX_BYTES = 60 * 1024 * 1024;
@@ -301,6 +307,12 @@ export async function paidAttempts(github, now = Date.now(), currentRun, expecte
         if (!step.name.startsWith(PAID_STEP) && (step.name !== LEGACY_STEP || (VERIFIED_NO_REQUEST_RUNS.has(run.id) && job.run_attempt === 1))) continue;
         if (step.status === 'queued' || step.status === 'pending' || step.conclusion === 'skipped') continue;
         let reserved = MAX_REVIEW_MICRO_USD;
+        const historical = VERIFIED_LEGACY_BOUNDS.get(run.id);
+        if (historical && step.name === PAID_STEP) {
+          ensure(run.workflow_id === 380891751 && run.head_sha === historical.sha && run.head_branch === 'master' && run.status === 'completed' && run.conclusion === historical.conclusion, 'Historical reservation run identity mismatch');
+          ensure(job.id === historical.job && job.name === 'review' && job.run_attempt === 1 && job.conclusion === historical.conclusion && step.number === 5 && step.status === 'completed' && step.conclusion === historical.conclusion && step.started_at === historical.start && step.completed_at === historical.end, 'Historical reservation step identity mismatch');
+          reserved = historical.microUsd;
+        }
         // This completed credential-free compatibility marker is covered by the same job's genuine reservation.
         if (run.id === 38141527547 && step.name === PAID_STEP) {
           ensure(job.run_attempt === 1 && run.workflow_id === 380891751 && run.head_sha === 'ad6f940266317a84b9e3845abf23a05c5db778ad', 'Settlement run identity mismatch');

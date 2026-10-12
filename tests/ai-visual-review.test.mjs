@@ -1044,3 +1044,43 @@ test('rolling dollar cap admits its exact boundary and rejects malformed totals 
   for (const planned of [-1,1.5,'1',NaN]) assert.throws(()=>checkBudget({count:0,microUsd:0},planned),/planned reservation/);
   assert.throws(()=>checkBudget({count:0,microUsd:0},2000001),/reservation amount/);
 });
+
+test('only exact completed legacy identities retain their verified bounds without releasing attempts', async () => {
+  const rows=[
+    [38128280294,'8f0faf48812c2955e8eb93968f206219e6361f97',114437102560,'2026-10-11T09:25:22Z','2026-10-11T09:26:07Z','failure',343515],
+    [38130196156,'4920805b11bab2bbb3c987e2fae566cfc7d87a61',114442743350,'2026-10-11T09:57:43Z','2026-10-11T09:58:20Z','failure',343975],
+    [38131565254,'a199264327e241c31f3a965b1a320af48fda9f97',114446796615,'2026-10-11T10:20:32Z','2026-10-11T10:21:04Z','success',344110],
+  ];
+  for(const [id,sha,jobId,start,end,conclusion,microUsd] of rows) {
+    const run={id,workflow_id:380891751,head_sha:sha,head_branch:'master',status:'completed',conclusion,updated_at:end};
+    const step={name:PAID_STEP,number:5,status:'completed',conclusion,started_at:start,completed_at:end};
+    const job={id:jobId,name:'review',run_attempt:1,conclusion,steps:[step]};
+    const github=async path=>path.includes('/workflows/') ? {total_count:1,workflow_runs:[run]} : {total_count:1,jobs:[job]};
+    const now=Date.parse('2026-10-12T00:00:00Z');
+    assert.deepEqual(await paidAttempts(github,now),{count:1,microUsd});
+    for(const [object,key,value] of [
+      [run,'workflow_id',1],[run,'head_sha','b'.repeat(40)],[run,'head_branch','other'],[run,'status','in_progress'],[run,'conclusion','cancelled'],
+      [job,'id',1],[job,'name','other'],[job,'run_attempt',2],[job,'conclusion','cancelled'],
+      [step,'number',6],[step,'status','in_progress'],[step,'conclusion','cancelled'],[step,'started_at',end],[step,'completed_at',start],
+    ]) {
+      const previous=object[key];object[key]=value;
+      await assert.rejects(paidAttempts(github,now),/Historical reservation .* identity mismatch/);
+      object[key]=previous;
+    }
+    run.id=id+1;
+    assert.deepEqual(await paidAttempts(github,now),{count:1,microUsd:2000000});run.id=id;
+    step.name=`${PAID_STEP} (2000000 microUSD)`;
+    assert.deepEqual(await paidAttempts(github,now),{count:1,microUsd:2000000});step.name=PAID_STEP;
+    const boundary=Date.parse(start)+86400000+600000;
+    assert.deepEqual(await paidAttempts(github,boundary),{count:1,microUsd});
+    assert.deepEqual(await paidAttempts(github,boundary+1),{count:0,microUsd:0});
+  }
+  const runs=rows.map(([id,sha,,start,end,conclusion])=>({id,workflow_id:380891751,head_sha:sha,head_branch:'master',status:'completed',conclusion,updated_at:end}));
+  const jobs=new Map(rows.map(([id,,job,start,end,conclusion])=>[id,{id:job,name:'review',run_attempt:1,conclusion,steps:[{name:PAID_STEP,number:5,status:'completed',conclusion,started_at:start,completed_at:end}]}]));
+  const github=async path=>path.includes('/workflows/') ? {total_count:3,workflow_runs:runs} : {total_count:1,jobs:[jobs.get(Number(path.match(/runs\/(\d+)/)[1]))]};
+  const history=await paidAttempts(github,Date.parse('2026-10-12T00:00:00Z'));
+  assert.deepEqual(history,{count:3,microUsd:1031600});
+  checkBudget(history,2000000);
+  assert.throws(()=>checkBudget({...history,count:20},2000000),/attempt cap/);
+  assert.throws(()=>checkBudget({...history,microUsd:8000001},2000000),/dollar cap/);
+});
