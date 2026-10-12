@@ -200,7 +200,7 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
             </div>
           </aside> : stackCatalog.message && <p role="status" className="text-xs leading-5 text-black/55 dark:text-white/55">{copy.publication.stack[stackCatalog.message]}</p>}
         </div>
-        {(screenshotUrl || selected.paperUrl || selected.slidesUrl) && <section aria-label={copy.work.research} className="mt-7">
+        {(screenshotUrl || selected.paperUrl || selected.slidesUrl) && <section aria-label={selected.paperUrl || selected.slidesUrl ? copy.work.research : copy.work.media} className="mt-7">
         <MediaPreview key={selected.id} title={selected.name} locale={locale} controls={mediaControls}>{enlarge => <>
         {activeKind === "photos" && screenshotUrl && <div>
             <div data-work-preview data-preview-stage className="media-frame mx-auto" style={{ touchAction: "pan-y pinch-zoom", width: `min(100%, calc(min(620px, 70svh) * ${imageRatio} + 24px))`, "--preview-ratio": imageRatio } as CSSProperties}

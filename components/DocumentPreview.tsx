@@ -4,13 +4,14 @@ import { useEffect, useRef, useState, type ReactNode, type CSSProperties } from 
 import type { PDFDocumentProxy } from "pdfjs-dist";
 import type { Locale } from "@/lib/i18n/config";
 import { documentMediaUrl } from "@/lib/documentMedia";
+import { presentationPreviewUrl } from "@/lib/powerPointPreview";
 import { PreviewArrows } from "./PreviewArrows";
 import { PowerPointPreview } from "./PowerPointPreview";
 
 type DocumentPreviewProps = { url: string; title: string; locale: Locale; filename?: string | null; presentation?: boolean; previewUrl?: string; enlarge?: ReactNode };
 
 export function DocumentPreview(props: DocumentPreviewProps) {
-  return props.presentation && new URL(props.url, "https://www.mstefan.dev").pathname.toLowerCase().endsWith(".pptx")
+  return props.presentation && ((props.previewUrl && presentationPreviewUrl(props.previewUrl)) || new URL(props.url, "https://www.mstefan.dev").pathname.toLowerCase().endsWith(".pptx"))
     ? <PowerPointPreview url={props.url} title={props.title} locale={props.locale} previewUrl={props.previewUrl} enlarge={props.enlarge} download={<DocumentDownload {...props} />} />
     : <PdfDocumentPreview {...props} />;
 }
@@ -20,9 +21,12 @@ export function DocumentDownload({ url, locale, filename, presentation = false }
   let source: string;
   try { source = url.startsWith("/") && !url.startsWith("//") ? url : documentMediaUrl(url); }
   catch { return null; }
-  const powerpoint = presentation && new URL(url, "https://www.mstefan.dev").pathname.toLowerCase().endsWith(".pptx");
-  const label = `${italian ? "Scarica" : "Download"} ${powerpoint ? "PowerPoint" : "PDF"}`;
-  return <a href={source} download={filename || true} aria-label={label} title={label} data-media-download className="media-preview-control absolute bottom-3 right-[60px] z-20 transition-opacity"><Download size={18} aria-hidden /></a>;
+  const pathname = new URL(url, "https://www.mstefan.dev").pathname.toLowerCase();
+  const powerpoint = presentation && pathname.endsWith(".pptx");
+  const format = presentation && !powerpoint && !pathname.endsWith(".pdf")
+    ? (italian ? "documento" : "document") : (powerpoint ? "PowerPoint" : "PDF");
+  const label = `${italian ? "Scarica" : "Download"} ${format}`;
+  return <a href={source} download={filename || true} target="_blank" rel="noopener noreferrer" aria-label={label} title={label} data-media-download className="media-preview-control absolute bottom-3 right-[60px] z-20 transition-opacity"><Download size={18} aria-hidden /></a>;
 }
 
 function PdfDocumentPreview({ url, title, locale, filename, presentation = false, enlarge }: DocumentPreviewProps) {

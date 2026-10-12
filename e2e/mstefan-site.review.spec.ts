@@ -39,6 +39,7 @@ test.describe("Public website review", () => {
     await expect(page.getByRole("heading", { level: 1, name: "My work" })).toBeVisible();
 
     await page.getByRole("button", { name: "Select mstefan.dev", exact: true }).click();
+    await expect(page.getByRole("region", { name: "Media preview", exact: true })).toBeVisible();
     await expect.poll(() => page.getByRole("navigation", { name: "Choose a project" }).evaluate(node => node.scrollHeight <= node.clientHeight + 1)).toBe(true);
     await expect(page.getByRole("button", { name: "Select mstefan.dev", exact: true }).getByText("Website", { exact: true })).toBeVisible();
     const projectStack = page.getByRole("complementary", { name: "mstefan.dev technologies grouped by category" });
