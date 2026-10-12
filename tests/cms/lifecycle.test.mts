@@ -528,13 +528,16 @@ test('nested career branches share junctions and synchronize graph and Experienc
     await expect(reader.getByRole('button', { name: 'Zoom in' })).toBeDisabled();
     const stageBox = await stage.boundingBox();
     await page.screenshot({ path: '.artifacts/playwright/experience-media-loading.png', fullPage: true });
+    assert.deepEqual(await stage.boundingBox(), stageBox, 'The pending PDF must retain its loading frame');
     releasePhoto();
     releasePDF();
     await expect(figure).toHaveAttribute('aria-busy', 'false');
     await expect(figure.locator('img')).toBeVisible();
     assert.deepEqual(await figure.boundingBox(), photoBox, 'Loading the photo must preserve its reserved dimensions');
     await expect(stage).toHaveAttribute('aria-busy', 'false');
-    assert.deepEqual(await stage.boundingBox(), stageBox, 'Loading the PDF must preserve the reader frame');
+    assert.equal((await stage.boundingBox())!.y, stageBox!.y, 'Loading the PDF must preserve the reader position');
+    assert.ok((await stage.boundingBox())!.height < stageBox!.height, 'Short loaded pages must release unused loading space');
+    await expect.poll(() => stage.evaluate(node => Math.abs(node.clientHeight - Math.min(parseFloat(getComputedStyle(node).maxHeight), node.querySelector('canvas')!.getBoundingClientRect().height + 24)))).toBeLessThan(2);
     await expect(reader.getByRole('status', { name: /preview unavailable/i })).toHaveCount(0);
     await expect.poll(() => reader.locator('canvas').evaluate((canvas) => (canvas as HTMLCanvasElement).width)).toBeGreaterThan(0);
     await expect(reader.locator('[data-document-text]')).toContainText('Synthetic career PDF');

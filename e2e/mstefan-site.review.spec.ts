@@ -141,6 +141,7 @@ test.describe("Public website review", () => {
     await researchModes.getByRole("button", { name: "Paper", exact: true }).click();
     await expect(reader.getByRole("status")).toHaveCount(0);
     await expect(reader.getByRole("link", { name: "Open PDF", exact: true })).toHaveAttribute("href", "https://arxiv.org/pdf/2410.07109");
+    const fittedStageHeight = await reader.locator("[data-document-stage]").evaluate(node => node.clientHeight);
     await reader.locator("canvas").evaluate((canvas: HTMLCanvasElement) => {
       const getContext = canvas.getContext.bind(canvas);
       canvas.getContext = () => {
@@ -150,6 +151,7 @@ test.describe("Public website review", () => {
     });
     await reader.getByRole("button", { name: "Next page" }).click();
     await expect(reader.getByRole("status")).toContainText("Preview unavailable.");
+    expect(await reader.locator("[data-document-stage]").evaluate(node => node.clientHeight)).toBe(fittedStageHeight);
     await expect(reader.getByRole("button", { name: "Previous page" })).toBeEnabled();
     await reader.getByRole("button", { name: "Previous page" }).click();
     await expect(reader.getByRole("status")).toHaveCount(0);
@@ -175,7 +177,7 @@ test.describe("Public website review", () => {
     await page.setViewportSize({ width: 360, height: 800 });
     await expect(reader.getByRole("status")).toHaveCount(0);
     await expect.poll(() => slideStage.evaluate(node => node.scrollHeight <= node.clientHeight + 1 && node.scrollWidth <= node.clientWidth + 1)).toBeTruthy();
-    expect(await slideStage.evaluate(node => (node.querySelector("canvas")?.getBoundingClientRect().height ?? 0) + 24)).toBeLessThanOrEqual(await slideStage.evaluate(node => node.clientHeight + 1));
+    expect(await slideStage.evaluate(node => Math.abs(node.clientHeight - (node.querySelector("canvas")!.getBoundingClientRect().height + 24)))).toBeLessThan(2);
     expect(await reader.evaluate(node => node.getBoundingClientRect().right <= window.innerWidth)).toBeTruthy();
     await page.screenshot({ path: ".artifacts/playwright/work-research-mobile.png", fullPage: true });
     await page.setViewportSize({ width: 1440, height: 1000 });

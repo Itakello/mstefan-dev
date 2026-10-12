@@ -16,6 +16,7 @@ export function DocumentPreview({ url, title, locale, filename, presentation = f
   const [zoom, setZoom] = useState(1);
   const [viewportHeight, setViewportHeight] = useState(0);
   const [width, setWidth] = useState(0);
+  const [pageHeight, setPageHeight] = useState<number | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const italian = locale === "it";
   useEffect(() => {
@@ -30,6 +31,7 @@ export function DocumentPreview({ url, title, locale, filename, presentation = f
   }, []);
   useEffect(() => {
     setDocument(null);
+    setPageHeight(null);
     setPage(1);
     setZoom(1);
     setStatus("loading");
@@ -63,7 +65,7 @@ export function DocumentPreview({ url, title, locale, filename, presentation = f
         const pdfPage = await document!.getPage(page);
         if (disposed) return;
         const base = pdfPage.getViewport({ scale: 1 });
-        const maxHeight = Math.max(1, host.current!.clientHeight - 24);
+        const maxHeight = Math.max(1, parseFloat(window.getComputedStyle(host.current!).maxHeight) - 24);
         const fit = presentation ? Math.min(width / base.width, maxHeight / base.height) : width / base.width;
         const viewport = pdfPage.getViewport({ scale: fit * zoom });
         const ratio = Math.min(window.devicePixelRatio || 1, 2);
@@ -86,7 +88,7 @@ export function DocumentPreview({ url, title, locale, filename, presentation = f
           textLayer = new TextLayer({ container: text.current, viewport, textContentSource: pdfPage.streamTextContent({ includeMarkedContent: true }) });
           await textLayer.render();
         }
-        if (!disposed) setStatus("ready");
+        if (!disposed) { setPageHeight(viewport.height + 24); setStatus("ready"); }
       } catch { if (!disposed) setStatus("error"); }
     }
     void draw();
@@ -108,7 +110,7 @@ export function DocumentPreview({ url, title, locale, filename, presentation = f
         <a href={resolvedUrl} target="_blank" rel="noreferrer" className={`${control} gap-1`}>{italian ? "Apri PDF" : "Open PDF"}<ExternalLink size={14} /></a>
       </div>
     </div>
-    <div ref={host} aria-busy={status === "loading"} data-document-stage className={`relative ${presentation ? "h-[min(480px,55svh)]" : "h-[min(680px,75svh)]"} overflow-auto overscroll-contain bg-[var(--surface-bg)] p-3`}>
+    <div ref={host} aria-busy={status === "loading"} data-document-stage style={{ height: pageHeight ?? undefined }} className={`relative ${presentation ? "h-[min(480px,55svh)] max-h-[min(480px,55svh)]" : "h-[min(680px,75svh)] max-h-[min(680px,75svh)]"} overflow-auto overscroll-contain bg-[var(--surface-bg)] p-3`}>
       {status === "loading" && <p role="status" className="absolute inset-0 z-10 flex items-center justify-center text-sm text-[var(--page-muted)]">{italian ? "Caricamento documento…" : "Loading document…"}</p>}
       {status === "error" && <p role="status" className="text-sm">{italian ? "Anteprima non disponibile. Usa Apri PDF per leggere il documento." : "Preview unavailable. Use Open PDF to read the document."}</p>}
       <div ref={pageHost} className={`relative mx-auto ${status === "error" ? "hidden" : status === "loading" ? "invisible" : ""}`}><canvas ref={canvas} role="img" aria-label={`${title} · ${italian ? "pagina" : "page"} ${page}`} className="bg-white shadow-sm" /><div ref={text} data-document-text /></div>
