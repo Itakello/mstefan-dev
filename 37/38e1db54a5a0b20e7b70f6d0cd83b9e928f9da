@@ -1,0 +1,32 @@
+tests/notion-publication-snapshot.test.ts
+  s_09b847434b8cc4::t_efaf0bad8e93c8 23,56
+tests/cms/offline-fetch.mjs
+  s_09b847434b8cc4::t_efaf0bad8e93c8 13-14
+tests/cms/notion-publication-fixture.mjs
+  s_09b847434b8cc4::t_efaf0bad8e93c8 57-61
+lib/websiteStack.ts
+  s_09b847434b8cc4::t_1bce2e967f6eb4 5,73,77-78,123
+lib/notionPublicationSnapshot.ts
+  s_09b847434b8cc4::t_1bce2e967f6eb4 21-24,42,46-47,49,60-68,76-77
+tests/cms/publication.test.mts
+  s_09b847434b8cc4::t_f20a7b2d76dc42 326-327
+  s_09b847434b8cc4::t_efaf0bad8e93c8 105,322-325,328-332,335-336,339
+app/api/webhooks/notion/route.ts
+  s_09b847434b8cc4::t_f20a7b2d76dc42 1,12
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3738e1db54a5a0b20e7b70f6d0cd83b9e928f9da",
+  "prompts": {},
+  "sessions": {
+    "s_09b847434b8cc4": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12ca3-eeb5-7c51-b80e-099a5f01a8e5",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
