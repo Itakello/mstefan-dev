@@ -1,0 +1,23 @@
+docs/automation/exploring-ui-review.md
+  s_9187b460bc5f15::t_80e6ffb49a34e4 12
+scripts/visual-review/explore.mjs
+  s_9187b460bc5f15::t_f50e7d0383af54 10,28,90,92,96
+tests/exploring-ui-review.test.mjs
+  s_9187b460bc5f15::t_84a8e0471e0eca 22,24
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b457f5012b3a4fb08f2e64c2b277ead927596367",
+  "prompts": {},
+  "sessions": {
+    "s_9187b460bc5f15": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1322d-99dc-7371-ad0a-de21c7f04cb8",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
