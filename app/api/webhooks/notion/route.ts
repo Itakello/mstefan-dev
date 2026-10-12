@@ -1,4 +1,4 @@
-import { revalidatePath, revalidateTag } from "next/cache";
+import { revalidateTag } from "next/cache";
 import { safelyObservePublication } from "@/lib/publicationObservation";
 
 import {
@@ -9,10 +9,7 @@ import {
   publicationNotionSourceIds,
   verifyNotionWebhookSignature,
 } from "@/lib/notionPublicationWebhook";
-import {
-  PUBLICATION_CACHE_TAG,
-  PUBLICATION_ROUTE_PATTERNS,
-} from "@/lib/publicationCache";
+import { PUBLICATION_CACHE_TAG } from "@/lib/publicationCache";
 
 export const dynamic = "force-dynamic";
 
@@ -53,9 +50,6 @@ export async function POST(request: Request) {
 
   await safelyObservePublication({ kind: "event" });
   revalidateTag(PUBLICATION_CACHE_TAG, { expire: 0 });
-  for (const pattern of PUBLICATION_ROUTE_PATTERNS) {
-    revalidatePath(pattern, "page");
-  }
 
   return Response.json({ accepted: true, invalidated: true });
 }
