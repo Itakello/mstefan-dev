@@ -162,7 +162,7 @@ test.describe("Public website review", () => {
     await page.setViewportSize({ width: 360, height: 800 });
     await expect(reader.getByRole("status")).toHaveCount(0);
     await expect.poll(() => slideStage.evaluate(node => node.scrollHeight <= node.clientHeight + 1 && node.scrollWidth <= node.clientWidth + 1)).toBeTruthy();
-    expect(await slideStage.evaluate(node => Math.abs(node.clientHeight - (node.querySelector("canvas")?.getBoundingClientRect().height ?? 0) - 24))).toBeLessThan(2);
+    expect(await slideStage.evaluate(node => (node.querySelector("canvas")?.getBoundingClientRect().height ?? 0) + 24)).toBeLessThanOrEqual(await slideStage.evaluate(node => node.clientHeight + 1));
     expect(await reader.evaluate(node => node.getBoundingClientRect().right <= window.innerWidth)).toBeTruthy();
     await page.screenshot({ path: ".artifacts/playwright/work-research-mobile.png", fullPage: true });
     await page.setViewportSize({ width: 1440, height: 1000 });

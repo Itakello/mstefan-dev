@@ -23,3 +23,12 @@ export const MastersResults: Story = {
 export const BachelorsResultsWithoutSummary: Story = {
   play: ({ canvasElement }) => canvasElement.querySelectorAll<HTMLButtonElement>("button[data-career-job]")[1].click(),
 };
+
+export const ExperienceMedia: Story = {
+  args: { career: { ...career, jobs: [{
+    branchName: "work/sample", company: "Sample project", role: "Research", summary: "A project story with a photo and a readable document.", startDate: "2024-01-01", color: "#25b8f3",
+    photo: { id: 3, url: "/workshop-portrait.jpg", alt: "Experience portrait", width: 1530, height: 2054, createdAt: "2024-01-01", updatedAt: "2024-01-01" },
+    documents: [{ title: "Research paper", file: { id: 4, filename: "research.pdf", url: "/api/documents/file/workshop-research.pdf", createdAt: "2024-01-01", updatedAt: "2024-01-01" } }],
+  }] } },
+  play: ({ canvasElement }) => canvasElement.querySelector<HTMLButtonElement>("button[data-career-job]")!.click(),
+};

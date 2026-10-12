@@ -63,7 +63,7 @@ export function DocumentPreview({ url, title, locale, filename, presentation = f
         const pdfPage = await document!.getPage(page);
         if (disposed) return;
         const base = pdfPage.getViewport({ scale: 1 });
-        const maxHeight = Math.max(1, parseFloat(window.getComputedStyle(host.current!).maxHeight) - 24);
+        const maxHeight = Math.max(1, host.current!.clientHeight - 24);
         const fit = presentation ? Math.min(width / base.width, maxHeight / base.height) : width / base.width;
         const viewport = pdfPage.getViewport({ scale: fit * zoom });
         const ratio = Math.min(window.devicePixelRatio || 1, 2);
@@ -96,22 +96,22 @@ export function DocumentPreview({ url, title, locale, filename, presentation = f
   return <section data-pdf-preview aria-label={`${title}: ${italian ? "Lettore documenti" : "Document reader"}`} className="overflow-hidden rounded-xl border border-black/10 dark:border-white/15">
     <div className="flex flex-wrap items-center justify-between gap-2 border-b border-black/10 px-2 py-2 text-xs dark:border-white/15">
       <div className="flex items-center gap-1">
-        <button type="button" className={control} disabled={!document || page === 1} aria-label={italian ? "Pagina precedente" : "Previous page"} onClick={() => setPage(page - 1)}><ChevronLeft size={16} /></button>
+        <button type="button" className={control} disabled={status !== "ready" || page === 1} aria-label={italian ? "Pagina precedente" : "Previous page"} onClick={() => setPage(page - 1)}><ChevronLeft size={16} /></button>
         <span aria-live="polite">{page} / {document?.numPages ?? "…"}</span>
-        <button type="button" className={control} disabled={!document || page === document.numPages} aria-label={italian ? "Pagina successiva" : "Next page"} onClick={() => setPage(page + 1)}><ChevronRight size={16} /></button>
+        <button type="button" className={control} disabled={status !== "ready" || !document || page === document.numPages} aria-label={italian ? "Pagina successiva" : "Next page"} onClick={() => setPage(page + 1)}><ChevronRight size={16} /></button>
       </div>
       <div className="flex items-center gap-1">
-        <button type="button" className={control} disabled={zoom <= 1} aria-label={italian ? "Riduci" : "Zoom out"} onClick={() => setZoom(value => Math.max(1, value - 0.25))}><Minus size={16} /></button>
+        <button type="button" className={control} disabled={status !== "ready" || zoom <= 1} aria-label={italian ? "Riduci" : "Zoom out"} onClick={() => setZoom(value => Math.max(1, value - 0.25))}><Minus size={16} /></button>
         <span>{Math.round(zoom * 100)}%</span>
-        <button type="button" className={control} disabled={zoom >= 2} aria-label={italian ? "Ingrandisci" : "Zoom in"} onClick={() => setZoom(value => Math.min(2, value + 0.25))}><Plus size={16} /></button>
+        <button type="button" className={control} disabled={status !== "ready" || zoom >= 2} aria-label={italian ? "Ingrandisci" : "Zoom in"} onClick={() => setZoom(value => Math.min(2, value + 0.25))}><Plus size={16} /></button>
         <a href={resolvedUrl} download={filename || true} className={`${control} gap-1`}>{italian ? "Scarica PDF" : "Download PDF"}<Download size={14} /></a>
         <a href={resolvedUrl} target="_blank" rel="noreferrer" className={`${control} gap-1`}>{italian ? "Apri PDF" : "Open PDF"}<ExternalLink size={14} /></a>
       </div>
     </div>
-    <div ref={host} data-document-stage className={`relative ${presentation ? "max-h-[min(480px,55svh)]" : "max-h-[min(680px,75svh)]"} overflow-auto overscroll-contain bg-zinc-100 p-3 dark:bg-zinc-900`}>
-      {status === "loading" && <p role="status" className="absolute left-4 top-4 rounded bg-white/90 px-2 py-1 text-sm text-black">{italian ? "Caricamento documento…" : "Loading document…"}</p>}
+    <div ref={host} aria-busy={status === "loading"} data-document-stage className={`relative ${presentation ? "h-[min(480px,55svh)]" : "h-[min(680px,75svh)]"} overflow-auto overscroll-contain bg-[var(--surface-bg)] p-3`}>
+      {status === "loading" && <p role="status" className="absolute inset-0 z-10 flex items-center justify-center text-sm text-[var(--page-muted)]">{italian ? "Caricamento documento…" : "Loading document…"}</p>}
       {status === "error" && <p role="status" className="text-sm">{italian ? "Anteprima non disponibile. Usa Apri PDF per leggere il documento." : "Preview unavailable. Use Open PDF to read the document."}</p>}
-      <div ref={pageHost} className={`relative mx-auto ${status === "error" ? "hidden" : ""}`}><canvas ref={canvas} role="img" aria-label={`${title} · ${italian ? "pagina" : "page"} ${page}`} className="bg-white shadow-sm" /><div ref={text} data-document-text /></div>
+      <div ref={pageHost} className={`relative mx-auto ${status === "error" ? "hidden" : status === "loading" ? "invisible" : ""}`}><canvas ref={canvas} role="img" aria-label={`${title} · ${italian ? "pagina" : "page"} ${page}`} className="bg-white shadow-sm" /><div ref={text} data-document-text /></div>
     </div>
   </section>;
 }
