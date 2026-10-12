@@ -207,7 +207,6 @@ export function checkBudget(history, plannedMicroUsd = 0) {
   ensure(Number.isSafeInteger(history.count) && history.count >= 0, 'Invalid paid attempt count');
   ensure(Number.isSafeInteger(plannedMicroUsd) && plannedMicroUsd >= 0, 'Invalid planned reservation');
   if (plannedMicroUsd) validReservation(plannedMicroUsd);
-  ensure(history.count + (plannedMicroUsd ? 1 : 0) <= 20, 'Rolling 24h paid attempt cap reached');
   ensure(history.microUsd + plannedMicroUsd <= 10000000, 'Rolling 24h dollar cap reached');
 }
 export async function modelReview(body, key, fetcher = fetch, reservedMicroUsd = MAX_REVIEW_MICRO_USD) {

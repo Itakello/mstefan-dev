@@ -581,8 +581,9 @@ with zipfile.ZipFile(sys.argv[1]+'/fixture.zip','w') as z:
     assert.equal(writes.length,1);assert.match(writes[0].description,/request claimed/);
     closeDuringModel=false;closed=false;
     calls.length=0;reservations=20;
-    await assert.rejects(main({env,fetcher,gitDiff,request:true}),/paid attempt cap/);
-    assert.equal(calls.some(url=>new URL(url).origin === 'https://api.openai.com'),false);
+    await main({env,fetcher,gitDiff,request:true});
+    assert.equal(calls.filter(url=>new URL(url).origin === 'https://api.openai.com').length,2);
+    assert.equal(writes.at(-1).state,'success');
     calls.length=0;stale=true;
     await assert.rejects(main({env,fetcher,gitDiff,request:true}),/Stale immutable source head/);
     assert.equal(calls.length,2);
@@ -1006,14 +1007,17 @@ test('exact reviewed historical producers settle only through their merged basel
   assert.deepEqual(comparisons,[`/compare/${run.head_sha}...${trusted}`]);  }
 });
 
-test('rolling dollar and attempt caps gate dynamic reservations and retain legacy full cost', async () => {
+test('rolling dollar cap gates dynamic reservations independently of attempt count and retains legacy full cost', async () => {
   const now=Date.parse('2026-10-11T12:00:00Z'),timestamp=new Date(now).toISOString();
   let amounts=Array(20).fill(180050);
   const github=async path=>path.includes('/workflows/') ? {total_count:amounts.length,workflow_runs:amounts.map((_,i)=>({id:i+1,status:'in_progress',updated_at:timestamp}))} : {total_count:1,jobs:[{run_attempt:1,steps:[{name:amounts[Number(path.match(/runs\/(\d+)/)[1])-1] === 'legacy' ? PAID_STEP : `${PAID_STEP} (${amounts[Number(path.match(/runs\/(\d+)/)[1])-1]} microUSD)`,status:'in_progress',started_at:timestamp}]}]};
   let history=await paidAttempts(github,now,20,180050);
   assert.deepEqual(history,{count:20,microUsd:3601000}); checkBudget(history);
-  assert.throws(()=>checkBudget(history,180050),/attempt cap/);
-  amounts.push(180050);assert.throws(()=>checkBudget({count:21,microUsd:3781050}),/attempt cap/);
+  checkBudget(history,180050);
+  amounts.push(180050);history=await paidAttempts(github,now);
+  assert.deepEqual(history,{count:21,microUsd:3781050});checkBudget(history,2000000);
+  checkBudget({count:100,microUsd:8000000},2000000);
+  assert.throws(()=>checkBudget({count:100,microUsd:8000001},2000000),/dollar cap/);
   amounts=Array(6).fill(180050); checkBudget(await paidAttempts(github,now),180050);
   amounts=Array(5).fill(2000000);history=await paidAttempts(github,now);checkBudget(history);
   amounts=[2000000,2000000,2000000,2000000,2000000,2000000];
@@ -1081,6 +1085,6 @@ test('only exact completed legacy identities retain their verified bounds withou
   const history=await paidAttempts(github,Date.parse('2026-10-12T00:00:00Z'));
   assert.deepEqual(history,{count:3,microUsd:1031600});
   checkBudget(history,2000000);
-  assert.throws(()=>checkBudget({...history,count:20},2000000),/attempt cap/);
+  checkBudget({...history,count:20},2000000);
   assert.throws(()=>checkBudget({...history,microUsd:8000001},2000000),/dollar cap/);
 });
