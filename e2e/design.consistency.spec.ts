@@ -189,19 +189,15 @@ for (const theme of ["light", "dark"] as const) {
       await expect(row).toContainText("Jan 2022 – Jan 2024");
       await expect(career.getByText("Dates not provided", { exact: true })).toHaveCount(0);
       await expect(branch.locator("[data-career-head]")).toHaveCSS("fill", "rgb(199, 120, 53)");
-      const capture = (state: string) => career.screenshot({ path: testInfo.outputPath(`career-completed${state}-desktop-${theme}.png`), animations: "disabled" });
-      await capture("");
       await page.keyboard.press("Tab");
       await branch.focus();
       await expect(branch).toBeFocused();
       expect(await branch.evaluate(node => node.matches(":focus-visible"))).toBe(true);
       await expect(row).toHaveAttribute("aria-pressed", "false");
-      await capture("-focus");
       await branch.press("Enter");
       await expect(row).toHaveAttribute("aria-pressed", "true");
       await expect(row).toBeFocused();
       await expect(page.locator("#career-story h1")).toHaveText("Amazon");
-      await capture("-selection");
     } finally {
       expect((await publish(jobs)).status()).toBe(200);
     }

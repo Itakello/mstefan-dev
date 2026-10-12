@@ -86,7 +86,7 @@ for (const size of ["desktop", "mobile"] as const) {
           }
           if (kind === "Paper") await expect(media.getByRole("status")).toHaveCount(0);
           if (kind === "Slides") await expect.poll(() => page.frameLocator("[data-powerpoint-preview] iframe").locator("#stage").evaluate(node => Math.abs(node.getBoundingClientRect().width - window.innerWidth))).toBeLessThan(2);
-          await page.screenshot({ path: testInfo.outputPath(`work-integrated-${kind.toLowerCase()}-expanded-${size}-${theme}.png`), animations: "disabled" });
+          if (kind !== "Photos" || size === "mobile") await page.screenshot({ path: testInfo.outputPath(`work-integrated-${kind.toLowerCase()}-expanded-${size}-${theme}.png`), animations: "disabled" });
           if (size === "mobile") await close.tap();
           else {
             if (kind === "Slides") await page.frameLocator("[data-powerpoint-preview] iframe").locator("#stage").click();
@@ -111,6 +111,9 @@ test("forced colors: integrated document controls and expanded close", async ({ 
   await expect(media.locator("[data-document-text]")).toContainText("Research");
   const zoom = media.getByRole("button", { name: "Zoom in" });
   await zoom.focus();
+  await expect(paper).toHaveCSS("outline-style", "solid");
+  await expect(paper).toHaveCSS("outline-width", "2px");
+  await expect(paper).not.toBeFocused();
   expect(await zoom.evaluate(node => node.matches(":focus-visible"))).toBe(true);
   await expect(zoom).toHaveCSS("outline-style", "solid");
   await expect(zoom).toHaveCSS("outline-width", "2px");
