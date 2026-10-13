@@ -1,0 +1,29 @@
+docs/automation/exploring-ui-review.md
+  s_9187b460bc5f15::t_06626c32f4c16a 7
+scripts/visual-review/ci-explore.mjs
+  s_9187b460bc5f15::t_a7384f7e7dc94f 2,25-33,77,103
+scripts/visual-review/explore.mjs
+  s_9187b460bc5f15::t_ea2f14be250459 37-42
+scripts/visual-review/model-relay.mjs
+  s_9187b460bc5f15::t_8d539179c69491 17,52,105
+tests/codex-ci-exploration.test.mjs
+  s_9187b460bc5f15::t_00cc358b9ed1b1 7,34,157-195
+tests/exploring-ui-review.test.mjs
+  s_9187b460bc5f15::t_6895be22acf665 93,95,99-100
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4cf2595becf1a5fd7fd9436b927574b8da4df46a",
+  "prompts": {},
+  "sessions": {
+    "s_9187b460bc5f15": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1322d-99dc-7371-ad0a-de21c7f04cb8",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
