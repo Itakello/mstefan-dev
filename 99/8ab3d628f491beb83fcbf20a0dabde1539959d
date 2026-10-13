@@ -1,0 +1,24 @@
+deploy/pr132-followup/controller_admit.py
+  s_edc3df130cc253::t_b6a8ecf0398e7a 25
+deploy/pr132-followup/test_github_followup.mjs
+  s_edc3df130cc253::t_b6a8ecf0398e7a 5-8
+  s_edc3df130cc253::t_699e08b98f4871 136
+deploy/pr132-followup/github_followup.mjs
+  s_edc3df130cc253::t_b6a8ecf0398e7a 9
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "998ab3d628f491beb83fcbf20a0dabde1539959d",
+  "prompts": {},
+  "sessions": {
+    "s_edc3df130cc253": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12b0b-aaa6-7d90-aa4e-5bcfe9db3ea5",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
