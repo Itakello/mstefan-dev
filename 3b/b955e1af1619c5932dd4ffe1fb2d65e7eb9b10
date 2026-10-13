@@ -1,0 +1,23 @@
+scripts/visual-review/model-relay.mjs
+  s_9187b460bc5f15::t_ee8bc69a5e5bb2 3,87-89,91
+scripts/visual-review/ci-explore.mjs
+  s_9187b460bc5f15::t_ee8bc69a5e5bb2 67
+tests/codex-ci-exploration.test.mjs
+  s_9187b460bc5f15::t_70d76d7b97d576 73,79,108,121
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3bb955e1af1619c5932dd4ffe1fb2d65e7eb9b10",
+  "prompts": {},
+  "sessions": {
+    "s_9187b460bc5f15": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1322d-99dc-7371-ad0a-de21c7f04cb8",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
