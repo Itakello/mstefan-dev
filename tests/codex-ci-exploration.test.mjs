@@ -70,13 +70,13 @@ test('relay retains its secret, settles streamed usage, and fails closed without
   const fetcher = async (url, options) => {
     seen.push({ url, body: JSON.parse(options.body), authorization: options.headers.authorization });
     if (url.endsWith('/input_tokens')) return Response.json({ object: 'response.input_tokens', input_tokens: tokens });
-    return new Response('data: ' + JSON.stringify({ type: 'response.completed', response: { id: 'resp_synthetic', status: 'completed', model: 'gpt-6.1-sol', service_tier: 'default', output: [], usage: { input_tokens: 1000, output_tokens: 100, total_tokens: 1100 } } }) + '\n\n', { headers: { 'content-type': 'text/event-stream' } });
+    return new Response('data: ' + JSON.stringify({ type: 'response.completed', response: { id: 'resp_synthetic', status: 'completed', model: 'gpt-6.1-sol', service_tier: 'default', output: [], usage: { input_tokens: 1000, output_tokens: 100, total_tokens: 1100, input_tokens_details: { cached_tokens: 0, cache_write_tokens: 0 } } } }) + '\n\n', { headers: { 'content-type': 'text/event-stream' } });
   };
   const relay = await startModelRelay({ key: 'synthetic-secret', fetcher });
   const send = () => fetch(relay.baseUrl + '/responses', { method: 'POST', body: JSON.stringify({ model: 'gpt-6.1-sol', stream: true, input: 'Review', max_output_tokens: 999999, store: true, tools: [{ type: 'function', name: 'view_image' }, { type: 'namespace', name: 'mcp__browser__', tools: [{ type: 'function', name: 'browser_snapshot' }] }] }) });
   try {
     assert.equal((await send()).status, 200);
-    assert.equal(relay.usage().chargedMicroUsd, 6500);
+    assert.equal(relay.usage().chargedMicroUsd, 3000);
     assert.equal(relay.usage().receipts[0].settled, true);
     assert.equal(seen[1].body.max_output_tokens, 12000);
     assert.equal(seen[1].body.store, false);
@@ -105,7 +105,7 @@ test('an uncertain paid response keeps its full reservation and closes the lane'
 
 test('forbidden streamed tool calls are never forwarded to the Codex runtime', async () => {
   const forbidden = { type: 'function_call', name: 'view_image', call_id: 'call_forbidden', arguments: '{"path":"/private/file.png"}' };
-  const completed = { id: 'resp_synthetic', status: 'completed', model: 'gpt-6.1-sol', service_tier: 'default', output: [], usage: { input_tokens: 1000, output_tokens: 100, total_tokens: 1100 } };
+  const completed = { id: 'resp_synthetic', status: 'completed', model: 'gpt-6.1-sol', service_tier: 'default', output: [], usage: { input_tokens: 1000, output_tokens: 100, total_tokens: 1100, input_tokens_details: { cached_tokens: 0, cache_write_tokens: 0 } } };
   const stream = [{ type: 'response.output_item.added', item: forbidden }, { type: 'response.completed', response: completed }].map(event => 'data: ' + JSON.stringify(event) + '\n\n').join('');
   const relay = await startModelRelay({ key: 'synthetic', fetcher: async url => url.endsWith('/input_tokens') ? Response.json({ object: 'response.input_tokens', input_tokens: 1000 }) : new Response(stream) });
   try {
@@ -118,7 +118,7 @@ test('forbidden streamed tool calls are never forwarded to the Codex runtime', a
 
 test('a classic namespaced browser call survives partial SSE arguments and finalized validation', async () => {
   const call = { id: 'fc_browser', type: 'function_call', namespace: 'mcp__browser__', name: 'browser_navigate', call_id: 'call_browser', arguments: '{"url":"https://pr-147.preview.mstefan.dev/en"}' };
-  const completed = { id: 'resp_synthetic', status: 'completed', model: 'gpt-6.1-sol', service_tier: 'default', output: [call], usage: { input_tokens: 1000, output_tokens: 100, total_tokens: 1100 } };
+  const completed = { id: 'resp_synthetic', status: 'completed', model: 'gpt-6.1-sol', service_tier: 'default', output: [call], usage: { input_tokens: 1000, output_tokens: 100, total_tokens: 1100, input_tokens_details: { cached_tokens: 0, cache_write_tokens: 0 } } };
   const stream = [{ type: 'response.output_item.added', item: { ...call, arguments: '' } }, { type: 'response.output_item.done', item: call }, { type: 'response.completed', response: completed }].map(event => 'data: ' + JSON.stringify(event) + '\n\n').join('');
   const relay = await startModelRelay({ key: 'synthetic', origin: 'https://pr-147.preview.mstefan.dev', fetcher: async url => url.endsWith('/input_tokens') ? Response.json({ object: 'response.input_tokens', input_tokens: 1000 }) : new Response(stream) });
   try {

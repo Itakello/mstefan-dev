@@ -60,11 +60,11 @@ export async function main({ env = process.env, fetcher = fetch } = {}) {
   });
   const output = path.resolve('.artifacts/codex-ui-exploration');
   const revalidate = async () => {
-    ensure(Date.now() < Date.parse(env.EXPIRES_AT), 'Exploration activation expired before model request');
     const current = await github(`/pulls/${number}`);
     ensure(current.head.sha === review.head && current.base.sha === review.base && current.state === 'open', 'PR changed before model request');
     const latest = await github(`/deployments/${deployment.id}/statuses?per_page=100`);
     verifyPreview(current, deployment, latest[0] || {});
+    ensure(Date.now() < Date.parse(env.EXPIRES_AT), 'Exploration activation expired before model request');
   };
   let relay;
   try {

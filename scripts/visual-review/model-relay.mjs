@@ -1,5 +1,6 @@
 import { createServer } from 'node:http';
 import { browserTools } from './explore.mjs';
+import { actualUsage } from './ai-review.mjs';
 
 export const RUN_LIMIT = 2_000_000;
 const OUTPUT_LIMIT = 12_000;
@@ -83,11 +84,11 @@ export async function startModelRelay({ key, fetcher = fetch, limit = RUN_LIMIT,
       };
       const safeItem = (item, partial = false) => ['message', 'reasoning'].includes(item.type) || (item.type === 'function_call' && safeCall(item, partial));
       if (!Array.isArray(completed?.output) || !completed.output.every(item => safeItem(item)) || !streamItems.every(({ item, partial }) => safeItem(item, partial))) throw new Error('Model requested a tool outside browser review');
-      const usage = completed?.usage;
-      const actual = usage && usage.input_tokens * 5 + usage.output_tokens * 15;
-      if (!/^resp_[A-Za-z0-9]+$/.test(completed?.id || '') || completed?.status !== 'completed' || !/^gpt-6\.1-sol(?:-[\w.-]+)?$/.test(completed?.model || '') || completed?.service_tier !== 'default' || !usage || usage.total_tokens !== usage.input_tokens + usage.output_tokens || !Number.isSafeInteger(usage.input_tokens) || !Number.isSafeInteger(usage.output_tokens) || usage.input_tokens < 1 || usage.output_tokens < 0 || usage.output_tokens > OUTPUT_LIMIT || !Number.isSafeInteger(actual) || actual > reserved) throw new Error('Unsettled model usage; no retry');
+      if (completed?.status !== 'completed') throw new Error('Incomplete model response; no retry');
+      const usage = actualUsage(completed, reserved);
+      const actual = usage.microUsd;
       remaining += reserved - actual;
-      Object.assign(receipt, { chargedMicroUsd: actual, settled: true, inputTokens: usage.input_tokens, outputTokens: usage.output_tokens });
+      Object.assign(receipt, { chargedMicroUsd: actual, settled: true, response: usage, inputTokens: usage.usage.input_tokens, outputTokens: usage.usage.output_tokens });
       res.writeHead(200, { 'content-type': response.headers.get('content-type') || 'text/event-stream' });
       res.end(text);
     } catch {
