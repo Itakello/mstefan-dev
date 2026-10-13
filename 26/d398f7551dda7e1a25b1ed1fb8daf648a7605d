@@ -1,0 +1,25 @@
+scripts/visual-review/ci-explore.mjs
+  s_9187b460bc5f15::t_6bb8ab7fe0eebb 63,84
+.github/workflows/codex-ui-exploration.yml
+  s_9187b460bc5f15::t_6bb8ab7fe0eebb 28
+docs/automation/exploring-ui-review.md
+  s_9187b460bc5f15::t_6bb8ab7fe0eebb 13
+tests/codex-ci-exploration.test.mjs
+  s_9187b460bc5f15::t_53e4e55afed449 49-55
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "26d398f7551dda7e1a25b1ed1fb8daf648a7605d",
+  "prompts": {},
+  "sessions": {
+    "s_9187b460bc5f15": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1322d-99dc-7371-ad0a-de21c7f04cb8",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
