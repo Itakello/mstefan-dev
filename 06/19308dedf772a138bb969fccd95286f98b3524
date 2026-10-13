@@ -1,0 +1,25 @@
+tests/exploring-ui-review.test.mjs
+  s_9187b460bc5f15::t_22d82b8c238a7e 19-20
+  s_9187b460bc5f15::t_0cbe15b1878abf 39
+  s_9187b460bc5f15::t_6a389f3efd0dff 3-7,10-18,21-38
+scripts/visual-review/explore.mjs
+  s_9187b460bc5f15::t_f0bc985a8ca4c6 44-46,63
+scripts/visual-review/run-fixture.mjs
+  s_9187b460bc5f15::t_f0bc985a8ca4c6 11,28,72-75,77-80,82,86
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0619308dedf772a138bb969fccd95286f98b3524",
+  "prompts": {},
+  "sessions": {
+    "s_9187b460bc5f15": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1322d-99dc-7371-ad0a-de21c7f04cb8",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": null
+    }
+  }
+}
