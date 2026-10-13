@@ -1,0 +1,48 @@
+deploy/pr132-followup/test_github_followup.mjs
+  s_edc3df130cc253::t_ccc4d2c317b7c8 3-7,37,40,49,62-63,87,119,122-123,126-132,134-139,143-147,150-152,155-156
+deploy/pr132-followup/offline_rollback_proof.mts
+  s_edc3df130cc253::t_6e3acdd259a246 4,15
+deploy/pr132-followup/private_fixture.py
+  s_edc3df130cc253::t_6e3acdd259a246 20-21,25-26,28,31-33,51,185,214
+deploy/pr132-followup/backup_window.py
+  s_edc3df130cc253::t_6e3acdd259a246 14,18-20,218
+deploy/pr132-followup/offline_migration_proof.mts
+  s_edc3df130cc253::t_6e3acdd259a246 114-118,190
+deploy/pr132-followup/test_offline_migration_proof.mts
+  s_edc3df130cc253::t_84d64012339ab3 71,76-79
+deploy/pr132-followup/controller_admit.py
+  s_edc3df130cc253::t_6e3acdd259a246 22-29,32,34,36,95,97,117,126,146,149
+  s_edc3df130cc253::t_f7b6e3ffb379e6 14-15
+deploy/pr132-followup/test_private_fixture.py
+  s_edc3df130cc253::t_84d64012339ab3 64,103,108-109,126-127
+deploy/pr132-followup/test_backup_window.py
+  s_edc3df130cc253::t_84d64012339ab3 71-91
+deploy/pr132-followup/test_controller_admit.py
+  s_edc3df130cc253::t_84d64012339ab3 14-23,82
+  s_edc3df130cc253::t_34b4ef9586c736 93-94
+deploy/pr132-followup/github_followup.mjs
+  s_edc3df130cc253::t_ccc4d2c317b7c8 105-106,250,278
+  s_edc3df130cc253::t_a9d3f47bb6c3da 7-9,102-104,109,111,115-120,126-137,142,153-154,176-178
+deploy/pr132-followup/offline_restore_proof.py
+  s_edc3df130cc253::t_30d87654468c0e 16,21-22
+deploy/pr132-followup/pr132-proof-backup.service
+  s_edc3df130cc253::t_c5393cbda9cd34 8-9
+deploy/pr132-followup/pr132-proof-fixture.service
+  s_edc3df130cc253::t_b82846ce4f50ea 8-9
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1cab797d44f4bccd483f67c72e385e678d366538",
+  "prompts": {},
+  "sessions": {
+    "s_edc3df130cc253": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12b0b-aaa6-7d90-aa4e-5bcfe9db3ea5",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
