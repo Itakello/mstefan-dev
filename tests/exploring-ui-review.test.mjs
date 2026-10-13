@@ -90,12 +90,14 @@ test('remote browser aborts writes, provider requests and external redirects whi
   const context = { routeWebSocket: async (_, callback) => { callback({ close: () => { websocketsBlocked = true; } }); }, route: async (_, callback) => { handler = callback; } };
   await init({ page: { context: () => context } });
   assert.ok(websocketsBlocked);
-  const request = async (url, method = 'GET', location) => {
+  const request = async (url, method = 'GET', location, headers = {}) => {
     let fetched = false, fulfilled = false, aborted = false;
-    await handler({ request: () => ({ url: () => url, method: () => method }), abort: async () => { aborted = true; }, fetch: async options => { assert.equal(options.maxRedirects, 0); fetched = true; return { headers: () => location ? { location } : {} }; }, fulfill: async () => { fulfilled = true; } });
+    await handler({ request: () => ({ url: () => url, method: () => method }), abort: async () => { aborted = true; }, fetch: async options => { assert.equal(options.maxRedirects, 0); assert.equal(new URL(options.url).origin, new URL(url).origin); if (new URL(url).origin === origin) assert.ok(new URL(options.url).searchParams.get('codex_review')); else assert.equal(options.url, url); fetched = true; return { headers: () => ({ ...headers, ...(location ? { location } : {}) }) }; }, fulfill: async () => { fulfilled = true; } });
     return { fetched, fulfilled, aborted };
   };
   assert.deepEqual(await request(`${origin}/work?lang=it`), { fetched: true, fulfilled: true, aborted: false });
+  assert.deepEqual(await request(`${origin}/about`, 'GET', undefined, { 'cf-cache-status': 'STALE' }), { fetched: true, fulfilled: false, aborted: true });
+  assert.deepEqual(await request(`${origin}/about`, 'GET', undefined, { age: '123' }), { fetched: true, fulfilled: false, aborted: true });
   assert.deepEqual(await request(`${origin}/image.png`, 'HEAD'), { fetched: true, fulfilled: true, aborted: false });
   for (const [url, method] of [[`${origin}/api/contact`, 'POST'], ['https://api.notion.com/v1/pages', 'GET'], ['https://mstefan.dev/', 'GET']]) assert.deepEqual(await request(url, method), { fetched: false, fulfilled: false, aborted: true });
   for (const url of ['https://api.iconify.design/simple-icons.json?icons=github%2Clinkedin', 'https://api.simplesvg.com/lucide.json?icons=mail', 'https://api.unisvg.com/simple-icons/github.svg']) assert.deepEqual(await request(url), { fetched: true, fulfilled: true, aborted: false });

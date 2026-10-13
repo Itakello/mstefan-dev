@@ -4,7 +4,7 @@ import { mkdtemp, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { startModelRelay, reserveCost } from '../scripts/visual-review/model-relay.mjs';
-import { verifyPreview, main } from '../scripts/visual-review/ci-explore.mjs';
+import { verifyPreview, verifyLivePreview, main } from '../scripts/visual-review/ci-explore.mjs';
 
 const pr = { number: 147, state: 'open', changed_files: 1, labels: [], base: { ref: 'master', sha: 'b'.repeat(40), repo: { full_name: 'Itakello/mstefan-dev' } }, head: { sha: 'a'.repeat(40), repo: { full_name: 'Itakello/mstefan-dev' } } };
 const deployment = { id: 123, environment: 'pr-147', sha: pr.head.sha, production_environment: false, payload: { owner: 'mstefan-pr-previews', pr: 147 } };
@@ -31,6 +31,7 @@ test('an unpaid pause can be resumed; an existing paid claim cannot replay', asy
   const env = { GITHUB_REPOSITORY: 'Itakello/mstefan-dev', GITHUB_RUN_ATTEMPT: '1', GITHUB_REF: 'refs/heads/master', GITHUB_EVENT_NAME: 'workflow_dispatch', GITHUB_EVENT_PATH: path.join(directory, 'event.json'), GITHUB_OUTPUT: path.join(directory, 'outputs'), GITHUB_RUN_ID: '123', ENABLED: 'false', EXPIRES_AT: new Date(Date.now() + 86400000).toISOString() };
   await writeFile(env.GITHUB_EVENT_PATH, JSON.stringify({ inputs: { pr_number: '147' } }));
   const fetcher = async (url, options) => {
+    if (new URL(url).origin === status.environment_url) return new Response('ready');
     const pathname = new URL(url).pathname;
     if (options.method === 'POST') { recorded.unshift(JSON.parse(options.body)); return Response.json(recorded[0]); }
     if (pathname.endsWith('/pulls/147')) return Response.json(pr);
@@ -152,4 +153,43 @@ test('revision drift after token counting prevents paid generation', async () =>
     assert.equal(paid, false);
     assert.equal(relay.usage().chargedMicroUsd, 0);
   } finally { await relay.close(); }
+});
+
+test('live readiness requires an uncached successful response before model spending', async () => {
+  let previous;
+  const fetcher = async (url, options) => {
+    assert.equal(new URL(url).origin, status.environment_url);
+    assert.ok(new URL(url).searchParams.get('codex_review'));
+    assert.notEqual(url, previous); previous = url;
+    assert.equal(options.redirect, 'error');
+    assert.equal(options.headers['cache-control'], 'no-cache, no-store');
+    return new Response('ready', { headers: { 'cf-cache-status': 'DYNAMIC' } });
+  };
+  await verifyLivePreview(status.environment_url, fetcher);
+  await verifyLivePreview(status.environment_url, fetcher);
+  for (const response of [new Response('bad', { status: 502 }), new Response('stale', { headers: { 'cf-cache-status': 'STALE' } }), new Response('old', { headers: { age: '123' } })]) await assert.rejects(verifyLivePreview(status.environment_url, async () => response), /cached content/);
+});
+
+test('a reviewer disconnect during revalidation cannot start a paid generation', async () => {
+  let release, entered;
+  const ready = new Promise(resolve => { entered = resolve; });
+  const barrier = new Promise(resolve => { release = resolve; });
+  let generations = 0;
+  const relay = await startModelRelay({ key: 'synthetic-secret', beforeRequest: async () => { entered(); await barrier; }, fetcher: async url => {
+    if (url.endsWith('/input_tokens')) return Response.json({ object: 'response.input_tokens', input_tokens: 1000 });
+    generations++; throw new Error('Disconnected reviewer must not generate');
+  } });
+  const abort = new AbortController();
+  const request = fetch(relay.baseUrl + '/responses', { method: 'POST', signal: abort.signal, body: JSON.stringify({ model: 'gpt-6.1-sol', input: 'Review', tools: browserCatalog }) }).catch(() => {});
+  try {
+    await ready;
+    abort.abort();
+    await request;
+    await relay.close();
+    release();
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(generations, 0);
+    assert.equal(relay.usage().calls, 0);
+    assert.equal(relay.usage().chargedMicroUsd, 0);
+  } finally { release(); await relay.close(); }
 });

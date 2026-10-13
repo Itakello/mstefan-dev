@@ -34,8 +34,12 @@ export default async ({ page }) => {
     const iconSvg = /^\\/[a-z0-9-]+\\/[a-z0-9-]+\\.svg$/.test(url.pathname) && !url.search;
     const publicIcon = iconHost && !url.username && !url.password && !url.hash && (iconJson || iconSvg);
     if ((url.origin !== ${JSON.stringify(origin)} && !publicIcon) || !['GET', 'HEAD'].includes(request.method())) return route.abort('blockedbyclient');
-    const response = await route.fetch({ maxRedirects: 0 });
-    const location = response.headers()['location'];
+    const fetchUrl = new URL(url);
+    if (url.origin === ${JSON.stringify(origin)}) fetchUrl.searchParams.set('codex_review', crypto.randomUUID());
+    const response = await route.fetch({ url: fetchUrl.href, maxRedirects: 0 });
+    const headers = response.headers();
+    if (url.origin === ${JSON.stringify(origin)} && (['HIT', 'STALE', 'UPDATING', 'REVALIDATED'].includes(headers['cf-cache-status']?.toUpperCase()) || (headers['age'] && headers['age'] !== '0'))) return route.abort('blockedbyclient');
+    const location = headers['location'];
     if (location && new URL(location, url).origin !== ${JSON.stringify(origin)}) return route.abort('blockedbyclient');
     await route.fulfill({ response });
   });

@@ -1,4 +1,5 @@
 import { execFileSync } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
 import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -20,6 +21,15 @@ export function verifyPreview(pr, deployment, status) {
   const url = `https://pr-${number}.preview.mstefan.dev`;
   ensure(status.state === 'success' && status.environment_url?.replace(/\/$/, '') === url, 'Preview is not ready');
   return { number, head: pr.head.sha, base: pr.base.sha, url, deploymentId: deployment.id };
+}
+export async function verifyLivePreview(origin, fetcher = fetch) {
+  const response = await fetcher(`${origin}/en/about?codex_review=${randomUUID()}`, {
+    redirect: 'error', headers: { 'cache-control': 'no-cache, no-store', pragma: 'no-cache' }, signal: AbortSignal.timeout(30_000),
+  });
+  const cache = response.headers.get('cf-cache-status');
+  const age = response.headers.get('age');
+  await response.body?.cancel();
+  ensure(response.ok && !['HIT', 'STALE', 'UPDATING', 'REVALIDATED'].includes(cache?.toUpperCase()) && (age === null || age === '0'), 'Preview readiness probe failed or returned cached content');
 }
 export async function main({ env = process.env, fetcher = fetch } = {}) {
   ensure(env.GITHUB_REPOSITORY === REPO && env.GITHUB_RUN_ATTEMPT === '1', 'Unsupported source or rerun');
@@ -64,6 +74,7 @@ export async function main({ env = process.env, fetcher = fetch } = {}) {
     ensure(current.head.sha === review.head && current.base.sha === review.base && current.state === 'open', 'PR changed before model request');
     const latest = await github(`/deployments/${deployment.id}/statuses?per_page=100`);
     verifyPreview(current, deployment, latest[0] || {});
+    await verifyLivePreview(review.url, fetcher);
     ensure(Date.now() < Date.parse(env.EXPIRES_AT), 'Exploration activation expired before model request');
   };
   let relay;
@@ -89,6 +100,7 @@ export async function main({ env = process.env, fetcher = fetch } = {}) {
     const marker = `PR${number} ${review.base}:`;
     ensure(!previous.some(item => item.context === CONTEXT && item.description?.startsWith(marker) && item.description.includes('request claimed')), 'Revision already attempted; no replay');
     if (!process.argv.includes('--run')) {
+      await verifyLivePreview(review.url, fetcher);
       await status('pending', 'preview verified; awaiting bounded session');
       await writeFile(env.GITHUB_OUTPUT, 'review_required=true\n', { flag: 'a' });
       return;
@@ -101,8 +113,6 @@ export async function main({ env = process.env, fetcher = fetch } = {}) {
     await revalidate();
     await status('pending', 'request claimed; no retries');
     execFileSync('git', ['fetch', '--no-tags', 'origin', review.base, review.head], { stdio: 'pipe' });
-    const response = await fetcher(`${review.url}/en/about`, { redirect: 'error', signal: AbortSignal.timeout(30_000) });
-    ensure(response.ok, 'Preview readiness probe failed');
     relay = await startModelRelay({ key: env.OPENAI_API_KEY, fetcher, origin: review.url, beforeRequest: revalidate });
     const result = await explore(['--base-ref', review.base, '--head-ref', review.head, '--preview-url', review.url, '--pr-number', String(number), '--output-dir', output], {
       PATH: env.PATH, TMPDIR: env.TMPDIR, LANG: env.LANG, PLAYWRIGHT_BROWSERS_PATH: env.PLAYWRIGHT_BROWSERS_PATH,

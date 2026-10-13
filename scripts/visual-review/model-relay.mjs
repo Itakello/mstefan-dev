@@ -14,7 +14,7 @@ export function reserveCost(inputTokens, remaining) {
 // The secret stays in this trusted process; Codex and its browser receive a dummy key.
 export async function startModelRelay({ key, fetcher = fetch, limit = RUN_LIMIT, origin, beforeRequest }) {
   if (!key || limit !== RUN_LIMIT) throw new Error('A scoped key and the fixed run limit are required');
-  let remaining = limit, calls = 0, busy = false, terminal = false;
+  let remaining = limit, calls = 0, busy = false, terminal = false, closed = false;
   const receipts = [];
   const server = createServer(async (req, res) => {
     let reserved = 0;
@@ -49,6 +49,7 @@ export async function startModelRelay({ key, fetcher = fetch, limit = RUN_LIMIT,
       const admission = await count.json();
       if (admission.object !== 'response.input_tokens') throw new Error('Unverified input admission');
       await beforeRequest?.();
+      if (closed || req.aborted || res.destroyed) throw new Error('Reviewer disconnected before model generation');
       reserved = reserveCost(admission.input_tokens, remaining);
       remaining -= reserved;
       calls++;
@@ -101,6 +102,6 @@ export async function startModelRelay({ key, fetcher = fetch, limit = RUN_LIMIT,
   return {
     baseUrl: `http://127.0.0.1:${server.address().port}/v1`,
     usage: () => ({ limitMicroUsd: limit, chargedMicroUsd: limit - remaining, calls, terminal, receipts }),
-    close: () => new Promise(resolve => { server.close(resolve); server.closeAllConnections(); }),
+    close: () => new Promise(resolve => { closed = true; server.close(resolve); server.closeAllConnections(); }),
   };
 }
