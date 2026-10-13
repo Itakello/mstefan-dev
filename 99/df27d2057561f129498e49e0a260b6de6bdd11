@@ -1,0 +1,21 @@
+components/cms/AboutContent.module.css
+  s_b1329ee52d7897::t_44690a07511fb4 6-8
+components/cms/AboutContent.tsx
+  s_b1329ee52d7897::t_44690a07511fb4 5,40-42
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "99df27d2057561f129498e49e0a260b6de6bdd11",
+  "prompts": {},
+  "sessions": {
+    "s_b1329ee52d7897": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a13248-670c-7541-a891-01e97bc48447",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
