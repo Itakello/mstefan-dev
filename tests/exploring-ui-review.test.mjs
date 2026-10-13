@@ -119,12 +119,17 @@ test('remote preparation uses inert exact git objects without executing candidat
     for (const file of ['AGENTS.md', 'DESIGN.md', '.github/PR_POLICY.md']) writeFileSync(path.join(root, file), 'Trusted base contract');
     git(['add', '.']);
     git(['-c', 'user.name=Test', '-c', 'user.email=test@example.invalid', 'commit', '-qm', 'base']);
-    const base = git(['rev-parse', 'HEAD']);
+    const ancestor = git(['rev-parse', 'HEAD']);
     writeFileSync(path.join(root, 'candidate.mjs'), "throw new Error('Candidate must never execute');");
     git(['add', '.']);
     git(['-c', 'user.name=Test', '-c', 'user.email=test@example.invalid', 'commit', '-qm', 'candidate']);
     const head = git(['rev-parse', 'HEAD']);
-    git(['checkout', '-q', base]);
+    git(['checkout', '-q', ancestor]);
+    writeFileSync(path.join(root, 'target-only.mjs'), 'Target branch implementation must not be attributed to the PR');
+    writeFileSync(path.join(root, 'AGENTS.md'), 'Current target approved contract');
+    git(['add', '.']);
+    git(['-c', 'user.name=Test', '-c', 'user.email=test@example.invalid', 'commit', '-qm', 'target advances']);
+    const base = git(['rev-parse', 'HEAD']);
     const args = [runner, '--base-ref', base, '--head-ref', head, '--preview-url', 'https://pr-42.preview.mstefan.dev', '--pr-number', '42', '--output-dir', output, '--prepare-only'];
     const result = spawnSync(process.execPath, args, { cwd: root, encoding: 'utf8', env: { PATH: process.env.PATH, MODEL_REVIEW_BASE_URL: 'http://127.0.0.1:8080/v1' } });
     assert.equal(result.status, 0, result.stderr);
@@ -132,11 +137,14 @@ test('remote preparation uses inert exact git objects without executing candidat
     packet = invocation.packet;
     assert.equal(invocation.head, head);
     assert.equal(invocation.base, base);
+    assert.equal(invocation.authoredBase, ancestor);
     assert.ok(invocation.args.includes('--ignore-user-config'));
     assert.ok(invocation.args.includes('read-only'));
     assert.ok(!existsSync(path.join(packet, 'e2e/offline-review.ts')));
     assert.ok(!readFileSync(path.join(packet, 'init-page.ts'), 'utf8').includes('import'));
     assert.match(readFileSync(path.join(output, 'review-packet.txt'), 'utf8'), /Candidate must never execute/);
+    assert.match(readFileSync(path.join(output, 'review-packet.txt'), 'utf8'), /Current target approved contract/);
+    assert.ok(!readFileSync(path.join(output, 'review-packet.txt'), 'utf8').includes('target-only.mjs'));
     assert.ok(invocation.args.includes('mcp_servers.browser.env={}'));
   } finally { rmSync(root, { recursive: true, force: true }); if (packet) rmSync(packet, { recursive: true, force: true }); }
 });
