@@ -35,16 +35,19 @@ export function AboutContent({ content, career, locale }: Props) {
           <Prose>
             {selected ? <>
               <p className={styles.branch} style={{ color: selected.color }}><BranchIcon /><span>{selected.branchName}</span></p>
-              <h1>{selected.company}</h1>
-              <p className={styles.metadata}><span>{selected.role}</span>
-                {selected.positionTitle && <span><UserRound size={16} aria-hidden="true" />{selected.positionTitle}</span>}
-                {selected.place && <span><MapPin size={16} aria-hidden="true" />{selected.place}</span>}
-                <span><CalendarDays size={16} aria-hidden="true" />{formatCareerPeriod(selected, locale, Date.now())}</span>
-                {results.map((document) => {
-                const file = document.file;
-                if (!file || typeof file !== "object" || !file.url) return null;
-                return <a key={document.id || file.id} href={file.url} download={`massimo-stefan-${selected.branchName === "education/trento-master" ? "masters" : "bachelors"}-exam-results.pdf`} className={styles.results} aria-label={`${locale === "it" ? "Scarica" : "Download"} ${document.title} (PDF)`}><Download size={14} aria-hidden="true" />{locale === "it" ? "Risultati" : "Results"}</a>;
-              })}</p>
+              <header className={styles.storyHeader}>
+                <h1>{selected.company}</h1>
+                <p className={styles.qualification}>{selected.role}</p>
+                <div className={styles.metadata}>
+                  {selected.positionTitle && <span><UserRound size={16} aria-hidden="true" />{selected.positionTitle}</span>}
+                  {selected.place && <span><MapPin size={16} aria-hidden="true" />{selected.place}</span>}
+                  <span><CalendarDays size={16} aria-hidden="true" />{formatCareerPeriod(selected, locale, Date.now())}</span>
+                  {results.map((document) => {
+                  const file = document.file;
+                  if (!file || typeof file !== "object" || !file.url) return null;
+                  return <a key={document.id || file.id} href={file.url} download={`massimo-stefan-${selected.branchName === "education/trento-master" ? "masters" : "bachelors"}-exam-results.pdf`} className={styles.results} aria-label={`${locale === "it" ? "Scarica" : "Download"} ${document.title} (PDF)`}><Download size={14} aria-hidden="true" />{locale === "it" ? "Risultati" : "Results"}</a>;
+                })}</div>
+              </header>
               {selected.summary && <p className={styles.summary}>{selected.summary}</p>}
             </> : <>
               <h1 className={styles.branch} style={{ color: career.mainlineColor || "#25b8f3" }}><BranchIcon /><span>master</span></h1>
