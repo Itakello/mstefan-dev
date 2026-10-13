@@ -41,6 +41,9 @@ const schema = {
   },
 };
 function git(args, encoding = 'utf8') { return execFileSync('git', args, { encoding, maxBuffer: 32 * 1024 * 1024 }); }
+export function assertCleanCheckout() {
+  if (git(['status', '--porcelain', '--untracked-files=all']).trim()) throw new Error('Exploration requires clean tracked files and no untracked source files');
+}
 async function filesUnder(dir) {
   const entries = await readdir(dir, { withFileTypes: true });
   return (await Promise.all(entries.map(async entry => entry.isDirectory() ? (await filesUnder(path.join(dir, entry.name))).map(file => `${entry.name}/${file}`) : [entry.name]))).flat();
@@ -57,7 +60,7 @@ export async function explore(argv = process.argv.slice(2), env = process.env) {
   const base = git(['rev-parse', '--verify', `${options['--base-ref']}^{commit}`]).trim();
   const head = git(['rev-parse', '--verify', `${options['--head-ref'] || 'HEAD'}^{commit}`]).trim();
   if (head !== git(['rev-parse', 'HEAD']).trim() || env.VISUAL_REVIEW_HEAD_SHA !== head) throw new Error('Fixture build and working checkout must match the exact requested head');
-  if (git(['status', '--porcelain', '--untracked-files=no']).trim()) throw new Error('Exploration requires a clean tracked checkout');
+  assertCleanCheckout();
   const origin = fixtureOrigin(env.PLAYWRIGHT_BASE_URL);
   if (!env.VISUAL_NOTION_FIXTURE_STATE) throw new Error('VISUAL_NOTION_FIXTURE_STATE is required');
   const mcpRoot = path.join(implementationRoot, 'node_modules/@playwright/mcp');

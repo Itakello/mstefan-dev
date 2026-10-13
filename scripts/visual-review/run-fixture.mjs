@@ -8,6 +8,7 @@ import path from 'node:path';
 import { parseArgs } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import { existsSync } from 'node:fs';
+import { assertCleanCheckout } from './explore.mjs';
 
 const { values } = parseArgs({ options: {
   smoke: { type: 'boolean' }, 'reuse-build': { type: 'boolean' },
@@ -24,6 +25,7 @@ if ((updateSnapshots && smokeOnly) || (explore && (smokeOnly || updateSnapshots 
   throw new Error('Use --explore --base-ref REF separately from smoke, snapshot updates and native favicon review.');
 }
 if (values['output-dir'] && !explore) throw new Error('--output-dir requires exploration.');
+if (explore) assertCleanCheckout();
 if (explore && ['.env', '.env.local', '.env.production', '.env.production.local'].some(existsSync)) throw new Error('Exploration requires a checkout without provider env files.');
 const dataDir = await mkdtemp(path.join(tmpdir(), 'payload-visual-review-'));
 const headSha = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
@@ -67,14 +69,21 @@ try {
   // Payload's onInit seeds the checked-in bilingual copy after migrations.
   await run(['node_modules/payload/bin.js', 'migrate']);
   await run(['node_modules/payload/bin.js', 'generate:types']);
-  if (!reuseBuild) await run(['node_modules/next/dist/bin/next', 'build', '--webpack']);
+  if (!reuseBuild) {
+    if (explore) await rm('.next/visual-review-build.json', { force: true });
+    await run(['node_modules/next/dist/bin/next', 'build', '--webpack']);
+  }
   if ((nativeFavicon || explore) && !reuseBuild) {
+    if (explore) {
+      assertCleanCheckout();
+      if (headSha !== execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim()) throw new Error('Exploration source revision changed during build.');
+    }
     if (nativeFavicon && headSha !== process.env.VISUAL_REVIEW_HEAD_SHA) throw new Error('Native favicon source head differs from the requested review');
-    await writeFile('.next/visual-review-build.json', JSON.stringify({ headSha, buildId: (await readFile('.next/BUILD_ID', 'utf8')).trim() }));
+    await writeFile('.next/visual-review-build.json', JSON.stringify({ headSha, buildId: (await readFile('.next/BUILD_ID', 'utf8')).trim(), ...(explore ? { explorationVersion: 1 } : {}) }));
   }
   if (explore && reuseBuild) {
     const build = JSON.parse(await readFile('.next/visual-review-build.json', 'utf8'));
-    if (build.headSha !== headSha || build.buildId !== (await readFile('.next/BUILD_ID', 'utf8')).trim()) throw new Error('Exploration requires an exact-head fixture build.');
+    if (build.explorationVersion !== 1 || build.headSha !== headSha || build.buildId !== (await readFile('.next/BUILD_ID', 'utf8')).trim()) throw new Error('Exploration requires a clean-source exact-head fixture build.');
   }
   const probe = createServer();
   probe.listen(0, '127.0.0.1');

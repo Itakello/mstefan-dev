@@ -1,6 +1,41 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { execFileSync, spawnSync } from 'node:child_process';
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { assessEvidence, browserTools, fixtureOrigin, reviewEnvironment } from '../scripts/visual-review/explore.mjs';
+
+test('dirty and untracked source is rejected before build; legacy build stamps cannot be reused', () => {
+  const root = mkdtempSync(path.join(tmpdir(), 'exploration-provenance-'));
+  const runner = fileURLToPath(new URL('../scripts/visual-review/run-fixture.mjs', import.meta.url));
+  const run = () => spawnSync(process.execPath, [runner, '--desktop', '--base-ref', 'HEAD', '--reuse-build'], { cwd: root, encoding: 'utf8' });
+  const git = args => execFileSync('git', args, { cwd: root, encoding: 'utf8' }).trim();
+  try {
+    git(['init', '-q']);
+    writeFileSync(path.join(root, '.gitignore'), 'node_modules/\n.next/\n.artifacts/\n');
+    writeFileSync(path.join(root, 'page.js'), 'original');
+    mkdirSync(path.join(root, 'tests/cms'), { recursive: true });
+    writeFileSync(path.join(root, 'tests/cms/notion-publication-fixture.mjs'), '');
+    git(['add', '.']);
+    git(['-c', 'user.name=Test', '-c', 'user.email=test@example.invalid', 'commit', '-qm', 'fixture']);
+    writeFileSync(path.join(root, 'page.js'), 'edited');
+    assert.match(run().stderr, /clean tracked files/);
+    writeFileSync(path.join(root, 'page.js'), 'original');
+    writeFileSync(path.join(root, 'new-page.js'), 'untracked');
+    assert.match(run().stderr, /untracked source files/);
+    rmSync(path.join(root, 'new-page.js'));
+    mkdirSync(path.join(root, 'node_modules/payload'), { recursive: true });
+    writeFileSync(path.join(root, 'node_modules/payload/bin.js'), '');
+    mkdirSync(path.join(root, '.next'));
+    writeFileSync(path.join(root, '.next/BUILD_ID'), 'legacy-build');
+    writeFileSync(path.join(root, '.next/visual-review-build.json'), JSON.stringify({ headSha: git(['rev-parse', 'HEAD']), buildId: 'legacy-build' }));
+    const result = run();
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /clean-source exact-head fixture build/);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
 
 test('exploration accepts only the isolated local fixture and removes provider credentials', () => {
   assert.equal(fixtureOrigin('http://127.0.0.1:4321'), 'http://127.0.0.1:4321');
