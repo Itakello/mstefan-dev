@@ -19,26 +19,39 @@ const fixtureRows = [
   URL: { url: index === 1 ? null : `https://github.com/fixture/project-${index}` }, 'Website URL': { type: 'url', url: website },
 } }));
 fixtureRows[2].properties.URL = { url: 'https://github.com/mobs-fbk/llm_interaction_simulator' };
+fixtureRows[0].properties.URL = { url: 'https://github.com/Itakello/mstefan-dev' };
 fixtureRows[2].properties['Paper URL'] = { type: 'url', url: 'https://arxiv.org/pdf/2410.07109' };
 fixtureRows[2].properties['Slides URL'] = { type: 'url', url: 'https://example.com/research-slides.pdf' };
 fixtureRows[2].properties.Publication = { rich_text: [{ plain_text: 'Co-author · I Want to Break Free! (TMLR, 2025)' }] };
+const mediaRow = { ...fixtureRows[2], id: 'visual-physiq', properties: { ...fixtureRows[2].properties,
+  Name: { title: [{ plain_text: 'PhysIQ' }] },
+  Summary: { rich_text: [{ plain_text: 'Research media fixture for production Work integration.' }] },
+  'Summary IT': { rich_text: [{ plain_text: 'Media di ricerca di prova per la pagina Work.' }] },
+  URL: { url: 'https://github.com/fixture/physiq' }, Publication: { rich_text: [] },
+  'Preview images': { type: 'rich_text', rich_text: [{ plain_text: JSON.stringify([
+    { url: '/work-previews/physiq-puzzles.png', label: 'Puzzles', labelIT: 'Puzzle' },
+    { url: '/work-previews/physiq-results.png', label: 'Results', labelIT: 'Risultati' },
+  ]) }] },
+  'Slides URL': { type: 'url', url: 'https://example.com/physiq.pptx' },
+  'Slides preview URL': { type: 'url', url: 'https://www.mstefan.dev/presentations/physiq/index.html' },
+} };
 const stackRows = [['TypeScript', 'Language', 'logos:typescript-icon'], ['Python', 'Language', 'logos:python'], ['Next.js', 'Framework', 'logos:nextjs-icon'], ['React', 'Library', 'logos:react'], ['React · DOM', 'Library', 'logos:react-router'], ['Node.js', 'Runtime', 'logos:nodejs-icon'], ['GitHub Actions', 'Infrastructure', 'logos:github-actions'], ['Notion', 'Integration', 'logos:notion-icon'], ['pnpm', 'CLI', 'logos:pnpm'], ['Tailwind CSS', 'Framework', 'logos:tailwindcss-icon'], ['MongoDB', 'Database', 'logos:mongodb-icon'], ['AWS', 'Cloud', 'logos:aws'], ['Docker', 'Infrastructure', 'logos:docker-icon']].map(([name, category, iconKey], index) => ({ id: `visual-stack-${index}`, properties: {
   Name: { title: [{ plain_text: name }] }, Category: { select: { name: category } }, 'Icon key': { rich_text: [{ plain_text: iconKey }] },
 } }));
 function fixturePayload() {
   const mode = readFileSync(process.env.VISUAL_NOTION_FIXTURE_STATE, 'utf8').trim();
   if (mode === 'error') return { status: 503, body: { object: 'error', code: 'service_unavailable', message: 'Synthetic publication outage' } };
-  if (!['multiple', 'one', 'empty', 'dense', 'publication', 'changedsummary', 'changedicon', 'recovered', 'pages'].includes(mode)) throw new Error('Unexpected publication fixture state');
+  if (!['multiple', 'one', 'empty', 'dense', 'publication', 'changedsummary', 'changedicon', 'recovered', 'pages', 'media'].includes(mode)) throw new Error('Unexpected publication fixture state');
   const denseRow = { ...fixtureRows[0], properties: { ...fixtureRows[0].properties, Tags: { multi_select: stackRows.map(row => ({ name: row.properties.Name.title[0].plain_text })) } } };
   const publicationRows = fixtureRows.map((row, index) => index === 0 ? { ...row, properties: { ...row.properties,
-    Name: { title: [{ plain_text: 'mstefan-dev' }] },
+    Name: { title: [{ plain_text: mode === 'changedsummary' ? 'Renamed portfolio' : 'mstefan-dev' }] },
     ...(mode === 'changedsummary' || mode === 'recovered' ? {
       Summary: { rich_text: [{ plain_text: mode === 'changedsummary' ? 'Changed publication fixture.' : 'Recovered publication fixture.' }] },
       'Summary IT': { rich_text: [{ plain_text: mode === 'changedsummary' ? 'Pubblicazione di prova aggiornata.' : 'Pubblicazione di prova ripristinata.' }] },
     } : {}),
   } } : row);
   const pageRow = { ...fixtureRows[0], properties: { ...fixtureRows[0].properties, 'Preview URLs': { type: 'rich_text', rich_text: [{ plain_text: 'https://www.mstefan.dev/en/about\nhttps://www.mstefan.dev/en/projects' }] } } };
-  const rows = mode === 'pages' ? [pageRow, fixtureRows[1]] : mode === 'dense' ? [denseRow] : mode === 'empty' ? [] : mode === 'one' ? fixtureRows.slice(0, 1)
+  const rows = mode === 'media' ? [...fixtureRows, mediaRow] : mode === 'pages' ? [pageRow, fixtureRows[1]] : mode === 'dense' ? [denseRow] : mode === 'empty' ? [] : mode === 'one' ? fixtureRows.slice(0, 1)
     : ['publication', 'changedsummary', 'changedicon', 'recovered'].includes(mode) ? publicationRows : fixtureRows;
   return { status: 200, body: { object: 'list', results: rows, has_more: false, next_cursor: null } };
 }
@@ -55,7 +68,8 @@ const provider = http.createServer((request, response) => {
     if (request.url === '/v1/databases/visual-stack-fixture/query') {
       if (parsed.filter || parsed.start_cursor) { response.writeHead(400).end('Unexpected Stack query'); return; }
       const changedIcon = readFileSync(process.env.VISUAL_NOTION_FIXTURE_STATE, 'utf8').trim() === 'changedicon';
-      const rows = stackRows.map((row, index) => changedIcon && index === 0 ? { ...row, properties: { ...row.properties,
+      const sourceRows = process.env.WORK_CONTENT_REVIEW_FIXTURE ? JSON.parse(readFileSync(process.env.WORK_CONTENT_REVIEW_FIXTURE, 'utf8')).stack : stackRows;
+      const rows = sourceRows.map((row, index) => changedIcon && index === 0 ? { ...row, properties: { ...row.properties,
         'Icon key': { rich_text: [{ plain_text: 'logos:typescript' }] },
       } } : row);
       response.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify({ object: 'list', results: rows, has_more: false, next_cursor: null }));
@@ -65,7 +79,10 @@ const provider = http.createServer((request, response) => {
       response.writeHead(400).end('Unexpected publication query');
       return;
     }
-    const { status, body } = fixturePayload();
+    const review = process.env.WORK_CONTENT_REVIEW_FIXTURE;
+    const { status, body } = review
+      ? { status: 200, body: { object: 'list', results: JSON.parse(readFileSync(review, 'utf8')).projects.filter(row => row.properties.Status?.status?.name === 'Added'), has_more: false, next_cursor: null } }
+      : fixturePayload();
     response.writeHead(status, { 'content-type': 'application/json' }).end(JSON.stringify(body));
   });
 });
