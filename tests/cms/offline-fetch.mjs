@@ -4,7 +4,10 @@ import { readFileSync, writeFileSync } from 'node:fs';
 const realFetch = globalThis.fetch;
 globalThis.fetch = async (input, init) => {
   const url = new URL(typeof input === 'string' || input instanceof URL ? input : input.url);
-  if (url.hostname === 'api.github.com') return Response.json([]);
+  if (url.hostname === 'api.github.com') return Response.json(process.env.WORK_CONTENT_REVIEW_FIXTURE
+    ? JSON.parse(readFileSync(process.env.WORK_CONTENT_REVIEW_FIXTURE, 'utf8')).repos ?? []
+    : process.env.VISUAL_NOTION_FIXTURE_STATE ? [{ html_url: 'https://github.com/Itakello/mstefan-dev', created_at: '2025-01-01T00:00:00Z' }] : []);
+  if (url.hostname === 'api.iconify.design' && process.env.WORK_CONTENT_REVIEW_FIXTURE) return realFetch(input, init);
   if (url.hostname === 'api.iconify.design') {
     const statePath = process.env.VISUAL_ICON_FIXTURE_STATE;
     const state = JSON.parse(readFileSync(statePath, 'utf8'));
