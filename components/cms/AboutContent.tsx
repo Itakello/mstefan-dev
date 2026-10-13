@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useCallback, useState } from "react";
-import { Download } from "lucide-react";
+import { CalendarDays, Download, MapPin, UserRound } from "lucide-react";
 import { useLivePreview } from "@payloadcms/live-preview-react";
 import { Prose } from "@/components/Prose";
 import { PdfPreview } from "@/components/PdfPreview";
@@ -37,9 +37,9 @@ export function AboutContent({ content, career, locale }: Props) {
               <p className={styles.branch} style={{ color: selected.color }}><BranchIcon /><span>{selected.branchName}</span></p>
               <h1>{selected.company}</h1>
               <p className={styles.metadata}><span>{selected.role}</span>
-                {selected.positionTitle && <span>{selected.positionTitle}</span>}
-                {selected.place && <span>{selected.place}</span>}
-                <span>{formatCareerPeriod(selected, locale, Date.now())}</span>
+                {selected.positionTitle && <span><UserRound size={16} aria-hidden="true" />{selected.positionTitle}</span>}
+                {selected.place && <span><MapPin size={16} aria-hidden="true" />{selected.place}</span>}
+                <span><CalendarDays size={16} aria-hidden="true" />{formatCareerPeriod(selected, locale, Date.now())}</span>
                 {results.map((document) => {
                 const file = document.file;
                 if (!file || typeof file !== "object" || !file.url) return null;
