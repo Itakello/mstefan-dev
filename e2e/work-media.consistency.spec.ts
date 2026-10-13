@@ -76,6 +76,7 @@ for (const size of ["desktop", "mobile"] as const) {
           }
           await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
           await page.screenshot({ path: testInfo.outputPath(`work-integrated-${kind.toLowerCase()}-inline-${size}-${theme}.png`), fullPage: size === "desktop", animations: "disabled" });
+          const inlinePaperWidth = kind === "Paper" ? await media.locator("canvas").evaluate(node => node.getBoundingClientRect().width) : 0;
           if (size === "mobile") await enlarge.tap();
           else await enlarge.press("Enter");
           await expect.poll(() => media.evaluate(node => node.matches(":modal"))).toBe(true);
@@ -94,7 +95,10 @@ for (const size of ["desktop", "mobile"] as const) {
             expect(ring.top).toBeGreaterThanOrEqual(0);
             expect(ring.right).toBeGreaterThanOrEqual(0);
           }
-          if (kind === "Paper") await expect(media.getByRole("status")).toHaveCount(0);
+          if (kind === "Paper") {
+            await expect.poll(() => media.locator("canvas").evaluate(node => node.getBoundingClientRect().width)).toBeGreaterThan(inlinePaperWidth + 1);
+            await expect(media.getByRole("status")).toHaveCount(0);
+          }
           if (kind === "Slides") await expect.poll(() => page.frameLocator("[data-powerpoint-preview] iframe").locator("#stage").evaluate(node => Math.abs(node.getBoundingClientRect().width - window.innerWidth))).toBeLessThan(2);
           if (kind !== "Photos" || size === "mobile") await page.screenshot({ path: testInfo.outputPath(`work-integrated-${kind.toLowerCase()}-expanded-${size}-${theme}.png`), animations: "disabled" });
           if (size === "mobile") await close.tap();
