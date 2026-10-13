@@ -1,0 +1,25 @@
+scripts/visual-review/run-fixture.mjs
+  s_b1329ee52d7897::t_41949942d8bbd0 53
+components/cms/AboutContent.module.css
+  s_b1329ee52d7897::t_e74824d215d3db 11
+components/cms/AboutContent.tsx
+  s_b1329ee52d7897::t_3d0f6f0d80ae29 45,58-62
+tests/cms/lifecycle.test.mts
+  s_b1329ee52d7897::t_aa726e457f8324 665,702,720,722
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b57851d5a7dc23db9f9188e7a723d5c7bbf2839f",
+  "prompts": {},
+  "sessions": {
+    "s_b1329ee52d7897": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a13248-670c-7541-a891-01e97bc48447",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
