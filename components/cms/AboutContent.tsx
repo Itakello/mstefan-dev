@@ -58,7 +58,7 @@ export function AboutContent({ content, career, locale }: Props) {
         {results.map((document) => {
           const file = document.file;
           if (!file || typeof file !== "object" || !file.url) return null;
-          return <a key={document.id || file.id} href={file.url} download={`massimo-stefan-${selected?.branchName === "education/trento-master" ? "masters" : "bachelors"}-exam-results.pdf`} className={styles.results} aria-label={`${locale === "it" ? "Scarica" : "Download"} ${document.title} (PDF)`}><Download size={14} aria-hidden="true" />{locale === "it" ? "Risultati" : "Results"}</a>;
+          return <a key={document.id || file.id} href={file.url} download={`massimo-stefan-${selected?.branchName === "education/trento-master" ? "masters" : "bachelors"}-exam-results.pdf`} className={styles.results} aria-label={`${locale === "it" ? "Scarica" : "Download"} ${document.title} (PDF)`}><Download size={14} aria-hidden="true" />{locale === "it" ? "Risultati degli esami" : "Exam results"}</a>;
         })}
         {documents.filter((document) => !results.includes(document)).map((document) => {
           const file = document.file;

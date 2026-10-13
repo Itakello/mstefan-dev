@@ -697,7 +697,7 @@ test('degree results follow stories while other attachments retain previews', { 
         for (const [degree, attachment, role] of [['master', file, 'Artificial Intelligence'], ['bachelor', bachelorFile, 'Computer Science']] as const) {
           await page.locator('button[data-career-job]', { hasText: `education/trento-${degree}` }).click();
           const link = page.getByRole('link', { name: `${verb} ${degree === 'master' ? title : bachelorTitle} (PDF)`, exact: true });
-          await expect(link).toHaveText(locale === 'it' ? 'Risultati' : 'Results');
+          await expect(link).toHaveText(locale === 'it' ? 'Risultati degli esami' : 'Exam results');
           await expect(link.locator('svg.lucide-download')).toHaveCount(1);
           await expect(page.locator('#career-story article header')).toContainText(role);
           await expect(link).toHaveAttribute('href', attachment.url);
@@ -719,7 +719,7 @@ test('degree results follow stories while other attachments retain previews', { 
               await expect(link).toBeVisible();
               const storyBox = await page.locator('#career-story article').boundingBox();
               const buttonBox = await link.boundingBox();
-              assert.ok(storyBox && buttonBox && buttonBox.y >= storyBox.y + storyBox.height, 'Results must follow the story rather than appear in its metadata');
+              assert.ok(storyBox && buttonBox && buttonBox.y >= storyBox.y + storyBox.height && Math.abs(storyBox.x + storyBox.width - buttonBox.x - buttonBox.width) < 1, 'Exam results must align right below the story, outside its metadata');
               await link.focus();
               await link.press('Tab');
               await page.keyboard.press('Shift+Tab');
