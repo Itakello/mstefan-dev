@@ -5,6 +5,7 @@ import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
 import { classifyVisualReview } from './classify.mjs';
+import { explorationReservations } from './exploration-budget.mjs';
 
 export const CONTEXT = 'AI visual review';
 export const REQUIRED = ['home', 'work', 'about', 'footer'].flatMap(page => ['desktop', 'mobile'].flatMap(size => ['light', 'dark'].map(theme => `${page}-${size}-${theme}.png`)));
@@ -348,9 +349,16 @@ export async function main({env = process.env, fetcher = fetch, gitDiff = native
   const root = `https://api.github.com/repos/${repository}`;
   async function github(path, options = {}) {
     const response = await fetcher(`${root}${path}`, { ...options, headers:{Authorization:`Bearer ${env.GITHUB_TOKEN}`,Accept:options.accept ?? 'application/vnd.github+json','Content-Type':'application/json'},signal:AbortSignal.timeout(30000) });
+    if (options.allowNotFound && response.status === 404) return null;
     ensure(response.ok, `GitHub request failed (${response.status})`);
     if (options.binary) { const buffer = Buffer.from(await response.arrayBuffer()); ensure(buffer.length <= MAX_BYTES, 'Artifact download too large'); return buffer; }
     const text = await response.text(); ensure(Buffer.byteLength(text) <= 5*1024*1024,'GitHub response too large'); return options.raw ? text : JSON.parse(text);
+  }
+  async function sharedBudget(currentRun, expectedMicroUsd) {
+    const now = Date.now();
+    const visual = await paidAttempts(github, now, currentRun, expectedMicroUsd, trustedSha);
+    const exploration = await explorationReservations(github, now);
+    return { count: visual.count + exploration.count, microUsd: visual.microUsd + exploration.microUsd };
   }
   const trustedSha = execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
   ensure(/^[a-f0-9]{40}$/.test(trustedSha), 'Unverified review engine revision');
@@ -404,7 +412,7 @@ export async function main({env = process.env, fetcher = fetch, gitDiff = native
       ensure(env.ENABLED === 'true' || env.GITHUB_EVENT_NAME === 'workflow_dispatch','Automatic AI review disabled; activation proof required');
       ensure(env.GITHUB_RUN_ATTEMPT === '1','Reruns do not issue another model request');
       validReservation(prepared.reservedMicroUsd);
-      checkBudget(await paidAttempts(github,Date.now(),env.GITHUB_RUN_ID,prepared.reservedMicroUsd,trustedSha));
+      checkBudget(await sharedBudget(env.GITHUB_RUN_ID, prepared.reservedMicroUsd));
       if (event.inputs?.recovery === true || event.inputs?.recovery === 'true') {
         const {main: validateRecovery} = await import('./recovery.mjs');
         await validateRecovery({env,fetcher});
@@ -463,7 +471,7 @@ export async function main({env = process.env, fetcher = fetch, gitDiff = native
       const body = requestBody(`Base DESIGN.md:\n${design}\nBase AGENTS.md:\n${agents}\nBase .github/PR_POLICY.md:\n${policy}\nValidated exact diff ${base}...${sha} for visual review:\n${context}\nCurrent captures:\n${names.join('\n')}`,images);
       pr = await github(`/pulls/${pr.number}`); ensure(currentRevision(pr,repository,sha,base),'Revisions changed before request');
       const reservedMicroUsd = await reviewBudget(body,env.OPENAI_API_KEY,fetcher);
-      checkBudget(await paidAttempts(github,Date.now(),undefined,undefined,trustedSha),reservedMicroUsd);
+      checkBudget(await sharedBudget(),reservedMicroUsd);
       pr = await github(`/pulls/${pr.number}`); ensure(currentRevision(pr,repository,sha,base),'Revisions changed before preparation');
       writeFileSync(join(env.RUNNER_TEMP,'ai-visual-request.json'),JSON.stringify({sha,base,sourceRun:run.id,names,body,reservedMicroUsd}),{mode:0o600});
       appendFileSync(env.GITHUB_OUTPUT,`reserved_micro_usd=${reservedMicroUsd}\nready=true\n`);

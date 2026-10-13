@@ -3,6 +3,7 @@ import { expect, test, type Page } from "@playwright/test";
 export { expect, test };
 
 export async function showReviewStep(page: Page, label: string) {
+  await page.locator("body").waitFor({ state: "attached" });
   await page.evaluate((text) => {
     const id = "playwright-review-step";
     const existing = document.getElementById(id);
