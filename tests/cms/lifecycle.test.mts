@@ -699,7 +699,7 @@ test('degree results are optional metadata downloads while other attachments ret
           const link = page.getByRole('link', { name: `${verb} ${degree === 'master' ? title : bachelorTitle} (PDF)`, exact: true });
           await expect(link).toHaveText(locale === 'it' ? 'Risultati' : 'Results');
           await expect(link.locator('svg.lucide-download')).toHaveCount(1);
-          await expect(page.locator('#career-story article p', { has: link })).toContainText(role);
+          await expect(page.locator('#career-story article header', { has: link })).toContainText(role);
           await expect(link).toHaveAttribute('href', attachment.url);
           await expect(link).toHaveAttribute('download', `massimo-stefan-${degree}s-exam-results.pdf`);
           await expect(page.locator('#career-story [data-pdf-document]')).toHaveCount(0);
@@ -717,9 +717,9 @@ test('degree results are optional metadata downloads while other attachments ret
               }
               await expect(page.locator('html')).toHaveClass(theme === 'dark' ? /\bdark\b/ : /^(?!.*\bdark\b)/);
               await expect(link).toBeVisible();
-              const metadataBox = await page.locator('#career-story article p', { has: link }).boundingBox();
+              const datesBox = await page.locator('#career-story header > div > span').last().boundingBox();
               const buttonBox = await link.boundingBox();
-              assert.ok(metadataBox && buttonBox && Math.abs(metadataBox.x + metadataBox.width - buttonBox.x - buttonBox.width) < 1, 'Results button must align with the right edge of the metadata');
+              assert.ok(datesBox && buttonBox && buttonBox.x >= datesBox.x + datesBox.width && buttonBox.x - datesBox.x - datesBox.width < 16 && Math.abs(datesBox.y + datesBox.height / 2 - buttonBox.y - buttonBox.height / 2) < 1, 'Results must sit beside the dates in the metadata group');
               await link.focus();
               await link.press('Tab');
               await page.keyboard.press('Shift+Tab');
