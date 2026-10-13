@@ -1,3 +1,4 @@
+import { presentationPreviewUrl } from "@/lib/powerPointPreview";
 import { PROJECT_TYPES, type ProjectType } from "@/lib/projectPublication";
 import { websitePreviewTargets } from "@/lib/websiteShowcase";
 import { Client } from "@notionhq/client";
@@ -18,8 +19,10 @@ export type NotionProject = {
   url?: string;
   websiteUrl?: string;
   previewUrls?: string[];
+  previewImages?: { url: string; label: string; labelIT: string }[];
   paperUrl?: string;
   slidesUrl?: string;
+  slidesPreviewUrl?: string;
   tags?: string[];
   year?: string;
   language?: string;
@@ -126,7 +129,28 @@ export function parseNotionProjectPage(page: any): NotionProject | null {
   if (previewUrls.length) {
     try { previewUrls = websitePreviewTargets({ websiteUrl, previewUrls }).slice(1); } catch { return null; }
   }
-  const resources: { paperUrl?: string; slidesUrl?: string } = {};
+  const imagesProperty = properties["Preview images"];
+  let previewImages: NotionProject["previewImages"];
+  if (imagesProperty !== undefined) {
+    if (imagesProperty?.type !== "rich_text" || !Array.isArray(imagesProperty.rich_text)) return null;
+    const value = richText(imagesProperty.rich_text);
+    if (value) {
+      try {
+        const images = JSON.parse(value);
+        if (!Array.isArray(images) || images.length > 10 || images.some(image => {
+          if (!image || typeof image.url !== "string" || typeof image.label !== "string" || !image.label.trim()
+            || typeof image.labelIT !== "string" || !image.labelIT.trim()) return true;
+          if (/^\/work-previews\/[a-z0-9-]+\.(png|svg|webp)$/.test(image.url)) return false;
+          const url = new URL(image.url);
+          return url.protocol !== "https:" || Boolean(url.username || url.password || url.port)
+            || !["raw.githubusercontent.com", "previews.mstefan.dev"].includes(url.hostname);
+        })) return null;
+        if (new Set(images.map(image => image.url)).size !== images.length) return null;
+        previewImages = images;
+      } catch { return null; }
+    }
+  }
+  const resources: { paperUrl?: string; slidesUrl?: string; slidesPreviewUrl?: string } = {};
   for (const [property, key] of [["Paper URL", "paperUrl"], ["Slides URL", "slidesUrl"]] as const) {
     const value = properties[property];
     if (!value || value.url === null) continue;
@@ -137,6 +161,15 @@ export function parseNotionProjectPage(page: any): NotionProject | null {
       if (parsed.protocol !== "https:" || parsed.username || parsed.password) return null;
       resources[key] = parsed.href;
     } catch { return null; }
+  }
+  const slidesPreview = properties["Slides preview URL"];
+  if (slidesPreview !== undefined) {
+    if (!slidesPreview || slidesPreview.type !== "url" || (slidesPreview.url !== null && typeof slidesPreview.url !== "string")) return null;
+    if (slidesPreview.url?.trim()) {
+      const preview = presentationPreviewUrl(slidesPreview.url.trim());
+      if (!preview || !resources.slidesUrl) return null;
+      resources.slidesPreviewUrl = preview;
+    }
   }
   for (const property of ["Publication", "Publication IT"]) {
     const value = properties[property];
@@ -160,6 +193,7 @@ export function parseNotionProjectPage(page: any): NotionProject | null {
     url,
     ...(websiteUrl ? { websiteUrl } : {}),
     ...(previewUrls.length ? { previewUrls } : {}),
+    ...(previewImages?.length ? { previewImages } : {}),
     ...resources,
     tags: tags.length > 0 ? tags : undefined,
     language,

@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   mergeAndEnrichProjects,
+  repositoryUrlKey,
   resolveProjectPublicationState,
 } from "../lib/projectPublication";
 import { projectPublicationMessage } from "../lib/i18n/copy";
@@ -19,6 +20,15 @@ const githubRepo = {
   created_at: "2024-03-15T12:00:00Z",
   pushed_at: "2026-08-01T00:00:00Z",
 };
+
+test("repository identity matches GitHub case and trailing slash without changing other URLs", () => {
+  const canonical = "https://github.com/itakello/mstefan-dev";
+  for (const url of [canonical, "https://GitHub.com/Itakello/MSTEFAN-DEV/", "https://github.com/ITAKELLO/mstefan-dev"]) assert.equal(repositoryUrlKey(url), canonical);
+  for (const url of ["https://example.com/CaseSensitive/", "https://github.com/owner/repo/blob/Main/File", "https://github.com/owner/repo?token=CaseSensitive", "https://github.com.evil.test/Owner/Repo/"]) assert.equal(repositoryUrlKey(url), url);
+  const result = mergeAndEnrichProjects([{ title: "Approved", summary: "Approved.", url: `${githubRepo.html_url.toUpperCase()}/` }], [githubRepo]);
+  assert.equal(result.groups["2024"][0].language, "TypeScript");
+  assert.equal(result.groups["2024"][0].url, `${githubRepo.html_url.toUpperCase()}/`);
+});
 
 test("never appends GitHub repositories that are absent from the approved source", () => {
   const result = mergeAndEnrichProjects([], [githubRepo]);
