@@ -1,0 +1,315 @@
+components/cms/AboutContent.tsx
+  s_edc3df130cc253::t_d4557f79af0415 44
+.github/workflows/visual-review.yml
+  s_edc3df130cc253::t_b4a590e34e0cdf 22,73-80
+.storybook/main.ts
+  s_edc3df130cc253::t_ae7b1621a893fb 7-13
+AGENTS.md
+  s_edc3df130cc253::t_32f48c06fde0f9 12
+README.md
+  s_edc3df130cc253::t_e8dc9763bde961 69,88-92,98,100,102
+app/[locale]/page.tsx
+  s_edc3df130cc253::t_d8e8710f0f0a2b 15,17,46-48
+app/api/webhooks/notion/route.ts
+  s_edc3df130cc253::t_2649d46cab083c 1,12
+app/globals.css
+  s_edc3df130cc253::t_9155335bc20caa 24-36,349-432
+components/DocumentPreview.tsx
+  s_edc3df130cc253::t_439d93dd3c8d14 2-3,7-9,11-32,37,43,90,92,120-133,135,138-149
+components/Header.tsx
+  s_edc3df130cc253::t_f8b5cfad8e7ee2 6,21-32,36,39-40,45,53-62,64-67,70,75,85,88-89,99-100,114-117,120-121,123
+components/LanguageSelector.tsx
+  s_edc3df130cc253::t_a54f03ba107a61 3,5,7-8,35,38,52-67,69-73
+components/MediaPreview.tsx
+  s_edc3df130cc253::t_6da16e82c03265 1-38
+components/PdfPreview.module.css
+  s_edc3df130cc253::t_a2c8a5c15821be 3
+components/PdfPreview.tsx
+  s_edc3df130cc253::t_9b2c5407d21045 5,12
+components/PowerPointPreview.tsx
+  s_edc3df130cc253::t_328023d56cbafe 1-44
+components/PreviewArrows.tsx
+  s_edc3df130cc253::t_54478c523f0b5a 1-17
+components/WorkExplorer.tsx
+  s_edc3df130cc253::t_bef0c5f845617e 3,5,8-9,20,26-29,36-37,44-45,108-111,113,119,121,126-130,203-206,217,219,221-223,225-228,235,237-240
+docs/automation/ai-visual-review.md
+  s_edc3df130cc253::t_0fdabf88da04d8 19
+docs/presentation-previews.md
+  s_edc3df130cc253::t_de96a467d8e9d4 1-15
+e2e/components.workshop.spec.ts
+  s_edc3df130cc253::t_706725bae9a8c4 8-10,143-185
+e2e/design.consistency.spec.ts
+  s_edc3df130cc253::t_e53bda0f65535c 5
+e2e/mstefan-site.review.spec.ts
+  s_edc3df130cc253::t_b3a3b79bf1c5d2 4-5,13-18,50,70,82,84-85,99,101-102,104-105,137,145,147-154,156,162-163,169-175,177-178,190,235,240,248,262,265,319,321-322,327,330,354,357,384,401
+e2e/not-found.smoke.spec.ts
+  s_edc3df130cc253::t_b85b9ea2ad30a5 45,48,58,67
+e2e/theme-icons.smoke.spec.ts
+  s_edc3df130cc253::t_8093e8a2e8ca09 1-123
+e2e/visual-ready.ts
+  s_edc3df130cc253::t_20ea73167ff5a9 1-22
+e2e/work-media.consistency.spec.ts
+  s_edc3df130cc253::t_40f1c238616921 1-154
+lib/i18n/copy.ts
+  s_edc3df130cc253::t_11112a416bd1ae 22-23,75,105-106,172,206-207,275
+lib/notion.ts
+  s_edc3df130cc253::t_0cfe877900ac29 1,22,25,132-153,165-173,196
+lib/notionPublicationSnapshot.ts
+  s_edc3df130cc253::t_61768b8657a2c3 21-24,32-33,40,42,45,49-50,52,63-71,79-80
+lib/powerPointPreview.ts
+  s_edc3df130cc253::t_3d875ab659b4b3 1-16
+lib/projectPublication.ts
+  s_edc3df130cc253::t_03b4a5d530a49e 13,16,43-46,88,99
+lib/publicProjects.ts
+  s_edc3df130cc253::t_d19eb7513617c3 44,47
+lib/theme.ts
+  s_edc3df130cc253::t_ea0a704a5bf20f 11-14
+lib/websiteShowcase.ts
+  s_edc3df130cc253::t_a849f68283ce45 6,43,45
+lib/websiteStack.ts
+  s_edc3df130cc253::t_6ea78123593b8b 5,73,77-78,123
+proxy.ts
+  s_edc3df130cc253::t_74235773b2afd7 7
+public/presentations/physiq/assets/0DA56FC0-D25C-4853-8974-0FA8842BD9C3/0DA56FC0-D25C-4853-8974-0FA8842BD9C3.json
+  s_edc3df130cc253::t_cfcdfe2f65c90f 1
+public/presentations/physiq/assets/0DA56FC0-D25C-4853-8974-0FA8842BD9C3/0DA56FC0-D25C-4853-8974-0FA8842BD9C3.jsonp
+  s_edc3df130cc253::t_89dd4c01f653e5 1
+public/presentations/physiq/assets/0DA56FC0-D25C-4853-8974-0FA8842BD9C3/assets/0DA56FC0-D25C-4853-8974-0FA8842BD9C3.pdfp
+  s_edc3df130cc253::t_159c685d631c42 1-4
+public/presentations/physiq/assets/136F4779-A0A8-4E0E-8AC7-22D02741B876/136F4779-A0A8-4E0E-8AC7-22D02741B876.json
+  s_edc3df130cc253::t_31ac4f400f24cf 1
+public/presentations/physiq/assets/136F4779-A0A8-4E0E-8AC7-22D02741B876/136F4779-A0A8-4E0E-8AC7-22D02741B876.jsonp
+  s_edc3df130cc253::t_bd533add0cc235 1
+public/presentations/physiq/assets/136F4779-A0A8-4E0E-8AC7-22D02741B876/assets/136F4779-A0A8-4E0E-8AC7-22D02741B876.pdfp
+  s_edc3df130cc253::t_ac8a549f39db51 1-4
+public/presentations/physiq/assets/23849176-2758-4640-BB87-15007E60E30A/23849176-2758-4640-BB87-15007E60E30A.json
+  s_edc3df130cc253::t_57a7710121b978 1
+public/presentations/physiq/assets/23849176-2758-4640-BB87-15007E60E30A/23849176-2758-4640-BB87-15007E60E30A.jsonp
+  s_edc3df130cc253::t_42f2da1853abb9 1
+public/presentations/physiq/assets/23849176-2758-4640-BB87-15007E60E30A/assets/23849176-2758-4640-BB87-15007E60E30A.pdfp
+  s_edc3df130cc253::t_b11c6554a36079 1-4
+public/presentations/physiq/assets/2E75A4D0-24D5-485F-B96B-6EBB6DC02A6C/2E75A4D0-24D5-485F-B96B-6EBB6DC02A6C.json
+  s_edc3df130cc253::t_96ca9ff92876ff 1
+public/presentations/physiq/assets/2E75A4D0-24D5-485F-B96B-6EBB6DC02A6C/2E75A4D0-24D5-485F-B96B-6EBB6DC02A6C.jsonp
+  s_edc3df130cc253::t_c48fc48025266f 1
+public/presentations/physiq/assets/2E75A4D0-24D5-485F-B96B-6EBB6DC02A6C/assets/2E75A4D0-24D5-485F-B96B-6EBB6DC02A6C.pdfp
+  s_edc3df130cc253::t_ff47b6f671a815 1-4
+public/presentations/physiq/assets/39F765A3-6BED-43D0-B32E-EF042EF06B12/39F765A3-6BED-43D0-B32E-EF042EF06B12.json
+  s_edc3df130cc253::t_bed00c162aab6a 1
+public/presentations/physiq/assets/39F765A3-6BED-43D0-B32E-EF042EF06B12/39F765A3-6BED-43D0-B32E-EF042EF06B12.jsonp
+  s_edc3df130cc253::t_1985a88bd6edee 1
+public/presentations/physiq/assets/39F765A3-6BED-43D0-B32E-EF042EF06B12/assets/39F765A3-6BED-43D0-B32E-EF042EF06B12.pdfp
+  s_edc3df130cc253::t_207fd3fbd75a64 1-4
+public/presentations/physiq/assets/3D009F02-F170-4023-9C8A-581EF3F1A600/3D009F02-F170-4023-9C8A-581EF3F1A600.json
+  s_edc3df130cc253::t_f35ad3109b4a69 1
+public/presentations/physiq/assets/3D009F02-F170-4023-9C8A-581EF3F1A600/3D009F02-F170-4023-9C8A-581EF3F1A600.jsonp
+  s_edc3df130cc253::t_3243d8615ee574 1
+public/presentations/physiq/assets/3D009F02-F170-4023-9C8A-581EF3F1A600/assets/3D009F02-F170-4023-9C8A-581EF3F1A600.pdfp
+  s_edc3df130cc253::t_db979ba87fe554 1-4
+public/presentations/physiq/assets/427EA23A-B794-4313-A8E9-F56264125502/427EA23A-B794-4313-A8E9-F56264125502.json
+  s_edc3df130cc253::t_343ebe0abf493e 1
+public/presentations/physiq/assets/427EA23A-B794-4313-A8E9-F56264125502/427EA23A-B794-4313-A8E9-F56264125502.jsonp
+  s_edc3df130cc253::t_090a7e5c296792 1
+public/presentations/physiq/assets/427EA23A-B794-4313-A8E9-F56264125502/assets/427EA23A-B794-4313-A8E9-F56264125502.pdfp
+  s_edc3df130cc253::t_790b62f335fb74 1-4
+public/presentations/physiq/assets/4B9CE356-0AA3-401E-8409-81147053F827/4B9CE356-0AA3-401E-8409-81147053F827.json
+  s_edc3df130cc253::t_6a129475dc06b6 1
+public/presentations/physiq/assets/4B9CE356-0AA3-401E-8409-81147053F827/4B9CE356-0AA3-401E-8409-81147053F827.jsonp
+  s_edc3df130cc253::t_55769419686592 1
+public/presentations/physiq/assets/4B9CE356-0AA3-401E-8409-81147053F827/assets/4B9CE356-0AA3-401E-8409-81147053F827.pdfp
+  s_edc3df130cc253::t_0dbfbffc20f06d 1-4
+public/presentations/physiq/assets/5D8AE265-98B6-4FCE-8DFC-FE646D485CE6/5D8AE265-98B6-4FCE-8DFC-FE646D485CE6.json
+  s_edc3df130cc253::t_ebb93b2e0f1cef 1
+public/presentations/physiq/assets/5D8AE265-98B6-4FCE-8DFC-FE646D485CE6/5D8AE265-98B6-4FCE-8DFC-FE646D485CE6.jsonp
+  s_edc3df130cc253::t_8f77466793b87e 1
+public/presentations/physiq/assets/5D8AE265-98B6-4FCE-8DFC-FE646D485CE6/assets/5D8AE265-98B6-4FCE-8DFC-FE646D485CE6.pdfp
+  s_edc3df130cc253::t_41ba8525865565 1-4
+public/presentations/physiq/assets/5E3684E2-E639-41CD-9365-338ED322B10A/5E3684E2-E639-41CD-9365-338ED322B10A.json
+  s_edc3df130cc253::t_9e1b8dcb0ec44f 1
+public/presentations/physiq/assets/5E3684E2-E639-41CD-9365-338ED322B10A/5E3684E2-E639-41CD-9365-338ED322B10A.jsonp
+  s_edc3df130cc253::t_a749f8aa07bcc5 1
+public/presentations/physiq/assets/5E3684E2-E639-41CD-9365-338ED322B10A/assets/5E3684E2-E639-41CD-9365-338ED322B10A.pdfp
+  s_edc3df130cc253::t_602846efb6ae65 1-4
+public/presentations/physiq/assets/6451A784-A659-4F6C-978D-1F47A86B7320/6451A784-A659-4F6C-978D-1F47A86B7320.json
+  s_edc3df130cc253::t_0ca3d9b561e390 1
+public/presentations/physiq/assets/6451A784-A659-4F6C-978D-1F47A86B7320/6451A784-A659-4F6C-978D-1F47A86B7320.jsonp
+  s_edc3df130cc253::t_f4ec54afe231cb 1
+public/presentations/physiq/assets/6451A784-A659-4F6C-978D-1F47A86B7320/assets/6451A784-A659-4F6C-978D-1F47A86B7320.pdfp
+  s_edc3df130cc253::t_aa5c1d4516ce15 1-4
+public/presentations/physiq/assets/6D1E84D4-F734-45B1-92E9-077848F5BC54/6D1E84D4-F734-45B1-92E9-077848F5BC54.json
+  s_edc3df130cc253::t_6784ec46bf2162 1
+public/presentations/physiq/assets/6D1E84D4-F734-45B1-92E9-077848F5BC54/6D1E84D4-F734-45B1-92E9-077848F5BC54.jsonp
+  s_edc3df130cc253::t_82d1e4490aac8d 1
+public/presentations/physiq/assets/6D1E84D4-F734-45B1-92E9-077848F5BC54/assets/6D1E84D4-F734-45B1-92E9-077848F5BC54.pdfp
+  s_edc3df130cc253::t_431c9c06dc54b2 1-4
+public/presentations/physiq/assets/70AEE1AB-6F19-49D5-ADF6-F45E1383E583/70AEE1AB-6F19-49D5-ADF6-F45E1383E583.json
+  s_edc3df130cc253::t_690d87c64226e8 1
+public/presentations/physiq/assets/70AEE1AB-6F19-49D5-ADF6-F45E1383E583/70AEE1AB-6F19-49D5-ADF6-F45E1383E583.jsonp
+  s_edc3df130cc253::t_c28566ac70a869 1
+public/presentations/physiq/assets/70AEE1AB-6F19-49D5-ADF6-F45E1383E583/assets/70AEE1AB-6F19-49D5-ADF6-F45E1383E583.pdfp
+  s_edc3df130cc253::t_55788e039910b2 1-4
+public/presentations/physiq/assets/8025256E-DBDC-418A-9382-107310BDCABE/8025256E-DBDC-418A-9382-107310BDCABE.json
+  s_edc3df130cc253::t_018cc592e1ccde 1
+public/presentations/physiq/assets/8025256E-DBDC-418A-9382-107310BDCABE/8025256E-DBDC-418A-9382-107310BDCABE.jsonp
+  s_edc3df130cc253::t_284321cc8c69cd 1
+public/presentations/physiq/assets/8025256E-DBDC-418A-9382-107310BDCABE/assets/8025256E-DBDC-418A-9382-107310BDCABE.pdfp
+  s_edc3df130cc253::t_6b604186a62fee 1-4
+public/presentations/physiq/assets/83A67926-28FE-45E6-A904-F40C5AB5AAFC/83A67926-28FE-45E6-A904-F40C5AB5AAFC.json
+  s_edc3df130cc253::t_bbea9ff68705bf 1
+public/presentations/physiq/assets/83A67926-28FE-45E6-A904-F40C5AB5AAFC/83A67926-28FE-45E6-A904-F40C5AB5AAFC.jsonp
+  s_edc3df130cc253::t_36bd3e2cd750f9 1
+public/presentations/physiq/assets/83A67926-28FE-45E6-A904-F40C5AB5AAFC/assets/83A67926-28FE-45E6-A904-F40C5AB5AAFC.pdfp
+  s_edc3df130cc253::t_48d477f2343219 1-4
+public/presentations/physiq/assets/94BFCE04-6215-445F-AE57-3B84AEC9BD18/94BFCE04-6215-445F-AE57-3B84AEC9BD18.json
+  s_edc3df130cc253::t_572f08418d889e 1
+public/presentations/physiq/assets/94BFCE04-6215-445F-AE57-3B84AEC9BD18/94BFCE04-6215-445F-AE57-3B84AEC9BD18.jsonp
+  s_edc3df130cc253::t_7fb7d2ae0b4bd6 1
+public/presentations/physiq/assets/94BFCE04-6215-445F-AE57-3B84AEC9BD18/assets/94BFCE04-6215-445F-AE57-3B84AEC9BD18.pdfp
+  s_edc3df130cc253::t_2e86cea7837105 1-4
+public/presentations/physiq/assets/A6DD9033-1EDC-43A8-A7E4-F7EF608191FB/A6DD9033-1EDC-43A8-A7E4-F7EF608191FB.json
+  s_edc3df130cc253::t_393feefa065e14 1
+public/presentations/physiq/assets/A6DD9033-1EDC-43A8-A7E4-F7EF608191FB/A6DD9033-1EDC-43A8-A7E4-F7EF608191FB.jsonp
+  s_edc3df130cc253::t_067a79c19056d8 1
+public/presentations/physiq/assets/A6DD9033-1EDC-43A8-A7E4-F7EF608191FB/assets/A6DD9033-1EDC-43A8-A7E4-F7EF608191FB.pdfp
+  s_edc3df130cc253::t_a83cd8cdaf021c 1-4
+public/presentations/physiq/assets/C01C6FEB-1D0A-4303-A598-D647E0A3AFEF/C01C6FEB-1D0A-4303-A598-D647E0A3AFEF.json
+  s_edc3df130cc253::t_c9e79e800733f5 1
+public/presentations/physiq/assets/C01C6FEB-1D0A-4303-A598-D647E0A3AFEF/C01C6FEB-1D0A-4303-A598-D647E0A3AFEF.jsonp
+  s_edc3df130cc253::t_268e2b2dafc3bb 1
+public/presentations/physiq/assets/C01C6FEB-1D0A-4303-A598-D647E0A3AFEF/assets/C01C6FEB-1D0A-4303-A598-D647E0A3AFEF.pdfp
+  s_edc3df130cc253::t_971285f6dde4be 1-4
+public/presentations/physiq/assets/C411826C-8622-4B24-9CCA-1FF7D401500F/C411826C-8622-4B24-9CCA-1FF7D401500F.json
+  s_edc3df130cc253::t_f621a198b18db8 1
+public/presentations/physiq/assets/C411826C-8622-4B24-9CCA-1FF7D401500F/C411826C-8622-4B24-9CCA-1FF7D401500F.jsonp
+  s_edc3df130cc253::t_f5fe63039b6da8 1
+public/presentations/physiq/assets/C411826C-8622-4B24-9CCA-1FF7D401500F/assets/C411826C-8622-4B24-9CCA-1FF7D401500F.pdfp
+  s_edc3df130cc253::t_5e4fb118fdad67 1-4
+public/presentations/physiq/assets/CA9C52CE-D35B-4527-B73C-9E37D50F7F0F/CA9C52CE-D35B-4527-B73C-9E37D50F7F0F.json
+  s_edc3df130cc253::t_ad1b98fc3e3142 1
+public/presentations/physiq/assets/CA9C52CE-D35B-4527-B73C-9E37D50F7F0F/CA9C52CE-D35B-4527-B73C-9E37D50F7F0F.jsonp
+  s_edc3df130cc253::t_d644aa7b60a767 1
+public/presentations/physiq/assets/CA9C52CE-D35B-4527-B73C-9E37D50F7F0F/assets/CA9C52CE-D35B-4527-B73C-9E37D50F7F0F.pdfp
+  s_edc3df130cc253::t_942ed6f97ef9cc 1-4
+public/presentations/physiq/assets/D7E47D07-D690-44C6-B423-3B6198F03C91/D7E47D07-D690-44C6-B423-3B6198F03C91.json
+  s_edc3df130cc253::t_96225beb196fb3 1
+public/presentations/physiq/assets/D7E47D07-D690-44C6-B423-3B6198F03C91/D7E47D07-D690-44C6-B423-3B6198F03C91.jsonp
+  s_edc3df130cc253::t_5bcca9e57bbb59 1
+public/presentations/physiq/assets/D7E47D07-D690-44C6-B423-3B6198F03C91/assets/D7E47D07-D690-44C6-B423-3B6198F03C91.pdfp
+  s_edc3df130cc253::t_6784f6b4606a2c 1-4
+public/presentations/physiq/assets/D883D257-3517-405B-A804-2CF240A79B85/D883D257-3517-405B-A804-2CF240A79B85.json
+  s_edc3df130cc253::t_183a0b3e0383d3 1
+public/presentations/physiq/assets/D883D257-3517-405B-A804-2CF240A79B85/D883D257-3517-405B-A804-2CF240A79B85.jsonp
+  s_edc3df130cc253::t_11e7dfec29a329 1
+public/presentations/physiq/assets/D883D257-3517-405B-A804-2CF240A79B85/assets/D883D257-3517-405B-A804-2CF240A79B85.pdfp
+  s_edc3df130cc253::t_8e8bb427c0b640 1-4
+public/presentations/physiq/assets/E84A0D88-29BB-46D5-9CA3-23A8100923D2/E84A0D88-29BB-46D5-9CA3-23A8100923D2.json
+  s_edc3df130cc253::t_14659bd631730d 1
+public/presentations/physiq/assets/E84A0D88-29BB-46D5-9CA3-23A8100923D2/E84A0D88-29BB-46D5-9CA3-23A8100923D2.jsonp
+  s_edc3df130cc253::t_e0a049b693de0f 1
+public/presentations/physiq/assets/E84A0D88-29BB-46D5-9CA3-23A8100923D2/assets/E84A0D88-29BB-46D5-9CA3-23A8100923D2.pdfp
+  s_edc3df130cc253::t_da3028793edf17 1-4
+public/presentations/physiq/assets/EFA860F3-3181-4595-916C-C14FBD24AC22/EFA860F3-3181-4595-916C-C14FBD24AC22.json
+  s_edc3df130cc253::t_8529b9ec14d839 1
+public/presentations/physiq/assets/EFA860F3-3181-4595-916C-C14FBD24AC22/EFA860F3-3181-4595-916C-C14FBD24AC22.jsonp
+  s_edc3df130cc253::t_7adf2ac86e450a 1
+public/presentations/physiq/assets/EFA860F3-3181-4595-916C-C14FBD24AC22/assets/EFA860F3-3181-4595-916C-C14FBD24AC22.pdfp
+  s_edc3df130cc253::t_2b758d35d1274b 1-4
+public/presentations/physiq/assets/FFF1F753-D0F7-4030-96B2-CC8AECA6DA28/FFF1F753-D0F7-4030-96B2-CC8AECA6DA28.json
+  s_edc3df130cc253::t_dad0799fdd7c2b 1
+public/presentations/physiq/assets/FFF1F753-D0F7-4030-96B2-CC8AECA6DA28/FFF1F753-D0F7-4030-96B2-CC8AECA6DA28.jsonp
+  s_edc3df130cc253::t_125df5e010b992 1
+public/presentations/physiq/assets/FFF1F753-D0F7-4030-96B2-CC8AECA6DA28/assets/FFF1F753-D0F7-4030-96B2-CC8AECA6DA28.pdfp
+  s_edc3df130cc253::t_7ca9a8f5cbc2d4 1-4
+public/presentations/physiq/assets/header.json
+  s_edc3df130cc253::t_39e8b7f4911ca4 1
+public/presentations/physiq/assets/header.jsonp
+  s_edc3df130cc253::t_94fdaf0156a30d 1
+public/presentations/physiq/assets/player/main.js
+  s_edc3df130cc253::t_21b421d9764529 1-8
+public/presentations/physiq/assets/player/pdfjs/pdf.worker.min.js
+  s_edc3df130cc253::t_687dd56827936e 1-22
+public/presentations/physiq/assets/player/pdfjs/web/cmaps/CNS2-V.bcmap
+  s_edc3df130cc253::t_5123b2fa22a18b 1-3
+public/presentations/physiq/assets/player/pdfjs/web/cmaps/ETenms-B5-H.bcmap
+  s_edc3df130cc253::t_e731ec30a90b8c 1-3
+public/presentations/physiq/assets/player/pdfjs/web/cmaps/GB-H.bcmap
+  s_edc3df130cc253::t_fecbb8588baeba 1-4
+public/presentations/physiq/assets/player/pdfjs/web/cmaps/LICENSE
+  s_edc3df130cc253::t_e9f11244384f05 1-36
+public/presentations/physiq/index.html
+  s_edc3df130cc253::t_fd257494f98b99 1-9
+public/work-previews/job-application-workflow.svg
+  s_edc3df130cc253::t_82f6ebf28a07a8 1
+public/work-previews/lecture-workflow.svg
+  s_edc3df130cc253::t_d723f7bb44dc38 1
+scripts/visual-review/ai-review.mjs
+  s_edc3df130cc253::t_b7b831384f0035 54,175,250-251,423,486
+scripts/visual-review/classify.d.mts
+  s_edc3df130cc253::t_79e10cb8154c53 6
+scripts/visual-review/classify.mjs
+  s_edc3df130cc253::t_5385ccd3cbb8e8 45-49,57,65,76,95
+scripts/visual-review/native-favicon.mjs
+  s_edc3df130cc253::t_902014c6790b7a 1-83
+scripts/visual-review/package-evidence.mjs
+  s_edc3df130cc253::t_7c2f5f3345d287 41-42
+scripts/visual-review/read-evidence.py
+  s_edc3df130cc253::t_64a7f3b6da444e 30
+scripts/visual-review/run-fixture.mjs
+  s_edc3df130cc253::t_41c57cedaf5e7b 1,4,13,33,39-43,77
+scripts/visual-review/run-workshop.mjs
+  s_edc3df130cc253::t_73889971c86f0a 20
+tests/ai-visual-review.test.mjs
+  s_edc3df130cc253::t_a9c8465e603057 32-67,588,609,613-614,1002
+tests/cms/lifecycle.test.mts
+  s_edc3df130cc253::t_3628dad25f1220 12-13,706-712,716-720,731-732,752-756,766-774,777,782-797
+tests/cms/notion-publication-fixture.mjs
+  s_edc3df130cc253::t_f40a0525ca0ddb 22,26-37,44,47,54-55,70-75,82-85
+tests/cms/offline-fetch.mjs
+  s_edc3df130cc253::t_d6e1fead1bcf61 7-10,16-17
+tests/cms/publication.test.mts
+  s_edc3df130cc253::t_7284a226f5b0e8 98-102,109,255,327-337,340-341,344
+tests/document-download.test.ts
+  s_edc3df130cc253::t_3ca6a583b5e54f 1-45
+tests/localized-public-site.test.ts
+  s_edc3df130cc253::t_9d99a89a9eea35 65
+tests/notion-projects.test.ts
+  s_edc3df130cc253::t_c7a283db9c86c2 397-448
+tests/notion-publication-cache.test.ts
+  s_edc3df130cc253::t_5ef644cc0ba494 1-48
+tests/notion-publication-snapshot.test.ts
+  s_edc3df130cc253::t_83a7d7b65167a3 23,56
+tests/powerpoint-preview.test.ts
+  s_edc3df130cc253::t_1cd7b5a05a766c 1-17
+tests/presentation-counter.test.mjs
+  s_edc3df130cc253::t_dfbdccbc10a60c 1-24
+tests/projects-publication.test.ts
+  s_edc3df130cc253::t_a7875b38594e1f 6,24-32
+tests/theme-init.test.ts
+  s_edc3df130cc253::t_d6becf79d76c83 31-32,36-45,71-73
+tests/visual-review.test.ts
+  s_edc3df130cc253::t_93b0bd480ba0d7 38-46
+tests/work-media.test.ts
+  s_edc3df130cc253::t_e733ef7d3f7a0e 1-16
+workshop/Header.stories.tsx
+  s_edc3df130cc253::t_43d43e4eabd4eb 1-27
+workshop/WorkExplorer.stories.tsx
+  s_edc3df130cc253::t_f61c21e43313f9 3,15
+workshop/fixtures.ts
+  s_edc3df130cc253::t_4b16e934ffc354 62-70
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a03335ca6e81a7273fc4c9cc31dc6067081739c5",
+  "prompts": {},
+  "sessions": {
+    "s_edc3df130cc253": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12b0b-aaa6-7d90-aa4e-5bcfe9db3ea5",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
