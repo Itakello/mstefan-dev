@@ -46,6 +46,13 @@ test('an unpaid pause can be resumed; an existing paid claim cannot replay', asy
     env.ENABLED = 'true';
     await main({ env, fetcher });
     assert.equal(recorded[0].state, 'pending');
+    env.ENABLED = 'false';
+    await writeFile(env.GITHUB_EVENT_PATH, JSON.stringify({ inputs: { pr_number: '147' }, sender: { login: 'Itakello' } }));
+    await main({ env, fetcher });
+    assert.equal(recorded[0].state, 'pending');
+    await writeFile(env.GITHUB_EVENT_PATH, JSON.stringify({ inputs: { pr_number: '147' }, sender: { login: 'Other' } }));
+    await assert.rejects(main({ env, fetcher }), /repository owner/);
+    env.ENABLED = 'true';
     recorded.unshift({ context: 'Codex UI exploration', description: `PR147 ${pr.base.sha}: request claimed; no retries` });
     await assert.rejects(main({ env, fetcher }), /already attempted/);
   } finally { await rm(directory, { recursive: true, force: true }); }

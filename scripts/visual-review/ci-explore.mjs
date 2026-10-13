@@ -60,6 +60,7 @@ export async function main({ env = process.env, fetcher = fetch } = {}) {
   });
   const output = path.resolve('.artifacts/codex-ui-exploration');
   const revalidate = async () => {
+    ensure(Date.now() < Date.parse(env.EXPIRES_AT), 'Exploration activation expired before model request');
     const current = await github(`/pulls/${number}`);
     ensure(current.head.sha === review.head && current.base.sha === review.base && current.state === 'open', 'PR changed before model request');
     const latest = await github(`/deployments/${deployment.id}/statuses?per_page=100`);
@@ -80,7 +81,7 @@ export async function main({ env = process.env, fetcher = fetch } = {}) {
       await status('success', 'No UI-impacting changes; no model request');
       return;
     }
-    ensure(env.ENABLED === 'true', 'Automatic exploration is paused');
+    ensure(env.ENABLED === 'true' || (env.GITHUB_EVENT_NAME === 'workflow_dispatch' && event.sender?.login === 'Itakello'), 'Automatic exploration is paused; manual acceptance requires the repository owner');
     const expiry = Date.parse(env.EXPIRES_AT);
     ensure(Number.isFinite(expiry) && Date.now() < expiry && expiry - Date.now() <= 7 * 86400_000, 'Exploration pilot expired or exceeds seven days');
     const previous = await github(`/commits/${review.head}/statuses?per_page=100`);
