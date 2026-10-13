@@ -394,3 +394,55 @@ test("project types use the four authored values and remain optional", () => {
     assert.equal(parseNotionProjectPage(page({ properties: { ...page().properties, Type: value } })), null);
   }
 });
+
+test("captioned image previews pass from Notion to the selected locale and gallery", async () => {
+  const images = [{ url: "/work-previews/puzzle.png", label: "Puzzle", labelIT: "Puzzle fisico" },
+    { url: "https://raw.githubusercontent.com/Itakello/PhysIQ/master/plot.png", label: "Results", labelIT: "Risultati" }];
+  const parsed = parseNotionProjectPage(page({ properties: { ...page().properties,
+    "Preview images": { type: "rich_text", rich_text: [{ plain_text: JSON.stringify(images) }] },
+  } }));
+  assert.ok(parsed);
+  assert.deepEqual(selectPublicProjectLocale(parsed, "it").previewImages,
+    images.map(image => ({ url: image.url, label: image.labelIT })));
+  const { workItemsFromProjects } = await import("../lib/websiteShowcase");
+  assert.deepEqual(workItemsFromProjects([selectPublicProjectLocale(parsed, "en")])[0].previewImages,
+    images.map(image => ({ url: image.url, label: image.label })));
+});
+
+test("malformed or untrusted preview images reject the entire publication", () => {
+  const image = { url: "/work-previews/puzzle.png", label: "Puzzle", labelIT: "Puzzle" };
+  for (const value of ["not JSON", {}, [null], [{ ...image, labelIT: " " }],
+    [{ ...image, url: "/work-previews/../secret.png" }], [{ ...image, url: "//evil.example/image.png" }],
+    [{ ...image, url: "https://raw.githubusercontent.com.evil.test/image.png" }],
+    [{ ...image, url: "https://user:password@raw.githubusercontent.com/owner/repo/image.png" }],
+    [{ ...image, url: "http://raw.githubusercontent.com/owner/repo/image.png" }],
+    [image, image], Array.from({ length: 11 }, (_, i) => ({ ...image, url: `/work-previews/puzzle-${i}.png` }))]) {
+    const row = page({ properties: { ...page().properties,
+      "Preview images": { type: "rich_text", rich_text: [{ plain_text: typeof value === "string" ? value : JSON.stringify(value) }] },
+    } });
+    assert.equal(parseNotionProjectPage(row), null);
+    assert.throws(() => parsePublicationProjectRows([page(), row]), /Invalid public project/);
+  }
+  assert.ok(parseNotionProjectPage(page({ properties: { ...page().properties,
+    "Preview images": { type: "rich_text", rich_text: [] },
+  } })));
+});
+
+test("self-hosted slide previews share one Notion reference across languages and fail closed", () => {
+  const properties = { ...page().properties,
+    "Slides URL": { type: "url", url: "https://example.com/deck.pptx" },
+    "Slides preview URL": { type: "url", url: "https://www.mstefan.dev/presentations/physiq/index.html" },
+  };
+  const project = parseNotionProjectPage(page({ properties }));
+  assert.ok(project);
+  for (const locale of ["en", "it"] as const) {
+    assert.equal(selectPublicProjectLocale(project, locale).slidesPreviewUrl, "/presentations/physiq/index.html");
+  }
+  for (const url of [null, "", "   "]) {
+    assert.equal(parseNotionProjectPage(page({ properties: { ...properties, "Slides preview URL": { type: "url", url } } }))?.slidesPreviewUrl, undefined);
+  }
+  for (const value of [{ type: "url", url: "https://evil.example/deck.html" }, { type: "url", url: 42 }, { type: "rich_text", rich_text: [] }, null]) {
+    assert.equal(parseNotionProjectPage(page({ properties: { ...properties, "Slides preview URL": value } })), null);
+  }
+  assert.equal(parseNotionProjectPage(page({ properties: { ...properties, "Slides URL": { type: "url", url: null } } })), null);
+});

@@ -95,14 +95,18 @@ async function unusedLoopbackPort() {
 }
 
 async function request(url: string, init?: RequestInit) {
-  return fetch(`${base}${url}`, { signal: AbortSignal.timeout(10_000), ...init });
+  try {
+    return await fetch(`${base}${url}`, { signal: AbortSignal.timeout(10_000), ...init });
+  } catch (error) {
+    throw new Error(`Publication request failed: ${url}\n${serverLog}`, { cause: error });
+  }
 }
 
 async function setFixtureMode(mode: string) {
   await writeFile(fixtureState, mode, { mode: 0o600 });
 }
 
-async function setIconMode(mode: 'ok' | 'error') {
+async function setIconMode(mode: 'ok' | 'error' | 'rate-limited') {
   const state = JSON.parse(await readFile(iconFixtureState, 'utf8'));
   await writeFile(iconFixtureState, JSON.stringify({ ...state, mode }), { mode: 0o600 });
 }
@@ -248,6 +252,7 @@ test('production Notion changes, withdrawals, hard failures, and stale-cache rec
   assert.equal(home.response.status, 200);
   assert.equal(projects.response.status, 200);
   assert.ok(home.html.includes('Changed publication fixture.'));
+  assert.ok(home.html.includes('Renamed portfolio'), 'Renaming a selected project must preserve its Home card');
   assert.ok(projects.html.includes('Changed publication fixture.'));
   observation = await readObservation();
   const lastGoodDigest = observation.digest;
@@ -319,11 +324,24 @@ test('production Notion changes, withdrawals, hard failures, and stale-cache rec
   assert.equal(await iconRequestCount(), validatedIconRequests, 'Persisted publication snapshot must render without revalidating icons during provider outage');
   assert.equal((await readObservation()).digest, observation.digest);
 
+  await setFixtureMode('changedsummary');
+  await setIconMode('rate-limited');
+  await sendPublicationEvent();
+  [home, projects] = await Promise.all([publicHtml('/en'), publicHtml('/it/projects')]);
+  assert.equal(home.response.status, 200, serverLog);
+  assert.equal(projects.response.status, 200, serverLog);
+  assert.ok(home.html.includes('Changed publication fixture.'));
+  assert.ok(projects.html.includes('Pubblicazione di prova aggiornata.'));
+  assert.equal(await iconRequestCount(), validatedIconRequests, 'A Notion content edit must reuse successful icon checks during rate limiting');
+
+  await setFixtureMode('changedicon');
   await sendPublicationEvent();
   projects = await publicHtml('/en/projects');
-  assert.equal(projects.response.status, 500, 'An icon error with a cloned response body must fail promptly');
+  assert.equal(projects.response.status, 500, 'An unvalidated icon URL must fail closed during provider outage');
+  assert.ok(await iconRequestCount() > validatedIconRequests);
   assert.ok((await readObservation()).failure > observation.success);
   await setIconMode('ok');
+  await setFixtureMode('recovered');
   await sendPublicationEvent();
   projects = await publicHtml('/en/projects');
   assert.equal(projects.response.status, 200);

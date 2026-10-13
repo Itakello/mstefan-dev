@@ -35,6 +35,15 @@ test("manual label override forces visual review", () => {
   assert.match(result.reason, /visual-review/);
 });
 
+test("native favicon evidence follows changed asset and layout owners", () => {
+  for (const path of ["public/icon.png", "public/icon-light.png", "public/icon.svg", "app/[locale]/layout.tsx", "app/global-not-found.tsx"]) {
+    assert.equal(classifyVisualReview([path]).nativeFavicon, true, path);
+  }
+  assert.equal(classifyVisualReview(["components/WorkExplorer.tsx"]).nativeFavicon, false);
+  assert.equal(classifyVisualReview(["components/Header.tsx"]).nativeFavicon, false);
+  assert.equal(classifyVisualReview(["README.md"], { force: true }).nativeFavicon, false);
+});
+
 test("supported agents exclude the stock healer", () => {
   assert.equal(existsSync(new URL("../.codex/agents/playwright_test_planner.toml", import.meta.url)), true);
   assert.equal(existsSync(new URL("../.codex/agents/playwright_test_generator.toml", import.meta.url)), true);

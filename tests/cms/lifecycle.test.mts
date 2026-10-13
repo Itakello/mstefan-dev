@@ -9,6 +9,8 @@ import { once } from 'node:events';
 import { createServer } from 'node:net';
 import { request as httpRequest } from 'node:http';
 import { chromium, expect } from '@playwright/test';
+import { iconFixtureResponse } from '../../e2e/offline-review';
+import { stablePage } from '../../e2e/visual-ready';
 
 const port = Number(process.env.CMS_TEST_PORT || 3000);
 const base = `http://127.0.0.1:${port}`;
@@ -701,9 +703,21 @@ test('degree results are optional metadata downloads while other attachments ret
   const bachelorUpload = await fetch(`${base}/api/documents`, { method: 'POST', headers: { Cookie: cookie }, body: form });
   assert.equal(bachelorUpload.status, 201);
   const bachelorFile = (await bachelorUpload.json()).doc;
+  const photoForm = new FormData();
+  photoForm.set('file', new Blob([await readFile('public/profile-photo.jpg')], { type: 'image/jpeg' }), 'degree-document-only-photo.jpg');
+  photoForm.set('_payload', JSON.stringify({ alt: 'Synthetic degree portrait' }));
+  const photoUpload = await fetch(`${base}/api/media?locale=en`, { method: 'POST', headers: { Cookie: cookie }, body: photoForm });
+  assert.equal(photoUpload.status, 201);
+  const degreePhoto = (await photoUpload.json()).doc;
+  assert.equal((await fetch(new URL(degreePhoto.url, base))).status, 403);
   const browser = await chromium.launch({ headless: true });
   try {
     const page = await browser.newPage();
+    for (const host of ['api.iconify.design', 'api.simplesvg.com', 'api.unisvg.com']) {
+      await page.route(`https://${host}/**`, async route => {
+        await route.fulfill({ json: await iconFixtureResponse(new URL(route.request().url())), headers: { 'access-control-allow-origin': '*' } });
+      });
+    }
     await mkdir('.artifacts/playwright/master-download', { recursive: true });
     for (const [locale, title, verb] of [['en', 'Master’s exam results', 'Download'], ['it', 'Risultati degli esami magistrali', 'Scarica']]) {
       const saved = await (await request(`/api/globals/career?locale=${locale}&draft=false`, undefined, true)).json();
@@ -714,7 +728,8 @@ test('degree results are optional metadata downloads while other attachments ret
         { branchName: 'research/thesis', company: 'Research', role: 'Researcher', color: '#12abcd', documents: [{ title: 'Research attachment', file: file.id }] },
       ];
       try {
-        await update('career', locale, { jobs: jobs.map(({ documents, ...job }) => job), assets: jobs.map(({ branchName, documents }) => ({ branchName, documents })), _status: 'published' }, `&publishSpecificLocale=${locale}`);
+        await update('career', locale, { jobs: jobs.map(({ documents, ...job }) => job), assets: jobs.map(({ branchName, documents }) => ({ branchName, documents, photo: branchName === 'education/trento-bachelor' ? degreePhoto.id : null })), _status: 'published' }, `&publishSpecificLocale=${locale}`);
+        assert.equal((await fetch(new URL(degreePhoto.url, base))).status, 200);
         await page.goto(`${base}/${locale}/about`);
         for (const [degree, attachment, role] of [['master', file, 'Artificial Intelligence'], ['bachelor', bachelorFile, 'Computer Science']] as const) {
           await page.locator('button[data-career-job]', { hasText: `education/trento-${degree}` }).click();
@@ -734,7 +749,11 @@ test('degree results are optional metadata downloads while other attachments ret
             await page.setViewportSize({ width, height });
             for (const theme of ['light', 'dark'] as const) {
               const dark = (await page.locator('html').getAttribute('class'))?.split(' ').includes('dark') ?? false;
-              if (dark !== (theme === 'dark')) await page.getByRole('button', { name: locale === 'it' ? 'Cambia tema' : 'Toggle theme' }).click();
+              if (dark !== (theme === 'dark')) {
+                await page.getByRole('button', { name: locale === 'it' ? 'Apri navigazione' : 'Open navigation', exact: true }).click();
+                await page.getByRole('button', { name: locale === 'it' ? 'Cambia tema' : 'Toggle theme', exact: true }).click();
+                await page.getByRole('button', { name: locale === 'it' ? 'Chiudi navigazione' : 'Close navigation', exact: true }).click();
+              }
               await expect(page.locator('html')).toHaveClass(theme === 'dark' ? /\bdark\b/ : /^(?!.*\bdark\b)/);
               await expect(link).toBeVisible();
               const metadataBox = await page.locator('#career-story article p', { has: link }).boundingBox();
@@ -744,13 +763,37 @@ test('degree results are optional metadata downloads while other attachments ret
               await link.press('Tab');
               await page.keyboard.press('Shift+Tab');
               await expect(link).toBeFocused();
-              await page.screenshot({ path: `.artifacts/playwright/master-download/${degree}-${locale}-${size}-${theme}.png`, fullPage: true });
+              await expect(page.locator('footer a').first()).toHaveCSS('color', theme === 'dark' ? 'rgba(255, 255, 255, 0.65)' : 'rgba(0, 0, 0, 0.65)');
+              await stablePage(page);
+              if (degree === 'bachelor') {
+                const photo = page.locator('#career-story img');
+                await expect(photo).toHaveAttribute('src', degreePhoto.url);
+                await expect(photo).toBeVisible();
+                assert.ok(await photo.evaluate((image) => (image as HTMLImageElement).complete && (image as HTMLImageElement).naturalWidth > 0), 'Document-only degree photo must decode before every capture');
+              }
+              await page.screenshot({ path: `.artifacts/playwright/master-download/${degree}-${locale}-${size}-${theme}.png`, fullPage: true, animations: 'disabled' });
               await link.hover();
               if ((locale === 'en' && size === 'desktop' && theme === 'light') || (locale === 'it' && size === 'mobile' && theme === 'dark')) {
-                await page.screenshot({ path: `.artifacts/playwright/master-download/${degree}-${locale}-${size}-${theme}-hover.png`, fullPage: true });
+                await page.screenshot({ path: `.artifacts/playwright/master-download/${degree}-${locale}-${size}-${theme}-hover.png`, fullPage: true, animations: 'disabled' });
               }
             }
           }
+        }
+        if (locale === 'it') {
+          const englishBefore = await (await request('/api/globals/career?locale=en&draft=false', undefined, true)).json();
+          await update('career', locale, { assets: jobs.map(({ branchName, documents }) => ({ branchName, photo: branchName === 'education/trento-bachelor' ? degreePhoto.id : null, documents: documents.map((document) => ({ ...document, title: branchName === 'education/trento-bachelor' ? null : document.title })) })), _status: 'published' }, '&publishSpecificLocale=it');
+          await page.reload();
+          await page.locator('button[data-career-job]', { hasText: 'education/trento-bachelor' }).click();
+          const fallback = page.getByRole('link', { name: 'Scarica bachelor-grades.pdf (PDF)', exact: true });
+          await expect(fallback).toHaveAttribute('href', bachelorFile.url);
+          const download = page.waitForEvent('download');
+          await fallback.click();
+          const downloaded = await download;
+          assert.equal(downloaded.suggestedFilename(), 'massimo-stefan-bachelors-exam-results.pdf');
+          assert.deepEqual(await readFile((await downloaded.path())!), pdfBytes);
+          const englishAfter = await (await request('/api/globals/career?locale=en&draft=false', undefined, true)).json();
+          const titles = (assets: { documents: { title?: string | null }[] }[]) => assets.map((asset) => asset.documents.map((document) => document.title));
+          assert.deepEqual(titles(englishAfter.assets), titles(englishBefore.assets));
         }
         await page.locator('button[data-career-job]', { hasText: 'research/thesis' }).click();
         await expect(page.locator('#career-story [data-pdf-document]')).toBeVisible();
