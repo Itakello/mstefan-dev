@@ -42,11 +42,7 @@ export function AboutContent({ content, career, locale }: Props) {
                   {selected.positionTitle && <span><UserRound size={16} aria-hidden="true" />{selected.positionTitle}</span>}
                   {selected.place && <span><MapPin size={16} aria-hidden="true" />{selected.place}</span>}
                   <span><CalendarDays size={16} aria-hidden="true" />{formatCareerPeriod(selected, locale, Date.now())}</span>
-                  {results.map((document) => {
-                  const file = document.file;
-                  if (!file || typeof file !== "object" || !file.url) return null;
-                  return <a key={document.id || file.id} href={file.url} download={`massimo-stefan-${selected.branchName === "education/trento-master" ? "masters" : "bachelors"}-exam-results.pdf`} className={styles.results} aria-label={`${locale === "it" ? "Scarica" : "Download"} ${document.title} (PDF)`}><Download size={14} aria-hidden="true" />{locale === "it" ? "Risultati" : "Results"}</a>;
-                })}</div>
+                </div>
               </header>
               {selected.summary && <p className={styles.summary}>{selected.summary}</p>}
             </> : <>
@@ -59,6 +55,11 @@ export function AboutContent({ content, career, locale }: Props) {
         {photoURL && <figure className={styles.photo}>
           <Image src={photoURL} alt={imageAlt} width={photo?.width || 1530} height={photo?.height || 2054} unoptimized className="h-auto w-full" />
         </figure>}
+        {results.map((document) => {
+          const file = document.file;
+          if (!file || typeof file !== "object" || !file.url) return null;
+          return <a key={document.id || file.id} href={file.url} download={`massimo-stefan-${selected?.branchName === "education/trento-master" ? "masters" : "bachelors"}-exam-results.pdf`} className={styles.results} aria-label={`${locale === "it" ? "Scarica" : "Download"} ${document.title} (PDF)`}><Download size={14} aria-hidden="true" />{locale === "it" ? "Risultati" : "Results"}</a>;
+        })}
         {documents.filter((document) => !results.includes(document)).map((document) => {
           const file = document.file;
           if (!file || typeof file !== "object" || !file.url || !/^(?:\/(?!\/)|https?:\/\/)/i.test(file.url)) return null;

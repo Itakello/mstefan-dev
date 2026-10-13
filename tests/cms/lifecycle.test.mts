@@ -662,7 +662,7 @@ test('authenticated previews load only the active source draft', { timeout: 60_0
   } finally { await browser.close(); }
 });
 
-test('degree results are optional metadata downloads while other attachments retain previews', { timeout: 90_000 }, async () => {
+test('degree results follow stories while other attachments retain previews', { timeout: 90_000 }, async () => {
   const pdfBytes = syntheticPDF();
   const form = new FormData();
   form.set('file', new Blob([pdfBytes], { type: 'application/pdf' }), 'master-grades.pdf');
@@ -699,7 +699,7 @@ test('degree results are optional metadata downloads while other attachments ret
           const link = page.getByRole('link', { name: `${verb} ${degree === 'master' ? title : bachelorTitle} (PDF)`, exact: true });
           await expect(link).toHaveText(locale === 'it' ? 'Risultati' : 'Results');
           await expect(link.locator('svg.lucide-download')).toHaveCount(1);
-          await expect(page.locator('#career-story article header', { has: link })).toContainText(role);
+          await expect(page.locator('#career-story article header')).toContainText(role);
           await expect(link).toHaveAttribute('href', attachment.url);
           await expect(link).toHaveAttribute('download', `massimo-stefan-${degree}s-exam-results.pdf`);
           await expect(page.locator('#career-story [data-pdf-document]')).toHaveCount(0);
@@ -717,9 +717,9 @@ test('degree results are optional metadata downloads while other attachments ret
               }
               await expect(page.locator('html')).toHaveClass(theme === 'dark' ? /\bdark\b/ : /^(?!.*\bdark\b)/);
               await expect(link).toBeVisible();
-              const datesBox = await page.locator('#career-story header > div > span').last().boundingBox();
+              const storyBox = await page.locator('#career-story article').boundingBox();
               const buttonBox = await link.boundingBox();
-              assert.ok(datesBox && buttonBox && buttonBox.x >= datesBox.x + datesBox.width && buttonBox.x - datesBox.x - datesBox.width < 16 && Math.abs(datesBox.y + datesBox.height / 2 - buttonBox.y - buttonBox.height / 2) < 1, 'Results must sit beside the dates in the metadata group');
+              assert.ok(storyBox && buttonBox && buttonBox.y >= storyBox.y + storyBox.height, 'Results must follow the story rather than appear in its metadata');
               await link.focus();
               await link.press('Tab');
               await page.keyboard.press('Shift+Tab');
