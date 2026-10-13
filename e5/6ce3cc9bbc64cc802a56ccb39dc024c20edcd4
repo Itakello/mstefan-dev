@@ -1,0 +1,22 @@
+deploy/pr132-followup/backup_window.py
+  s_edc3df130cc253::t_c93e825c5aab06 196-197,219-220
+deploy/pr132-followup/test_backup_window.py
+  s_edc3df130cc253::t_c93e825c5aab06 72-73,78-79,91,146,159-161,163-173,176
+  s_edc3df130cc253::t_d39602f09ab6e0 174-175
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e56ce3cc9bbc64cc802a56ccb39dc024c20edcd4",
+  "prompts": {},
+  "sessions": {
+    "s_edc3df130cc253": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12b0b-aaa6-7d90-aa4e-5bcfe9db3ea5",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
