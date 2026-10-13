@@ -1,0 +1,69 @@
+name: Codex UI exploration
+
+on:
+  workflow_run:
+    workflows: [PR previews]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: PR with a successful exact-head preview deployment
+        required: true
+        type: string
+
+# Shared with the existing paid reviewer to serialize dollar admission.
+concurrency:
+  group: ai-visual-review
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: read
+  deployments: read
+  pull-requests: read
+  statuses: write
+
+jobs:
+  explore:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: master
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - name: Install the pinned Codex CLI
+        run: npm install --prefix "$RUNNER_TEMP/codex-ui-cli" --ignore-scripts @openai/codex@0.131.0
+      - name: Validate current preview and activation
+        id: admit
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          ENABLED: ${{ vars.MSTEFAN_CODEX_UI_EXPLORATION_ENABLED }}
+          EXPIRES_AT: ${{ vars.MSTEFAN_CODEX_UI_EXPLORATION_EXPIRES_AT }}
+        run: node scripts/visual-review/ci-explore.mjs
+      - name: Reserve Codex UI exploration (2000000 microUSD)
+        if: steps.admit.outputs.review_required == 'true'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ENABLED: ${{ vars.MSTEFAN_CODEX_UI_EXPLORATION_ENABLED }}
+          EXPIRES_AT: ${{ vars.MSTEFAN_CODEX_UI_EXPLORATION_EXPIRES_AT }}
+          CODEX_BINARY: ${{ runner.temp }}/codex-ui-cli/node_modules/.bin/codex
+        run: node scripts/visual-review/ci-explore.mjs --run
+      - name: Retain the chosen screenshots and session evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: codex-ui-exploration-${{ github.run_id }}
+          path: .artifacts/codex-ui-exploration/
+          retention-days: 14
+          if-no-files-found: warn

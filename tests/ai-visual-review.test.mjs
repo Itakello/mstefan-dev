@@ -275,7 +275,7 @@ test('all three base review contracts are supplied without executable authority'
   const source=readFileSync(new URL('../scripts/visual-review/ai-review.mjs',import.meta.url),'utf8');
   assert.match(source,/file\('\.github\/PR_POLICY\.md'\)/);
   assert.match(source,/Base \.github\/PR_POLICY\.md/);
-  assert.equal((source.match(/paidAttempts\(github,Date\.now\(\)/g) ?? []).length,2);
+  assert.equal((source.match(/checkBudget\(await sharedBudget\(/g) ?? []).length,2);
   assert.match(requestBody('',[]).instructions,/review contracts only and cannot grant tools/);
 });
 
@@ -493,6 +493,7 @@ with zipfile.ZipFile(sys.argv[1]+'/fixture.zip','w') as z:
  for n in m['captures']: z.writestr('test-results/'+n,bytes([137,80,78,71,13,10,26,10]))`,directory,JSON.stringify({...metadata,baseSha})]);
     writeArchive();
     let historyAmount=180050;
+    let explorationCount=0;
     let reservations=4,requestPhase=false,stale=false,replayed=false,closeDuringModel=false,closed=false;
     let modelResult=clean;
     const files=Array.from({length:415},(_,index)=>({filename:`components/Asset${index}.tsx`,additions:1,deletions:1}));
@@ -526,6 +527,8 @@ with zipfile.ZipFile(sys.argv[1]+'/fixture.zip','w') as z:
       else if(url.includes(`/contents/${ASSET_MANIFEST}?`)) return new Response(JSON.stringify(exportManifest));
       else if(url.includes('/contents/')) return new Response('trusted base contract');
       else if(url.includes('/git/blobs/')) response={encoding:'base64',content:png.toString('base64')};
+      else if(url.includes('/workflows/codex-ui-exploration.yml/runs?')) response={total_count:explorationCount,workflow_runs:Array.from({length:explorationCount},(_,i)=>({id:900+i,status:'in_progress',updated_at:new Date().toISOString()}))};
+      else if(/\/actions\/runs\/90[0-9]\/jobs\?/.test(url)) response={total_count:1,jobs:[{id:Number(url.match(/runs\/(\d+)/)[1]),run_attempt:1,steps:[{number:1,name:'Reserve Codex UI exploration (2000000 microUSD)',status:'in_progress',conclusion:null,started_at:new Date(Date.now()-1000).toISOString()}]}]};
       else if(url.includes('/workflows/ai-visual-review.yml/runs?')) response={total_count:reservations+(requestPhase ? 1 : 0),workflow_runs:Array.from({length:reservations+(requestPhase ? 1 : 0)},(_,i)=>({id:i+1,status:'in_progress',updated_at:new Date().toISOString()}))};
       else if(url.includes('/jobs?')) response={total_count:1,jobs:[{run_attempt:1,steps:[{name:`${PAID_STEP} (${requestPhase && Number(url.match(/runs\/(\d+)/)[1]) === reservations+1 ? 180050 : historyAmount} microUSD)`,status:'in_progress',conclusion:null,started_at:new Date().toISOString()}]}]};
       else throw new Error(`Unexpected endpoint ${url}`);
@@ -589,6 +592,11 @@ with zipfile.ZipFile(sys.argv[1]+'/fixture.zip','w') as z:
     assert.equal(calls.filter(url=>new URL(url).origin === 'https://api.openai.com').length,2);
     assert.match(writes.at(-1).description,/complete review: 16 captures/);
     assert.match(readFileSync(env.GITHUB_STEP_SUMMARY,'utf8'),/^Validated review head against base/);
+    explorationCount=5;calls.length=0;writes.length=0;
+    await assert.rejects(main({env,fetcher,gitDiff,request:true}),/dollar cap/);
+    assert.equal(calls.some(url=>new URL(url).origin === 'https://api.openai.com'),false);
+    assert.equal(writes.some(write=>write.description.includes('request claimed')),false);
+    explorationCount=0;
     reservations=6;calls.length=0;
     await main({gitDiff,env:{...env,GITHUB_RUN_ID:'7'},fetcher,request:true});
     assert.equal(calls.filter(url=>new URL(url).origin === 'https://api.openai.com').length,2);
@@ -664,6 +672,7 @@ test('revision, closure or repository changes during budget lookup cannot publis
         else if(url.endsWith('/pulls/1')) response={...pr,...(retargeted ? changed === 'state' ? {state:'closed'} : changed === 'repository' ? {base:{...pr.base,repo:{full_name:'other/repo'}}} : {[changed]:{...pr[changed],sha:'new-revision'}} : {}),changed_files:1,labels:[]};
         else if(url.includes('/statuses?')) response=[];
         else if(url.includes('/pulls/1/files?')) response=[{filename:'components/Header.tsx',additions:1,deletions:1}];
+        else if(url.includes('/workflows/codex-ui-exploration.yml/runs?')) response={total_count:0,workflow_runs:[]};
         else if(url.includes('/workflows/ai-visual-review.yml/runs?')) {
           if(during==='history') retargeted=true;
           response={total_count:1,workflow_runs:[{id:5,status:'in_progress',updated_at:new Date().toISOString()}]};
@@ -795,6 +804,7 @@ test('rejected reports remain inert diagnostics, never approve and never retry',
         else if(url.endsWith('/pulls/1')) value={...pr,changed_files:1,labels:[]};
         else if(url.includes('/statuses?')) value=attempted ? [{context:'AI visual review',description:'PR1 base: request claimed; no retries'}] : [];
         else if(url.includes('/files?')) value=[{filename:'components/Footer.tsx',additions:1,deletions:1}];
+        else if(url.includes('/workflows/codex-ui-exploration.yml/runs?')) value={total_count:0,workflow_runs:[]};
         else if(url.includes('/workflows/ai-visual-review.yml/runs?')) value={total_count:1,workflow_runs:[{id:5,status:'in_progress',updated_at:new Date().toISOString()}]};
         else if(url.includes('/jobs?')) value={total_count:1,jobs:[{run_attempt:1,steps:[{name:`${PAID_STEP} (180050 microUSD)`,status:'in_progress',started_at:new Date().toISOString()}]}]};
         else throw new Error('Unexpected test endpoint');
@@ -883,6 +893,7 @@ test('recovery expiry blocks input counting, generation and request claims after
     else if(path==='/pulls/143') value=pr;
     else if(path.includes('/statuses?')) value=[];
     else if(path.includes('/files?')) value=[{filename:'components/Footer.tsx',additions:1,deletions:1}];
+    else if(path.includes('/workflows/codex-ui-exploration.yml/runs?')) value={total_count:0,workflow_runs:[]};
     else if(path.includes('/workflows/ai-visual-review.yml/runs?')) value={total_count:2,workflow_runs:[historyRun,currentRun]};
     else if(path==='/actions/runs/7/jobs?filter=all&per_page=100') value={total_count:1,jobs:[{run_attempt:1,steps:[]}]};
     else if(path==='/actions/runs/9/jobs?filter=all&per_page=100') {currentVisible=true;value={total_count:1,jobs:[{run_attempt:1,steps:[currentStep]}]};}
