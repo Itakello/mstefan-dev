@@ -29,7 +29,11 @@ export default async ({ page }) => {
   await context.route('**/*', async route => {
     const request = route.request();
     const url = new URL(request.url());
-    if (url.origin !== ${JSON.stringify(origin)} || !['GET', 'HEAD'].includes(request.method())) return route.abort('blockedbyclient');
+    const iconHost = ['https://api.iconify.design', 'https://api.simplesvg.com', 'https://api.unisvg.com'].includes(url.origin);
+    const iconJson = /^\\/[a-z0-9-]+\\.json$/.test(url.pathname) && [...url.searchParams.keys()].length === 1 && /^[a-z0-9-]+(,[a-z0-9-]+)*$/.test(url.searchParams.get('icons') || '');
+    const iconSvg = /^\\/[a-z0-9-]+\\/[a-z0-9-]+\\.svg$/.test(url.pathname) && !url.search;
+    const publicIcon = iconHost && !url.username && !url.password && !url.hash && (iconJson || iconSvg);
+    if ((url.origin !== ${JSON.stringify(origin)} && !publicIcon) || !['GET', 'HEAD'].includes(request.method())) return route.abort('blockedbyclient');
     const response = await route.fetch({ maxRedirects: 0 });
     const location = response.headers()['location'];
     if (location && new URL(location, url).origin !== ${JSON.stringify(origin)}) return route.abort('blockedbyclient');

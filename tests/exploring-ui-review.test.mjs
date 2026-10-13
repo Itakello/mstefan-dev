@@ -98,6 +98,10 @@ test('remote browser aborts writes, provider requests and external redirects whi
   assert.deepEqual(await request(`${origin}/work?lang=it`), { fetched: true, fulfilled: true, aborted: false });
   assert.deepEqual(await request(`${origin}/image.png`, 'HEAD'), { fetched: true, fulfilled: true, aborted: false });
   for (const [url, method] of [[`${origin}/api/contact`, 'POST'], ['https://api.notion.com/v1/pages', 'GET'], ['https://mstefan.dev/', 'GET']]) assert.deepEqual(await request(url, method), { fetched: false, fulfilled: false, aborted: true });
+  for (const url of ['https://api.iconify.design/simple-icons.json?icons=github%2Clinkedin', 'https://api.simplesvg.com/lucide.json?icons=mail', 'https://api.unisvg.com/simple-icons/github.svg']) assert.deepEqual(await request(url), { fetched: true, fulfilled: true, aborted: false });
+  for (const url of ['https://api.iconify.design/simple-icons.json?icons=github&token=secret', 'https://api.iconify.design/search?query=github', 'https://api.iconify.design/simple-icons/github.svg?token=secret']) assert.deepEqual(await request(url), { fetched: false, fulfilled: false, aborted: true });
+  assert.deepEqual(await request('https://api.iconify.design/simple-icons/github.svg', 'POST'), { fetched: false, fulfilled: false, aborted: true });
+  assert.deepEqual(await request('https://api.iconify.design/simple-icons/github.svg', 'GET', 'https://api.notion.com/'), { fetched: true, fulfilled: false, aborted: true });
   assert.deepEqual(await request(`${origin}/redirect`, 'GET', 'https://api.notion.com/'), { fetched: true, fulfilled: false, aborted: true });
   assert.deepEqual(await request(`${origin}/redirect`, 'GET', '/about'), { fetched: true, fulfilled: true, aborted: false });
 });
