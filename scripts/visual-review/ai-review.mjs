@@ -5,6 +5,7 @@ import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
 import { classifyVisualReview } from './classify.mjs';
+import { explorationReservations } from './exploration-budget.mjs';
 
 export const CONTEXT = 'AI visual review';
 export const REQUIRED = ['home', 'work', 'about', 'footer'].flatMap(page => ['desktop', 'mobile'].flatMap(size => ['light', 'dark'].map(theme => `${page}-${size}-${theme}.png`)));
@@ -170,6 +171,12 @@ export function reviewResult(response, names, evidenceNames = names) {
   ensure(Array.isArray(result.findings) && Array.isArray(result.suggestions) && result.suggestions.every(value => typeof value === 'string'), 'Malformed findings');
   for (const finding of result.findings) ensure(Object.keys(finding).sort().join(',') === 'evidence,explanation,location,rule' && ['rule','location','explanation'].every(key => typeof finding[key] === 'string' && finding[key].trim()) && Array.isArray(finding.evidence) && finding.evidence.length > 0 && finding.evidence.some(name => names.includes(name)) && finding.evidence.every(name => evidenceNames.includes(name)), 'Finding lacks concrete rule/location/image evidence');
   return result;
+}
+export function trialEvidence(result, identity) {
+  ensure(result?.complete === true && Array.isArray(result.coverage) && Array.isArray(result.findings) && Array.isArray(result.suggestions), 'Unvalidated trial result');
+  ensure(Number.isSafeInteger(identity.pullRequest) && Number.isSafeInteger(identity.sourceRunId) && Number.isSafeInteger(identity.reviewRunId) && Number.isSafeInteger(identity.attempt), 'Invalid trial run identity');
+  ensure(typeof identity.repository === 'string' && /^[\w.-]+\/[\w.-]+$/.test(identity.repository) && [identity.headSha,identity.baseSha].every(sha => typeof sha === 'string' && sha.trim() && !/[\r\n]/.test(sha)), 'Invalid trial revision identity');
+  return {schemaVersion:1,repository:identity.repository,pullRequest:identity.pullRequest,sourceRunId:identity.sourceRunId,reviewRunId:identity.reviewRunId,attempt:identity.attempt,headSha:identity.headSha,baseSha:identity.baseSha,complete:true,coverage:result.coverage,findings:result.findings,suggestions:result.suggestions,verdict:result.findings.length ? 'rejected' : 'clean'};
 }
 export function requestBody(text, images) {
   ensure(Buffer.byteLength(text) <= 500000 && images.length <= 264, 'Review input limit');
@@ -348,9 +355,16 @@ export async function main({env = process.env, fetcher = fetch, gitDiff = native
   const root = `https://api.github.com/repos/${repository}`;
   async function github(path, options = {}) {
     const response = await fetcher(`${root}${path}`, { ...options, headers:{Authorization:`Bearer ${env.GITHUB_TOKEN}`,Accept:options.accept ?? 'application/vnd.github+json','Content-Type':'application/json'},signal:AbortSignal.timeout(30000) });
+    if (options.allowNotFound && response.status === 404) return null;
     ensure(response.ok, `GitHub request failed (${response.status})`);
     if (options.binary) { const buffer = Buffer.from(await response.arrayBuffer()); ensure(buffer.length <= MAX_BYTES, 'Artifact download too large'); return buffer; }
     const text = await response.text(); ensure(Buffer.byteLength(text) <= 5*1024*1024,'GitHub response too large'); return options.raw ? text : JSON.parse(text);
+  }
+  async function sharedBudget(currentRun, expectedMicroUsd) {
+    const now = Date.now();
+    const visual = await paidAttempts(github, now, currentRun, expectedMicroUsd, trustedSha);
+    const exploration = await explorationReservations(github, now);
+    return { count: visual.count + exploration.count, microUsd: visual.microUsd + exploration.microUsd };
   }
   const trustedSha = execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
   ensure(/^[a-f0-9]{40}$/.test(trustedSha), 'Unverified review engine revision');
@@ -404,7 +418,7 @@ export async function main({env = process.env, fetcher = fetch, gitDiff = native
       ensure(env.ENABLED === 'true' || env.GITHUB_EVENT_NAME === 'workflow_dispatch','Automatic AI review disabled; activation proof required');
       ensure(env.GITHUB_RUN_ATTEMPT === '1','Reruns do not issue another model request');
       validReservation(prepared.reservedMicroUsd);
-      checkBudget(await paidAttempts(github,Date.now(),env.GITHUB_RUN_ID,prepared.reservedMicroUsd,trustedSha));
+      checkBudget(await sharedBudget(env.GITHUB_RUN_ID, prepared.reservedMicroUsd));
       if (event.inputs?.recovery === true || event.inputs?.recovery === 'true') {
         const {main: validateRecovery} = await import('./recovery.mjs');
         await validateRecovery({env,fetcher});
@@ -418,6 +432,7 @@ export async function main({env = process.env, fetcher = fetch, gitDiff = native
       if (env.GITHUB_STEP_SUMMARY) writeFileSync(env.GITHUB_STEP_SUMMARY,`Unvalidated model report for ${sha} against ${base}\n\n\`\`\`json\n${JSON.stringify({status:response.status,incomplete_details:response.incomplete_details,messages:Array.isArray(response.output) ? response.output.filter(item => item.type === 'message') : []},null,2)}\n\`\`\`\n`);
       const result = reviewResult(response,prepared.names,prepared.body.text.format.schema.properties.findings.items.properties.evidence.items.enum ?? prepared.names);
       pr = await github(`/pulls/${pr.number}`); ensure(currentRevision(pr,repository,sha,base),'Revisions changed during review');
+      writeFileSync(join(env.RUNNER_TEMP,'ai-visual-review-result.json'),JSON.stringify(trialEvidence(result,{repository,pullRequest:pr.number,sourceRunId:run.id,reviewRunId:Number(env.GITHUB_RUN_ID),attempt:Number(env.GITHUB_RUN_ATTEMPT),headSha:sha,baseSha:base}),null,2)+'\n',{mode:0o600});
       await status(result.findings.length ? 'failure' : 'success',result.findings.length ? `${result.findings.length} proven design violations` : `complete review: ${prepared.names.length} captures`);
       if (env.GITHUB_STEP_SUMMARY) writeFileSync(env.GITHUB_STEP_SUMMARY,`Validated review ${sha} against ${base}\n\n\`\`\`json\n${JSON.stringify(result,null,2)}\n\`\`\`\n`);
       return result.findings.length === 0;
@@ -463,7 +478,7 @@ export async function main({env = process.env, fetcher = fetch, gitDiff = native
       const body = requestBody(`Base DESIGN.md:\n${design}\nBase AGENTS.md:\n${agents}\nBase .github/PR_POLICY.md:\n${policy}\nValidated exact diff ${base}...${sha} for visual review:\n${context}\nCurrent captures:\n${names.join('\n')}`,images);
       pr = await github(`/pulls/${pr.number}`); ensure(currentRevision(pr,repository,sha,base),'Revisions changed before request');
       const reservedMicroUsd = await reviewBudget(body,env.OPENAI_API_KEY,fetcher);
-      checkBudget(await paidAttempts(github,Date.now(),undefined,undefined,trustedSha),reservedMicroUsd);
+      checkBudget(await sharedBudget(),reservedMicroUsd);
       pr = await github(`/pulls/${pr.number}`); ensure(currentRevision(pr,repository,sha,base),'Revisions changed before preparation');
       writeFileSync(join(env.RUNNER_TEMP,'ai-visual-request.json'),JSON.stringify({sha,base,sourceRun:run.id,names,body,reservedMicroUsd}),{mode:0o600});
       appendFileSync(env.GITHUB_OUTPUT,`reserved_micro_usd=${reservedMicroUsd}\nready=true\n`);
