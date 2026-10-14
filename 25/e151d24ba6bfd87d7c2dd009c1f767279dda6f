@@ -1,0 +1,30 @@
+tests/ai-visual-review.test.mjs
+  s_69253e5b15cc6b::t_b71dfd54ac6c89 619,628
+  s_69253e5b15cc6b::t_edebf34dc7ea36 2
+  s_69253e5b15cc6b::t_36965381cf1749 513,528-530
+  s_69253e5b15cc6b::t_b895a02fc0bd50 613-618,620-625
+  s_69253e5b15cc6b::t_d0512f8917d386 626-627,629-630
+  s_69253e5b15cc6b::t_ee27c011bbb011 39,858
+  s_69253e5b15cc6b::t_3c82f5373e73b8 6,27-38,40,458-459
+scripts/visual-review/ai-review.mjs
+  s_69253e5b15cc6b::t_f9a22fb7b661a0 175-177,179-180,435
+  s_69253e5b15cc6b::t_9b47f6103a30ae 178
+.github/workflows/ai-visual-review.yml
+  s_69253e5b15cc6b::t_5d6b574ba287c1 71-78
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "25e151d24ba6bfd87d7c2dd009c1f767279dda6f",
+  "prompts": {},
+  "sessions": {
+    "s_69253e5b15cc6b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a13b90-6cd4-7d00-aa79-683341c18d8b",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
