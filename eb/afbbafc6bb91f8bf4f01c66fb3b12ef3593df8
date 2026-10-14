@@ -1,0 +1,45 @@
+components/CareerGraph.tsx
+  s_b88e66778bafbb::t_eea68fcbe71bfe 7,24,216
+components/cms/AboutContent.tsx
+  s_b88e66778bafbb::t_ae3f00964cc664 11,18-19,28,62,67,84
+lib/cms/career-media.ts
+  s_b88e66778bafbb::t_3f65511a7bf71f 1-14
+lib/cms/career.ts
+  s_b88e66778bafbb::t_628e812a42dc59 7,9,17-20
+migrations/20261011_132233_shared_career_media.json
+  s_b88e66778bafbb::t_6c29adb0829d33 1-2877
+migrations/20261011_132233_shared_career_media.ts
+  s_b88e66778bafbb::t_ddb1bee9f0ebdd 1-217
+migrations/20261012_224409_experience_metadata.json
+  s_b88e66778bafbb::t_a14332f91b1bb1 309-369,1929-1930,1932-1933,1935,1939-1940,1943-1944,1946-1947,1949-1950,1953-1955,1962-1963,1965-1979,1984-2011,2016-2017,2019-2020,2024,2042,2049-2050,2059-2062,2077-2078,2096,2101-2102,2108-2109,2117-2118,2124-2125,2131-2132,2134,2140-2143,2145,2153-2273,2427-2500,2502-2665,2673-2675,2686-2688
+migrations/index.ts
+  s_b88e66778bafbb::t_492873a639e3dc 8,47-51,55
+payload.config.ts
+  s_b88e66778bafbb::t_ba4decb99b3c78 38-40,56,168-180,218
+tests/cms/career.test.mts
+  s_b88e66778bafbb::t_bc5418e9b57ba2 135-141,144-145,147,150-151,153-158,160-167,169-182,184,186-199
+tests/cms/lifecycle.test.mts
+  s_b88e66778bafbb::t_187b0768413449 4,248-249,251,264,438,445,448-455,478,481-488,545-546,622-634,706-712,731-732,745-747,768-773,782-797,801
+tests/cms/migration.test.mts
+  s_b88e66778bafbb::t_0b69a62d6c03ef 3,184,516-531
+tests/cms/shared-media-migration.test.mts
+  s_b88e66778bafbb::t_0a1f8e4988fe22 1-198
+workshop/AboutContent.stories.tsx
+  s_b88e66778bafbb::t_08fecf013fcfd2 4,6
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ebafbbafc6bb91f8bf4f01c66fb3b12ef3593df8",
+  "prompts": {},
+  "sessions": {
+    "s_b88e66778bafbb": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a13c22-39ae-78c1-aeaa-bdb795227751",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
