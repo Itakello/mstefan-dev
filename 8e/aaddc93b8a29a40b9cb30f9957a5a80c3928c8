@@ -1,0 +1,19 @@
+docs/automation/exploring-ui-review.md
+  s_b88e66778bafbb::t_c4af1d70fd99b1 7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8eaaddc93b8a29a40b9cb30f9957a5a80c3928c8",
+  "prompts": {},
+  "sessions": {
+    "s_b88e66778bafbb": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a13c22-39ae-78c1-aeaa-bdb795227751",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
