@@ -172,6 +172,12 @@ export function reviewResult(response, names, evidenceNames = names) {
   for (const finding of result.findings) ensure(Object.keys(finding).sort().join(',') === 'evidence,explanation,location,rule' && ['rule','location','explanation'].every(key => typeof finding[key] === 'string' && finding[key].trim()) && Array.isArray(finding.evidence) && finding.evidence.length > 0 && finding.evidence.some(name => names.includes(name)) && finding.evidence.every(name => evidenceNames.includes(name)), 'Finding lacks concrete rule/location/image evidence');
   return result;
 }
+export function trialEvidence(result, identity) {
+  ensure(result?.complete === true && Array.isArray(result.coverage) && Array.isArray(result.findings) && Array.isArray(result.suggestions), 'Unvalidated trial result');
+  ensure(Number.isSafeInteger(identity.pullRequest) && Number.isSafeInteger(identity.sourceRunId) && Number.isSafeInteger(identity.reviewRunId) && Number.isSafeInteger(identity.attempt), 'Invalid trial run identity');
+  ensure(typeof identity.repository === 'string' && /^[\w.-]+\/[\w.-]+$/.test(identity.repository) && [identity.headSha,identity.baseSha].every(sha => typeof sha === 'string' && sha.trim() && !/[\r\n]/.test(sha)), 'Invalid trial revision identity');
+  return {schemaVersion:1,repository:identity.repository,pullRequest:identity.pullRequest,sourceRunId:identity.sourceRunId,reviewRunId:identity.reviewRunId,attempt:identity.attempt,headSha:identity.headSha,baseSha:identity.baseSha,complete:true,coverage:result.coverage,findings:result.findings,suggestions:result.suggestions,verdict:result.findings.length ? 'rejected' : 'clean'};
+}
 export function requestBody(text, images) {
   ensure(Buffer.byteLength(text) <= 500000 && images.length <= 264, 'Review input limit');
   let bytes = 0;
@@ -426,6 +432,7 @@ export async function main({env = process.env, fetcher = fetch, gitDiff = native
       if (env.GITHUB_STEP_SUMMARY) writeFileSync(env.GITHUB_STEP_SUMMARY,`Unvalidated model report for ${sha} against ${base}\n\n\`\`\`json\n${JSON.stringify({status:response.status,incomplete_details:response.incomplete_details,messages:Array.isArray(response.output) ? response.output.filter(item => item.type === 'message') : []},null,2)}\n\`\`\`\n`);
       const result = reviewResult(response,prepared.names,prepared.body.text.format.schema.properties.findings.items.properties.evidence.items.enum ?? prepared.names);
       pr = await github(`/pulls/${pr.number}`); ensure(currentRevision(pr,repository,sha,base),'Revisions changed during review');
+      writeFileSync(join(env.RUNNER_TEMP,'ai-visual-review-result.json'),JSON.stringify(trialEvidence(result,{repository,pullRequest:pr.number,sourceRunId:run.id,reviewRunId:Number(env.GITHUB_RUN_ID),attempt:Number(env.GITHUB_RUN_ATTEMPT),headSha:sha,baseSha:base}),null,2)+'\n',{mode:0o600});
       await status(result.findings.length ? 'failure' : 'success',result.findings.length ? `${result.findings.length} proven design violations` : `complete review: ${prepared.names.length} captures`);
       if (env.GITHUB_STEP_SUMMARY) writeFileSync(env.GITHUB_STEP_SUMMARY,`Validated review ${sha} against ${base}\n\n\`\`\`json\n${JSON.stringify(result,null,2)}\n\`\`\`\n`);
       return result.findings.length === 0;
