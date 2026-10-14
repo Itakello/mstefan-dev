@@ -20,7 +20,8 @@
     "test:cms": "node --test --import tsx tests/cms/*.test.mts",
     "workshop": "storybook dev --host 127.0.0.1 --port 3000 --exact-port --no-open --disable-telemetry",
     "build:workshop": "storybook build --output-dir .artifacts/workshop --disable-telemetry",
-    "test:workshop": "node scripts/visual-review/run-workshop.mjs"
+    "test:workshop": "node scripts/visual-review/run-workshop.mjs",
+    "test:explore-ui": "node scripts/visual-review/run-fixture.mjs --desktop"
   },
   "dependencies": {
     "@iconify/react": "^6.0.0",
@@ -46,6 +47,7 @@
   "devDependencies": {
     "@mdx-js/loader": "^2.3.0",
     "@next/mdx": "16.3.8",
+    "@playwright/mcp": "0.0.83",
     "@playwright/test": "^1.62.1",
     "@storybook/nextjs-vite": "10.6.1",
     "@tailwindcss/typography": "^0.5.10",
