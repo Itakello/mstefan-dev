@@ -5,6 +5,7 @@ import type { Page } from "@playwright/test";
 
 import { readFile, writeFile } from "node:fs/promises";
 import { installOfflineReview } from "./offline-review";
+import { fixVisualDate } from "./visual-ready";
 
 import { websiteScreenshotPaths } from "../lib/websiteScreenshots";
 
@@ -17,8 +18,9 @@ async function toggleTheme(page: Page) {
 }
 
 test.describe("Public website review", () => {
-  test.beforeEach(async ({ context }) => {
+  test.beforeEach(async ({ context, page }) => {
     await installOfflineReview(context);
+    await fixVisualDate(page);
   });
   test("Review the primary bilingual visitor journey", async ({ page }) => {
     const browserErrors: string[] = [];

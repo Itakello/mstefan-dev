@@ -10,7 +10,7 @@ import { createServer } from 'node:net';
 import { request as httpRequest } from 'node:http';
 import { chromium, expect } from '@playwright/test';
 import { iconFixtureResponse } from '../../e2e/offline-review';
-import { stablePage } from '../../e2e/visual-ready';
+import { fixVisualDate, stablePage } from '../../e2e/visual-ready';
 
 const port = Number(process.env.CMS_TEST_PORT || 3000);
 const base = `http://127.0.0.1:${port}`;
@@ -713,6 +713,7 @@ test('degree results are optional metadata downloads while other attachments ret
   const browser = await chromium.launch({ headless: true });
   try {
     const page = await browser.newPage();
+    await fixVisualDate(page);
     for (const host of ['api.iconify.design', 'api.simplesvg.com', 'api.unisvg.com']) {
       await page.route(`https://${host}/**`, async route => {
         await route.fulfill({ json: await iconFixtureResponse(new URL(route.request().url())), headers: { 'access-control-allow-origin': '*' } });

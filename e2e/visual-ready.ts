@@ -1,5 +1,10 @@
 import { expect, type Locator, type Page } from "@playwright/test";
 
+// Keep ongoing career markers stable across captures without pausing browser timers.
+export async function fixVisualDate(page: Page) {
+  await page.clock.setFixedTime(new Date("2026-10-10T12:00:00Z"));
+}
+
 export async function expectDrawnIcons(icons: Locator) {
   await expect.poll(() => icons.count()).toBeGreaterThan(0);
   for (const icon of await icons.all()) {
