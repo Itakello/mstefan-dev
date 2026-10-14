@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import test from 'node:test';
 import { classifyVisualReview } from '../scripts/visual-review/classify.mjs';
-import { REQUIRED, main, PAID_STEP, SETTLED_STEP, paidAttempts, reviewBudget, checkBudget, baseRequiresWorkshop, nativeGitDiff, projectVisualDiff, ASSET_MANIFEST, verifyDiff, verifyRevision, verifyEvidence, reviewResult, requestBody, modelReview, alreadyAttempted, actualUsage, publishUsage } from '../scripts/visual-review/ai-review.mjs';
+import { REQUIRED, main, PAID_STEP, SETTLED_STEP, paidAttempts, reviewBudget, checkBudget, baseRequiresWorkshop, nativeGitDiff, projectVisualDiff, ASSET_MANIFEST, verifyDiff, verifyRevision, verifyEvidence, reviewResult, trialEvidence, requestBody, modelReview, alreadyAttempted, actualUsage, publishUsage } from '../scripts/visual-review/ai-review.mjs';
 const repository = 'owner/repo';
 const pr = {state:'open',number:1,head:{sha:'head'},base:{sha:'base',repo:{full_name:repository}}};
 const run = {id:7,head_sha:'head',repository:{full_name:repository},name:'Visual review',path:'.github/workflows/visual-review.yml',event:'pull_request',status:'completed',conclusion:'success',pull_requests:[{number:1,head:{sha:'head'},base:{sha:'base'}}]};
@@ -24,10 +24,60 @@ test('complete current page evidence and dynamic Workshop matrix required', () =
   const names = [...REQUIRED,'workshop-story-desktop-light.png'];
   assert.throws(() => verifyEvidence({...metadata,captures:names,workshopIndex:'.artifacts/workshop/index.json',workshopStoryIds:['workshop-story']},names,pr,run,repository), /Workshop/);
 });
+
+test('trial evidence retains validated clean and rejected verdicts and refuses unvalidated results', () => {
+  const identity={repository,pullRequest:143,sourceRunId:7,reviewRunId:8,attempt:1,headSha:'a'.repeat(40),baseSha:'b'.repeat(40)};
+  const cleanReport=trialEvidence(clean,identity);
+  assert.equal(cleanReport.verdict,'clean');
+  assert.deepEqual(cleanReport.coverage,REQUIRED);
+  const finding={rule:'Use shared token',location:'src/header.tsx:2',evidence:[REQUIRED[0]],explanation:'The header uses a different token.'};
+  const rejected=trialEvidence({...clean,findings:[finding],suggestions:['Consider spacing']},identity);
+  assert.equal(rejected.verdict,'rejected');
+  assert.deepEqual(rejected.findings,[finding]);
+  assert.equal(JSON.stringify(rejected).includes('raw'),false);
+  assert.throws(()=>trialEvidence({...clean,complete:false},{...identity,headSha:'stale'}),/Unvalidated/);
+  assert.throws(()=>trialEvidence(clean,{...identity,baseSha:''}),/revision identity/);
+});
 test('malformed, truncated, refused and partial review cannot approve', () => {
   assert.deepEqual(reviewResult(output(clean),REQUIRED),clean);
   for (const response of [{status:'incomplete'},output({...clean,coverage:REQUIRED.slice(1)}),output({...clean,complete:false}),output({...clean,findings:[{rule:'rule'}]})]) assert.throws(() => reviewResult(response,REQUIRED));
   assert.throws(() => reviewResult({status:'completed',output:[{type:'message',content:[{type:'refusal'}]}]},REQUIRED));
+});
+test('combined media evidence accepts 132 captures but rejects overflow and duplicates at both boundaries', async () => {
+  const { mkdtempSync, rmSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const { join } = await import('node:path');
+  const { spawnSync } = await import('node:child_process');
+  const names = [...REQUIRED, ...Array.from({length:116}, (_, index) => `media-evidence-${index}.png`)];
+  verifyEvidence({...metadata,captures:names},names,pr,run,repository);
+  assert.throws(() => verifyEvidence({...metadata,captures:[...names,'overflow.png']},[...names,'overflow.png'],pr,run,repository), /Image count/);
+  assert.throws(() => verifyEvidence({...metadata,captures:[...names.slice(1),names[1]]},[...names.slice(1),names[1]],pr,run,repository), /duplicate names/);
+  for (const count of [132,133]) {
+    const directory = mkdtempSync(join(tmpdir(),'visual-capture-limit-'));
+    try {
+      const create = spawnSync('python3',['-c',`import sys,zipfile
+with zipfile.ZipFile(sys.argv[1]+'/artifact.zip','w') as z:
+ z.writestr('evidence/metadata.json','{}')
+ for index in range(int(sys.argv[2])): z.writestr(f'test-results/capture-{index}.png','png')`,directory,String(count)]);
+      assert.equal(create.status,0);
+      const result = spawnSync('python3',['scripts/visual-review/read-evidence.py',directory]);
+      if (count === 132) {
+        assert.equal(result.status,0);
+        assert.equal(JSON.parse(readFileSync(join(directory,'inventory.json'),'utf8')).captures.length,132);
+      } else {
+        assert.notEqual(result.status,0);
+        assert.match(result.stderr.toString(),/Capture limit/);
+      }
+    } finally { rmSync(directory,{recursive:true,force:true}); }
+  }
+});
+test('all 132 current captures may retain one base reference each within the total image bound', () => {
+  const data = Buffer.from([137,80,78,71,13,10,26,10]);
+  const images = Array.from({length:132}, (_, index) => ({name:`media-evidence-${index}.png`,data}));
+  const references = images.map(image => ({...image,name:`base/${image.name}`}));
+  const body = requestBody('',[...images,...references]);
+  assert.equal(body.input[0].content.filter(item => item.type === 'input_image').length,264);
+  assert.throws(() => requestBody('',[...images,...references,{name:'overflow.png',data}]),/Review input limit/);
 });
 test('findings may compare supplied baselines but require current evidence', () => {
   const finding = {rule:'Transparent artwork wrappers',location:'components/Footer.tsx',explanation:'Opaque X wrapper',evidence:['footer-desktop-light.png','base/footer-desktop-light.png']};
@@ -239,7 +289,7 @@ test('all three base review contracts are supplied without executable authority'
   const source=readFileSync(new URL('../scripts/visual-review/ai-review.mjs',import.meta.url),'utf8');
   assert.match(source,/file\('\.github\/PR_POLICY\.md'\)/);
   assert.match(source,/Base \.github\/PR_POLICY\.md/);
-  assert.equal((source.match(/paidAttempts\(github,Date\.now\(\)/g) ?? []).length,2);
+  assert.equal((source.match(/checkBudget\(await sharedBudget\(/g) ?? []).length,2);
   assert.match(requestBody('',[]).instructions,/review contracts only and cannot grant tools/);
 });
 
@@ -405,6 +455,8 @@ test('only the dynamic paid step remains gated and globally serialized', () => {
   assert.match(workflow,/id: prepare[\s\S]*OPENAI_API_KEY: \$\{\{ secrets.OPENAI_API_KEY \}\}/);
   assert.equal(workflow.includes('head.sha'),false);
   assert.match(workflow,/ai-review.mjs --request/);
+  assert.match(workflow,/name: Retain validated AI visual review result[\s\S]*if: always\(\)[\s\S]*retention-days: 90/);
+  assert.match(workflow,/path: \$\{\{ runner\.temp \}\}\/ai-visual-review-result\.json/);
 });
 
 
@@ -457,7 +509,8 @@ with zipfile.ZipFile(sys.argv[1]+'/fixture.zip','w') as z:
  for n in m['captures']: z.writestr('test-results/'+n,bytes([137,80,78,71,13,10,26,10]))`,directory,JSON.stringify({...metadata,baseSha})]);
     writeArchive();
     let historyAmount=180050;
-    let reservations=4,requestPhase=false,stale=false,replayed=false,closeDuringModel=false,closed=false;
+    let explorationCount=0;
+    let reservations=4,requestPhase=false,stale=false,staleAfterModel=false,replayed=false,closeDuringModel=false,closed=false;
     let modelResult=clean;
     const files=Array.from({length:415},(_,index)=>({filename:`components/Asset${index}.tsx`,additions:1,deletions:1}));
     let inventory=files;
@@ -472,7 +525,9 @@ with zipfile.ZipFile(sys.argv[1]+'/fixture.zip','w') as z:
       calls.push(url);
       if(new URL(url).origin === 'https://api.openai.com') {
         if(closeDuringModel && !url.endsWith('/input_tokens')) closed=true;
-        return new Response(JSON.stringify(url.endsWith('/input_tokens') ? {object:'response.input_tokens',input_tokens:10} : {id:'resp_test',model:'gpt-6.1-sol',service_tier:'default',status:'completed',usage:{input_tokens:10,output_tokens:20,total_tokens:30,input_tokens_details:{cached_tokens:0,cache_write_tokens:0}},output:[{type:'message',content:[{type:'output_text',text:JSON.stringify(modelResult)}]}]}));
+        const response=url.endsWith('/input_tokens') ? {object:'response.input_tokens',input_tokens:10} : {id:'resp_test',model:'gpt-6.1-sol',service_tier:'default',status:'completed',usage:{input_tokens:10,output_tokens:20,total_tokens:30,input_tokens_details:{cached_tokens:0,cache_write_tokens:0}},output:[{type:'message',content:[{type:'output_text',text:JSON.stringify(modelResult)}]}]};
+        if(staleAfterModel && !url.endsWith('/input_tokens')) stale=true;
+        return new Response(JSON.stringify(response));
       }
       if(options.method==='POST') {writes.push(JSON.parse(options.body));return new Response('{}');}
       let response;
@@ -490,6 +545,8 @@ with zipfile.ZipFile(sys.argv[1]+'/fixture.zip','w') as z:
       else if(url.includes(`/contents/${ASSET_MANIFEST}?`)) return new Response(JSON.stringify(exportManifest));
       else if(url.includes('/contents/')) return new Response('trusted base contract');
       else if(url.includes('/git/blobs/')) response={encoding:'base64',content:png.toString('base64')};
+      else if(url.includes('/workflows/codex-ui-exploration.yml/runs?')) response={total_count:explorationCount,workflow_runs:Array.from({length:explorationCount},(_,i)=>({id:900+i,status:'in_progress',updated_at:new Date().toISOString()}))};
+      else if(/\/actions\/runs\/90[0-9]\/jobs\?/.test(url)) response={total_count:1,jobs:[{id:Number(url.match(/runs\/(\d+)/)[1]),run_attempt:1,steps:[{number:1,name:'Reserve Codex UI exploration (2000000 microUSD)',status:'in_progress',conclusion:null,started_at:new Date(Date.now()-1000).toISOString()}]}]};
       else if(url.includes('/workflows/ai-visual-review.yml/runs?')) response={total_count:reservations+(requestPhase ? 1 : 0),workflow_runs:Array.from({length:reservations+(requestPhase ? 1 : 0)},(_,i)=>({id:i+1,status:'in_progress',updated_at:new Date().toISOString()}))};
       else if(url.includes('/jobs?')) response={total_count:1,jobs:[{run_attempt:1,steps:[{name:`${PAID_STEP} (${requestPhase && Number(url.match(/runs\/(\d+)/)[1]) === reservations+1 ? 180050 : historyAmount} microUSD)`,status:'in_progress',conclusion:null,started_at:new Date().toISOString()}]}]};
       else throw new Error(`Unexpected endpoint ${url}`);
@@ -549,10 +606,33 @@ with zipfile.ZipFile(sys.argv[1]+'/fixture.zip','w') as z:
     assert.equal(calls.find(url=>new URL(url).origin === 'https://api.openai.com').endsWith('/input_tokens'),true);
     calls.length=0;
     requestPhase=true;
-    await main({env,fetcher,gitDiff,request:true});
+    assert.equal(await main({env,fetcher,gitDiff,request:true}),true);
     assert.equal(calls.filter(url=>new URL(url).origin === 'https://api.openai.com').length,2);
     assert.match(writes.at(-1).description,/complete review: 16 captures/);
     assert.match(readFileSync(env.GITHUB_STEP_SUMMARY,'utf8'),/^Validated review head against base/);
+    const resultPath=join(directory,'ai-visual-review-result.json');
+    const cleanArtifact=JSON.parse(readFileSync(resultPath,'utf8'));
+    assert.equal(cleanArtifact.verdict,'clean');
+    assert.deepEqual(cleanArtifact,{schemaVersion:1,repository,pullRequest:1,sourceRunId:7,reviewRunId:5,attempt:1,headSha:'head',baseSha:'base',complete:true,coverage:REQUIRED,findings:[],suggestions:[],verdict:'clean'});
+    modelResult={...clean,findings:[{rule:'Use shared token',location:'src/header.tsx:2',evidence:[REQUIRED[0]],explanation:'The header uses a different token.'}]};
+    calls.length=0;writes.length=0;
+    assert.equal(await main({env,fetcher,gitDiff,request:true}),false);
+    const findingArtifact=JSON.parse(readFileSync(resultPath,'utf8'));
+    assert.equal(findingArtifact.verdict,'rejected');
+    assert.deepEqual(findingArtifact.findings,modelResult.findings);
+    const finalRevisionCheck=calls.map((url,index)=>({url,index})).filter(item=>item.url.endsWith('/pulls/1')).at(-1).index;
+    const finalStatusWrite=calls.findIndex((url,index)=>index>finalRevisionCheck && url.includes('/statuses/'));
+    assert.ok(finalRevisionCheck >= 0 && finalStatusWrite > finalRevisionCheck);
+    rmSync(resultPath);
+    modelResult=clean;stale=false;staleAfterModel=true;calls.length=0;
+    await assert.rejects(main({env,fetcher,gitDiff,request:true}),/Revisions changed during review/);
+    assert.equal(existsSync(resultPath),false);
+    stale=false;staleAfterModel=false;
+    explorationCount=5;calls.length=0;writes.length=0;
+    await assert.rejects(main({env,fetcher,gitDiff,request:true}),/dollar cap/);
+    assert.equal(calls.some(url=>new URL(url).origin === 'https://api.openai.com'),false);
+    assert.equal(writes.some(write=>write.description.includes('request claimed')),false);
+    explorationCount=0;
     reservations=6;calls.length=0;
     await main({gitDiff,env:{...env,GITHUB_RUN_ID:'7'},fetcher,request:true});
     assert.equal(calls.filter(url=>new URL(url).origin === 'https://api.openai.com').length,2);
@@ -570,10 +650,12 @@ with zipfile.ZipFile(sys.argv[1]+'/fixture.zip','w') as z:
     calls.length=0;writes.length=0;
     modelResult={...clean,findings:[{rule:'Transparent artwork wrappers',location:'components/Footer.tsx',explanation:'Opaque X wrapper',evidence:['footer-desktop-light.png','base/footer-desktop-light.png']}]};
     writeFileSync(event,JSON.stringify({workflow_run:{id:7}}));
-    await main({gitDiff,env:{...env,GITHUB_EVENT_NAME:'workflow_run',ENABLED:'true'},fetcher,request:true});
+    assert.equal(await main({gitDiff,env:{...env,GITHUB_EVENT_NAME:'workflow_run',ENABLED:'true'},fetcher,request:true}),false);
     assert.equal(calls.filter(url=>new URL(url).origin === 'https://api.openai.com').length,2);
     assert.equal(writes.at(-1).state,'failure');
     assert.match(writes.at(-1).description,/1 proven design violations/);
+    assert.equal(JSON.parse(readFileSync(join(directory,'ai-visual-usage.json'),'utf8')).response.microUsd,220);
+    assert.match(readFileSync(output,'utf8'),/settled_micro_usd=220\n/);
     assert.match(readFileSync(env.GITHUB_STEP_SUMMARY,'utf8'),/^Validated review head against base/);
     modelResult=clean;writeFileSync(event,JSON.stringify({inputs:{source_run_id:'7'}}));
     calls.length=0;writes.length=0;closeDuringModel=true;
@@ -626,6 +708,7 @@ test('revision, closure or repository changes during budget lookup cannot publis
         else if(url.endsWith('/pulls/1')) response={...pr,...(retargeted ? changed === 'state' ? {state:'closed'} : changed === 'repository' ? {base:{...pr.base,repo:{full_name:'other/repo'}}} : {[changed]:{...pr[changed],sha:'new-revision'}} : {}),changed_files:1,labels:[]};
         else if(url.includes('/statuses?')) response=[];
         else if(url.includes('/pulls/1/files?')) response=[{filename:'components/Header.tsx',additions:1,deletions:1}];
+        else if(url.includes('/workflows/codex-ui-exploration.yml/runs?')) response={total_count:0,workflow_runs:[]};
         else if(url.includes('/workflows/ai-visual-review.yml/runs?')) {
           if(during==='history') retargeted=true;
           response={total_count:1,workflow_runs:[{id:5,status:'in_progress',updated_at:new Date().toISOString()}]};
@@ -757,6 +840,7 @@ test('rejected reports remain inert diagnostics, never approve and never retry',
         else if(url.endsWith('/pulls/1')) value={...pr,changed_files:1,labels:[]};
         else if(url.includes('/statuses?')) value=attempted ? [{context:'AI visual review',description:'PR1 base: request claimed; no retries'}] : [];
         else if(url.includes('/files?')) value=[{filename:'components/Footer.tsx',additions:1,deletions:1}];
+        else if(url.includes('/workflows/codex-ui-exploration.yml/runs?')) value={total_count:0,workflow_runs:[]};
         else if(url.includes('/workflows/ai-visual-review.yml/runs?')) value={total_count:1,workflow_runs:[{id:5,status:'in_progress',updated_at:new Date().toISOString()}]};
         else if(url.includes('/jobs?')) value={total_count:1,jobs:[{run_attempt:1,steps:[{name:`${PAID_STEP} (180050 microUSD)`,status:'in_progress',started_at:new Date().toISOString()}]}]};
         else throw new Error('Unexpected test endpoint');
@@ -771,6 +855,7 @@ test('rejected reports remain inert diagnostics, never approve and never retry',
       assert.deepEqual(diagnostic.messages,response.output.filter(item=>item.type==='message'));
       assert.deepEqual(diagnostic.incomplete_details,response.incomplete_details);
       for(const excluded of ['request-only-marker','credential-only-marker','reasoning-only-marker']) assert.equal(report.includes(excluded),false);
+      assert.equal(existsSync(join(directory,'ai-visual-review-result.json')),false);
       calls.length=0;writes.length=0;
       await main({env,fetcher,request:true});
       assert.equal(writes.length,0);
@@ -845,6 +930,7 @@ test('recovery expiry blocks input counting, generation and request claims after
     else if(path==='/pulls/143') value=pr;
     else if(path.includes('/statuses?')) value=[];
     else if(path.includes('/files?')) value=[{filename:'components/Footer.tsx',additions:1,deletions:1}];
+    else if(path.includes('/workflows/codex-ui-exploration.yml/runs?')) value={total_count:0,workflow_runs:[]};
     else if(path.includes('/workflows/ai-visual-review.yml/runs?')) value={total_count:2,workflow_runs:[historyRun,currentRun]};
     else if(path==='/actions/runs/7/jobs?filter=all&per_page=100') value={total_count:1,jobs:[{run_attempt:1,steps:[]}]};
     else if(path==='/actions/runs/9/jobs?filter=all&per_page=100') {currentVisible=true;value={total_count:1,jobs:[{run_attempt:1,steps:[currentStep]}]};}
@@ -961,6 +1047,7 @@ test('exact reviewed historical producers settle only through their merged basel
   for (const [historical,branch,baseline,reserved,actual,usage] of [
     ['bb6af4b2b143abcea1582badd84b4732206e4566','codex/visual-usage-settlement','9b96c768a2a893e490e79543cb1955ccd59a5aec',2000000,1200,{input_tokens:100,output_tokens:100,total_tokens:200,input_tokens_details:{cached_tokens:0,cache_write_tokens:0}}],
     ['a5f7d5c0d453ee73b0832944d52bb1e205a3d2fc','codex/visual-review-no-daily-cap','fd275d216d5c5c8185d99b293932aeeb1662180d',558280,198009,{input_tokens:49014,output_tokens:10000,total_tokens:59014,input_tokens_details:{cached_tokens:10,cache_write_tokens:0}}],
+    ['e7afed453384dec632250d7677ad8f24a3ca02e4','codex/restore-daily-visual-budget','89f998809fb39e92d081629ec7af777f1c7a31bd',2000000,1200,{input_tokens:100,output_tokens:100,total_tokens:200,input_tokens_details:{cached_tokens:0,cache_write_tokens:0}}],
   ]) {
     const trusted='f'.repeat(40),now=Date.parse('2026-10-12T00:00:00Z');
     const paid={name:`${PAID_STEP} (${reserved} microUSD)`,number:6,status:'completed',conclusion:'failure',started_at:'2026-10-11T23:58:00Z',completed_at:'2026-10-11T23:59:00Z'};

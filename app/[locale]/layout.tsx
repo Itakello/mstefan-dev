@@ -16,7 +16,6 @@ export const dynamicParams = false;
 export const metadata: Metadata = {
   metadataBase: new URL("https://mstefan.dev"),
   title: { default: "Massimo Stefan", template: "%s · Massimo Stefan" },
-  icons: { icon: "/icon.svg" },
 };
 
 export function generateStaticParams() {

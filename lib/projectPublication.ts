@@ -10,8 +10,10 @@ export type Project = {
   url?: string;
   websiteUrl?: string;
   previewUrls?: string[];
+  previewImages?: { url: string; label: string }[];
   paperUrl?: string;
   slidesUrl?: string;
+  slidesPreviewUrl?: string;
   publication?: string;
   tags?: string[];
   language?: string;
@@ -37,6 +39,10 @@ type EnrichedProject = Project & {
 
 export type ProjectPublicationStatus = "ready" | "empty" | "unconfigured" | "error";
 export type ProjectPublicationMessage = "empty" | "unconfigured" | "error";
+
+export function repositoryUrlKey(url: string) {
+  return url.replace(/^(https?:\/\/github\.com\/[^/?#]+\/[^/?#]+)\/?$/i, (_, repository: string) => repository.toLowerCase());
+}
 
 export function resolveProjectPublicationState(
   projects: Project[] | null,
@@ -79,7 +85,7 @@ export function mergeAndEnrichProjects(
     const createdAt = typeof repo.created_at === "string" ? repo.created_at : undefined;
     const timestamp = createdAt ? Date.parse(createdAt) : Number.NaN;
     const hasCreationDate = Number.isFinite(timestamp);
-    repoByUrl.set(repo.html_url.toLowerCase(), {
+    repoByUrl.set(repositoryUrlKey(repo.html_url), {
       year: hasCreationDate ? new Date(timestamp).getUTCFullYear().toString() : undefined,
       timestamp: hasCreationDate ? timestamp : undefined,
       createdAt: hasCreationDate ? createdAt : undefined,
@@ -90,7 +96,7 @@ export function mergeAndEnrichProjects(
   const merged: EnrichedProject[] = [];
 
   for (const project of approved) {
-    const urlKey = (project.url || "").toLowerCase();
+    const urlKey = repositoryUrlKey(project.url || "");
     const match = urlKey ? repoByUrl.get(urlKey) : undefined;
     const curatedLanguageTag = (project.tags || []).find((tag) =>
       ["JavaScript", "TypeScript", "Python", "Java", "C++", "C#", "Go", "Rust", "Ruby", "PHP", "Kotlin", "Swift"].includes(tag),

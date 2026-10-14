@@ -28,9 +28,21 @@ for (const { storedTheme, systemDark, storageThrows, expectedDark } of [
 ] as const) {
   test(`initializes ${expectedDark ? "dark" : "light"} mode for stored=${storedTheme} systemDark=${systemDark} storageThrows=${storageThrows}`, () => {
     let isDark = false;
+    const favicon = { rel: "", href: "" };
+    let appended = false;
 
     runInNewContext(INITIAL_THEME_SCRIPT, {
       document: {
+        createElement(tag: string) {
+          assert.equal(tag, "link");
+          return favicon;
+        },
+        head: {
+          appendChild(link: typeof favicon) {
+            assert.equal(link, favicon);
+            appended = true;
+          },
+        },
         documentElement: {
           classList: {
             toggle(className: string, force: boolean) {
@@ -56,5 +68,8 @@ for (const { storedTheme, systemDark, storageThrows, expectedDark } of [
     });
 
     assert.equal(isDark, expectedDark);
+    assert.equal(appended, true);
+    assert.equal(favicon.rel, "icon");
+    assert.equal(favicon.href, expectedDark ? "/icon.png" : "/icon-light.png");
   });
 }

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { after, before, test } from 'node:test';
 import { spawn, spawnSync, type ChildProcess } from 'node:child_process';
-import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { randomBytes } from 'node:crypto';
@@ -9,6 +9,8 @@ import { once } from 'node:events';
 import { createServer } from 'node:net';
 import { request as httpRequest } from 'node:http';
 import { chromium, expect } from '@playwright/test';
+import { iconFixtureResponse } from '../../e2e/offline-review';
+import { stablePage } from '../../e2e/visual-ready';
 
 const port = Number(process.env.CMS_TEST_PORT || 3000);
 const base = `http://127.0.0.1:${port}`;
@@ -465,14 +467,14 @@ test('nested career branches share junctions and synchronize graph and Experienc
     company, branchName, role: 'Synthetic test experience', parentBranchName, color,
     ...(['B', 'C', 'F'].includes(company) ? { summary: `Synthetic story for ${company}` } : {}),
     ...(company === 'F' ? { photo: photo.id, documents: [{ title: 'Synthetic project PDF', file: pdfFile.id }] } : company === 'E' ? { photo: hiddenPhoto.id } : {}),
-    ...(company === 'H' ? { photo: photo.id, documents: [{ title: 'Synthetic document-only PDF', file: pdfFile.id }] } : {}),
+    ...(company === 'H' ? { photo: hiddenPhoto.id, documents: [{ title: 'Synthetic document-only PDF', file: pdfFile.id }] } : {}),
     startDate: new Date(Date.UTC(2024, start, 1)).toISOString(), endDate: new Date(Date.UTC(2024, end, 1)).toISOString(),
   }));
   await update('career', 'en', { jobs, laneSpacing: 24, _status: 'published' }, '&publishSpecificLocale=en');
   const publishedPhoto = await fetch(new URL(photo.url, base));
   assert.equal(publishedPhoto.status, 200);
   assert.deepEqual(Buffer.from(await publishedPhoto.arrayBuffer()), photoBytes);
-  assert.ok([401, 403, 404].includes((await fetch(new URL(hiddenPhoto.url, base))).status), 'Photo without a published story or documents must remain private');
+  assert.ok([401, 403, 404].includes((await fetch(new URL(hiddenPhoto.url, base))).status), 'Photo without a published story must remain private');
   const publicAbout = await (await request('/en/about')).text();
   assert.ok(!publicAbout.includes('hidden-experience.png') && !publicAbout.includes('Hidden experience portrait'), 'Hidden photo metadata leaked into the public About page');
   const publishedDocument = await fetch(new URL(pdfFile.url, base));
@@ -525,18 +527,10 @@ test('nested career branches share junctions and synchronize graph and Experienc
     await graph.locator('button[data-career-job]', { hasText: 'work/next' }).click();
     await expect(page.locator('#career-story h1')).toHaveText('H');
     await expect(page.locator('#career-story')).toHaveAttribute('aria-label', 'H');
-    await expect(page.locator('#career-story img')).toHaveAttribute('src', photo.url);
-    await expect(page.locator('#career-story img')).toHaveAttribute('alt', 'Synthetic experience portrait');
+    await expect(page.locator('#career-story img')).toHaveCount(0);
     await expect(page.locator('#career-story [data-pdf-document]')).toBeVisible();
     await expect(page.getByRole('link', { name: /H · View documents/i })).toHaveAttribute('href', '#career-story');
     await expect(page.getByRole('link', { name: /Read story/i })).toHaveCount(0);
-    const photoEvidence = path.resolve('.artifacts/career-document-photo');
-    await mkdir(photoEvidence, { recursive: true });
-    await page.screenshot({ path: path.join(photoEvidence, 'document-backed-desktop.png'), fullPage: true });
-    await page.setViewportSize({ width: 390, height: 844 });
-    await expect(page.locator('#career-story img')).toHaveAttribute('src', photo.url);
-    await page.screenshot({ path: path.join(photoEvidence, 'document-backed-mobile.png'), fullPage: true });
-    await page.setViewportSize({ width: 1280, height: 900 });
     await projectTitle.click();
     await expect(page.locator('#career-story h1')).toHaveText('F');
 
@@ -680,22 +674,21 @@ test('degree results are optional metadata downloads while other attachments ret
   const bachelorUpload = await fetch(`${base}/api/documents`, { method: 'POST', headers: { Cookie: cookie }, body: form });
   assert.equal(bachelorUpload.status, 201);
   const bachelorFile = (await bachelorUpload.json()).doc;
-  const photoForm = new FormData();
-  photoForm.set('file', new Blob([new Uint8Array(await readFile('public/profile-photo.jpg'))], { type: 'image/jpeg' }), 'bachelor-portrait-fixture.jpg');
-  photoForm.set('_payload', JSON.stringify({ alt: 'Document-backed degree portrait fixture' }));
-  const photoUpload = await fetch(`${base}/api/media`, { method: 'POST', headers: { Cookie: cookie }, body: photoForm });
-  assert.equal(photoUpload.status, 201);
-  const bachelorPhoto = (await photoUpload.json()).doc;
   const browser = await chromium.launch({ headless: true });
   try {
     const page = await browser.newPage();
+    for (const host of ['api.iconify.design', 'api.simplesvg.com', 'api.unisvg.com']) {
+      await page.route(`https://${host}/**`, async route => {
+        await route.fulfill({ json: await iconFixtureResponse(new URL(route.request().url())), headers: { 'access-control-allow-origin': '*' } });
+      });
+    }
     await mkdir('.artifacts/playwright/master-download', { recursive: true });
     for (const [locale, title, verb] of [['en', 'Master’s exam results', 'Download'], ['it', 'Risultati degli esami magistrali', 'Scarica']]) {
       const saved = await (await request(`/api/globals/career?locale=${locale}&draft=false`, undefined, true)).json();
       const bachelorTitle = locale === 'it' ? 'Risultati degli esami triennali' : 'Bachelor’s exam results';
       const jobs = [
         { branchName: 'education/trento-master', company: 'Università di Trento', role: 'Artificial Intelligence', summary: 'Master’s degree', color: '#1267ab', documents: [{ title, file: file.id }] },
-        { branchName: 'education/trento-bachelor', company: 'Università di Trento', role: 'Computer Science', color: '#1267ab', photo: bachelorPhoto.id, documents: [{ title: bachelorTitle, file: bachelorFile.id }] },
+        { branchName: 'education/trento-bachelor', company: 'Università di Trento', role: 'Computer Science', color: '#1267ab', documents: [{ title: bachelorTitle, file: bachelorFile.id }] },
         { branchName: 'research/thesis', company: 'Research', role: 'Researcher', color: '#12abcd', documents: [{ title: 'Research attachment', file: file.id }] },
       ];
       try {
@@ -717,14 +710,13 @@ test('degree results are optional metadata downloads while other attachments ret
             await page.setViewportSize({ width, height });
             for (const theme of ['light', 'dark'] as const) {
               const dark = (await page.locator('html').getAttribute('class'))?.split(' ').includes('dark') ?? false;
-              if (dark !== (theme === 'dark')) await page.getByRole('button', { name: locale === 'it' ? 'Cambia tema' : 'Toggle theme' }).click();
+              if (dark !== (theme === 'dark')) {
+                await page.getByRole('button', { name: locale === 'it' ? 'Apri navigazione' : 'Open navigation', exact: true }).click();
+                await page.getByRole('button', { name: locale === 'it' ? 'Cambia tema' : 'Toggle theme', exact: true }).click();
+                await page.getByRole('button', { name: locale === 'it' ? 'Chiudi navigazione' : 'Close navigation', exact: true }).click();
+              }
               await expect(page.locator('html')).toHaveClass(theme === 'dark' ? /\bdark\b/ : /^(?!.*\bdark\b)/);
               await expect(link).toBeVisible();
-              if (degree === 'bachelor') {
-                const photo = page.locator('#career-story img');
-                await expect(photo).toHaveAttribute('src', bachelorPhoto.url);
-                await expect.poll(() => photo.evaluate((image) => image instanceof HTMLImageElement && image.complete && image.naturalWidth > 0)).toBe(true);
-              }
               const metadataBox = await page.locator('#career-story article p', { has: link }).boundingBox();
               const buttonBox = await link.boundingBox();
               assert.ok(metadataBox && buttonBox && Math.abs(metadataBox.x + metadataBox.width - buttonBox.x - buttonBox.width) < 1, 'Results button must align with the right edge of the metadata');
@@ -732,6 +724,8 @@ test('degree results are optional metadata downloads while other attachments ret
               await link.press('Tab');
               await page.keyboard.press('Shift+Tab');
               await expect(link).toBeFocused();
+              await expect(page.locator('footer a').first()).toHaveCSS('color', theme === 'dark' ? 'rgba(255, 255, 255, 0.65)' : 'rgba(0, 0, 0, 0.65)');
+              await stablePage(page);
               await page.screenshot({ path: `.artifacts/playwright/master-download/${degree}-${locale}-${size}-${theme}.png`, fullPage: true, animations: 'disabled' });
               await link.hover();
               if ((locale === 'en' && size === 'desktop' && theme === 'light') || (locale === 'it' && size === 'mobile' && theme === 'dark')) {

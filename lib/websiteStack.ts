@@ -2,7 +2,7 @@ import { unstable_cache } from "next/cache";
 
 import { publicationEnvironment } from "@/lib/publicationEnvironment";
 import { fetchStackFromNotion } from "@/lib/notion";
-import { PUBLICATION_CACHE_TAG, PUBLICATION_REVALIDATE_SECONDS } from "@/lib/publicationCache";
+import { PUBLICATION_REVALIDATE_SECONDS } from "@/lib/publicationCache";
 import { isTrustedExternalIcon, stackIconUrl, type StackEntry } from "@/lib/stack";
 
 const MAX_STACK_ICON_WIDTH_RATIO = 2.5;
@@ -70,14 +70,12 @@ export type WebsiteStackState = {
 
 type CacheIconValidation = (source: string, rules: string, validate: () => Promise<void>) => Promise<void>;
 
-const taggedIconValidation: CacheIconValidation = async (source, rules, validate) => {
-  const day = Math.floor(Date.now() / (PUBLICATION_REVALIDATE_SECONDS * 1_000));
+const cachedIconValidation: CacheIconValidation = async (source, rules, validate) => {
   await unstable_cache(async () => {
     await validate();
     return true;
-  }, ["stack-icon-validation", source, String(day), rules], {
-    revalidate: false,
-    tags: [PUBLICATION_CACHE_TAG],
+  }, ["stack-icon-validation", source, rules], {
+    revalidate: PUBLICATION_REVALIDATE_SECONDS,
   })();
 };
 
@@ -122,7 +120,7 @@ export async function validateStackIcons(
   entries: readonly StackEntry[],
   fetchIcon: typeof fetch = fetch,
   cacheValidation: CacheIconValidation = fetchIcon === fetch
-    ? taggedIconValidation
+    ? cachedIconValidation
     : async (_source, _rules, validate) => validate(),
 ) {
   let nextEntry = 0;

@@ -59,6 +59,15 @@ export const sampleWork: ShowcaseWebsite[] = [
   },
 ];
 
+export const sampleMediaWork: ShowcaseWebsite[] = [{
+  ...sampleWork[1],
+  description: "A workshop research sample with a photo, paper and self-hosted presentation.",
+  previewImages: [{ url: new URL("../public/work-previews/physiq-puzzles.png", import.meta.url).href, label: "Puzzles" }],
+  paperUrl: "/api/documents/file/research.pdf",
+  slidesUrl: "https://example.com/workshop-slides.pptx",
+  slidesPreviewUrl: "/presentations/physiq/index.html",
+}];
+
 export const sampleCareer: Career = {
   id: 1,
   mainlineColor: "#25b8f3",

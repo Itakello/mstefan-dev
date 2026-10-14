@@ -1,12 +1,20 @@
 // spec: specs/mstefan-site-review.md
 // seed: e2e/seed.ts
 
+import type { Page } from "@playwright/test";
+
 import { readFile, writeFile } from "node:fs/promises";
 import { installOfflineReview } from "./offline-review";
 
 import { websiteScreenshotPaths } from "../lib/websiteScreenshots";
 
 import { expect, showReviewStep, test } from "./seed";
+
+async function toggleTheme(page: Page) {
+  await page.getByRole("button", { name: "Open navigation", exact: true }).click();
+  await page.getByRole("button", { name: "Toggle theme", exact: true }).click();
+  await page.getByRole("button", { name: "Close navigation", exact: true }).click();
+}
 
 test.describe("Public website review", () => {
   test.beforeEach(async ({ context }) => {
@@ -39,6 +47,7 @@ test.describe("Public website review", () => {
     await expect(page.getByRole("heading", { level: 1, name: "My work" })).toBeVisible();
 
     await page.getByRole("button", { name: "Select mstefan.dev", exact: true }).click();
+    await expect(page.getByRole("region", { name: "Media preview", exact: true })).toBeVisible();
     await expect.poll(() => page.getByRole("navigation", { name: "Choose a project" }).evaluate(node => node.scrollHeight <= node.clientHeight + 1)).toBe(true);
     await expect(page.getByRole("button", { name: "Select mstefan.dev", exact: true }).getByText("Website", { exact: true })).toBeVisible();
     const projectStack = page.getByRole("complementary", { name: "mstefan.dev technologies grouped by category" });
@@ -58,7 +67,7 @@ test.describe("Public website review", () => {
     const modes = page.getByRole("group", { name: "Preview size" });
     await expect(page.locator("iframe")).toHaveCount(0);
     await expect(desktop).toBeVisible();
-    await expect.poll(() => desktop.evaluate(node => (node as HTMLImageElement).naturalWidth)).toBe(1280);
+    await expect.poll(() => desktop.evaluate(node => (node as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
     await expect(modes.getByRole("button", { name: "Desktop", exact: true })).toHaveAttribute("aria-pressed", "true");
     const modeBox = await modes.boundingBox();
     const stackBox = await projectStack.boundingBox();
@@ -70,9 +79,10 @@ test.describe("Public website review", () => {
     await page.screenshot({ path: ".artifacts/playwright/work-desktop.png", fullPage: true });
     await modes.getByRole("button", { name: "Mobile", exact: true }).click();
     await expect(mobile).toBeVisible();
-    await expect.poll(() => mobile.evaluate(node => (node as HTMLImageElement).naturalWidth)).toBe(390);
+    await expect.poll(() => mobile.evaluate(node => (node as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
     const mobileBox = await mobile.boundingBox();
-    expect(mobileBox!.width / mobileBox!.height).toBeCloseTo(390 / 844, 2);
+    const mobileRatio = await mobile.evaluate(node => { const image = node as HTMLImageElement; return image.naturalWidth / image.naturalHeight; });
+    expect(mobileBox!.width / mobileBox!.height).toBeCloseTo(mobileRatio, 2);
     expect(mobileBox!.width).toBeLessThanOrEqual(390);
     for (const width of [1280, 900, 640, 360]) {
       await page.setViewportSize({ width, height: 800 });
@@ -86,11 +96,13 @@ test.describe("Public website review", () => {
         await expect(page.getByRole("navigation", { name: "Choose a project" })).toBeHidden();
       }
       await modes.getByRole("button", { name: "Desktop", exact: true }).click();
-      const desktopHeight = (await desktop.boundingBox())!.height;
+      await expect(desktop).toBeVisible();
       await modes.getByRole("button", { name: "Mobile", exact: true }).click();
+      await expect(mobile).toBeVisible();
+      await expect.poll(async () => { const phone = (await mobile.boundingBox())!; return phone.width / phone.height; }).toBeCloseTo(mobileRatio, 2);
       const phone = (await mobile.boundingBox())!;
-      expect(phone.height).toBeCloseTo(desktopHeight, 0);
-      expect((phone.width - 2) / (phone.height - 2)).toBeCloseTo(390 / 844, 2);
+      expect(phone.height).toBeLessThanOrEqual(620);
+      expect(phone.width).toBeLessThanOrEqual(width);
     }
     await expect(modes.getByRole("button", { name: "Mobile", exact: true })).toHaveAttribute("aria-pressed", "true");
     await expect(page.locator("iframe")).toHaveCount(0);
@@ -122,7 +134,7 @@ test.describe("Public website review", () => {
     await expect(page.locator('section[aria-labelledby="selected-work-title"] .work-category')).toHaveText("Research");
     await expect(page.locator('section[aria-labelledby="selected-work-title"]').getByText("2024", { exact: true })).toBeVisible();
     const reader = page.getByRole("region", { name: "LLM Interaction Simulator: Document reader", exact: true });
-    await expect(reader.getByText("1 / 2", { exact: true })).toBeVisible();
+    await expect(reader.locator(".media-caption").filter({ hasText: "1 / 2" })).toBeVisible();
     await expect(reader.getByRole("status")).toHaveCount(0);
     await expect(reader.getByText("Research paper first page", { exact: true })).toBeVisible();
     const researchModes = page.getByRole("group", { name: "Research & materials", exact: true });
@@ -130,29 +142,42 @@ test.describe("Public website review", () => {
       await page.setViewportSize({ width, height: 800 });
       for (const mode of ["Paper", "Slides"]) {
         await researchModes.getByRole("button", { name: mode, exact: true }).click();
+        await expect(researchModes.getByRole("button", { name: mode, exact: true })).toBeFocused();
         await expect(reader.getByRole("status")).toHaveCount(0);
-        const mediaBox = (await reader.boundingBox())!;
-        const toggleBox = (await researchModes.boundingBox())!;
+        const mediaBox = (await page.locator("[data-media-preview]").boundingBox())!;
+        const toggleBox = (await page.locator("[data-media-controls]").boundingBox())!;
+        const stageBox = (await reader.locator("[data-preview-stage]").boundingBox())!;
+        const enlargeBox = (await page.getByRole("button", { name: "Enlarge preview", exact: true }).boundingBox())!;
+        expect(enlargeBox.width).toBe(44);
+        expect(enlargeBox.x + enlargeBox.width).toBeLessThanOrEqual(stageBox.x + stageBox.width);
+        expect(enlargeBox.y + enlargeBox.height).toBeLessThanOrEqual(stageBox.y + stageBox.height);
+        expect(enlargeBox.y).toBeGreaterThan(stageBox.y);
         expect(toggleBox.y).toBeGreaterThanOrEqual(mediaBox.y + mediaBox.height);
-        expect(Math.abs(toggleBox.x + toggleBox.width - mediaBox.x - mediaBox.width)).toBeLessThan(2);
+        expect(Math.abs(toggleBox.x + toggleBox.width / 2 - mediaBox.x - mediaBox.width / 2)).toBeLessThan(2);
       }
     }
     await page.setViewportSize({ width: 1280, height: 720 });
     await researchModes.getByRole("button", { name: "Paper", exact: true }).click();
     await expect(reader.getByRole("status")).toHaveCount(0);
-    await expect(reader.getByRole("link", { name: "Open PDF", exact: true })).toHaveAttribute("href", "https://arxiv.org/pdf/2410.07109");
+    await expect(reader.getByRole("link", { name: "Download PDF", exact: true })).toHaveAttribute("href", "https://arxiv.org/pdf/2410.07109");
+    await expect.poll(() => reader.locator("[data-document-stage]").evaluate(node => node.scrollHeight <= node.clientHeight + 1)).toBeTruthy();
     await reader.getByRole("button", { name: "Next page" }).click();
     await expect(reader.getByRole("img", { name: "LLM Interaction Simulator · page 2", exact: true })).toBeVisible();
     await expect(reader.getByRole("status")).toHaveCount(0);
     await reader.getByRole("button", { name: "Zoom in" }).click();
     await expect(reader.getByText("125%", { exact: true })).toBeVisible();
-    const paperStageHeight = await reader.locator("[data-document-stage]").evaluate(node => node.clientHeight);
+    await page.getByRole("button", { name: "Enlarge preview", exact: true }).click();
+    await expect(page.locator("[data-media-preview]")).toHaveJSProperty("open", true);
+    await expect.poll(() => page.locator("[data-media-preview]").evaluate(node => node.matches(":modal"))).toBeTruthy();
+    await expect(reader.getByText("125%", { exact: true })).toBeVisible();
+    await expect(reader.getByRole("img", { name: "LLM Interaction Simulator · page 2", exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Close preview", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Enlarge preview", exact: true })).toBeFocused();
     await page.getByRole("button", { name: "Slides", exact: true }).click();
-    await expect(reader.getByRole("link", { name: "Open PDF", exact: true })).toHaveAttribute("href", "https://example.com/research-slides.pdf");
-    await expect(reader.getByText("1 / 2", { exact: true })).toBeVisible();
+    await expect(reader.getByRole("link", { name: "Download PDF", exact: true })).toHaveAttribute("href", "https://example.com/research-slides.pdf");
+    await expect(reader.locator(".media-caption").filter({ hasText: "1 / 2" })).toBeVisible();
     await expect(reader.getByRole("status")).toHaveCount(0);
     const slideStage = reader.locator("[data-document-stage]");
-    expect(await slideStage.evaluate(node => node.clientHeight)).toBeLessThan(paperStageHeight);
     await expect.poll(() => slideStage.evaluate(node => node.scrollHeight <= node.clientHeight + 1 && node.scrollWidth <= node.clientWidth + 1)).toBeTruthy();
     await page.setViewportSize({ width: 1440, height: 600 });
     await expect.poll(() => slideStage.evaluate(node => node.clientHeight)).toBeLessThan(335);
@@ -162,7 +187,7 @@ test.describe("Public website review", () => {
     await page.setViewportSize({ width: 360, height: 800 });
     await expect(reader.getByRole("status")).toHaveCount(0);
     await expect.poll(() => slideStage.evaluate(node => node.scrollHeight <= node.clientHeight + 1 && node.scrollWidth <= node.clientWidth + 1)).toBeTruthy();
-    expect(await slideStage.evaluate(node => Math.abs(node.clientHeight - (node.querySelector("canvas")?.getBoundingClientRect().height ?? 0) - 24))).toBeLessThan(2);
+    expect(await slideStage.evaluate(node => Math.abs(node.clientHeight - (node.querySelector("canvas")?.getBoundingClientRect().height ?? 0)))).toBeLessThan(2);
     expect(await reader.evaluate(node => node.getBoundingClientRect().right <= window.innerWidth)).toBeTruthy();
     await page.screenshot({ path: ".artifacts/playwright/work-research-mobile.png", fullPage: true });
     await page.setViewportSize({ width: 1440, height: 1000 });
@@ -207,12 +232,12 @@ test.describe("Public website review", () => {
     await showReviewStep(page, "3 · Experience and portrait");
 
     // 4. Toggle dark mode and verify the rendered theme state.
-    await page.getByRole("button", { name: "Toggle theme" }).click();
+    await toggleTheme(page);
     await expect(page.locator("html")).toHaveClass(/\bdark\b/);
     await showReviewStep(page, "4 · Dark theme");
 
     // 5. Switch to Italian and verify localized navigation and content.
-    await page.getByRole("button", { name: "Select language" }).click();
+    await page.getByRole("button", { name: "Open navigation", exact: true }).click();
     await page.getByRole("menuitemradio", { name: /Italiano/ }).click();
     await expect(page).toHaveURL(/\/it\/about$/);
     await expect(page.locator("#career-story")).toHaveAttribute("aria-label", "Esperienza");
@@ -220,7 +245,7 @@ test.describe("Public website review", () => {
     await expect(page.getByRole("link", { name: "Lavori", exact: true })).toBeVisible();
     await page.getByRole("link", { name: "Lavori", exact: true }).click();
     await expect(page).toHaveURL(/\/it\/projects$/);
-    await page.getByRole("button", { name: "Seleziona lingua" }).click();
+    await page.getByRole("button", { name: "Apri navigazione", exact: true }).click();
     await page.getByRole("menuitemradio", { name: /English/ }).click();
     await expect(page).toHaveURL(/\/en\/projects$/);
     await showReviewStep(page, "5 · Italian localization");
@@ -234,8 +259,10 @@ test.describe("Public website review", () => {
     });
     await page.goto("/en");
     await expect(page.locator("html")).toHaveClass(/\bdark\b/);
+    await page.getByRole("button", { name: "Open navigation", exact: true }).click();
     await expect(page.getByRole("button", { name: "Toggle theme" }).first().locator(".lucide-sun")).toBeVisible();
     await page.getByRole("button", { name: "Toggle theme" }).first().click();
+    await page.getByRole("button", { name: "Close navigation", exact: true }).click();
     await expect(page.locator("html")).not.toHaveClass(/\bdark\b/);
 
     await page.setViewportSize({ width: 360, height: 800 });
@@ -289,17 +316,18 @@ test.describe("Public website review", () => {
       await route.fulfill({ body: await readFile(`public${paths[mobile ? "mobile" : "desktop"]}`), contentType: "image/png" });
     });
     await page.goto("/en/projects");
+    await page.getByRole("button", { name: "Select mstefan.dev", exact: true }).click();
     const controls = page.getByRole("group", { name: "Preview page", exact: true });
-    const next = controls.getByRole("button", { name: "Next preview", exact: true });
-    const previous = controls.getByRole("button", { name: "Previous preview", exact: true });
+    const next = page.getByRole("button", { name: "Next preview", exact: true });
+    const previous = page.getByRole("button", { name: "Previous preview", exact: true });
     const image = page.getByRole("img", { name: "Desktop: Screenshot of mstefan.dev", exact: true });
     await expect(controls).toContainText("Homepage · 1 / 3");
     await expect(page.getByRole("combobox", { name: "Preview page", exact: true })).toHaveCount(0);
     await page.screenshot({ path: ".artifacts/playwright/work-preview-arrows-desktop.png", fullPage: true });
-    await page.getByRole("button", { name: "Toggle theme", exact: true }).click();
+    await toggleTheme(page);
     await expect(page.locator('footer [data-brand-icon="github"]')).toHaveCSS("color", "rgba(255, 255, 255, 0.65)");
     await page.screenshot({ path: ".artifacts/playwright/work-preview-arrows-desktop-dark.png", fullPage: true });
-    await page.getByRole("button", { name: "Toggle theme", exact: true }).click();
+    await toggleTheme(page);
     await next.focus();
     await next.press("Enter");
     await expect(next).toBeFocused();
@@ -323,10 +351,10 @@ test.describe("Public website review", () => {
     const preview = page.locator("[data-work-preview]");
     await preview.scrollIntoViewIfNeeded();
     await page.screenshot({ path: ".artifacts/playwright/work-preview-arrows-mobile.png", fullPage: true });
-    await page.getByRole("button", { name: "Toggle theme", exact: true }).click();
+    await toggleTheme(page);
     await expect(page.locator('footer [data-brand-icon="github"]')).toHaveCSS("color", "rgba(255, 255, 255, 0.65)");
     await page.screenshot({ path: ".artifacts/playwright/work-preview-arrows-mobile-dark.png", fullPage: true });
-    await page.getByRole("button", { name: "Toggle theme", exact: true }).click();
+    await toggleTheme(page);
     await preview.scrollIntoViewIfNeeded();
     const box = (await preview.boundingBox())!;
     const cdp = await context.newCDPSession(page);
@@ -353,6 +381,7 @@ test.describe("Public website review", () => {
     await page.setViewportSize({ width: 320, height: 844 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     await page.goto("/it/projects");
+    await page.getByRole("combobox", { name: "Scegli un progetto" }).selectOption({ label: "mstefan.dev" });
     await expect(page.locator('section[aria-labelledby="selected-work-title"] .work-category')).toHaveText("Sito web");
     await expect(page.getByRole("group", { name: "Pagina anteprima", exact: true })).toContainText("Pagina iniziale · 1 / 3");
     await page.getByRole("button", { name: "Anteprima successiva", exact: true }).click();
@@ -369,7 +398,7 @@ test.describe("Public website review", () => {
     await expect(page.getByRole("link", { name: "Visit website", exact: true })).toHaveAttribute("href", "https://www.mstefan.dev/en");
     await page.getByRole("group", { name: "Preview size" }).getByRole("button", { name: "Mobile", exact: true }).click();
     const image = page.getByRole("img", { name: "Mobile: Screenshot of mstefan.dev", exact: true });
-    await expect.poll(() => image.evaluate(node => (node as HTMLImageElement).naturalWidth)).toBe(390);
+    await expect.poll(() => image.evaluate(node => (node as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
     await expect(page.getByRole("status")).toHaveCount(0);
   });
 

@@ -5,6 +5,7 @@ import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
 import { classifyVisualReview } from './classify.mjs';
+import { explorationReservations } from './exploration-budget.mjs';
 
 export const CONTEXT = 'AI visual review';
 export const REQUIRED = ['home', 'work', 'about', 'footer'].flatMap(page => ['desktop', 'mobile'].flatMap(size => ['light', 'dark'].map(theme => `${page}-${size}-${theme}.png`)));
@@ -51,7 +52,7 @@ export function verifyRevision(pr, run, repository) {
 }
 export function verifyEvidence(metadata, names, pr, run, repository, {workshopRequired = false} = {}) {
   ensure(metadata.schemaVersion === 1 && metadata.repository === repository && String(metadata.pullRequest) === String(pr.number) && metadata.headSha === pr.head.sha && metadata.baseSha === pr.base.sha && metadata.workflowRun === `https://github.com/${repository}/actions/runs/${run.id}`, 'Artifact metadata mismatch');
-  ensure(names.length <= 100 && new Set(names).size === names.length, 'Image count or duplicate names');
+  ensure(names.length <= 132 && new Set(names).size === names.length, 'Image count or duplicate names');
   for (const name of REQUIRED) ensure(names.includes(name), `Missing current capture: ${name}`);
   ensure(Array.isArray(metadata.captures) && metadata.captures.length === names.length && metadata.captures.every(name => names.includes(name)), 'Incomplete capture manifest');
   for (const name of names) ensure(/^[a-z0-9-]+\.png$/.test(name), 'Invalid capture name');
@@ -171,8 +172,14 @@ export function reviewResult(response, names, evidenceNames = names) {
   for (const finding of result.findings) ensure(Object.keys(finding).sort().join(',') === 'evidence,explanation,location,rule' && ['rule','location','explanation'].every(key => typeof finding[key] === 'string' && finding[key].trim()) && Array.isArray(finding.evidence) && finding.evidence.length > 0 && finding.evidence.some(name => names.includes(name)) && finding.evidence.every(name => evidenceNames.includes(name)), 'Finding lacks concrete rule/location/image evidence');
   return result;
 }
+export function trialEvidence(result, identity) {
+  ensure(result?.complete === true && Array.isArray(result.coverage) && Array.isArray(result.findings) && Array.isArray(result.suggestions), 'Unvalidated trial result');
+  ensure(Number.isSafeInteger(identity.pullRequest) && Number.isSafeInteger(identity.sourceRunId) && Number.isSafeInteger(identity.reviewRunId) && Number.isSafeInteger(identity.attempt), 'Invalid trial run identity');
+  ensure(typeof identity.repository === 'string' && /^[\w.-]+\/[\w.-]+$/.test(identity.repository) && [identity.headSha,identity.baseSha].every(sha => typeof sha === 'string' && sha.trim() && !/[\r\n]/.test(sha)), 'Invalid trial revision identity');
+  return {schemaVersion:1,repository:identity.repository,pullRequest:identity.pullRequest,sourceRunId:identity.sourceRunId,reviewRunId:identity.reviewRunId,attempt:identity.attempt,headSha:identity.headSha,baseSha:identity.baseSha,complete:true,coverage:result.coverage,findings:result.findings,suggestions:result.suggestions,verdict:result.findings.length ? 'rejected' : 'clean'};
+}
 export function requestBody(text, images) {
-  ensure(Buffer.byteLength(text) <= 500000 && images.length <= 200, 'Review input limit');
+  ensure(Buffer.byteLength(text) <= 500000 && images.length <= 264, 'Review input limit');
   let bytes = 0;
   const content = [{type:'input_text',text}];
   for (const {name,data} of images) {
@@ -247,7 +254,8 @@ async function settledCost(github, run, job, paid, reserved, trustedSha) {
   let producerTrustSha = trustedSha;
   // Preserve completed reviewed recoveries' provenance after their squash merges and policy changes.
   const baseline = run.head_sha === 'bb6af4b2b143abcea1582badd84b4732206e4566' && run.head_branch === 'codex/visual-usage-settlement' ? '9b96c768a2a893e490e79543cb1955ccd59a5aec'
-    : run.head_sha === 'a5f7d5c0d453ee73b0832944d52bb1e205a3d2fc' && run.head_branch === 'codex/visual-review-no-daily-cap' ? 'fd275d216d5c5c8185d99b293932aeeb1662180d' : undefined;
+    : run.head_sha === 'a5f7d5c0d453ee73b0832944d52bb1e205a3d2fc' && run.head_branch === 'codex/visual-review-no-daily-cap' ? 'fd275d216d5c5c8185d99b293932aeeb1662180d'
+    : run.head_sha === 'e7afed453384dec632250d7677ad8f24a3ca02e4' && run.head_branch === 'codex/restore-daily-visual-budget' ? '89f998809fb39e92d081629ec7af777f1c7a31bd' : undefined;
   if (baseline) {
     const lineage = await github(`/compare/${baseline}...${trustedSha}`);
     ensure(['ahead','identical'].includes(lineage.status) && lineage.merge_base_commit?.sha === baseline, 'Unapproved historical usage anchor');
@@ -347,9 +355,16 @@ export async function main({env = process.env, fetcher = fetch, gitDiff = native
   const root = `https://api.github.com/repos/${repository}`;
   async function github(path, options = {}) {
     const response = await fetcher(`${root}${path}`, { ...options, headers:{Authorization:`Bearer ${env.GITHUB_TOKEN}`,Accept:options.accept ?? 'application/vnd.github+json','Content-Type':'application/json'},signal:AbortSignal.timeout(30000) });
+    if (options.allowNotFound && response.status === 404) return null;
     ensure(response.ok, `GitHub request failed (${response.status})`);
     if (options.binary) { const buffer = Buffer.from(await response.arrayBuffer()); ensure(buffer.length <= MAX_BYTES, 'Artifact download too large'); return buffer; }
     const text = await response.text(); ensure(Buffer.byteLength(text) <= 5*1024*1024,'GitHub response too large'); return options.raw ? text : JSON.parse(text);
+  }
+  async function sharedBudget(currentRun, expectedMicroUsd) {
+    const now = Date.now();
+    const visual = await paidAttempts(github, now, currentRun, expectedMicroUsd, trustedSha);
+    const exploration = await explorationReservations(github, now);
+    return { count: visual.count + exploration.count, microUsd: visual.microUsd + exploration.microUsd };
   }
   const trustedSha = execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
   ensure(/^[a-f0-9]{40}$/.test(trustedSha), 'Unverified review engine revision');
@@ -403,7 +418,7 @@ export async function main({env = process.env, fetcher = fetch, gitDiff = native
       ensure(env.ENABLED === 'true' || env.GITHUB_EVENT_NAME === 'workflow_dispatch','Automatic AI review disabled; activation proof required');
       ensure(env.GITHUB_RUN_ATTEMPT === '1','Reruns do not issue another model request');
       validReservation(prepared.reservedMicroUsd);
-      checkBudget(await paidAttempts(github,Date.now(),env.GITHUB_RUN_ID,prepared.reservedMicroUsd,trustedSha));
+      checkBudget(await sharedBudget(env.GITHUB_RUN_ID, prepared.reservedMicroUsd));
       if (event.inputs?.recovery === true || event.inputs?.recovery === 'true') {
         const {main: validateRecovery} = await import('./recovery.mjs');
         await validateRecovery({env,fetcher});
@@ -417,9 +432,10 @@ export async function main({env = process.env, fetcher = fetch, gitDiff = native
       if (env.GITHUB_STEP_SUMMARY) writeFileSync(env.GITHUB_STEP_SUMMARY,`Unvalidated model report for ${sha} against ${base}\n\n\`\`\`json\n${JSON.stringify({status:response.status,incomplete_details:response.incomplete_details,messages:Array.isArray(response.output) ? response.output.filter(item => item.type === 'message') : []},null,2)}\n\`\`\`\n`);
       const result = reviewResult(response,prepared.names,prepared.body.text.format.schema.properties.findings.items.properties.evidence.items.enum ?? prepared.names);
       pr = await github(`/pulls/${pr.number}`); ensure(currentRevision(pr,repository,sha,base),'Revisions changed during review');
+      writeFileSync(join(env.RUNNER_TEMP,'ai-visual-review-result.json'),JSON.stringify(trialEvidence(result,{repository,pullRequest:pr.number,sourceRunId:run.id,reviewRunId:Number(env.GITHUB_RUN_ID),attempt:Number(env.GITHUB_RUN_ATTEMPT),headSha:sha,baseSha:base}),null,2)+'\n',{mode:0o600});
       await status(result.findings.length ? 'failure' : 'success',result.findings.length ? `${result.findings.length} proven design violations` : `complete review: ${prepared.names.length} captures`);
       if (env.GITHUB_STEP_SUMMARY) writeFileSync(env.GITHUB_STEP_SUMMARY,`Validated review ${sha} against ${base}\n\n\`\`\`json\n${JSON.stringify(result,null,2)}\n\`\`\`\n`);
-      return;
+      return result.findings.length === 0;
     }
     const artifacts = await github(`/actions/runs/${run.id}/artifacts?per_page=100`);
     ensure(artifacts.total_count === artifacts.artifacts.length,'Artifact list truncated');
@@ -462,7 +478,7 @@ export async function main({env = process.env, fetcher = fetch, gitDiff = native
       const body = requestBody(`Base DESIGN.md:\n${design}\nBase AGENTS.md:\n${agents}\nBase .github/PR_POLICY.md:\n${policy}\nValidated exact diff ${base}...${sha} for visual review:\n${context}\nCurrent captures:\n${names.join('\n')}`,images);
       pr = await github(`/pulls/${pr.number}`); ensure(currentRevision(pr,repository,sha,base),'Revisions changed before request');
       const reservedMicroUsd = await reviewBudget(body,env.OPENAI_API_KEY,fetcher);
-      checkBudget(await paidAttempts(github,Date.now(),undefined,undefined,trustedSha),reservedMicroUsd);
+      checkBudget(await sharedBudget(),reservedMicroUsd);
       pr = await github(`/pulls/${pr.number}`); ensure(currentRevision(pr,repository,sha,base),'Revisions changed before preparation');
       writeFileSync(join(env.RUNNER_TEMP,'ai-visual-request.json'),JSON.stringify({sha,base,sourceRun:run.id,names,body,reservedMicroUsd}),{mode:0o600});
       appendFileSync(env.GITHUB_OUTPUT,`reserved_micro_usd=${reservedMicroUsd}\nready=true\n`);
@@ -482,5 +498,5 @@ export function publishUsage(env = process.env) {
   console.log(USAGE_PREFIX+JSON.stringify({...record,response:actual}));
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  Promise.resolve().then(() => process.argv.includes('--settle') ? publishUsage() : main({invalidate:process.argv.includes('--invalidate'),request:process.argv.includes('--request')})).catch(error => { console.error(error.message); process.exitCode=1; });
+  Promise.resolve().then(() => process.argv.includes('--settle') ? publishUsage() : main({invalidate:process.argv.includes('--invalidate'),request:process.argv.includes('--request')})).then(approved => { if (approved === false) process.exitCode=1; }).catch(error => { console.error(error.message); process.exitCode=1; });
 }

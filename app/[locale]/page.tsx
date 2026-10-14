@@ -12,8 +12,9 @@ import { getNotionPublicationSnapshot } from "@/lib/notionPublicationSnapshot";
 import { projectPublicationView } from "@/lib/publicationPresentation";
 import { assertProjectStackCoverage } from "@/lib/stack";
 import { loadWebsiteStack } from "@/lib/websiteStack";
+import { repositoryUrlKey } from "@/lib/projectPublication";
 
-const SELECTED_PROJECTS = ["mstefan-dev", "ai_agents", "PhysIQ"];
+const SELECTED_PROJECTS = ["mstefan-dev", "ai_agents", "PhysIQ"].map(name => `https://github.com/Itakello/${name}`);
 
 export const revalidate = 86_400;
 
@@ -42,9 +43,9 @@ export default async function Home({ params, searchParams }: { params: Promise<{
   if (stackCatalog.status === "ready") {
     assertProjectStackCoverage(publication.projects, stackCatalog.entries);
   }
-  const projectsByTitle = new Map(projects.map((project) => [project.title, project]));
-  const selectedProjects = SELECTED_PROJECTS.flatMap((title) => {
-    const project = projectsByTitle.get(title);
+  const projectsByUrl = new Map(projects.map((project) => [repositoryUrlKey(project.url || ""), project]));
+  const selectedProjects = SELECTED_PROJECTS.flatMap((url) => {
+    const project = projectsByUrl.get(repositoryUrlKey(url));
     return project ? [project] : [];
   });
   const toolkitEntries = stackCatalog.entries;
