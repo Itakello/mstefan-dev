@@ -1,0 +1,19 @@
+.github/workflows/visual-review-retention-probe.yml
+  s_69253e5b15cc6b::t_e738f5a495d88b 1-39
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ad1e88613467802b81224b9d70d71170c6311bcd",
+  "prompts": {},
+  "sessions": {
+    "s_69253e5b15cc6b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a13b90-6cd4-7d00-aa79-683341c18d8b",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
