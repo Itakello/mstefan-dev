@@ -42,6 +42,11 @@ const pathPrefixes = [
   "tests/fixtures/visual-icons/",
 ];
 
+const faviconPaths = new Set([
+  "app/[locale]/layout.tsx", "app/global-not-found.tsx",
+  "public/icon.svg", "public/icon.png", "public/icon-light.png",
+]);
+
 export function isUiImpactingPath(path) {
   return exactPaths.has(path) || pathPrefixes.some((prefix) => path.startsWith(prefix));
 }
@@ -49,6 +54,7 @@ export function isUiImpactingPath(path) {
 export function classifyVisualReview(paths, { force = false } = {}) {
   const normalized = [...new Set(paths.map((path) => path.trim()).filter(Boolean))].sort();
   const matched = normalized.filter(isUiImpactingPath);
+  const nativeFavicon = normalized.some(path => faviconPaths.has(path));
 
   if (force) {
     return {
@@ -56,6 +62,7 @@ export function classifyVisualReview(paths, { force = false } = {}) {
       reason: "forced by the visual-review pull-request label",
       changed: normalized,
       matched,
+      nativeFavicon,
     };
   }
 
@@ -66,6 +73,7 @@ export function classifyVisualReview(paths, { force = false } = {}) {
       : "no UI-impacting paths changed",
     changed: normalized,
     matched,
+    nativeFavicon,
   };
 }
 
@@ -84,7 +92,7 @@ function runCli() {
   const outputPath = process.env.GITHUB_OUTPUT;
   const summaryPath = process.env.GITHUB_STEP_SUMMARY;
 
-  if (outputPath) appendFileSync(outputPath, `run=${result.run}\nreason=${result.reason}\n`);
+  if (outputPath) appendFileSync(outputPath, `run=${result.run}\nreason=${result.reason}\nnative_favicon=${result.nativeFavicon}\n`);
   if (summaryPath) {
     appendFileSync(summaryPath, [
       "## Visual review classification",

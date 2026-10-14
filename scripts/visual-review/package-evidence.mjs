@@ -38,6 +38,8 @@ metadata.workshopStoryIds = existsSync(workshopIndex)
   : [];
 const workshopEvidenceDirectory = resolve(dirname(resultsDirectory), "workshop");
 metadata.captures = [...findFiles(resultsDirectory, ".png"), ...(existsSync(workshopEvidenceDirectory) ? findFiles(workshopEvidenceDirectory, ".png") : [])].map(path => basename(path)).filter(name => !/-(actual|expected|diff)\.png$/.test(name) && !name.startsWith("test-failed-")).sort();
+const nativeFaviconProof = join(resultsDirectory, "native-favicon", "proof.json");
+if (existsSync(nativeFaviconProof)) metadata.nativeFavicon = JSON.parse(readFileSync(nativeFaviconProof, "utf8"));
 
 const videos = findFiles(resultsDirectory, ".webm").sort();
 const expectedRecordings = 5;

@@ -9,6 +9,8 @@ import { once } from 'node:events';
 import { createServer } from 'node:net';
 import { request as httpRequest } from 'node:http';
 import { chromium, expect } from '@playwright/test';
+import { iconFixtureResponse } from '../../e2e/offline-review';
+import { stablePage } from '../../e2e/visual-ready';
 
 const port = Number(process.env.CMS_TEST_PORT || 3000);
 const base = `http://127.0.0.1:${port}`;
@@ -537,7 +539,7 @@ test('nested career branches share junctions and synchronize graph and Experienc
     await expect(stage).toHaveAttribute('aria-busy', 'false');
     assert.equal((await stage.boundingBox())!.y, stageBox!.y, 'Loading the PDF must preserve the reader position');
     assert.ok((await stage.boundingBox())!.height < stageBox!.height, 'Short loaded pages must release unused loading space');
-    await expect.poll(() => stage.evaluate(node => Math.abs(node.clientHeight - Math.min(parseFloat(getComputedStyle(node).maxHeight), node.querySelector('canvas')!.getBoundingClientRect().height + 24)))).toBeLessThan(2);
+    await expect.poll(() => stage.evaluate(node => Math.abs(node.clientHeight - Math.min(parseFloat(getComputedStyle(node).maxHeight), node.querySelector('canvas')!.getBoundingClientRect().height)))).toBeLessThan(2);
     await expect(reader.getByRole('status', { name: /preview unavailable/i })).toHaveCount(0);
     await expect.poll(() => reader.locator('canvas').evaluate((canvas) => (canvas as HTMLCanvasElement).width)).toBeGreaterThan(0);
     await expect(reader.locator('[data-document-text]')).toContainText('Synthetic career PDF');
@@ -640,9 +642,36 @@ test('nested career branches share junctions and synchronize graph and Experienc
     await expect(page.locator('#career-story figure').getByRole('status')).toHaveText('Foto non disponibile.');
     await expect(page.locator('#career-story img')).toBeHidden();
     await expect(reader.getByRole('status')).toContainText('Anteprima non disponibile.');
-    await expect(reader.getByRole('link', { name: 'Apri PDF' })).toBeVisible();
+    await expect(reader.getByRole('link', { name: 'Scarica PDF' })).toBeVisible();
     await italianGraph.locator('[data-career-main-row]').click();
     await expect(page.locator('#career-story img')).toBeVisible();
+    await page.unroute(`**${photo.url}`);
+    await page.unroute(`**${pdfFile.url}`);
+    let releaseItalianPhoto!: () => void;
+    let releaseItalianPDF!: () => void;
+    const italianPhotoGate = new Promise<void>(resolve => { releaseItalianPhoto = resolve; });
+    const italianPDFGate = new Promise<void>(resolve => { releaseItalianPDF = resolve; });
+    await page.route(`**${photo.url}`, async route => { await italianPhotoGate; await route.continue(); });
+    await page.route(`**${pdfFile.url}`, async route => { await italianPDFGate; await route.continue(); });
+    await italianGraph.locator('button[data-career-job]', { hasText: 'work/company/project' }).click();
+    await expect(figure.getByRole('status')).toHaveText('Caricamento foto…');
+    await expect(reader.getByRole('status')).toHaveText('Caricamento documento…');
+    await expect(reader.getByRole('button', { name: 'Ingrandisci', exact: true })).toBeDisabled();
+    const italianPhotoBox = await figure.boundingBox();
+    const italianStageTop = await stage.evaluate(node => node.getBoundingClientRect().top + window.scrollY);
+    releaseItalianPhoto();
+    releaseItalianPDF();
+    await expect(figure).toHaveAttribute('aria-busy', 'false');
+    await expect(figure.locator('img')).toBeVisible();
+    assert.deepEqual(await figure.boundingBox(), italianPhotoBox, 'Italian recovery preserves reserved photo dimensions');
+    await expect(stage).toHaveAttribute('aria-busy', 'false');
+    await expect(reader.locator('[data-document-text]')).toContainText('Synthetic career PDF');
+    assert.equal(await stage.evaluate(node => node.getBoundingClientRect().top + window.scrollY), italianStageTop, 'Italian recovery preserves reader position in the document despite mobile scroll anchoring');
+    await expect.poll(() => stage.evaluate(node => Math.abs(node.clientHeight - Math.min(parseFloat(getComputedStyle(node).maxHeight), node.querySelector('canvas')!.getBoundingClientRect().height)))).toBeLessThan(2);
+    await expect(reader.getByRole('status')).toHaveCount(0);
+    await expect(reader.locator('canvas')).toBeVisible();
+    await stablePage(page);
+    await page.screenshot({ path: '.artifacts/playwright/experience-media-italian-recovered.png', fullPage: true });
   } finally { await browser.close(); }
 });
 
@@ -717,6 +746,11 @@ test('degree results are optional metadata downloads while other attachments ret
   const browser = await chromium.launch({ headless: true });
   try {
     const page = await browser.newPage();
+    for (const host of ['api.iconify.design', 'api.simplesvg.com', 'api.unisvg.com']) {
+      await page.route(`https://${host}/**`, async route => {
+        await route.fulfill({ json: await iconFixtureResponse(new URL(route.request().url())), headers: { 'access-control-allow-origin': '*' } });
+      });
+    }
     await mkdir('.artifacts/playwright/master-download', { recursive: true });
     for (const [locale, title, verb] of [['en', 'Master’s exam results', 'Download'], ['it', 'Risultati degli esami magistrali', 'Scarica']]) {
       const saved = await (await request(`/api/globals/career?locale=${locale}&draft=false`, undefined, true)).json();
@@ -745,7 +779,11 @@ test('degree results are optional metadata downloads while other attachments ret
             await page.setViewportSize({ width, height });
             for (const theme of ['light', 'dark'] as const) {
               const dark = (await page.locator('html').getAttribute('class'))?.split(' ').includes('dark') ?? false;
-              if (dark !== (theme === 'dark')) await page.getByRole('button', { name: locale === 'it' ? 'Cambia tema' : 'Toggle theme' }).click();
+              if (dark !== (theme === 'dark')) {
+                await page.getByRole('button', { name: locale === 'it' ? 'Apri navigazione' : 'Open navigation', exact: true }).click();
+                await page.getByRole('button', { name: locale === 'it' ? 'Cambia tema' : 'Toggle theme', exact: true }).click();
+                await page.getByRole('button', { name: locale === 'it' ? 'Chiudi navigazione' : 'Close navigation', exact: true }).click();
+              }
               await expect(page.locator('html')).toHaveClass(theme === 'dark' ? /\bdark\b/ : /^(?!.*\bdark\b)/);
               await expect(link).toBeVisible();
               const metadataBox = await page.locator('#career-story article p', { has: link }).boundingBox();
@@ -755,10 +793,12 @@ test('degree results are optional metadata downloads while other attachments ret
               await link.press('Tab');
               await page.keyboard.press('Shift+Tab');
               await expect(link).toBeFocused();
-              await page.screenshot({ path: `.artifacts/playwright/master-download/${degree}-${locale}-${size}-${theme}.png`, fullPage: true });
+              await expect(page.locator('footer a').first()).toHaveCSS('color', theme === 'dark' ? 'rgba(255, 255, 255, 0.65)' : 'rgba(0, 0, 0, 0.65)');
+              await stablePage(page);
+              await page.screenshot({ path: `.artifacts/playwright/master-download/${degree}-${locale}-${size}-${theme}.png`, fullPage: true, animations: 'disabled' });
               await link.hover();
               if ((locale === 'en' && size === 'desktop' && theme === 'light') || (locale === 'it' && size === 'mobile' && theme === 'dark')) {
-                await page.screenshot({ path: `.artifacts/playwright/master-download/${degree}-${locale}-${size}-${theme}-hover.png`, fullPage: true });
+                await page.screenshot({ path: `.artifacts/playwright/master-download/${degree}-${locale}-${size}-${theme}-hover.png`, fullPage: true, animations: 'disabled' });
               }
             }
           }

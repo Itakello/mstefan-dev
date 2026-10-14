@@ -17,7 +17,6 @@ export default async function GlobalNotFound() {
   return (
     <html lang={locale} suppressHydrationWarning>
       <head>
-        <link rel="icon" href="/icon.svg" />
         <script dangerouslySetInnerHTML={{ __html: INITIAL_THEME_SCRIPT }} />
       </head>
       <body>

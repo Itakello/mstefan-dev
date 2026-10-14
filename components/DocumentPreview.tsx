@@ -1,21 +1,46 @@
 "use client";
-import { ChevronLeft, ChevronRight, Download, ExternalLink, Minus, Plus } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { Download, Minus, Plus } from "lucide-react";
+import { useEffect, useRef, useState, type ReactNode, type CSSProperties } from "react";
 import type { PDFDocumentProxy } from "pdfjs-dist";
 import type { Locale } from "@/lib/i18n/config";
 import { documentMediaUrl } from "@/lib/documentMedia";
+import { presentationPreviewUrl } from "@/lib/powerPointPreview";
+import { PreviewArrows } from "./PreviewArrows";
+import { PowerPointPreview } from "./PowerPointPreview";
 
-export function DocumentPreview({ url, title, locale, filename, presentation = false }: { url: string; title: string; locale: Locale; filename?: string | null; presentation?: boolean }) {
+type DocumentPreviewProps = { url: string; title: string; locale: Locale; filename?: string | null; presentation?: boolean; previewUrl?: string; enlarge?: ReactNode };
+
+export function DocumentPreview(props: DocumentPreviewProps) {
+  return props.presentation && ((props.previewUrl && presentationPreviewUrl(props.previewUrl)) || new URL(props.url, "https://www.mstefan.dev").pathname.toLowerCase().endsWith(".pptx"))
+    ? <PowerPointPreview url={props.url} title={props.title} locale={props.locale} previewUrl={props.previewUrl} enlarge={props.enlarge} download={<DocumentDownload {...props} />} />
+    : <PdfDocumentPreview {...props} />;
+}
+
+export function DocumentDownload({ url, locale, filename, presentation = false }: DocumentPreviewProps) {
+  const italian = locale === "it";
+  let source: string;
+  try { source = url.startsWith("/") && !url.startsWith("//") ? url : documentMediaUrl(url); }
+  catch { return null; }
+  const pathname = new URL(url, "https://www.mstefan.dev").pathname.toLowerCase();
+  const powerpoint = presentation && pathname.endsWith(".pptx");
+  const format = presentation && !powerpoint && !pathname.endsWith(".pdf")
+    ? (italian ? "documento" : "document") : (powerpoint ? "PowerPoint" : "PDF");
+  const label = `${italian ? "Scarica" : "Download"} ${format}`;
+  return <a href={source} download={filename || true} target="_blank" rel="noopener noreferrer" aria-label={label} title={label} data-media-download className="media-preview-control absolute bottom-3 right-[60px] z-20 transition-opacity"><Download size={18} aria-hidden /></a>;
+}
+
+function PdfDocumentPreview({ url, title, locale, filename, presentation = false, enlarge }: DocumentPreviewProps) {
   const host = useRef<HTMLDivElement>(null);
   const text = useRef<HTMLDivElement>(null);
   const pageHost = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
-  const [resolvedUrl, setResolvedUrl] = useState(url);
+  const swipeStart = useRef<{ x: number; y: number } | null>(null);
   const [document, setDocument] = useState<PDFDocumentProxy | null>(null);
   const [page, setPage] = useState(1);
   const [zoom, setZoom] = useState(1);
   const [viewportHeight, setViewportHeight] = useState(0);
   const [width, setWidth] = useState(0);
+  const [pageRatio, setPageRatio] = useState(1);
   const [pageHeight, setPageHeight] = useState<number | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const italian = locale === "it";
@@ -43,7 +68,6 @@ export function DocumentPreview({ url, title, locale, filename, presentation = f
         if (disposed) return;
         pdf.GlobalWorkerOptions.workerSrc = new URL("pdfjs-dist/build/pdf.worker.min.mjs", import.meta.url).toString();
         const source = documentMediaUrl(url, window.location.origin);
-        setResolvedUrl(source);
         task = pdf.getDocument({ url: source });
         const loaded = await task.promise;
         if (!disposed) setDocument(loaded);
@@ -65,8 +89,9 @@ export function DocumentPreview({ url, title, locale, filename, presentation = f
         const pdfPage = await document!.getPage(page);
         if (disposed) return;
         const base = pdfPage.getViewport({ scale: 1 });
+        setPageRatio(base.width / base.height);
         const maxHeight = Math.max(1, parseFloat(window.getComputedStyle(host.current!).maxHeight) - 24);
-        const fit = presentation ? Math.min(width / base.width, maxHeight / base.height) : width / base.width;
+        const fit = Math.min(width / base.width, maxHeight / base.height);
         const viewport = pdfPage.getViewport({ scale: fit * zoom });
         const ratio = Math.min(window.devicePixelRatio || 1, 2);
         element.width = Math.ceil(viewport.width * ratio);
@@ -88,32 +113,41 @@ export function DocumentPreview({ url, title, locale, filename, presentation = f
           textLayer = new TextLayer({ container: text.current, viewport, textContentSource: pdfPage.streamTextContent({ includeMarkedContent: true }) });
           await textLayer.render();
         }
-        if (!disposed) { setPageHeight(viewport.height + 24); setStatus("ready"); }
+        if (!disposed) { setPageHeight(viewport.height); setStatus("ready"); }
       } catch { if (!disposed) setStatus("error"); }
     }
     void draw();
     return () => { disposed = true; render?.cancel(); textLayer?.cancel(); };
   }, [document, page, width, zoom, presentation, viewportHeight]);
-  const control = "inline-flex items-center justify-center rounded-md p-2 hover:bg-black/5 disabled:opacity-30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[hsl(var(--accent))] dark:hover:bg-white/10";
-  return <section data-pdf-preview aria-label={`${title}: ${italian ? "Lettore documenti" : "Document reader"}`} className="overflow-hidden rounded-xl border border-black/10 dark:border-white/15">
-    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-black/10 px-2 py-2 text-xs dark:border-white/15">
-      <div className="flex items-center gap-1">
-        <button type="button" className={control} disabled={status === "loading" || !document || page === 1} aria-label={italian ? "Pagina precedente" : "Previous page"} onClick={() => setPage(page - 1)}><ChevronLeft size={16} /></button>
-        <span aria-live="polite">{page} / {document?.numPages ?? "…"}</span>
-        <button type="button" className={control} disabled={status === "loading" || !document || page === document.numPages} aria-label={italian ? "Pagina successiva" : "Next page"} onClick={() => setPage(page + 1)}><ChevronRight size={16} /></button>
-      </div>
-      <div className="flex items-center gap-1">
-        <button type="button" className={control} disabled={status === "loading" || !document || zoom <= 1} aria-label={italian ? "Riduci" : "Zoom out"} onClick={() => setZoom(value => Math.max(1, value - 0.25))}><Minus size={16} /></button>
-        <span>{Math.round(zoom * 100)}%</span>
-        <button type="button" className={control} disabled={status === "loading" || !document || zoom >= 2} aria-label={italian ? "Ingrandisci" : "Zoom in"} onClick={() => setZoom(value => Math.min(2, value + 0.25))}><Plus size={16} /></button>
-        <a href={resolvedUrl} download={filename || true} className={`${control} gap-1`}>{italian ? "Scarica PDF" : "Download PDF"}<Download size={14} /></a>
-        <a href={resolvedUrl} target="_blank" rel="noreferrer" className={`${control} gap-1`}>{italian ? "Apri PDF" : "Open PDF"}<ExternalLink size={14} /></a>
-      </div>
-    </div>
-    <div ref={host} aria-busy={status === "loading"} data-document-stage style={{ height: pageHeight ?? undefined }} className={`relative ${presentation ? "h-[min(480px,55svh)] max-h-[min(480px,55svh)]" : "h-[min(680px,75svh)] max-h-[min(680px,75svh)]"} overflow-auto overscroll-contain bg-[var(--surface-bg)] p-3`}>
+  const control = "media-preview-control disabled:cursor-default";
+  return <section data-pdf-preview aria-label={`${title}: ${italian ? "Lettore documenti" : "Document reader"}`} className={`mx-auto ${presentation ? "" : "max-w-[640px]"}`}>
+    <div data-preview-stage className="media-frame" style={{ width: presentation ? undefined : `min(100%, calc(min(616px, 70svh - 24px) * ${pageRatio} + 24px))`, marginInline: "auto", "--document-ratio": pageRatio, touchAction: zoom > 1 ? "pan-x pan-y pinch-zoom" : "pan-y pinch-zoom" } as CSSProperties}
+      onTouchStart={event => { swipeStart.current = zoom === 1 && event.touches.length === 1 ? { x: event.touches[0].clientX, y: event.touches[0].clientY } : null; }}
+      onTouchCancel={() => { swipeStart.current = null; }}
+      onTouchEnd={event => {
+        const start = swipeStart.current;
+        swipeStart.current = null;
+        if (!start || !event.changedTouches.length || !document || status === "loading") return;
+        const dx = event.changedTouches[0].clientX - start.x;
+        const dy = event.changedTouches[0].clientY - start.y;
+        if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5) setPage(current => Math.max(1, Math.min(document.numPages, current + (dx < 0 ? 1 : -1))));
+      }}>
+    <div ref={host} aria-busy={status === "loading"} data-document-stage style={{ height: pageHeight ?? (presentation ? "min(480px,55svh)" : "min(640px,70svh)") }} className={`relative ${presentation ? "max-h-[min(480px,55svh)]" : "max-h-[min(640px,70svh)]"} overflow-auto bg-[var(--surface-bg)]`}>
       {status === "loading" && <p role="status" className="absolute inset-0 z-10 flex items-center justify-center text-sm text-[var(--page-muted)]">{italian ? "Caricamento documento…" : "Loading document…"}</p>}
-      {status === "error" && <p role="status" className="text-sm">{italian ? "Anteprima non disponibile. Usa Apri PDF per leggere il documento." : "Preview unavailable. Use Open PDF to read the document."}</p>}
+      {status === "error" && <p role="status" className="text-sm">{italian ? "Anteprima non disponibile. Usa Scarica PDF per leggere il documento." : "Preview unavailable. Use Download PDF to read the document."}</p>}
       <div ref={pageHost} className={`relative mx-auto ${status === "error" ? "hidden" : status === "loading" ? "invisible" : ""}`}><canvas ref={canvas} role="img" aria-label={`${title} · ${italian ? "pagina" : "page"} ${page}`} className="bg-white shadow-sm" /><div ref={text} data-document-text /></div>
     </div>
+    {!presentation && <div data-media-zoom role="group" aria-label={italian ? "Zoom documento" : "Document zoom"} className="absolute top-3 left-3 z-20 flex items-center gap-1 text-xs transition-opacity">
+          <button type="button" className={control} disabled={status === "loading" || !document || zoom <= 1} aria-label={italian ? "Riduci" : "Zoom out"} onClick={() => setZoom(value => Math.max(1, value - 0.25))}><Minus size={16} /></button>
+          <span className="media-preview-control" aria-live="polite">{Math.round(zoom * 100)}%</span>
+          <button type="button" className={control} disabled={status === "loading" || !document || zoom >= 2} aria-label={italian ? "Ingrandisci" : "Zoom in"} onClick={() => setZoom(value => Math.min(2, value + 0.25))}><Plus size={16} /></button>
+    </div>}
+    <DocumentDownload url={url} title={title} locale={locale} filename={filename} presentation={presentation} />
+    {enlarge}
+    <PreviewArrows previous={italian ? "Pagina precedente" : "Previous page"} next={italian ? "Pagina successiva" : "Next page"}
+      previousDisabled={status === "loading" || !document || page === 1} nextDisabled={status === "loading" || !document || page === document.numPages}
+      onPrevious={() => setPage(current => Math.max(1, current - 1))} onNext={() => setPage(current => Math.min(document?.numPages ?? 1, current + 1))} />
+    </div>
+    <div className="media-caption" aria-live="polite">{title} <span className="text-[var(--page-muted)]">· {page} / {document?.numPages ?? "…"}</span></div>
   </section>;
 }
