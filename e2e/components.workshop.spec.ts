@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { fixVisualDate } from "./visual-ready";
 
 async function story(page: Page, id: string, theme: string) {
   await page.goto(`/iframe.html?id=${id}&viewMode=story&globals=theme:${theme}`);
@@ -23,7 +24,7 @@ for (const theme of ["light", "dark"] as const) {
     test(`${size} ${theme} component states and interactions`, async ({ page, context, request }, testInfo) => {
       test.setTimeout(120_000);
       await page.setViewportSize(viewport);
-      await page.clock.setFixedTime(new Date("2026-10-10T12:00:00Z"));
+      await fixVisualDate(page);
       const errors: string[] = [];
       page.on("pageerror", error => errors.push(error.message));
       const external: string[] = [];

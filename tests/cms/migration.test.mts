@@ -181,7 +181,7 @@ test('branch graph preview baseline preserves populated published and draft fiel
     const migrate = spawnSync(process.execPath, ['node_modules/payload/bin.js', 'migrate'], { env: environment, encoding: 'utf8', timeout: 30_000 });
     assert.equal(migrate.status, 0, `${migrate.stderr}\n${migrate.stdout}`);
     db = new DatabaseSync(filename);
-    assert.deepEqual(content().filter((table) => !['documents', 'career_jobs_documents', '_career_v_version_jobs_documents'].includes(table.name)).map((table) => ({ ...table, rows: table.rows.map((row) => {
+    assert.deepEqual(content().filter((table) => !['documents', 'career_jobs_documents', '_career_v_version_jobs_documents'].includes(table.name) && !table.name.includes('_assets') && table.name !== 'media_locales').map((table) => ({ ...table, rows: table.rows.map((row) => {
       if (table.name === 'career_jobs' || table.name === '_career_v_version_jobs') { delete row.ongoing; delete row.photo_id; }
       if (table.name === 'media') delete row.alt;
       if (table.name === 'users') delete row.reset_password_requested_at;
