@@ -770,6 +770,10 @@ test('degree results are optional metadata downloads while other attachments ret
                 await expect(photo).toHaveAttribute('src', degreePhoto.url);
                 await expect(photo).toBeVisible();
                 assert.ok(await photo.evaluate((image) => (image as HTMLImageElement).complete && (image as HTMLImageElement).naturalWidth > 0), 'Document-only degree photo must decode before every capture');
+                const photoBox = await photo.locator('..').boundingBox();
+                const storyBox = await page.locator('#career-story').boundingBox();
+                assert.ok(photoBox && storyBox && Math.abs(photoBox.width - Math.min(320, storyBox.width)) < 1, 'Degree portrait must cap at 20rem while fitting narrow screens');
+                assert.ok(photoBox && storyBox && Math.abs(photoBox.x + photoBox.width / 2 - storyBox.x - storyBox.width / 2) < 1, 'Degree portrait must remain centered in both languages');
               }
               await page.screenshot({ path: `.artifacts/playwright/master-download/${degree}-${locale}-${size}-${theme}.png`, fullPage: true, animations: 'disabled' });
               await link.hover();
