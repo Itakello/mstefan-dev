@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useId, useRef, useState, type CSSProperties, type FocusEvent } from "react";
 import { useLivePreview } from "@payloadcms/live-preview-react";
 import type { Career } from "@/payload-types";
+import { withCareerMedia, type CareerContent } from "@/lib/cms/career-media";
 import type { Locale } from "@/lib/i18n/config";
 import { localizedPath } from "@/lib/i18n/routing";
 import { formatCareerPeriod, layoutCareerTimeline, nearestCareerJunction } from "@/lib/career-timeline";
@@ -20,7 +21,7 @@ export function BranchIcon() {
   return <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M4 5v6m0-3c0-3 8-1 8-5M4 2a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Zm0 9a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Zm8-11a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Z" /></svg>;
 }
 
-export function CareerGraph({ career, locale, expanded = false, onSelectionChange, showDetails = true }: { career: Career; locale: Locale; expanded?: boolean; onSelectionChange?: (job: NonNullable<Career["jobs"]>[number] | null) => void; showDetails?: boolean }) {
+export function CareerGraph({ career, locale, expanded = false, onSelectionChange, showDetails = true }: { career: CareerContent; locale: Locale; expanded?: boolean; onSelectionChange?: (job: NonNullable<CareerContent["jobs"]>[number] | null) => void; showDetails?: boolean }) {
   const content = labels[locale];
   const gapID = useId();
   const jobs = career.jobs ?? [];
@@ -212,5 +213,5 @@ export function CareerGraph({ career, locale, expanded = false, onSelectionChang
 
 export function CareerLivePreview(props: Parameters<typeof CareerGraph>[0]) {
   const { data } = useLivePreview<Career>({ initialData: props.career, serverURL: typeof window === "undefined" ? "" : window.location.origin, depth: 1 });
-  return <CareerGraph {...props} career={data} />;
+  return <CareerGraph {...props} career={withCareerMedia(data)} />;
 }

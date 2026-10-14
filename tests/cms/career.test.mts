@@ -132,74 +132,71 @@ test('career seed, localized order, authenticated drafts, colors, and deletion s
     assert.deepEqual(deleted.jobs ?? [], []);
     assert.deepEqual((await payload.findGlobal({ slug: 'career', locale: 'it', draft: false })).jobs, publicItalian.jobs);
     const mediaDB = new DatabaseSync(path.join(dataDir, '.payload-local.db'));
-    try {
-      for (const id of [1, 2, 3, 4]) mediaDB.prepare('INSERT INTO media (id, filename, alt) VALUES (?, ?, ?)').run(id, `photo-${id}.png`, `Photo ${id}`);
-    } finally { mediaDB.close(); }
-    const visibleMedia = async () => {
-      try { return (await payload.find({ collection: 'media', overrideAccess: false, limit: 20 })).docs.map(({ id }) => id).sort(); }
+    for (const id of [1, 2, 3]) {
+      mediaDB.prepare("INSERT INTO media (id, filename, alt, mime_type) VALUES (?, ?, ?, 'image/png')").run(id, `photo-${id}.png`, `Photo ${id}`);
+      mediaDB.prepare('INSERT INTO documents (id, filename, mime_type) VALUES (?, ?, ?)').run(id, `document-${id}.pdf`, 'application/pdf');
+    }
+    mediaDB.close();
+    const visible = async (collection: 'media' | 'documents') => {
+      try { return (await payload.find({ collection, overrideAccess: false, limit: 20 })).docs.map(({ id }) => id).sort(); }
       catch (error) { if ((error as { status?: number }).status === 403) return []; throw error; }
     };
-    assert.deepEqual(await visibleMedia(), []);
-    const italianJobs = (await payload.findGlobal({ slug: 'career', locale: 'it', draft: false, fallbackLocale: false })).jobs!;
-    await payload.updateGlobal({ slug: 'career', locale: 'it', publishSpecificLocale: 'it', data: {
-      _status: 'published', jobs: italianJobs.map((job, index) => ({ ...job, summary: index === 0 ? 'Italian story' : job.summary, photo: index === 0 ? 2 : null })),
-    } });
-    assert.deepEqual(await visibleMedia(), [2], 'Published Italian career photo should be public');
-    await payload.updateGlobal({ slug: 'career', locale: 'en', draft: true, data: {
-      jobs: [{ branchName: 'work/draft', company: 'Draft', role: 'Draft role', summary: 'English story', color: '#123456', photo: 3 }],
-    } });
-    assert.deepEqual(await visibleMedia(), [2], 'Draft-only career photo should remain private');
-    const draftPhoto = (await payload.findGlobal({ slug: 'career', locale: 'en', draft: true, depth: 1 })).jobs![0].photo;
-    assert.equal(typeof draftPhoto === 'object' && draftPhoto?.alt, 'Photo 3');
-    await payload.updateGlobal({ slug: 'career', locale: 'en', publishSpecificLocale: 'en', data: { _status: 'published' } });
-    assert.deepEqual(await visibleMedia(), [2, 3]);
+    const { withCareerMedia } = await import('../../lib/cms/career-media');
+    const jobs = [{ branchName: 'work/shared', company: 'Shared company', role: 'English role', summary: '', color: '#123456' }];
     await payload.updateGlobal({ slug: 'career', locale: 'en', publishSpecificLocale: 'en', data: {
-      _status: 'published', jobs: [{ branchName: 'work/photo-only', company: 'Photo only', role: 'Draft role', color: '#123456', photo: 4 }],
+      _status: 'published', jobs, assets: [{ branchName: 'work/shared', photo: 1, documents: [{ file: 1, title: 'English PDF' }] }],
     } });
-    assert.deepEqual(await visibleMedia(), [2], 'Photo-only experience keeps the main profile and its image private');
-    await payload.updateGlobal({ slug: 'career', locale: 'en', publishSpecificLocale: 'en', data: {
-      _status: 'published', jobs: [{ branchName: 'work/draft', company: 'Draft', role: 'Draft role', summary: 'English story', color: '#123456', photo: 3 }],
-    } });
-    assert.deepEqual(await visibleMedia(), [2, 3]);
-    await payload.updateGlobal({ slug: 'career', locale: 'en', draft: true, data: {
-      jobs: [{ branchName: 'work/draft', company: 'Draft', role: 'Draft role', summary: 'English story', color: '#123456', photo: 4 }],
-    } });
-    assert.deepEqual(await visibleMedia(), [2, 3], 'Replacing a photo in a draft must not expose it');
-    await payload.updateGlobal({ slug: 'about', locale: 'en', publishSpecificLocale: 'en', data: { _status: 'published', photo: 1 } });
-    assert.deepEqual(await visibleMedia(), [1, 2, 3], 'Published About photo remains public');
-    await payload.updateGlobal({ slug: 'about', locale: 'en', draft: true, data: { photo: 4 } });
-    assert.deepEqual(await visibleMedia(), [1, 2, 3], 'Draft About photo remains private');
-    await payload.updateGlobal({ slug: 'career', locale: 'en', publishSpecificLocale: 'en', data: { _status: 'published', jobs: [] } });
-    assert.deepEqual(await visibleMedia(), [1, 2], 'Removed career photo should become private');
-    const documentsDB = new DatabaseSync(path.join(dataDir, '.payload-local.db'));
-    try {
-      for (const id of [1, 2, 3]) documentsDB.prepare('INSERT INTO documents (id, filename, mime_type) VALUES (?, ?, ?)').run(id, `document-${id}.pdf`, 'application/pdf');
-    } finally { documentsDB.close(); }
-    const visibleDocuments = async () => {
-      try { return (await payload.find({ collection: 'documents', overrideAccess: false, limit: 20 })).docs.map(({ id }) => id).sort(); }
-      catch (error) { if ((error as { status?: number }).status === 403) return []; throw error; }
-    };
-    assert.deepEqual(await visibleDocuments(), []);
-    const italianWithDocuments = (await payload.findGlobal({ slug: 'career', locale: 'it', draft: false, fallbackLocale: false })).jobs!;
     await payload.updateGlobal({ slug: 'career', locale: 'it', publishSpecificLocale: 'it', data: {
-      _status: 'published', jobs: italianWithDocuments.map((job, index) => ({ ...job, documents: index === 0 ? [{ title: 'Documento italiano', file: 1 }] : [] })),
+      _status: 'published', jobs: jobs.map((job) => ({ ...job, role: 'Ruolo italiano', summary: '' })),
+      assets: [{ branchName: 'work/shared', photo: 1, documents: [{ file: 1, title: 'PDF italiano' }] }],
     } });
-    assert.deepEqual(await visibleDocuments(), [1], 'Published Italian document should be public');
-    await payload.updateGlobal({ slug: 'career', locale: 'en', draft: true, data: {
-      jobs: [{ branchName: 'work/draft', company: 'Draft', role: 'Draft role', color: '#123456', documents: [{ title: 'Private PDF', file: 2 }] }],
+    const read = async (locale: 'en' | 'it', draft = false) => withCareerMedia(await payload.findGlobal({ slug: 'career', locale, draft, depth: 0, fallbackLocale: false }));
+    assert.equal((await read('en')).jobs![0].documents![0].title, 'English PDF');
+    assert.equal((await read('it')).jobs![0].documents![0].title, 'PDF italiano');
+    await payload.updateGlobal({ slug: 'career', locale: 'it', draft: true, data: {
+      jobs: jobs.map((job) => ({ ...job, role: 'Private Italian role' })),
+      assets: [{ branchName: 'work/shared', photo: 2, documents: [{ file: 2, title: 'Private Italian PDF' }] }],
     } });
-    assert.deepEqual(await visibleDocuments(), [1], 'Draft-only document should remain private');
-    const draftDocument = (await payload.findGlobal({ slug: 'career', locale: 'en', draft: true, depth: 1 })).jobs![0].documents![0];
-    assert.equal(draftDocument.title, 'Private PDF');
-    assert.equal(typeof draftDocument.file === 'object' && draftDocument.file?.mimeType, 'application/pdf');
+    assert.deepEqual(await visible('media'), [1]);
+    assert.deepEqual(await visible('documents'), [1]);
+    assert.equal((await read('en')).jobs![0].photo, 1);
+    assert.equal((await read('it')).jobs![0].photo, 1);
+    assert.equal((await read('en', true)).jobs![0].photo, 2, 'Media drafts are shared');
+    await restart();
+    assert.equal((await read('it', true)).jobs![0].photo, 2);
+    assert.equal((await read('it')).jobs![0].role, 'Ruolo italiano');
     await payload.updateGlobal({ slug: 'career', locale: 'en', publishSpecificLocale: 'en', data: { _status: 'published' } });
-    assert.deepEqual(await visibleDocuments(), [1, 2]);
+    for (const locale of ['en', 'it'] as const) {
+      assert.equal((await read(locale)).jobs![0].photo, 2, 'One publication serves the same image in both languages');
+      assert.equal((await read(locale)).jobs![0].documents![0].file, 2, 'Document references are shared');
+    }
+    assert.equal((await read('it')).jobs![0].role, 'Ruolo italiano', 'Publishing shared media preserves unpublished Italian text');
+    assert.equal((await read('it', true)).jobs![0].role, 'Private Italian role');
+    assert.equal((await read('it')).jobs![0].documents![0].title, 'PDF italiano', 'English media publication must keep Italian draft labels private');
+    assert.equal((await read('it', true)).jobs![0].documents![0].title, 'Private Italian PDF');
+    await payload.update({ collection: 'media', id: 2, locale: 'en', data: { alt: 'English portrait' } });
+    await payload.update({ collection: 'media', id: 2, locale: 'it', data: { alt: 'Ritratto italiano' } });
+    assert.equal((await payload.findByID({ collection: 'media', id: 2, locale: 'en' })).alt, 'English portrait');
+    assert.equal((await payload.findByID({ collection: 'media', id: 2, locale: 'it' })).alt, 'Ritratto italiano');
+    assert.deepEqual(await visible('media'), [2]);
+    assert.deepEqual(await visible('documents'), [2]);
     await payload.updateGlobal({ slug: 'career', locale: 'en', draft: true, data: {
-      jobs: [{ branchName: 'work/draft', company: 'Draft', role: 'Draft role', color: '#123456', documents: [{ title: 'Replacement draft', file: 3 }] }],
+      assets: [{ branchName: 'work/shared', photo: 3, documents: [{ file: 3, title: 'Replacement draft' }] }],
     } });
-    assert.deepEqual(await visibleDocuments(), [1, 2], 'Replacing a document in a draft must not expose it');
-    await payload.updateGlobal({ slug: 'career', locale: 'en', publishSpecificLocale: 'en', data: { _status: 'published', jobs: [] } });
-    assert.deepEqual(await visibleDocuments(), [1], 'Removed published document should become private');
+    assert.deepEqual(await visible('media'), [2]);
+    assert.deepEqual(await visible('documents'), [2]);
+    await assert.rejects(payload.updateGlobal({ slug: 'career', locale: 'en', publishSpecificLocale: 'en', data: {
+      _status: 'published', assets: [{ branchName: 'work/shared', photo: 3, documents: [{ title: 'Missing file' }] }],
+    } }));
+    await assert.rejects(payload.updateGlobal({ slug: 'career', locale: 'en', publishSpecificLocale: 'en', data: {
+      _status: 'published', assets: [{ branchName: 'work/shared', photo: 3, documents: [{ file: 999999, title: 'Unknown file' }] }],
+    } }));
+    await payload.delete({ collection: 'documents', id: 2 });
+    assert.deepEqual(await visible('media'), [], 'Deleting the only published document revokes document-only photo access');
+    await payload.updateGlobal({ slug: 'career', locale: 'en', publishSpecificLocale: 'en', data: { _status: 'published', assets: [] } });
+    assert.deepEqual(await visible('media'), []);
+    assert.deepEqual(await visible('documents'), []);
+    await assert.rejects(payload.updateGlobal({ slug: 'career', locale: 'en', data: { assets: [{ branchName: 'work/shared' }, { branchName: 'work/shared' }] } }));
   } finally {
     await payload.destroy();
     await rm(dataDir, { recursive: true, force: true });

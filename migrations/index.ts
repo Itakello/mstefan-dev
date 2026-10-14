@@ -5,6 +5,7 @@ import * as migration_20260929_160549_career_ongoing from './20260929_160549_car
 import * as migration_20260929_205504_career_photo from './20260929_205504_career_photo';
 import * as migration_20260929_220029_career_documents from './20260929_220029_career_documents';
 import * as migration_20261007_211914_password_reset_throttle from './20261007_211914_password_reset_throttle';
+import * as migration_20261011_132233_shared_career_media from './20261011_132233_shared_career_media';
 import * as migration_20261012_224409_experience_metadata from './20261012_224409_experience_metadata';
 
 export const migrations = [
@@ -44,8 +45,13 @@ export const migrations = [
     name: '20261007_211914_password_reset_throttle',
   },
   {
+    up: migration_20261011_132233_shared_career_media.up,
+    down: migration_20261011_132233_shared_career_media.down,
+    name: '20261011_132233_shared_career_media',
+  },
+  {
     up: migration_20261012_224409_experience_metadata.up,
     down: migration_20261012_224409_experience_metadata.down,
-    name: '20261012_224409_experience_metadata'
+    name: '20261012_224409_experience_metadata',
   },
 ];

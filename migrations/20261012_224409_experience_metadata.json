@@ -198,13 +198,6 @@
           "notNull": true,
           "autoincrement": false
         },
-        "alt": {
-          "name": "alt",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
         "updated_at": {
           "name": "updated_at",
           "type": "text",
@@ -309,6 +302,67 @@
         }
       },
       "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "media_locales": {
+      "name": "media_locales",
+      "columns": {
+        "alt": {
+          "name": "alt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "_locale": {
+          "name": "_locale",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "_parent_id": {
+          "name": "_parent_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "media_locales_locale_parent_id_unique": {
+          "name": "media_locales_locale_parent_id_unique",
+          "columns": [
+            "_locale",
+            "_parent_id"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "media_locales_parent_id_fk": {
+          "name": "media_locales_parent_id_fk",
+          "tableFrom": "media_locales",
+          "tableTo": "media",
+          "columnsFrom": [
+            "_parent_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "checkConstraints": {}
@@ -1719,114 +1773,6 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
-    "career_jobs_documents": {
-      "name": "career_jobs_documents",
-      "columns": {
-        "_order": {
-          "name": "_order",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "_parent_id": {
-          "name": "_parent_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "_locale": {
-          "name": "_locale",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "title": {
-          "name": "title",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "file_id": {
-          "name": "file_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        }
-      },
-      "indexes": {
-        "career_jobs_documents_order_idx": {
-          "name": "career_jobs_documents_order_idx",
-          "columns": [
-            "_order"
-          ],
-          "isUnique": false
-        },
-        "career_jobs_documents_parent_id_idx": {
-          "name": "career_jobs_documents_parent_id_idx",
-          "columns": [
-            "_parent_id"
-          ],
-          "isUnique": false
-        },
-        "career_jobs_documents_locale_idx": {
-          "name": "career_jobs_documents_locale_idx",
-          "columns": [
-            "_locale"
-          ],
-          "isUnique": false
-        },
-        "career_jobs_documents_file_idx": {
-          "name": "career_jobs_documents_file_idx",
-          "columns": [
-            "file_id"
-          ],
-          "isUnique": false
-        }
-      },
-      "foreignKeys": {
-        "career_jobs_documents_file_id_documents_id_fk": {
-          "name": "career_jobs_documents_file_id_documents_id_fk",
-          "tableFrom": "career_jobs_documents",
-          "tableTo": "documents",
-          "columnsFrom": [
-            "file_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "career_jobs_documents_parent_id_fk": {
-          "name": "career_jobs_documents_parent_id_fk",
-          "tableFrom": "career_jobs_documents",
-          "tableTo": "career_jobs",
-          "columnsFrom": [
-            "_parent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {}
-    },
     "career_jobs": {
       "name": "career_jobs",
       "columns": {
@@ -1907,13 +1853,6 @@
           "notNull": false,
           "autoincrement": false
         },
-        "photo_id": {
-          "name": "photo_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
         "start_date": {
           "name": "start_date",
           "type": "text",
@@ -1966,9 +1905,231 @@
             "_locale"
           ],
           "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "career_jobs_parent_id_fk": {
+          "name": "career_jobs_parent_id_fk",
+          "tableFrom": "career_jobs",
+          "tableTo": "career",
+          "columnsFrom": [
+            "_parent_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "career_assets_documents": {
+      "name": "career_assets_documents",
+      "columns": {
+        "_order": {
+          "name": "_order",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
         },
-        "career_jobs_photo_idx": {
-          "name": "career_jobs_photo_idx",
+        "_parent_id": {
+          "name": "_parent_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "file_id": {
+          "name": "file_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "career_assets_documents_order_idx": {
+          "name": "career_assets_documents_order_idx",
+          "columns": [
+            "_order"
+          ],
+          "isUnique": false
+        },
+        "career_assets_documents_parent_id_idx": {
+          "name": "career_assets_documents_parent_id_idx",
+          "columns": [
+            "_parent_id"
+          ],
+          "isUnique": false
+        },
+        "career_assets_documents_file_idx": {
+          "name": "career_assets_documents_file_idx",
+          "columns": [
+            "file_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "career_assets_documents_file_id_documents_id_fk": {
+          "name": "career_assets_documents_file_id_documents_id_fk",
+          "tableFrom": "career_assets_documents",
+          "tableTo": "documents",
+          "columnsFrom": [
+            "file_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "career_assets_documents_parent_id_fk": {
+          "name": "career_assets_documents_parent_id_fk",
+          "tableFrom": "career_assets_documents",
+          "tableTo": "career_assets",
+          "columnsFrom": [
+            "_parent_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "career_assets_documents_locales": {
+      "name": "career_assets_documents_locales",
+      "columns": {
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "_locale": {
+          "name": "_locale",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "_parent_id": {
+          "name": "_parent_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "career_assets_documents_locales_locale_parent_id_unique": {
+          "name": "career_assets_documents_locales_locale_parent_id_unique",
+          "columns": [
+            "_locale",
+            "_parent_id"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "career_assets_documents_locales_parent_id_fk": {
+          "name": "career_assets_documents_locales_parent_id_fk",
+          "tableFrom": "career_assets_documents_locales",
+          "tableTo": "career_assets_documents",
+          "columnsFrom": [
+            "_parent_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "career_assets": {
+      "name": "career_assets",
+      "columns": {
+        "_order": {
+          "name": "_order",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "_parent_id": {
+          "name": "_parent_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "branch_name": {
+          "name": "branch_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "photo_id": {
+          "name": "photo_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "career_assets_order_idx": {
+          "name": "career_assets_order_idx",
+          "columns": [
+            "_order"
+          ],
+          "isUnique": false
+        },
+        "career_assets_parent_id_idx": {
+          "name": "career_assets_parent_id_idx",
+          "columns": [
+            "_parent_id"
+          ],
+          "isUnique": false
+        },
+        "career_assets_photo_idx": {
+          "name": "career_assets_photo_idx",
           "columns": [
             "photo_id"
           ],
@@ -1976,9 +2137,9 @@
         }
       },
       "foreignKeys": {
-        "career_jobs_photo_id_media_id_fk": {
-          "name": "career_jobs_photo_id_media_id_fk",
-          "tableFrom": "career_jobs",
+        "career_assets_photo_id_media_id_fk": {
+          "name": "career_assets_photo_id_media_id_fk",
+          "tableFrom": "career_assets",
           "tableTo": "media",
           "columnsFrom": [
             "photo_id"
@@ -1989,9 +2150,9 @@
           "onDelete": "set null",
           "onUpdate": "no action"
         },
-        "career_jobs_parent_id_fk": {
-          "name": "career_jobs_parent_id_fk",
-          "tableFrom": "career_jobs",
+        "career_assets_parent_id_fk": {
+          "name": "career_assets_parent_id_fk",
+          "tableFrom": "career_assets",
           "tableTo": "career",
           "columnsFrom": [
             "_parent_id"
@@ -2124,121 +2285,6 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
-    "_career_v_version_jobs_documents": {
-      "name": "_career_v_version_jobs_documents",
-      "columns": {
-        "_order": {
-          "name": "_order",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "_parent_id": {
-          "name": "_parent_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "_locale": {
-          "name": "_locale",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "id": {
-          "name": "id",
-          "type": "integer",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "title": {
-          "name": "title",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "file_id": {
-          "name": "file_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "_uuid": {
-          "name": "_uuid",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        }
-      },
-      "indexes": {
-        "_career_v_version_jobs_documents_order_idx": {
-          "name": "_career_v_version_jobs_documents_order_idx",
-          "columns": [
-            "_order"
-          ],
-          "isUnique": false
-        },
-        "_career_v_version_jobs_documents_parent_id_idx": {
-          "name": "_career_v_version_jobs_documents_parent_id_idx",
-          "columns": [
-            "_parent_id"
-          ],
-          "isUnique": false
-        },
-        "_career_v_version_jobs_documents_locale_idx": {
-          "name": "_career_v_version_jobs_documents_locale_idx",
-          "columns": [
-            "_locale"
-          ],
-          "isUnique": false
-        },
-        "_career_v_version_jobs_documents_file_idx": {
-          "name": "_career_v_version_jobs_documents_file_idx",
-          "columns": [
-            "file_id"
-          ],
-          "isUnique": false
-        }
-      },
-      "foreignKeys": {
-        "_career_v_version_jobs_documents_file_id_documents_id_fk": {
-          "name": "_career_v_version_jobs_documents_file_id_documents_id_fk",
-          "tableFrom": "_career_v_version_jobs_documents",
-          "tableTo": "documents",
-          "columnsFrom": [
-            "file_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "_career_v_version_jobs_documents_parent_id_fk": {
-          "name": "_career_v_version_jobs_documents_parent_id_fk",
-          "tableFrom": "_career_v_version_jobs_documents",
-          "tableTo": "_career_v_version_jobs",
-          "columnsFrom": [
-            "_parent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {}
-    },
     "_career_v_version_jobs": {
       "name": "_career_v_version_jobs",
       "columns": {
@@ -2319,13 +2365,6 @@
           "notNull": false,
           "autoincrement": false
         },
-        "photo_id": {
-          "name": "photo_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
         "start_date": {
           "name": "start_date",
           "type": "text",
@@ -2385,9 +2424,245 @@
             "_locale"
           ],
           "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "_career_v_version_jobs_parent_id_fk": {
+          "name": "_career_v_version_jobs_parent_id_fk",
+          "tableFrom": "_career_v_version_jobs",
+          "tableTo": "_career_v",
+          "columnsFrom": [
+            "_parent_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "_career_v_version_assets_documents": {
+      "name": "_career_v_version_assets_documents",
+      "columns": {
+        "_order": {
+          "name": "_order",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
         },
-        "_career_v_version_jobs_photo_idx": {
-          "name": "_career_v_version_jobs_photo_idx",
+        "_parent_id": {
+          "name": "_parent_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "file_id": {
+          "name": "file_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "_uuid": {
+          "name": "_uuid",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "_career_v_version_assets_documents_order_idx": {
+          "name": "_career_v_version_assets_documents_order_idx",
+          "columns": [
+            "_order"
+          ],
+          "isUnique": false
+        },
+        "_career_v_version_assets_documents_parent_id_idx": {
+          "name": "_career_v_version_assets_documents_parent_id_idx",
+          "columns": [
+            "_parent_id"
+          ],
+          "isUnique": false
+        },
+        "_career_v_version_assets_documents_file_idx": {
+          "name": "_career_v_version_assets_documents_file_idx",
+          "columns": [
+            "file_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "_career_v_version_assets_documents_file_id_documents_id_fk": {
+          "name": "_career_v_version_assets_documents_file_id_documents_id_fk",
+          "tableFrom": "_career_v_version_assets_documents",
+          "tableTo": "documents",
+          "columnsFrom": [
+            "file_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "_career_v_version_assets_documents_parent_id_fk": {
+          "name": "_career_v_version_assets_documents_parent_id_fk",
+          "tableFrom": "_career_v_version_assets_documents",
+          "tableTo": "_career_v_version_assets",
+          "columnsFrom": [
+            "_parent_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "_career_v_version_assets_documents_locales": {
+      "name": "_career_v_version_assets_documents_locales",
+      "columns": {
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "_locale": {
+          "name": "_locale",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "_parent_id": {
+          "name": "_parent_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "_career_v_version_assets_documents_locales_locale_parent_id_": {
+          "name": "_career_v_version_assets_documents_locales_locale_parent_id_",
+          "columns": [
+            "_locale",
+            "_parent_id"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "_career_v_version_assets_documents_locales_parent_id_fk": {
+          "name": "_career_v_version_assets_documents_locales_parent_id_fk",
+          "tableFrom": "_career_v_version_assets_documents_locales",
+          "tableTo": "_career_v_version_assets_documents",
+          "columnsFrom": [
+            "_parent_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "_career_v_version_assets": {
+      "name": "_career_v_version_assets",
+      "columns": {
+        "_order": {
+          "name": "_order",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "_parent_id": {
+          "name": "_parent_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "branch_name": {
+          "name": "branch_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "photo_id": {
+          "name": "photo_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "_uuid": {
+          "name": "_uuid",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "_career_v_version_assets_order_idx": {
+          "name": "_career_v_version_assets_order_idx",
+          "columns": [
+            "_order"
+          ],
+          "isUnique": false
+        },
+        "_career_v_version_assets_parent_id_idx": {
+          "name": "_career_v_version_assets_parent_id_idx",
+          "columns": [
+            "_parent_id"
+          ],
+          "isUnique": false
+        },
+        "_career_v_version_assets_photo_idx": {
+          "name": "_career_v_version_assets_photo_idx",
           "columns": [
             "photo_id"
           ],
@@ -2395,9 +2670,9 @@
         }
       },
       "foreignKeys": {
-        "_career_v_version_jobs_photo_id_media_id_fk": {
-          "name": "_career_v_version_jobs_photo_id_media_id_fk",
-          "tableFrom": "_career_v_version_jobs",
+        "_career_v_version_assets_photo_id_media_id_fk": {
+          "name": "_career_v_version_assets_photo_id_media_id_fk",
+          "tableFrom": "_career_v_version_assets",
           "tableTo": "media",
           "columnsFrom": [
             "photo_id"
@@ -2408,9 +2683,9 @@
           "onDelete": "set null",
           "onUpdate": "no action"
         },
-        "_career_v_version_jobs_parent_id_fk": {
-          "name": "_career_v_version_jobs_parent_id_fk",
-          "tableFrom": "_career_v_version_jobs",
+        "_career_v_version_assets_parent_id_fk": {
+          "name": "_career_v_version_assets_parent_id_fk",
+          "tableFrom": "_career_v_version_assets",
           "tableTo": "_career_v",
           "columnsFrom": [
             "_parent_id"
