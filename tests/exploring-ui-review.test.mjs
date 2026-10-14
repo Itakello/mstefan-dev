@@ -145,6 +145,8 @@ test('remote preparation uses inert exact git objects without executing candidat
     assert.equal(invocation.base, base);
     assert.equal(invocation.authoredBase, ancestor);
     assert.ok(invocation.args.includes('--ignore-user-config'));
+    assert.ok(invocation.args.includes('mcp_servers.browser.default_tools_approval_mode="approve"'));
+    assert.ok(!invocation.args.includes('--dangerously-bypass-approvals-and-sandbox'));
     assert.ok(invocation.args.includes('read-only'));
     assert.ok(!existsSync(path.join(packet, 'e2e/offline-review.ts')));
     assert.ok(!readFileSync(path.join(packet, 'init-page.ts'), 'utf8').includes('import'));
