@@ -1,0 +1,30 @@
+deploy/pr148-proof/metadata-proof.mjs
+  s_b1329ee52d7897::t_ea3a51ab989ea8 73-74,138-140,149-154,156-157
+  s_b1329ee52d7897::t_c743a7118011a7 20,22
+  s_b1329ee52d7897::t_6f903c2d5053ce 18-19,21,23-25,31,141-148,155
+  s_b1329ee52d7897::t_4c7edbf5cd4903 1-17,26-30,32-72,75-137,158
+deploy/pr148-proof/metadata-proof.test.mts
+  s_b1329ee52d7897::t_c743a7118011a7 100
+  s_b1329ee52d7897::t_ea3a51ab989ea8 1-6,8-99,101-134,136-140,155
+  s_b1329ee52d7897::t_6f903c2d5053ce 135,141-147
+  s_b1329ee52d7897::t_ed9faa27df497f 7,148-154
+deploy/pr148-proof/offline-proof.mts
+  s_b1329ee52d7897::t_4c7edbf5cd4903 1-58,62-76
+  s_b1329ee52d7897::t_ed9faa27df497f 59-61
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6d9da267e8a4af7c37710cd9390a89ec55881e7b",
+  "prompts": {},
+  "sessions": {
+    "s_b1329ee52d7897": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a13248-670c-7541-a891-01e97bc48447",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
