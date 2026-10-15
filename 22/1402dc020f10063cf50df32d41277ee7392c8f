@@ -1,0 +1,19 @@
+Dockerfile
+  s_1d43b975615090::t_e08041c88c2307 12
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "221402dc020f10063cf50df32d41277ee7392c8f",
+  "prompts": {},
+  "sessions": {
+    "s_1d43b975615090": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a131e3-3b74-7cb0-950e-22fa5b442438",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
