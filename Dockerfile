@@ -9,7 +9,7 @@ RUN pnpm install --frozen-lockfile
 COPY --chown=node:node . .
 ENV NEXT_TELEMETRY_DISABLED=1
 # Build evaluates configuration but never connects to the runtime database.
-RUN PAYLOAD_SECRET=build-only-placeholder-not-a-runtime-secret PAYLOAD_DATA_DIR=/tmp/payload-build pnpm build
+RUN NODE_OPTIONS=--max-old-space-size=1024 PAYLOAD_SECRET=build-only-placeholder-not-a-runtime-secret PAYLOAD_DATA_DIR=/tmp/payload-build pnpm build
 ENV NODE_ENV=production PAYLOAD_DATA_DIR=/data
 EXPOSE 3000
 CMD ["sh", "-c", "pnpm migrate && exec pnpm exec next start --hostname 0.0.0.0 --port 3000"]
