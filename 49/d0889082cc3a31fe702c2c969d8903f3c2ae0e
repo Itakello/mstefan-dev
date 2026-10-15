@@ -1,0 +1,39 @@
+deploy/pr132-followup/backup_window.py
+  s_edc3df130cc253::t_9f480809ad8e22 14
+deploy/pr132-followup/controller_admit.py
+  s_edc3df130cc253::t_78e594f6c5301c 14-15,24-25,27-28,36,38,97
+deploy/pr132-followup/github_followup.mjs
+  s_edc3df130cc253::t_e06accddbced00 7-9,102-104,130,173,238,251-257,265,269,289,339,341,344
+deploy/pr132-followup/offline_restore_proof.py
+  s_edc3df130cc253::t_95b18ec2d91e0d 16
+deploy/pr132-followup/pr132-proof-backup.service
+  s_edc3df130cc253::t_a5438404b55ee2 8-9
+deploy/pr132-followup/pr132-proof-fixture.service
+  s_edc3df130cc253::t_2cca7125e20652 8-9
+deploy/pr132-followup/private_fixture.py
+  s_edc3df130cc253::t_f964845de71b6b 20-21,26
+deploy/pr132-followup/test_github_followup.mjs
+  s_edc3df130cc253::t_8fb7f85ddfd172 10-16,46-52,63,69-70,73,75,78-90,93-99,101-105,109-112,114,116,118,122,132,140-141,149,152,154-155,160,162,165-169,173-205,208,211-212,215-220,224-225,227-228
+lib/cms/career.ts
+  s_edc3df130cc253::t_a2170782d87393 20
+lib/i18n/copy.ts
+  s_edc3df130cc253::t_e8ab66a6cf1e2c 22-23,75,105-106,172,206-207,275
+payload.config.ts
+  s_edc3df130cc253::t_eaa596b54ed360 38-40
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "49d0889082cc3a31fe702c2c969d8903f3c2ae0e",
+  "prompts": {},
+  "sessions": {
+    "s_edc3df130cc253": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12b0b-aaa6-7d90-aa4e-5bcfe9db3ea5",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
