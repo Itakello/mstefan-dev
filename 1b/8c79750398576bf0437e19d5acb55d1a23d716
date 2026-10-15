@@ -1,0 +1,21 @@
+deploy/pr132-followup/github_followup.mjs
+  s_edc3df130cc253::t_712f78c265a9e8 302-305,307-315,317-322,324
+deploy/pr132-followup/test_github_followup.mjs
+  s_edc3df130cc253::t_f6e286e30c733e 22-23,52,76,92,135,139,336-418
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1b8c79750398576bf0437e19d5acb55d1a23d716",
+  "prompts": {},
+  "sessions": {
+    "s_edc3df130cc253": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12b0b-aaa6-7d90-aa4e-5bcfe9db3ea5",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
