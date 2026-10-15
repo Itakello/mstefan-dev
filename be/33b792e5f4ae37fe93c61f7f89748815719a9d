@@ -1,0 +1,32 @@
+deploy/pr148-proof/attended.py
+  s_b1329ee52d7897::t_56fb2b04936886 41
+  s_b1329ee52d7897::t_246bb7aeffdf24 1-9,11-40,42-54,56-79,81-105
+  s_b1329ee52d7897::t_02db8787ac45d6 10,55,80
+deploy/pr148-proof/test_attended.py
+  s_b1329ee52d7897::t_02db8787ac45d6 1-4,6-9,11-115,144-153
+  s_b1329ee52d7897::t_56fb2b04936886 5,10,116-143
+deploy/pr148-proof/private_fixture.py
+  s_b1329ee52d7897::t_dbca3304e0a901 1-240
+deploy/pr148-proof/backup_window.py
+  s_b1329ee52d7897::t_02db8787ac45d6 1-251
+deploy/pr148-proof/pr148-backup@.service
+  s_b1329ee52d7897::t_02db8787ac45d6 1-12
+deploy/pr148-proof/pr148-fixture@.service
+  s_b1329ee52d7897::t_02db8787ac45d6 1-12
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "be33b792e5f4ae37fe93c61f7f89748815719a9d",
+  "prompts": {},
+  "sessions": {
+    "s_b1329ee52d7897": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a13248-670c-7541-a891-01e97bc48447",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
