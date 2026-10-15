@@ -1,0 +1,28 @@
+deploy/pr132-followup/test_controller_admit.py
+  s_edc3df130cc253::t_0aba00677e1e94 98-110,234-239
+  s_edc3df130cc253::t_1347f58161226a 10-12,189,213,228,230,233,240-242
+  s_edc3df130cc253::t_b778bef13779e2 22-97
+  s_edc3df130cc253::t_33988dba36d829 231-232
+  s_edc3df130cc253::t_1c128596d42875 111-126
+deploy/pr132-followup/controller_admit.py
+  s_edc3df130cc253::t_726f396c43748b 3,24-30,52-72,74-87,90-110,112-123,136-137,258,290-299
+  s_edc3df130cc253::t_54ba7c61a5ec6b 124-135
+  s_edc3df130cc253::t_6e9be2bb9214eb 12,138-139,306
+  s_edc3df130cc253::t_91f2f6cc216c98 31,88-89,111,316-317
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f46fb308bde9b9194289eaf1a96e2bce6249381c",
+  "prompts": {},
+  "sessions": {
+    "s_edc3df130cc253": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12b0b-aaa6-7d90-aa4e-5bcfe9db3ea5",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
