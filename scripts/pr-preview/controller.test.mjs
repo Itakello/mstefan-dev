@@ -1299,3 +1299,48 @@ test('sweep fails closed on incomplete pagination and elapsed time without mutat
     assert.ok(!f.calls.some(c => c.name?.startsWith('post_')));
   }
 });
+
+test('two sweeps leave no orphan origin DNS after gateway deletion is accepted but its response is lost', async () => {
+  const { sweepPreviews } = await import('./sweep.mjs');
+  const f = fixture({ gateway: gatewayProject });
+  Object.assign(f.pr, { state: 'closed', closed_at: new Date(0).toISOString() });
+  let gatewayPresent = true;
+  let dns = [{ id: 'dns_origin', name: 'preview-origin-pr-42.mstefan.dev', type: 'A', content: '65.21.149.236', proxied: true }];
+  const order = [];
+  const ship = f.args.ship;
+  f.args.ship = async (name, args) => {
+    if (name === 'get_projects') return { data: gatewayPresent ? [structuredClone(f.gateway)] : [], total: gatewayPresent ? 1 : 0 };
+    if (name === 'get_projects_by_id_deletion_preview') return { success: true, preview: { projectId: gatewayProject.id, totalVolumes: 0, services: [], deploymentVolumes: [] } };
+    if (name === 'delete_projects_by_id') {
+      assert.equal(f.gateway.enabled, false);
+      assert.deepEqual(dns, []);
+      assert.deepEqual(args.query, { wipeVolumes: false });
+      order.push('gateway');
+      gatewayPresent = false;
+      throw new Error('Accepted deletion response lost');
+    }
+    return ship(name, args);
+  };
+  const cf = f.args.cf;
+  f.args.cf = async (method, path, body) => {
+    if (path.includes('/dns_records')) {
+      if (method === 'DELETE') {
+        assert.equal(f.gateway.enabled, false);
+        assert.ok(path.endsWith('/dns_records/dns_origin'));
+        order.push('dns');
+        dns = [];
+      }
+      return structuredClone(dns);
+    }
+    return cf(method, path, body);
+  };
+  const args = { ...f.args, now: () => 8 * 86400000 };
+  await assert.rejects(sweepPreviews(args), error => {
+    assert.deepEqual(error.results.map(row => ({ number: row.number, state: row.state })), [{ number: 42, state: 'failed' }]);
+    return true;
+  });
+  assert.deepEqual(order, ['dns', 'gateway']);
+  assert.deepEqual(await sweepPreviews(args), []);
+  assert.deepEqual(dns, []);
+  assert.equal(f.project, null);
+});

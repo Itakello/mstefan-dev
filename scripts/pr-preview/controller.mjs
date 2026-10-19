@@ -275,6 +275,22 @@ export async function runPreview({ number, templateId, seed, gh, ship, cf, probe
         await disableApp();
       }
     }
+    async function removeOriginDNS() {
+      const dnsPath = `/zones/${ZONE}/dns_records`;
+      const records = await cf('GET', `${dnsPath}?name=${origin}`);
+      assert(Array.isArray(records) && records.length <= 1, 'Origin DNS cleanup conflict');
+      if (records.length) {
+        const row = records[0];
+        assert(ID.test(row.id) && row.name === origin && row.type === 'A' && row.content === '65.21.149.236'
+          && row.proxied === true, 'Origin DNS cleanup identity mismatch');
+        await cleanupCurrent();
+        assert(pr.state === 'closed' && now() - Date.parse(pr.closed_at) >= 7 * 24 * 60 * 60 * 1000,
+          'Origin DNS retention changed during cleanup');
+        await cf('DELETE', `${dnsPath}/${row.id}`);
+        const remaining = await cf('GET', `${dnsPath}?name=${origin}`);
+        assert(Array.isArray(remaining) && remaining.length === 0, 'Origin DNS cleanup unverified');
+      }
+    }
     if (purgeGateway && gateway && pr.state === 'closed') {
       const expired = () => pr.state === 'closed' && Number.isFinite(Date.parse(pr.closed_at))
         && now() - Date.parse(pr.closed_at) >= 7 * 24 * 60 * 60 * 1000;
@@ -291,6 +307,7 @@ export async function runPreview({ number, templateId, seed, gh, ship, cf, probe
         await disableGateway(services);
         await cleanupCurrent();
         assert(expired(), 'Gateway retention changed during cleanup');
+        await removeOriginDNS();
         const removed = await ship('delete_projects_by_id', { id: gateway.id, query: { wipeVolumes: false } });
         assert(removed?.success === true, 'Gateway deletion failed');
         assert(!await findGateway(), 'Gateway deletion unverified');
@@ -299,22 +316,7 @@ export async function runPreview({ number, templateId, seed, gh, ship, cf, probe
     if (purgeGateway) {
       await cleanupCurrent();
       if (pr.state === 'closed' && Number.isFinite(Date.parse(pr.closed_at))
-        && now() - Date.parse(pr.closed_at) >= 7 * 24 * 60 * 60 * 1000 && !await findGateway()) {
-        const dnsPath = `/zones/${ZONE}/dns_records`;
-        const records = await cf('GET', `${dnsPath}?name=${origin}`);
-        assert(Array.isArray(records) && records.length <= 1, 'Origin DNS cleanup conflict');
-        if (records.length) {
-          const row = records[0];
-          assert(ID.test(row.id) && row.name === origin && row.type === 'A' && row.content === '65.21.149.236'
-            && row.proxied === true, 'Origin DNS cleanup identity mismatch');
-          await cleanupCurrent();
-          assert(pr.state === 'closed' && now() - Date.parse(pr.closed_at) >= 7 * 24 * 60 * 60 * 1000,
-            'Origin DNS retention changed during cleanup');
-          await cf('DELETE', `${dnsPath}/${row.id}`);
-          const remaining = await cf('GET', `${dnsPath}?name=${origin}`);
-          assert(Array.isArray(remaining) && remaining.length === 0, 'Origin DNS cleanup unverified');
-        }
-      }
+        && now() - Date.parse(pr.closed_at) >= 7 * 24 * 60 * 60 * 1000 && !await findGateway()) await removeOriginDNS();
     }
     for (let page = 1; page <= 10; page++) {
       const deployments = await gh('GET', `/repos/${REPO}/deployments?environment=${envName}&per_page=100&page=${page}`);
