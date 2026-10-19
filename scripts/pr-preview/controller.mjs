@@ -330,7 +330,9 @@ export async function runPreview({ number, templateId, seed, gh, ship, cf, probe
           && Array.isArray(removed.steps) && removed.steps.length > 0 && removed.steps.every(step =>
             typeof step?.step === 'string' && step.step.length > 0 && ['ok', 'skipped'].includes(step.status))
           && new Set(removed.steps.map(step => step.step)).size === removed.steps.length
-          && ['runtime_cleanup', 'delete_db_row'].every(name => removed.steps.some(step => step.step === name && step.status === 'ok'))
+          && removed.steps.some(step => step.step === 'runtime_cleanup'
+            && (step.status === 'ok' || (step.status === 'skipped' && step.details === 'no resources')))
+          && removed.steps.some(step => step.step === 'delete_db_row' && step.status === 'ok')
           && Array.isArray(removed.orphaned) && removed.orphaned.length === 0
           && Array.isArray(removed.unlinked) && removed.unlinked.length === 0, 'Gateway deletion failed');
         assert(!await findGateway(), 'Gateway deletion unverified');

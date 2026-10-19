@@ -1386,6 +1386,7 @@ test('gateway deletion requires the installed API acknowledgement and complete r
     { ...complete, steps: [{ step: '', status: 'ok' }] },
     { ...complete, steps: complete.steps.map(step => step.step === 'runtime_cleanup' ? { ...step, status: 'failed' } : step) },
     { ...complete, steps: complete.steps.map(step => step.step === 'runtime_cleanup' ? { ...step, status: 'skipped' } : step) },
+    { ...complete, steps: complete.steps.map(step => step.step === 'runtime_cleanup' ? { ...step, status: 'skipped', details: 'record-only: kept on server' } : step) },
     { ...complete, steps: complete.steps.filter(step => step.step !== 'runtime_cleanup') },
     { ...complete, steps: complete.steps.filter(step => step.step !== 'delete_db_row') },
     { ...complete, steps: complete.steps.map(step => step.step === 'delete_db_row' ? { ...step, status: 'skipped' } : step) },
@@ -1503,4 +1504,32 @@ test('owned deployment identity must be a positive safe integer before status re
     await assert.rejects(runPreview({ ...f.args, now: () => 8 * 86400000, closeOnly: true, purgeGateway: true }), /deployment identity invalid/);
     assert.ok(!f.calls.some(c => c.path?.includes('/statuses') || c.name === 'delete_projects_by_id'));
   }
+});
+
+
+test('never-deployed empty gateway accepts the installed no-resources runtime acknowledgement', async () => {
+  const f = fixture({ gateway: gatewayProject });
+  Object.assign(f.pr, { state: 'closed', closed_at: new Date(0).toISOString() });
+  const ship = f.args.ship;
+  let deleted = false;
+  let absenceReads = 0;
+  f.args.ship = async (name, args) => {
+    if (name === 'get_projects_by_id_deletion_preview') return { success: true, preview: {
+      projectId: gatewayProject.id, totalVolumes: 0, services: [], deploymentVolumes: [],
+    } };
+    if (name === 'delete_projects_by_id') {
+      assert.equal(f.gateway.enabled, false);
+      assert.equal(f.gateway.activeDeploymentId, undefined);
+      deleted = true;
+      return { ...structuredClone(deletedGatewayReport), steps: deletedGatewayReport.steps.map(step =>
+        step.step === 'runtime_cleanup' ? { ...step, status: 'skipped', details: 'no resources' } : step) };
+    }
+    if (name === 'get_projects' && deleted) { absenceReads++; return { data: [], total: 0 }; }
+    return ship(name, args);
+  };
+  assert.deepEqual(await runPreview({ ...f.args, now: () => 8 * 86400000, closeOnly: true, purgeGateway: true }), {
+    state: 'closed', dataPurge: 'no-app',
+  });
+  assert.equal(deleted, true);
+  assert.ok(absenceReads > 0);
 });
