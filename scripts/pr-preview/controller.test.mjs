@@ -4,6 +4,16 @@ import { readFile } from 'node:fs/promises';
 import { runPreview, validatePR, validateProject, payloadSecret, originAuthKey, originToken, clients } from './controller.mjs';
 import { GATEWAY_IMAGE, gatewayService } from './gateway.mjs';
 
+const deletedGatewayReport = {
+  ok: true, message: 'deleted', orphaned: [], unlinked: [],
+  steps: [
+    { step: 'cancel_in_flight', status: 'skipped' },
+    { step: 'github_webhook', status: 'skipped' },
+    { step: 'runtime_cleanup', status: 'ok' },
+    { step: 'webmail', status: 'skipped' },
+    { step: 'delete_db_row', status: 'ok' },
+  ],
+};
 const sha = 'a'.repeat(40);
 const org = 'org_bf9659df-3efc-4659-8893-13baf6533b28';
 const production = 'proj_w1kqcgR7eY2EZhht';
@@ -1212,7 +1222,7 @@ test('seven closed days permit only a proven volume-free gateway deletion', asyn
     const ship = f.args.ship;
     f.args.ship = async (name, args) => {
       if (name === 'get_projects_by_id_deletion_preview') return { success: true, preview: { projectId: gatewayProject.id, totalVolumes: 0, services: [], deploymentVolumes: [] } };
-      if (name === 'delete_projects_by_id') { assert.equal(f.gateway.enabled, false); assert.deepEqual(args.query, { wipeVolumes: false }); deleted = true; return { ok: true, rowDeleted: true, unrecoverable: [], orphaned: [] }; }
+      if (name === 'delete_projects_by_id') { assert.equal(f.gateway.enabled, false); assert.deepEqual(args.query, { wipeVolumes: false }); deleted = true; return structuredClone(deletedGatewayReport); }
       if (name === 'get_projects' && deleted) return { data: [], total: 0 };
       return ship(name, args);
     };
@@ -1365,15 +1375,26 @@ test('two sweeps leave no orphan DNS or active owned GitHub deployment after the
   assert.equal(states.get(999), 'active');
 });
 
-test('gateway deletion requires a complete native teardown report and rejects partial or legacy acknowledgements', async () => {
-  const complete = { ok: true, rowDeleted: true, unrecoverable: [], orphaned: [] };
+test('gateway deletion requires the installed API acknowledgement and complete runtime and row cleanup', async () => {
+  const complete = deletedGatewayReport;
   for (const report of [
     { ...complete, ok: false },
-    { ...complete, rowDeleted: false },
-    { ...complete, unrecoverable: [{ step: 'runtime' }] },
+    { ...complete, message: 'partial' },
+    { ...complete, steps: [] },
+    { ...complete, steps: undefined },
+    { ...complete, steps: [null] },
+    { ...complete, steps: [{ step: '', status: 'ok' }] },
+    { ...complete, steps: complete.steps.map(step => step.step === 'runtime_cleanup' ? { ...step, status: 'failed' } : step) },
+    { ...complete, steps: complete.steps.map(step => step.step === 'runtime_cleanup' ? { ...step, status: 'skipped' } : step) },
+    { ...complete, steps: complete.steps.filter(step => step.step !== 'runtime_cleanup') },
+    { ...complete, steps: complete.steps.filter(step => step.step !== 'delete_db_row') },
+    { ...complete, steps: complete.steps.map(step => step.step === 'delete_db_row' ? { ...step, status: 'skipped' } : step) },
+    { ...complete, steps: [...complete.steps, complete.steps[0]] },
     { ...complete, orphaned: [{ type: 'container' }] },
-    { ...complete, unrecoverable: undefined },
+    { ...complete, unlinked: [{ projectId: 'foreign' }] },
     { ...complete, orphaned: undefined },
+    { ...complete, unlinked: undefined },
+    { ok: true, rowDeleted: true, unrecoverable: [], orphaned: [] },
     { success: true },
   ]) {
     const f = fixture({ existing: true, gateway: gatewayProject });
