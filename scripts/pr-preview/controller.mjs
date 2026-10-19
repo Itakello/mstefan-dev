@@ -275,6 +275,17 @@ export async function runPreview({ number, templateId, seed, gh, ship, cf, probe
         await disableApp();
       }
     }
+    for (let page = 1; page <= 10; page++) {
+      const deployments = await gh('GET', `/repos/${REPO}/deployments?environment=${envName}&per_page=100&page=${page}`);
+      assert(Array.isArray(deployments), 'GitHub deployment list invalid');
+      for (const deployment of deployments) {
+        if (deployment.environment === envName && deployment.payload?.owner === WORKER && deployment.payload?.pr === number) {
+          await gh('POST', `/repos/${REPO}/deployments/${deployment.id}/statuses`, { state: 'inactive', description: 'Preview runtime disabled; application data retained' });
+        }
+      }
+      if (deployments.length < 100) break;
+      if (page === 10) throw new Error('GitHub deployment history exceeds cleanup bound');
+    }
     async function removeOriginDNS() {
       const dnsPath = `/zones/${ZONE}/dns_records`;
       const records = await cf('GET', `${dnsPath}?name=${origin}`);
@@ -320,17 +331,7 @@ export async function runPreview({ number, templateId, seed, gh, ship, cf, probe
       if (pr.state === 'closed' && Number.isFinite(Date.parse(pr.closed_at))
         && now() - Date.parse(pr.closed_at) >= 7 * 24 * 60 * 60 * 1000 && !await findGateway()) await removeOriginDNS();
     }
-    for (let page = 1; page <= 10; page++) {
-      const deployments = await gh('GET', `/repos/${REPO}/deployments?environment=${envName}&per_page=100&page=${page}`);
-      assert(Array.isArray(deployments), 'GitHub deployment list invalid');
-      for (const deployment of deployments) {
-        if (deployment.environment === envName && deployment.payload?.owner === WORKER && deployment.payload?.pr === number) {
-          await gh('POST', `/repos/${REPO}/deployments/${deployment.id}/statuses`, { state: 'inactive', description: 'PR closed; runtime disabled and data retained' });
-        }
-      }
-      if (deployments.length < 100) return { state: 'closed', dataPurge: project ? 'pending-backup-recovery' : 'no-app' };
-    }
-    throw new Error('GitHub deployment history exceeds cleanup bound');
+    return { state: 'closed', dataPurge: project ? 'pending-backup-recovery' : 'no-app' };
   }
 
   async function settled(id, status, target = project) {

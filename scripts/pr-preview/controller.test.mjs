@@ -1300,13 +1300,23 @@ test('sweep fails closed on incomplete pagination and elapsed time without mutat
   }
 });
 
-test('two sweeps leave no orphan origin DNS after gateway deletion is accepted but its response is lost', async () => {
+test('two sweeps leave no orphan DNS or active owned GitHub deployment after the gateway deletion response is lost', async () => {
   const { sweepPreviews } = await import('./sweep.mjs');
   const f = fixture({ gateway: gatewayProject });
   Object.assign(f.pr, { state: 'closed', closed_at: new Date(0).toISOString() });
   let gatewayPresent = true;
   let dns = [{ id: 'dns_origin', name: 'preview-origin-pr-42.mstefan.dev', type: 'A', content: '65.21.149.236', proxied: true }];
   const order = [];
+  const states = new Map([[123, 'active'], [999, 'active']]);
+  const gh = f.args.gh;
+  f.args.gh = async (method, path, body) => {
+    if (method === 'POST' && path.endsWith('/statuses')) {
+      assert.equal(f.gateway.enabled, false);
+      states.set(Number(path.split('/').at(-2)), body.state);
+      order.push('inactive');
+    }
+    return gh(method, path, body);
+  };
   const ship = f.args.ship;
   f.args.ship = async (name, args) => {
     if (name === 'get_projects') return { data: gatewayPresent ? [structuredClone(f.gateway)] : [], total: gatewayPresent ? 1 : 0 };
@@ -1314,6 +1324,8 @@ test('two sweeps leave no orphan origin DNS after gateway deletion is accepted b
     if (name === 'delete_projects_by_id') {
       assert.equal(f.gateway.enabled, false);
       assert.deepEqual(dns, []);
+      assert.equal(states.get(123), 'inactive');
+      assert.equal(states.get(999), 'active');
       assert.deepEqual(args.query, { wipeVolumes: false });
       order.push('gateway');
       gatewayPresent = false;
@@ -1339,10 +1351,12 @@ test('two sweeps leave no orphan origin DNS after gateway deletion is accepted b
     assert.deepEqual(error.results.map(row => ({ number: row.number, state: row.state })), [{ number: 42, state: 'failed' }]);
     return true;
   });
-  assert.deepEqual(order, ['dns', 'gateway']);
+  assert.deepEqual(order, ['inactive', 'dns', 'gateway']);
   assert.deepEqual(await sweepPreviews(args), []);
   assert.deepEqual(dns, []);
   assert.equal(f.project, null);
+  assert.equal(states.get(123), 'inactive');
+  assert.equal(states.get(999), 'active');
 });
 
 test('gateway deletion requires a complete native teardown report and rejects partial or legacy acknowledgements', async () => {
@@ -1367,7 +1381,10 @@ test('gateway deletion requires a complete native teardown report and rejects pa
     };
     await assert.rejects(runPreview({ ...f.args, now: () => 8 * 86400000, closeOnly: true, purgeGateway: true }), /Gateway deletion failed/);
     assert.equal(attempted, true);
-    assert.ok(!f.calls.some(c => c.body?.state === 'inactive'));
+    assert.ok(f.calls.some(c => c.body?.state === 'inactive'));
+    assert.ok(f.calls.filter(c => c.body?.state === 'inactive').every(c => c.body.description === 'Preview runtime disabled; application data retained'));
+    assert.equal(f.project.enabled, false);
+    assert.equal(f.gateway.enabled, false);
     assert.deepEqual(f.project.volumes, ['data:/data']);
   }
 });
@@ -1400,4 +1417,17 @@ test('sweep entrypoint admits only schedule or manual events on the exact defaul
     assert.equal(result.status, 1);
     assert.match(result.stderr, trusted ? /GITHUB_TOKEN missing/ : /Trusted default-branch sweep required/);
   }
+});
+
+test('failed GitHub inactivation preserves the orphan gateway for sweep retry', async () => {
+  const f = fixture({ gateway: gatewayProject });
+  Object.assign(f.pr, { state: 'closed', closed_at: new Date(0).toISOString() });
+  const gh = f.args.gh;
+  f.args.gh = async (method, path, body) => {
+    if (body?.state === 'inactive') throw new Error('GitHub status write unavailable');
+    return gh(method, path, body);
+  };
+  await assert.rejects(runPreview({ ...f.args, now: () => 8 * 86400000, closeOnly: true, purgeGateway: true }), /status write unavailable/);
+  assert.equal(f.gateway.enabled, false);
+  assert.ok(!f.calls.some(c => c.name === 'delete_projects_by_id' || c.name === 'get_projects_by_id_deletion_preview'));
 });
