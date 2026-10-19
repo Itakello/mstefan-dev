@@ -1167,3 +1167,135 @@ test('ready-worker lease that never completes blocks all new submissions within 
   assert.equal(f.active, '7');
   assert.ok(!f.calls.some(c => ['post_deployments', 'post_deployments_build_access'].includes(c.name) || c.body?.state === 'success'));
 });
+
+test('cleanup-only skips an open master PR before any provider mutation', async () => {
+  const f = fixture({ existing: true });
+  assert.deepEqual(await runPreview({ ...f.args, closeOnly: true }), { state: 'skipped', reason: 'open-master' });
+  assert.equal(f.calls.length, 1);
+});
+
+test('cleanup-only replay and retarget never submit or create and retain app data', async () => {
+  for (const retarget of [false, true]) {
+    const f = fixture({ existing: true, gateway: gatewayProject });
+    if (retarget) f.pr.base.ref = 'other'; else f.pr.state = 'closed';
+    for (let replay = 0; replay < 2; replay++) {
+      const result = await runPreview({ ...f.args, closeOnly: true });
+      assert.equal(result.dataPurge, 'pending-backup-recovery');
+    }
+    assert.ok(!f.calls.some(c => ['post_deployments', 'post_projects', 'post_projects_by_id_environments', 'post_deployments_build_access'].includes(c.name)));
+    assert.deepEqual(f.project.volumes, ['data:/data']);
+  }
+});
+
+test('cleanup aborts when a closed PR reopens before the first mutation', async () => {
+  const f = fixture({ existing: true });
+  f.pr.state = 'closed';
+  const cf = f.args.cf;
+  f.args.cf = async (...args) => { const result = await cf(...args); f.pr.state = 'open'; return result; };
+  await assert.rejects(runPreview({ ...f.args, closeOnly: true }), /reopened/);
+  assert.ok(!f.calls.some(c => c.method === 'PATCH' || c.name?.startsWith('post_')));
+});
+
+test('seven closed days permit only a proven volume-free gateway deletion', async () => {
+  const week = 7 * 24 * 60 * 60 * 1000;
+  for (const age of [week - 1, week]) {
+    const f = fixture({ existing: true, gateway: gatewayProject });
+    f.pr.state = 'closed';
+    f.pr.closed_at = new Date(0).toISOString();
+    let deleted = false;
+    const ship = f.args.ship;
+    f.args.ship = async (name, args) => {
+      if (name === 'get_projects_by_id_deletion_preview') return { success: true, preview: { projectId: gatewayProject.id, totalVolumes: 0, services: [], deploymentVolumes: [] } };
+      if (name === 'delete_projects_by_id') { assert.equal(f.gateway.enabled, false); assert.deepEqual(args.query, { wipeVolumes: false }); deleted = true; return { success: true }; }
+      if (name === 'get_projects' && deleted) return { data: [], total: 0 };
+      return ship(name, args);
+    };
+    assert.equal((await runPreview({ ...f.args, now: () => age, closeOnly: true, purgeGateway: true })).state, 'closed');
+    assert.equal(deleted, age === week);
+    assert.deepEqual(f.project.volumes, ['data:/data']);
+  }
+});
+
+test('gateway deletion refuses wrong preview identity or any volume', async () => {
+  for (const preview of [{ projectId: 'foreign', totalVolumes: 0 }, { projectId: gatewayProject.id, totalVolumes: 1 }]) {
+    const f = fixture({ existing: true, gateway: gatewayProject });
+    Object.assign(f.pr, { state: 'closed', closed_at: new Date(0).toISOString() });
+    const ship = f.args.ship;
+    f.args.ship = async (name, args) => name === 'get_projects_by_id_deletion_preview'
+      ? { success: true, preview: { services: [], deploymentVolumes: [], ...preview } } : ship(name, args);
+    await assert.rejects(runPreview({ ...f.args, now: () => 8 * 86400000, closeOnly: true, purgeGateway: true }), /deletion preview/);
+    assert.ok(!f.calls.some(c => c.name === 'delete_projects_by_id'));
+  }
+});
+
+test('sweep skips open PRs, discovers orphan gateways, and continues after a failed target', async () => {
+  const { sweepPreviews } = await import('./sweep.mjs');
+  const f = fixture();
+  const seen = [];
+  const ship = f.args.ship;
+  f.args.ship = async (name, args) => name === 'get_projects'
+    ? { data: [1, 2, 3].map(number => ({ id: `gateway_${number}`, slug: `mstefan-pr-preview-gateway-${number}` })), total: 3 }
+    : ship(name, args);
+  f.args.gh = async (method, path) => {
+    const number = Number(path.split('/').at(-1));
+    seen.push(number);
+    if (number === 2) throw new Error('Unavailable PR');
+    return { ...structuredClone(pull), number };
+  };
+  await assert.rejects(sweepPreviews(f.args), error => {
+    assert.deepEqual(error.results.map(r => r.state), ['skipped', 'failed', 'skipped']);
+    return true;
+  });
+  assert.deepEqual(seen, [1, 2, 3]);
+  assert.ok(!f.calls.some(c => c.name?.startsWith('post_')));
+});
+
+
+test('sweep accepts only the exact production template alongside preview children', async () => {
+  const { sweepPreviews } = await import('./sweep.mjs');
+  for (const row of [{ id: template.id, slug: 'production', type: 'production' }, { id: 'foreign', slug: 'production', type: 'production' }]) {
+    const f = fixture();
+    const ship = f.args.ship;
+    f.args.ship = async (name, args) => name === 'get_projects_by_id_environments' ? { data: [row] } : ship(name, args);
+    if (row.id === template.id) assert.deepEqual(await sweepPreviews(f.args), []);
+    else await assert.rejects(sweepPreviews(f.args), /namespace invalid/);
+    assert.ok(!f.calls.some(c => c.name?.startsWith('post_')));
+  }
+});
+
+test('expired missing-gateway replay removes only the exact owned origin DNS and verifies absence', async () => {
+  for (const wrong of [false, true]) {
+    const f = fixture({ existing: true });
+    Object.assign(f.pr, { state: 'closed', closed_at: new Date(0).toISOString() });
+    let rows = [{ id: 'dns_origin', name: 'preview-origin-pr-42.mstefan.dev', type: 'A', content: wrong ? '192.0.2.1' : '65.21.149.236', proxied: true }];
+    const cf = f.args.cf;
+    const deletes = [];
+    f.args.cf = async (method, path, body) => {
+      if (path.includes('/dns_records')) {
+        if (method === 'DELETE') { deletes.push(path); rows = []; }
+        return structuredClone(rows);
+      }
+      return cf(method, path, body);
+    };
+    const result = runPreview({ ...f.args, now: () => 8 * 86400000, closeOnly: true, purgeGateway: true });
+    if (wrong) { await assert.rejects(result, /DNS cleanup identity/); assert.equal(deletes.length, 0); }
+    else { assert.equal((await result).state, 'closed'); assert.equal(deletes.length, 1); assert.ok(deletes[0].endsWith('/dns_records/dns_origin')); }
+    assert.deepEqual(f.project.volumes, ['data:/data']);
+  }
+});
+
+test('sweep fails closed on incomplete pagination and elapsed time without mutations', async () => {
+  const { sweepPreviews } = await import('./sweep.mjs');
+  for (const timedOut of [false, true]) {
+    const f = fixture();
+    let clock = 0;
+    const ship = f.args.ship;
+    f.args.ship = async (name, args) => {
+      if (timedOut) clock = 21 * 60 * 1000;
+      if (!timedOut && name === 'get_projects') return { data: [], total: 1 };
+      return ship(name, args);
+    };
+    await assert.rejects(sweepPreviews({ ...f.args, now: () => clock }), timedOut ? /time bound/ : /incomplete/);
+    assert.ok(!f.calls.some(c => c.name?.startsWith('post_')));
+  }
+});
