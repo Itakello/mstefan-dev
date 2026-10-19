@@ -1206,7 +1206,7 @@ test('seven closed days permit only a proven volume-free gateway deletion', asyn
     const ship = f.args.ship;
     f.args.ship = async (name, args) => {
       if (name === 'get_projects_by_id_deletion_preview') return { success: true, preview: { projectId: gatewayProject.id, totalVolumes: 0, services: [], deploymentVolumes: [] } };
-      if (name === 'delete_projects_by_id') { assert.equal(f.gateway.enabled, false); assert.deepEqual(args.query, { wipeVolumes: false }); deleted = true; return { success: true }; }
+      if (name === 'delete_projects_by_id') { assert.equal(f.gateway.enabled, false); assert.deepEqual(args.query, { wipeVolumes: false }); deleted = true; return { ok: true, rowDeleted: true, unrecoverable: [], orphaned: [] }; }
       if (name === 'get_projects' && deleted) return { data: [], total: 0 };
       return ship(name, args);
     };
@@ -1343,4 +1343,31 @@ test('two sweeps leave no orphan origin DNS after gateway deletion is accepted b
   assert.deepEqual(await sweepPreviews(args), []);
   assert.deepEqual(dns, []);
   assert.equal(f.project, null);
+});
+
+test('gateway deletion requires a complete native teardown report and rejects partial or legacy acknowledgements', async () => {
+  const complete = { ok: true, rowDeleted: true, unrecoverable: [], orphaned: [] };
+  for (const report of [
+    { ...complete, ok: false },
+    { ...complete, rowDeleted: false },
+    { ...complete, unrecoverable: [{ step: 'runtime' }] },
+    { ...complete, orphaned: [{ type: 'container' }] },
+    { ...complete, unrecoverable: undefined },
+    { ...complete, orphaned: undefined },
+    { success: true },
+  ]) {
+    const f = fixture({ existing: true, gateway: gatewayProject });
+    Object.assign(f.pr, { state: 'closed', closed_at: new Date(0).toISOString() });
+    const ship = f.args.ship;
+    let attempted = false;
+    f.args.ship = async (name, args) => {
+      if (name === 'get_projects_by_id_deletion_preview') return { success: true, preview: { projectId: gatewayProject.id, totalVolumes: 0, services: [], deploymentVolumes: [] } };
+      if (name === 'delete_projects_by_id') { attempted = true; return report; }
+      return ship(name, args);
+    };
+    await assert.rejects(runPreview({ ...f.args, now: () => 8 * 86400000, closeOnly: true, purgeGateway: true }), /Gateway deletion failed/);
+    assert.equal(attempted, true);
+    assert.ok(!f.calls.some(c => c.body?.state === 'inactive'));
+    assert.deepEqual(f.project.volumes, ['data:/data']);
+  }
 });

@@ -309,7 +309,9 @@ export async function runPreview({ number, templateId, seed, gh, ship, cf, probe
         assert(expired(), 'Gateway retention changed during cleanup');
         await removeOriginDNS();
         const removed = await ship('delete_projects_by_id', { id: gateway.id, query: { wipeVolumes: false } });
-        assert(removed?.success === true, 'Gateway deletion failed');
+        assert(removed?.ok === true && removed.rowDeleted === true
+          && Array.isArray(removed.unrecoverable) && removed.unrecoverable.length === 0
+          && Array.isArray(removed.orphaned) && removed.orphaned.length === 0, 'Gateway deletion failed');
         assert(!await findGateway(), 'Gateway deletion unverified');
       }
     }
