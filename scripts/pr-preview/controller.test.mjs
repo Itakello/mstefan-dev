@@ -1371,3 +1371,33 @@ test('gateway deletion requires a complete native teardown report and rejects pa
     assert.deepEqual(f.project.volumes, ['data:/data']);
   }
 });
+
+test('sweep chooses separate event-specific OIDC variables while PR identity remains unchanged', async () => {
+  const workflow = await readFile(new URL('../../.github/workflows/pr-previews.yml', import.meta.url), 'utf8');
+  const [prJob, sweepJob] = workflow.split('\n  sweep:\n');
+  assert.match(prJob, /oauth-client-id: \$\{\{ vars\.MSTEFAN_PREVIEW_TS_CLIENT_ID \}\}/);
+  assert.match(prJob, /audience: \$\{\{ vars\.MSTEFAN_PREVIEW_TS_AUDIENCE \}\}/);
+  for (const [field, suffix] of [['oauth-client-id', 'CLIENT_ID'], ['audience', 'AUDIENCE']]) {
+    assert.ok(sweepJob.includes(`${field}: \${{ github.event_name == 'schedule' && vars.MSTEFAN_PREVIEW_SWEEP_TS_${suffix} || vars.MSTEFAN_PREVIEW_MANUAL_TS_${suffix} }}`));
+  }
+  assert.match(sweepJob, /run: node scripts\/pr-preview\/sweep.mjs/);
+  assert.doesNotMatch(sweepJob, /run: node scripts\/pr-preview\/controller.mjs/);
+});
+
+test('sweep entrypoint admits only schedule or manual events on the exact default branch and repository', async () => {
+  const { spawnSync } = await import('node:child_process');
+  for (const [event, repo, ref, trusted] of [
+    ['schedule', 'Itakello/mstefan-dev', 'refs/heads/master', true],
+    ['workflow_dispatch', 'Itakello/mstefan-dev', 'refs/heads/master', true],
+    ['pull_request_target', 'Itakello/mstefan-dev', 'refs/heads/master', false],
+    ['push', 'Itakello/mstefan-dev', 'refs/heads/master', false],
+    ['schedule', 'Itakello/other', 'refs/heads/master', false],
+    ['workflow_dispatch', 'Itakello/mstefan-dev', 'refs/heads/feature', false],
+  ]) {
+    const result = spawnSync(process.execPath, [new URL('./sweep.mjs', import.meta.url).pathname], {
+      encoding: 'utf8', env: { GITHUB_EVENT_NAME: event, GITHUB_REPOSITORY: repo, GITHUB_REF: ref },
+    });
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, trusted ? /GITHUB_TOKEN missing/ : /Trusted default-branch sweep required/);
+  }
+});

@@ -14,12 +14,21 @@ Create an undeployed `mstefan-pr-previews` OpenShip template with the repository
 
 The Cloudflare `mstefan-pr-previews` Worker uses `edge.mjs`, an initially empty `ACTIVE_PRS` plain-text binding and an `ORIGIN_AUTH_KEY` secret derived from the preview seed. Each PR uses an exact Worker Custom Domain and a proxied origin A record named `preview-origin-pr-N.mstefan.dev`. A separate trusted nginx gateway authenticates the Worker's per-PR credential before reaching the application over a private Docker network. PR code receives no origin credential, and the application has no public domain. Before requesting a certificate, the controller waits for positive public DNS evidence from Google and Cloudflare; certificate failure still withdraws the preview. It verifies the origin certificate, authenticated forwarding and unauthenticated rejection before exposing the preview URL.
 
-Configure an active GitHub Actions event policy for `.github/workflows/pr-previews.yml` only, allowing `pull_request_target`, `schedule` and `workflow_dispatch`. The sweep runs daily or manually on protected `master`, shares the event concurrency queue, and invokes only the cleanup path. It examines at most 1,000 scoped projects and 100 PR targets within 20 minutes, continues after target failures, and fails the run visibly with failed PR numbers. The privileged runner checks out protected `master`; PR application code is built by OpenShip. Events for other PR bases are retained for cleanup, while preview creation requires a live `master` base.
+Configure an active GitHub Actions event policy for `.github/workflows/pr-previews.yml` only, allowing `pull_request_target`, `schedule` and `workflow_dispatch`. The sweep runs daily at 03:23 UTC or manually on protected `master`, shares the event concurrency queue, and invokes only the cleanup path. It examines at most 1,000 scoped projects and 100 PR targets within 20 minutes, continues after target failures, and fails the run visibly with failed PR numbers. The privileged runner checks out protected `master`; PR application code is built by OpenShip. Events for other PR bases are retained for cleanup, while preview creation requires a live `master` base.
 
 Configure Tailscale OIDC trust for issuer `https://token.actions.githubusercontent.com`, subject `repo:Itakello/mstefan-dev:*`, and custom claims:
 
 - `workflow_ref`: `Itakello/mstefan-dev/.github/workflows/pr-previews.yml@refs/heads/master`
 - `event_name`: `pull_request_target`
+
+Keep that PR identity unchanged. Create two separate OIDC clients for the sweep, each using the same issuer and exact `workflow_ref` above, exact subject `repo:Itakello/mstefan-dev:ref:refs/heads/master`, and one literal `event_name` claim:
+
+| Event | Client ID variable | Audience variable |
+| --- | --- | --- |
+| `schedule` | `MSTEFAN_PREVIEW_SWEEP_TS_CLIENT_ID` | `MSTEFAN_PREVIEW_SWEEP_TS_AUDIENCE` |
+| `workflow_dispatch` | `MSTEFAN_PREVIEW_MANUAL_TS_CLIENT_ID` | `MSTEFAN_PREVIEW_MANUAL_TS_AUDIENCE` |
+
+These public OIDC IDs and audiences are GitHub variables, not secrets. Each client's `auth_keys` scope permits only device core registration with `tag:mstefan-preview-ci`; do not widen the PR client's event claim or use an event wildcard.
 
 Grant only device core registration under `tag:mstefan-preview-ci`; the network grant permits this tag to reach `100.111.250.54` on `tcp:443`.
 
@@ -30,6 +39,8 @@ Set GitHub variables `MSTEFAN_PREVIEW_TEMPLATE_ID`, `MSTEFAN_PREVIEW_TS_CLIENT_I
 - `MSTEFAN_PREVIEW_PAYLOAD_SECRET` (at least 32 characters)
 
 Leave `MSTEFAN_PR_PREVIEWS_ENABLED` unset or `false` until live deployment, replay, isolation and close/reopen checks pass. Setting it to `false` pauses preview creation; existing open previews remain active. Set the independent `MSTEFAN_PR_PREVIEW_CLEANUP_ENABLED=true` only after cleanup compatibility and trust checks pass to enable close/retarget event cleanup and the scheduled/manual sweep even while creation is paused. Leave both flags false during credential rotation. Scheduled/manual runners also require the corresponding Tailscale event trust before activation.
+
+The initial cleanup observation window is seven days: at most seven scheduled runs and two attended manual trials, with no model spending or automatic workflow retries. The controller admits provider calls for at most 20 minutes; the GitHub job has a 40-minute hard limit. Failed targets produce a failed GitHub Actions run with PR numbers in its log. Pause cleanup with `MSTEFAN_PR_PREVIEW_CLEANUP_ENABLED=false`; this prevents new cleanup jobs, so finish or cancel any already running or queued jobs when a full stop is needed. Review the first week's failures and bounds before extending observation.
 
 ## Preview seed rotation
 
