@@ -46,6 +46,7 @@ function fixture(options = {}) {
   let submitted = Boolean(options.existing);
   let priorRecord;
   let recoveryReads = 0;
+  const statuses = new Map();
   const record = { id: 'dep_preview', organizationId: org, projectId: child.id, commitSha: sha, environment: 'preview', status: 'ready',
     meta: { organizationId: org, runtimeMode: 'docker', build: 'dockerfile', source: 'git', workload: 'web', port: 3000, volumes: ['data:/data'] } };
   if (options.existing) project.activeDeploymentId = record.id;
@@ -63,7 +64,12 @@ function fixture(options = {}) {
           { id: 123, environment: 'pr-42', payload: { owner: 'mstefan-pr-previews', pr: 42 } },
           { id: 999, environment: 'production', payload: { owner: 'someone-else' } },
         ];
-        if (path.includes('/statuses')) return { state: body.state };
+        if (path.includes('/statuses')) {
+          const deploymentId = Number(path.split('/').at(-2));
+          if (method === 'GET') return statuses.has(deploymentId) ? [{ state: statuses.get(deploymentId) }] : [];
+          statuses.set(deploymentId, body.state);
+          return { state: body.state };
+        }
         throw new Error('Unexpected mock GitHub call');
       },
       async ship(name, args) {
@@ -1430,4 +1436,50 @@ test('failed GitHub inactivation preserves the orphan gateway for sweep retry', 
   await assert.rejects(runPreview({ ...f.args, now: () => 8 * 86400000, closeOnly: true, purgeGateway: true }), /status write unavailable/);
   assert.equal(f.gateway.enabled, false);
   assert.ok(!f.calls.some(c => c.name === 'delete_projects_by_id' || c.name === 'get_projects_by_id_deletion_preview'));
+});
+
+test('cleanup replay posts no duplicate inactive deployment status', async () => {
+  const f = fixture({ existing: true });
+  f.pr.state = 'closed';
+  for (let run = 0; run < 2; run++) assert.equal((await runPreview({ ...f.args, closeOnly: true })).state, 'closed');
+  assert.equal(f.calls.filter(c => c.method === 'POST' && c.body?.state === 'inactive').length, 1);
+  assert.equal(f.calls.filter(c => c.method === 'GET' && c.path.endsWith('/123/statuses?per_page=1')).length, 2);
+});
+
+test('cleanup replay trusts a persisted inactive status after its write response is lost', async () => {
+  const f = fixture({ existing: true });
+  f.pr.state = 'closed';
+  const gh = f.args.gh;
+  f.args.gh = async (method, path, body) => {
+    const result = await gh(method, path, body);
+    if (body?.state === 'inactive') throw new Error('Status accepted but response lost');
+    return result;
+  };
+  await assert.rejects(runPreview({ ...f.args, closeOnly: true }), /response lost/);
+  assert.equal((await runPreview({ ...f.args, closeOnly: true })).state, 'closed');
+  assert.equal(f.calls.filter(c => c.method === 'POST' && c.body?.state === 'inactive').length, 1);
+});
+
+test('malformed latest deployment status prevents destructive gateway cleanup', async () => {
+  for (const latest of [null, {}, [{ state: 'unknown' }], [null], [{ state: 'inactive' }, { state: 'success' }]]) {
+    const f = fixture({ gateway: gatewayProject });
+    Object.assign(f.pr, { state: 'closed', closed_at: new Date(0).toISOString() });
+    const gh = f.args.gh;
+    f.args.gh = async (method, path, body) => method === 'GET' && path.includes('/statuses?') ? latest : gh(method, path, body);
+    await assert.rejects(runPreview({ ...f.args, now: () => 8 * 86400000, closeOnly: true, purgeGateway: true }), /deployment status invalid/);
+    assert.equal(f.gateway.enabled, false);
+    assert.ok(!f.calls.some(c => c.name === 'delete_projects_by_id' || c.name === 'get_projects_by_id_deletion_preview' || c.body?.state === 'inactive'));
+  }
+});
+
+test('owned deployment identity must be a positive safe integer before status requests', async () => {
+  for (const id of ['123', 0, Number.MAX_SAFE_INTEGER + 1]) {
+    const f = fixture({ gateway: gatewayProject });
+    Object.assign(f.pr, { state: 'closed', closed_at: new Date(0).toISOString() });
+    const gh = f.args.gh;
+    f.args.gh = async (method, path, body) => method === 'GET' && path.includes('/deployments?')
+      ? [{ id, environment: 'pr-42', payload: { owner: 'mstefan-pr-previews', pr: 42 } }] : gh(method, path, body);
+    await assert.rejects(runPreview({ ...f.args, now: () => 8 * 86400000, closeOnly: true, purgeGateway: true }), /deployment identity invalid/);
+    assert.ok(!f.calls.some(c => c.path?.includes('/statuses') || c.name === 'delete_projects_by_id'));
+  }
 });

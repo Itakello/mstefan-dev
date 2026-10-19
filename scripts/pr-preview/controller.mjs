@@ -280,7 +280,13 @@ export async function runPreview({ number, templateId, seed, gh, ship, cf, probe
       assert(Array.isArray(deployments), 'GitHub deployment list invalid');
       for (const deployment of deployments) {
         if (deployment.environment === envName && deployment.payload?.owner === WORKER && deployment.payload?.pr === number) {
-          await gh('POST', `/repos/${REPO}/deployments/${deployment.id}/statuses`, { state: 'inactive', description: 'Preview runtime disabled; application data retained' });
+          assert(Number.isSafeInteger(deployment.id) && deployment.id > 0, 'GitHub deployment identity invalid');
+          const statusPath = `/repos/${REPO}/deployments/${deployment.id}/statuses`;
+          const latest = await gh('GET', `${statusPath}?per_page=1`);
+          assert(Array.isArray(latest) && latest.length <= 1 && latest.every(status =>
+            ['error', 'failure', 'inactive', 'in_progress', 'queued', 'pending', 'success'].includes(status?.state)), 'GitHub deployment status invalid');
+          if (latest[0]?.state !== 'inactive') await gh('POST', statusPath,
+            { state: 'inactive', description: 'Preview runtime disabled; application data retained' });
         }
       }
       if (deployments.length < 100) break;
