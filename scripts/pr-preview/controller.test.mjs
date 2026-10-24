@@ -4,6 +4,16 @@ import { readFile } from 'node:fs/promises';
 import { runPreview, validatePR, validateProject, payloadSecret, originAuthKey, originToken, clients } from './controller.mjs';
 import { GATEWAY_IMAGE, gatewayService } from './gateway.mjs';
 
+const deletedGatewayReport = {
+  ok: true, message: 'deleted', orphaned: [], unlinked: [],
+  steps: [
+    { step: 'cancel_in_flight', status: 'skipped' },
+    { step: 'github_webhook', status: 'skipped' },
+    { step: 'runtime_cleanup', status: 'ok' },
+    { step: 'webmail', status: 'skipped' },
+    { step: 'delete_db_row', status: 'ok' },
+  ],
+};
 const sha = 'a'.repeat(40);
 const org = 'org_bf9659df-3efc-4659-8893-13baf6533b28';
 const production = 'proj_w1kqcgR7eY2EZhht';
@@ -46,6 +56,7 @@ function fixture(options = {}) {
   let submitted = Boolean(options.existing);
   let priorRecord;
   let recoveryReads = 0;
+  const statuses = new Map();
   const record = { id: 'dep_preview', organizationId: org, projectId: child.id, commitSha: sha, environment: 'preview', status: 'ready',
     meta: { organizationId: org, runtimeMode: 'docker', build: 'dockerfile', source: 'git', workload: 'web', port: 3000, volumes: ['data:/data'] } };
   if (options.existing) project.activeDeploymentId = record.id;
@@ -63,7 +74,12 @@ function fixture(options = {}) {
           { id: 123, environment: 'pr-42', payload: { owner: 'mstefan-pr-previews', pr: 42 } },
           { id: 999, environment: 'production', payload: { owner: 'someone-else' } },
         ];
-        if (path.includes('/statuses')) return { state: body.state };
+        if (path.includes('/statuses')) {
+          const deploymentId = Number(path.split('/').at(-2));
+          if (method === 'GET') return statuses.has(deploymentId) ? [{ state: statuses.get(deploymentId) }] : [];
+          statuses.set(deploymentId, body.state);
+          return { state: body.state };
+        }
         throw new Error('Unexpected mock GitHub call');
       },
       async ship(name, args) {
@@ -1166,4 +1182,354 @@ test('ready-worker lease that never completes blocks all new submissions within 
   await assert.rejects(runPreview(f.args), /ready worker did not finish within five minutes/);
   assert.equal(f.active, '7');
   assert.ok(!f.calls.some(c => ['post_deployments', 'post_deployments_build_access'].includes(c.name) || c.body?.state === 'success'));
+});
+
+test('cleanup-only skips an open master PR before any provider mutation', async () => {
+  const f = fixture({ existing: true });
+  assert.deepEqual(await runPreview({ ...f.args, closeOnly: true }), { state: 'skipped', reason: 'open-master' });
+  assert.equal(f.calls.length, 1);
+});
+
+test('cleanup-only replay and retarget never submit or create and retain app data', async () => {
+  for (const retarget of [false, true]) {
+    const f = fixture({ existing: true, gateway: gatewayProject });
+    if (retarget) f.pr.base.ref = 'other'; else f.pr.state = 'closed';
+    for (let replay = 0; replay < 2; replay++) {
+      const result = await runPreview({ ...f.args, closeOnly: true });
+      assert.equal(result.dataPurge, 'pending-backup-recovery');
+    }
+    assert.ok(!f.calls.some(c => ['post_deployments', 'post_projects', 'post_projects_by_id_environments', 'post_deployments_build_access'].includes(c.name)));
+    assert.deepEqual(f.project.volumes, ['data:/data']);
+  }
+});
+
+test('cleanup aborts when a closed PR reopens before the first mutation', async () => {
+  const f = fixture({ existing: true });
+  f.pr.state = 'closed';
+  const cf = f.args.cf;
+  f.args.cf = async (...args) => { const result = await cf(...args); f.pr.state = 'open'; return result; };
+  await assert.rejects(runPreview({ ...f.args, closeOnly: true }), /reopened/);
+  assert.ok(!f.calls.some(c => c.method === 'PATCH' || c.name?.startsWith('post_')));
+});
+
+test('seven closed days permit only a proven volume-free gateway deletion', async () => {
+  const week = 7 * 24 * 60 * 60 * 1000;
+  for (const age of [week - 1, week]) {
+    const f = fixture({ existing: true, gateway: gatewayProject });
+    f.pr.state = 'closed';
+    f.pr.closed_at = new Date(0).toISOString();
+    let deleted = false;
+    const ship = f.args.ship;
+    f.args.ship = async (name, args) => {
+      if (name === 'get_projects_by_id_deletion_preview') return { success: true, preview: { projectId: gatewayProject.id, totalVolumes: 0, services: [], deploymentVolumes: [] } };
+      if (name === 'delete_projects_by_id') { assert.equal(f.gateway.enabled, false); assert.deepEqual(args.query, { wipeVolumes: false }); deleted = true; return structuredClone(deletedGatewayReport); }
+      if (name === 'get_projects' && deleted) return { data: [], total: 0 };
+      return ship(name, args);
+    };
+    assert.equal((await runPreview({ ...f.args, now: () => age, closeOnly: true, purgeGateway: true })).state, 'closed');
+    assert.equal(deleted, age === week);
+    assert.deepEqual(f.project.volumes, ['data:/data']);
+  }
+});
+
+test('gateway deletion refuses wrong preview identity or any volume', async () => {
+  for (const preview of [{ projectId: 'foreign', totalVolumes: 0 }, { projectId: gatewayProject.id, totalVolumes: 1 }]) {
+    const f = fixture({ existing: true, gateway: gatewayProject });
+    Object.assign(f.pr, { state: 'closed', closed_at: new Date(0).toISOString() });
+    const ship = f.args.ship;
+    f.args.ship = async (name, args) => name === 'get_projects_by_id_deletion_preview'
+      ? { success: true, preview: { services: [], deploymentVolumes: [], ...preview } } : ship(name, args);
+    await assert.rejects(runPreview({ ...f.args, now: () => 8 * 86400000, closeOnly: true, purgeGateway: true }), /deletion preview/);
+    assert.ok(!f.calls.some(c => c.name === 'delete_projects_by_id'));
+  }
+});
+
+test('sweep skips open PRs, discovers orphan gateways, and continues after a failed target', async () => {
+  const { sweepPreviews } = await import('./sweep.mjs');
+  const f = fixture();
+  const seen = [];
+  const ship = f.args.ship;
+  f.args.ship = async (name, args) => name === 'get_projects'
+    ? { data: [1, 2, 3].map(number => ({ id: `gateway_${number}`, slug: `mstefan-pr-preview-gateway-${number}` })), total: 3 }
+    : ship(name, args);
+  f.args.gh = async (method, path) => {
+    const number = Number(path.split('/').at(-1));
+    seen.push(number);
+    if (number === 2) throw new Error('Unavailable PR');
+    return { ...structuredClone(pull), number };
+  };
+  await assert.rejects(sweepPreviews(f.args), error => {
+    assert.deepEqual(error.results.map(r => r.state), ['skipped', 'failed', 'skipped']);
+    return true;
+  });
+  assert.deepEqual(seen, [1, 2, 3]);
+  assert.ok(!f.calls.some(c => c.name?.startsWith('post_')));
+});
+
+
+test('sweep accepts only the exact production template alongside preview children', async () => {
+  const { sweepPreviews } = await import('./sweep.mjs');
+  for (const row of [{ id: template.id, slug: 'production', type: 'production' }, { id: 'foreign', slug: 'production', type: 'production' }]) {
+    const f = fixture();
+    const ship = f.args.ship;
+    f.args.ship = async (name, args) => name === 'get_projects_by_id_environments' ? { data: [row] } : ship(name, args);
+    if (row.id === template.id) assert.deepEqual(await sweepPreviews(f.args), []);
+    else await assert.rejects(sweepPreviews(f.args), /namespace invalid/);
+    assert.ok(!f.calls.some(c => c.name?.startsWith('post_')));
+  }
+});
+
+test('expired missing-gateway replay removes only the exact owned origin DNS and verifies absence', async () => {
+  for (const wrong of [false, true]) {
+    const f = fixture({ existing: true });
+    Object.assign(f.pr, { state: 'closed', closed_at: new Date(0).toISOString() });
+    let rows = [{ id: 'dns_origin', name: 'preview-origin-pr-42.mstefan.dev', type: 'A', content: wrong ? '192.0.2.1' : '65.21.149.236', proxied: true }];
+    const cf = f.args.cf;
+    const deletes = [];
+    f.args.cf = async (method, path, body) => {
+      if (path.includes('/dns_records')) {
+        if (method === 'DELETE') { deletes.push(path); rows = []; }
+        return structuredClone(rows);
+      }
+      return cf(method, path, body);
+    };
+    const result = runPreview({ ...f.args, now: () => 8 * 86400000, closeOnly: true, purgeGateway: true });
+    if (wrong) { await assert.rejects(result, /DNS cleanup identity/); assert.equal(deletes.length, 0); }
+    else { assert.equal((await result).state, 'closed'); assert.equal(deletes.length, 1); assert.ok(deletes[0].endsWith('/dns_records/dns_origin')); }
+    assert.deepEqual(f.project.volumes, ['data:/data']);
+  }
+});
+
+test('sweep fails closed on incomplete pagination and elapsed time without mutations', async () => {
+  const { sweepPreviews } = await import('./sweep.mjs');
+  for (const timedOut of [false, true]) {
+    const f = fixture();
+    let clock = 0;
+    const ship = f.args.ship;
+    f.args.ship = async (name, args) => {
+      if (timedOut) clock = 21 * 60 * 1000;
+      if (!timedOut && name === 'get_projects') return { data: [], total: 1 };
+      return ship(name, args);
+    };
+    await assert.rejects(sweepPreviews({ ...f.args, now: () => clock }), timedOut ? /time bound/ : /incomplete/);
+    assert.ok(!f.calls.some(c => c.name?.startsWith('post_')));
+  }
+});
+
+test('two sweeps leave no orphan DNS or active owned GitHub deployment after the gateway deletion response is lost', async () => {
+  const { sweepPreviews } = await import('./sweep.mjs');
+  const f = fixture({ gateway: gatewayProject });
+  Object.assign(f.pr, { state: 'closed', closed_at: new Date(0).toISOString() });
+  let gatewayPresent = true;
+  let dns = [{ id: 'dns_origin', name: 'preview-origin-pr-42.mstefan.dev', type: 'A', content: '65.21.149.236', proxied: true }];
+  const order = [];
+  const states = new Map([[123, 'active'], [999, 'active']]);
+  const gh = f.args.gh;
+  f.args.gh = async (method, path, body) => {
+    if (method === 'POST' && path.endsWith('/statuses')) {
+      assert.equal(f.gateway.enabled, false);
+      states.set(Number(path.split('/').at(-2)), body.state);
+      order.push('inactive');
+    }
+    return gh(method, path, body);
+  };
+  const ship = f.args.ship;
+  f.args.ship = async (name, args) => {
+    if (name === 'get_projects') return { data: gatewayPresent ? [structuredClone(f.gateway)] : [], total: gatewayPresent ? 1 : 0 };
+    if (name === 'get_projects_by_id_deletion_preview') return { success: true, preview: { projectId: gatewayProject.id, totalVolumes: 0, services: [], deploymentVolumes: [] } };
+    if (name === 'delete_projects_by_id') {
+      assert.equal(f.gateway.enabled, false);
+      assert.deepEqual(dns, []);
+      assert.equal(states.get(123), 'inactive');
+      assert.equal(states.get(999), 'active');
+      assert.deepEqual(args.query, { wipeVolumes: false });
+      order.push('gateway');
+      gatewayPresent = false;
+      throw new Error('Accepted deletion response lost');
+    }
+    return ship(name, args);
+  };
+  const cf = f.args.cf;
+  f.args.cf = async (method, path, body) => {
+    if (path.includes('/dns_records')) {
+      if (method === 'DELETE') {
+        assert.equal(f.gateway.enabled, false);
+        assert.ok(path.endsWith('/dns_records/dns_origin'));
+        order.push('dns');
+        dns = [];
+      }
+      return structuredClone(dns);
+    }
+    return cf(method, path, body);
+  };
+  const args = { ...f.args, now: () => 8 * 86400000 };
+  await assert.rejects(sweepPreviews(args), error => {
+    assert.deepEqual(error.results.map(row => ({ number: row.number, state: row.state })), [{ number: 42, state: 'failed' }]);
+    return true;
+  });
+  assert.deepEqual(order, ['inactive', 'dns', 'gateway']);
+  assert.deepEqual(await sweepPreviews(args), []);
+  assert.deepEqual(dns, []);
+  assert.equal(f.project, null);
+  assert.equal(states.get(123), 'inactive');
+  assert.equal(states.get(999), 'active');
+});
+
+test('gateway deletion requires the installed API acknowledgement and complete runtime and row cleanup', async () => {
+  const complete = deletedGatewayReport;
+  for (const report of [
+    { ...complete, ok: false },
+    { ...complete, message: 'partial' },
+    { ...complete, steps: [] },
+    { ...complete, steps: undefined },
+    { ...complete, steps: [null] },
+    { ...complete, steps: [{ step: '', status: 'ok' }] },
+    { ...complete, steps: complete.steps.map(step => step.step === 'runtime_cleanup' ? { ...step, status: 'failed' } : step) },
+    { ...complete, steps: complete.steps.map(step => step.step === 'runtime_cleanup' ? { ...step, status: 'skipped' } : step) },
+    { ...complete, steps: complete.steps.map(step => step.step === 'runtime_cleanup' ? { ...step, status: 'skipped', details: 'record-only: kept on server' } : step) },
+    { ...complete, steps: complete.steps.filter(step => step.step !== 'runtime_cleanup') },
+    { ...complete, steps: complete.steps.filter(step => step.step !== 'delete_db_row') },
+    { ...complete, steps: complete.steps.map(step => step.step === 'delete_db_row' ? { ...step, status: 'skipped' } : step) },
+    { ...complete, steps: [...complete.steps, complete.steps[0]] },
+    { ...complete, orphaned: [{ type: 'container' }] },
+    { ...complete, unlinked: [{ projectId: 'foreign' }] },
+    { ...complete, orphaned: undefined },
+    { ...complete, unlinked: undefined },
+    { ok: true, rowDeleted: true, unrecoverable: [], orphaned: [] },
+    { success: true },
+  ]) {
+    const f = fixture({ existing: true, gateway: gatewayProject });
+    Object.assign(f.pr, { state: 'closed', closed_at: new Date(0).toISOString() });
+    const ship = f.args.ship;
+    let attempted = false;
+    f.args.ship = async (name, args) => {
+      if (name === 'get_projects_by_id_deletion_preview') return { success: true, preview: { projectId: gatewayProject.id, totalVolumes: 0, services: [], deploymentVolumes: [] } };
+      if (name === 'delete_projects_by_id') { attempted = true; return report; }
+      return ship(name, args);
+    };
+    await assert.rejects(runPreview({ ...f.args, now: () => 8 * 86400000, closeOnly: true, purgeGateway: true }), /Gateway deletion failed/);
+    assert.equal(attempted, true);
+    assert.ok(f.calls.some(c => c.body?.state === 'inactive'));
+    assert.ok(f.calls.filter(c => c.body?.state === 'inactive').every(c => c.body.description === 'Preview runtime disabled; application data retained'));
+    assert.equal(f.project.enabled, false);
+    assert.equal(f.gateway.enabled, false);
+    assert.deepEqual(f.project.volumes, ['data:/data']);
+  }
+});
+
+test('sweep chooses separate event-specific OIDC variables while PR identity remains unchanged', async () => {
+  const workflow = await readFile(new URL('../../.github/workflows/pr-previews.yml', import.meta.url), 'utf8');
+  const [prJob, sweepJob] = workflow.split('\n  sweep:\n');
+  assert.match(prJob, /oauth-client-id: \$\{\{ vars\.MSTEFAN_PREVIEW_TS_CLIENT_ID \}\}/);
+  assert.match(prJob, /audience: \$\{\{ vars\.MSTEFAN_PREVIEW_TS_AUDIENCE \}\}/);
+  for (const [field, suffix] of [['oauth-client-id', 'CLIENT_ID'], ['audience', 'AUDIENCE']]) {
+    assert.ok(sweepJob.includes(`${field}: \${{ github.event_name == 'schedule' && vars.MSTEFAN_PREVIEW_SWEEP_TS_${suffix} || vars.MSTEFAN_PREVIEW_MANUAL_TS_${suffix} }}`));
+  }
+  assert.match(sweepJob, /run: node scripts\/pr-preview\/sweep.mjs/);
+  assert.doesNotMatch(sweepJob, /run: node scripts\/pr-preview\/controller.mjs/);
+});
+
+test('sweep entrypoint admits only schedule or manual events on the exact default branch and repository', async () => {
+  const { spawnSync } = await import('node:child_process');
+  for (const [event, repo, ref, trusted] of [
+    ['schedule', 'Itakello/mstefan-dev', 'refs/heads/master', true],
+    ['workflow_dispatch', 'Itakello/mstefan-dev', 'refs/heads/master', true],
+    ['pull_request_target', 'Itakello/mstefan-dev', 'refs/heads/master', false],
+    ['push', 'Itakello/mstefan-dev', 'refs/heads/master', false],
+    ['schedule', 'Itakello/other', 'refs/heads/master', false],
+    ['workflow_dispatch', 'Itakello/mstefan-dev', 'refs/heads/feature', false],
+  ]) {
+    const result = spawnSync(process.execPath, [new URL('./sweep.mjs', import.meta.url).pathname], {
+      encoding: 'utf8', env: { GITHUB_EVENT_NAME: event, GITHUB_REPOSITORY: repo, GITHUB_REF: ref },
+    });
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, trusted ? /GITHUB_TOKEN missing/ : /Trusted default-branch sweep required/);
+  }
+});
+
+test('failed GitHub inactivation preserves the orphan gateway for sweep retry', async () => {
+  const f = fixture({ gateway: gatewayProject });
+  Object.assign(f.pr, { state: 'closed', closed_at: new Date(0).toISOString() });
+  const gh = f.args.gh;
+  f.args.gh = async (method, path, body) => {
+    if (body?.state === 'inactive') throw new Error('GitHub status write unavailable');
+    return gh(method, path, body);
+  };
+  await assert.rejects(runPreview({ ...f.args, now: () => 8 * 86400000, closeOnly: true, purgeGateway: true }), /status write unavailable/);
+  assert.equal(f.gateway.enabled, false);
+  assert.ok(!f.calls.some(c => c.name === 'delete_projects_by_id' || c.name === 'get_projects_by_id_deletion_preview'));
+});
+
+test('cleanup replay posts no duplicate inactive deployment status', async () => {
+  const f = fixture({ existing: true });
+  f.pr.state = 'closed';
+  for (let run = 0; run < 2; run++) assert.equal((await runPreview({ ...f.args, closeOnly: true })).state, 'closed');
+  assert.equal(f.calls.filter(c => c.method === 'POST' && c.body?.state === 'inactive').length, 1);
+  assert.equal(f.calls.filter(c => c.method === 'GET' && c.path.endsWith('/123/statuses?per_page=1')).length, 2);
+});
+
+test('cleanup replay trusts a persisted inactive status after its write response is lost', async () => {
+  const f = fixture({ existing: true });
+  f.pr.state = 'closed';
+  const gh = f.args.gh;
+  f.args.gh = async (method, path, body) => {
+    const result = await gh(method, path, body);
+    if (body?.state === 'inactive') throw new Error('Status accepted but response lost');
+    return result;
+  };
+  await assert.rejects(runPreview({ ...f.args, closeOnly: true }), /response lost/);
+  assert.equal((await runPreview({ ...f.args, closeOnly: true })).state, 'closed');
+  assert.equal(f.calls.filter(c => c.method === 'POST' && c.body?.state === 'inactive').length, 1);
+});
+
+test('malformed latest deployment status prevents destructive gateway cleanup', async () => {
+  for (const latest of [null, {}, [{ state: 'unknown' }], [null], [{ state: 'inactive' }, { state: 'success' }]]) {
+    const f = fixture({ gateway: gatewayProject });
+    Object.assign(f.pr, { state: 'closed', closed_at: new Date(0).toISOString() });
+    const gh = f.args.gh;
+    f.args.gh = async (method, path, body) => method === 'GET' && path.includes('/statuses?') ? latest : gh(method, path, body);
+    await assert.rejects(runPreview({ ...f.args, now: () => 8 * 86400000, closeOnly: true, purgeGateway: true }), /deployment status invalid/);
+    assert.equal(f.gateway.enabled, false);
+    assert.ok(!f.calls.some(c => c.name === 'delete_projects_by_id' || c.name === 'get_projects_by_id_deletion_preview' || c.body?.state === 'inactive'));
+  }
+});
+
+test('owned deployment identity must be a positive safe integer before status requests', async () => {
+  for (const id of ['123', 0, Number.MAX_SAFE_INTEGER + 1]) {
+    const f = fixture({ gateway: gatewayProject });
+    Object.assign(f.pr, { state: 'closed', closed_at: new Date(0).toISOString() });
+    const gh = f.args.gh;
+    f.args.gh = async (method, path, body) => method === 'GET' && path.includes('/deployments?')
+      ? [{ id, environment: 'pr-42', payload: { owner: 'mstefan-pr-previews', pr: 42 } }] : gh(method, path, body);
+    await assert.rejects(runPreview({ ...f.args, now: () => 8 * 86400000, closeOnly: true, purgeGateway: true }), /deployment identity invalid/);
+    assert.ok(!f.calls.some(c => c.path?.includes('/statuses') || c.name === 'delete_projects_by_id'));
+  }
+});
+
+
+test('never-deployed empty gateway accepts the installed no-resources runtime acknowledgement', async () => {
+  const f = fixture({ gateway: gatewayProject });
+  Object.assign(f.pr, { state: 'closed', closed_at: new Date(0).toISOString() });
+  const ship = f.args.ship;
+  let deleted = false;
+  let absenceReads = 0;
+  f.args.ship = async (name, args) => {
+    if (name === 'get_projects_by_id_deletion_preview') return { success: true, preview: {
+      projectId: gatewayProject.id, totalVolumes: 0, services: [], deploymentVolumes: [],
+    } };
+    if (name === 'delete_projects_by_id') {
+      assert.equal(f.gateway.enabled, false);
+      assert.equal(f.gateway.activeDeploymentId, undefined);
+      deleted = true;
+      return { ...structuredClone(deletedGatewayReport), steps: deletedGatewayReport.steps.map(step =>
+        step.step === 'runtime_cleanup' ? { ...step, status: 'skipped', details: 'no resources' } : step) };
+    }
+    if (name === 'get_projects' && deleted) { absenceReads++; return { data: [], total: 0 }; }
+    return ship(name, args);
+  };
+  assert.deepEqual(await runPreview({ ...f.args, now: () => 8 * 86400000, closeOnly: true, purgeGateway: true }), {
+    state: 'closed', dataPurge: 'no-app',
+  });
+  assert.equal(deleted, true);
+  assert.ok(absenceReads > 0);
 });

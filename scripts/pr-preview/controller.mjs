@@ -72,11 +72,37 @@ function validateVars(vars) {
     'Unexpected preview environment variables');
 }
 
-export async function runPreview({ number, templateId, seed, gh, ship, cf, probe, dnsReady, now = Date.now, sleep = ms => new Promise(resolve => setTimeout(resolve, ms)) }) {
+export async function runPreview({ number, templateId, seed, gh, ship, cf, probe, dnsReady, closeOnly = false, purgeGateway = false, now = Date.now, sleep = ms => new Promise(resolve => setTimeout(resolve, ms)) }) {
   assert(Number.isSafeInteger(number) && number > 0, 'PR number invalid');
   const prPath = `/repos/${REPO}/pulls/${number}`;
   let pr = await gh('GET', prPath);
   if (!validatePR(pr, number)) return { state: 'skipped', reason: 'fork' };
+  closeOnly ||= pr.state === 'closed' || pr.base.ref !== 'master';
+  assert(!purgeGateway || closeOnly, 'Gateway purge requires cleanup-only mode');
+  if (closeOnly && pr.state === 'open' && pr.base.ref === 'master') return { state: 'skipped', reason: 'open-master' };
+  async function cleanupCurrent() {
+    pr = await ghRead('GET', prPath);
+    assert(validatePR(pr, number) && (pr.state === 'closed' || pr.base.ref !== 'master'), 'PR reopened or returned to master during cleanup');
+  }
+  const ghRead = gh;
+  if (closeOnly) {
+    const shipCall = ship;
+    const cfCall = cf;
+    gh = async (method, ...args) => { if (method !== 'GET') await cleanupCurrent(); return ghRead(method, ...args); };
+    ship = async (name, ...args) => {
+      if (!name.startsWith('get_')) await cleanupCurrent();
+      if (name === 'delete_projects_by_id') assert(pr.state === 'closed' && Number.isFinite(Date.parse(pr.closed_at))
+        && now() - Date.parse(pr.closed_at) >= 7 * 24 * 60 * 60 * 1000, 'Gateway retention changed during cleanup');
+      return shipCall(name, ...args);
+    };
+    cf = async (method, ...args) => {
+      if (method !== 'GET') await cleanupCurrent();
+      if (method === 'DELETE' && args[0].includes('/dns_records/')) assert(pr.state === 'closed'
+        && Number.isFinite(Date.parse(pr.closed_at)) && now() - Date.parse(pr.closed_at) >= 7 * 24 * 60 * 60 * 1000,
+      'Origin DNS retention changed during cleanup');
+      return cfCall(method, ...args);
+    };
+  }
   const envName = `pr-${number}`;
   const hostname = `${envName}.preview.mstefan.dev`;
   const origin = `preview-origin-${envName}.mstefan.dev`;
@@ -91,7 +117,7 @@ export async function runPreview({ number, templateId, seed, gh, ship, cf, probe
 
   function validateGateway(row, runtime = true) {
     assert(row && typeof row.id === 'string' && ID.test(row.id) && row.id !== PRODUCTION && row.id !== templateId && row.id !== project?.id
-      && row.organizationId === ORG && row.slug === gatewaySlug && (row.serverId ?? null) === (project?.serverId ?? null)
+      && row.organizationId === ORG && row.slug === gatewaySlug && (row.serverId ?? null) === (project?.serverId ?? template?.serverId ?? null)
       && (row.serverId == null || (typeof row.serverId === 'string' && ID.test(row.serverId))) && row.gitProvider === 'none' && !row.gitOwner && !row.gitRepo && !row.gitUrl
       && !row.localPath && !row.releaseSource && row.sourceKind === 'image' && row.buildKind === 'prebuilt'
       && row.framework === 'docker-compose' && row.hasBuild === false && row.port === 8080 && row.autoDeploy === false
@@ -124,7 +150,10 @@ export async function runPreview({ number, templateId, seed, gh, ship, cf, probe
         assert(found.length <= 1, 'Duplicate gateway project');
         if (found.length) assert(typeof found[0].id === 'string' && ID.test(found[0].id) && found[0].id !== PRODUCTION
           && found[0].id !== templateId && found[0].id !== project?.id, 'Gateway project identity invalid');
-        return found.length ? validateGateway(data(await ship('get_projects_by_id', { id: found[0].id }))) : null;
+        if (!found.length) return null;
+        const row = data(await ship('get_projects_by_id', { id: found[0].id }));
+        assert(row?.id === found[0].id, 'Gateway project identity mismatch');
+        return validateGateway(row);
       }
     }
     throw new Error('Scoped project list exceeds gateway bound');
@@ -219,7 +248,10 @@ export async function runPreview({ number, templateId, seed, gh, ship, cf, probe
 
   async function disableApp() {
     await ship('post_projects_by_id_disable', { id: project.id });
-    const disabled = validateProject(data(await ship('get_projects_by_id', { id: project.id })), template, number);
+    const stopped = data(await ship('get_projects_by_id', { id: project.id }));
+    assert(stopped?.id === project.id, 'Preview child identity mismatch');
+    const disabled = validateProject(closeOnly && stopped.routeStrategy === 'auto' && stopped.readiness == null && stopped.activeDeploymentId == null
+      ? { ...stopped, routeStrategy: 'loopback-port', readiness: template.readiness } : stopped, template, number);
     if (disabled.activeDeploymentId) {
       assert(disabled.enabled === false && disabled.disabledAt, 'Preview runtime disable unverified');
       const info = data(await ship('get_deployments_by_id_info', { id: disabled.activeDeploymentId }));
@@ -248,12 +280,70 @@ export async function runPreview({ number, templateId, seed, gh, ship, cf, probe
       assert(Array.isArray(deployments), 'GitHub deployment list invalid');
       for (const deployment of deployments) {
         if (deployment.environment === envName && deployment.payload?.owner === WORKER && deployment.payload?.pr === number) {
-          await gh('POST', `/repos/${REPO}/deployments/${deployment.id}/statuses`, { state: 'inactive', description: 'PR closed; runtime disabled and data retained' });
+          assert(Number.isSafeInteger(deployment.id) && deployment.id > 0, 'GitHub deployment identity invalid');
+          const statusPath = `/repos/${REPO}/deployments/${deployment.id}/statuses`;
+          const latest = await gh('GET', `${statusPath}?per_page=1`);
+          assert(Array.isArray(latest) && latest.length <= 1 && latest.every(status =>
+            ['error', 'failure', 'inactive', 'in_progress', 'queued', 'pending', 'success'].includes(status?.state)), 'GitHub deployment status invalid');
+          if (latest[0]?.state !== 'inactive') await gh('POST', statusPath,
+            { state: 'inactive', description: 'Preview runtime disabled; application data retained' });
         }
       }
-      if (deployments.length < 100) return { state: 'closed' };
+      if (deployments.length < 100) break;
+      if (page === 10) throw new Error('GitHub deployment history exceeds cleanup bound');
     }
-    throw new Error('GitHub deployment history exceeds cleanup bound');
+    async function removeOriginDNS() {
+      const dnsPath = `/zones/${ZONE}/dns_records`;
+      const records = await cf('GET', `${dnsPath}?name=${origin}`);
+      assert(Array.isArray(records) && records.length <= 1, 'Origin DNS cleanup conflict');
+      if (records.length) {
+        const row = records[0];
+        assert(ID.test(row.id) && row.name === origin && row.type === 'A' && row.content === '65.21.149.236'
+          && row.proxied === true, 'Origin DNS cleanup identity mismatch');
+        await cleanupCurrent();
+        assert(pr.state === 'closed' && now() - Date.parse(pr.closed_at) >= 7 * 24 * 60 * 60 * 1000,
+          'Origin DNS retention changed during cleanup');
+        await cf('DELETE', `${dnsPath}/${row.id}`);
+        const remaining = await cf('GET', `${dnsPath}?name=${origin}`);
+        assert(Array.isArray(remaining) && remaining.length === 0, 'Origin DNS cleanup unverified');
+      }
+    }
+    if (purgeGateway && gateway && pr.state === 'closed') {
+      const expired = () => pr.state === 'closed' && Number.isFinite(Date.parse(pr.closed_at))
+        && now() - Date.parse(pr.closed_at) >= 7 * 24 * 60 * 60 * 1000;
+      await cleanupCurrent();
+      if (expired()) {
+        const preview = await ship('get_projects_by_id_deletion_preview', { id: gateway.id });
+        assert(preview?.success === true && preview.preview?.projectId === gateway.id && preview.preview.totalVolumes === 0
+          && Array.isArray(preview.preview.deploymentVolumes) && preview.preview.deploymentVolumes.length === 0
+          && Array.isArray(preview.preview.services) && preview.preview.services.every(s => Array.isArray(s.volumes) && s.volumes.length === 0),
+        'Gateway deletion preview contains volumes or changed identity');
+        gateway = validateGateway(data(await ship('get_projects_by_id', { id: gateway.id })));
+        const services = (await ship('get_projects_by_id_services', { id: gateway.id })).services;
+        assert(Array.isArray(services) && services.every(s => s.projectId === gateway.id && ID.test(s.id)), 'Gateway cleanup service identity mismatch');
+        await disableGateway(services);
+        await cleanupCurrent();
+        assert(expired(), 'Gateway retention changed during cleanup');
+        await removeOriginDNS();
+        const removed = await ship('delete_projects_by_id', { id: gateway.id, query: { wipeVolumes: false } });
+        assert(removed?.ok === true && removed.message === 'deleted'
+          && Array.isArray(removed.steps) && removed.steps.length > 0 && removed.steps.every(step =>
+            typeof step?.step === 'string' && step.step.length > 0 && ['ok', 'skipped'].includes(step.status))
+          && new Set(removed.steps.map(step => step.step)).size === removed.steps.length
+          && removed.steps.some(step => step.step === 'runtime_cleanup'
+            && (step.status === 'ok' || (step.status === 'skipped' && step.details === 'no resources')))
+          && removed.steps.some(step => step.step === 'delete_db_row' && step.status === 'ok')
+          && Array.isArray(removed.orphaned) && removed.orphaned.length === 0
+          && Array.isArray(removed.unlinked) && removed.unlinked.length === 0, 'Gateway deletion failed');
+        assert(!await findGateway(), 'Gateway deletion unverified');
+      }
+    }
+    if (purgeGateway) {
+      await cleanupCurrent();
+      if (pr.state === 'closed' && Number.isFinite(Date.parse(pr.closed_at))
+        && now() - Date.parse(pr.closed_at) >= 7 * 24 * 60 * 60 * 1000 && !await findGateway()) await removeOriginDNS();
+    }
+    return { state: 'closed', dataPurge: project ? 'pending-backup-recovery' : 'no-app' };
   }
 
   async function settled(id, status, target = project) {
@@ -303,6 +393,7 @@ export async function runPreview({ number, templateId, seed, gh, ship, cf, probe
       assert(isolated.activeDeploymentId == null && isolated.gitBranch === pr.head.ref, 'Partial preview already deployed or source changed');
       // Native creation omits these fields; prove every other invariant before recovering a lost response.
       validateProject({ ...isolated, routeStrategy: 'loopback-port', readiness: template.readiness }, template, number);
+      if (closeOnly) return validateProject({ ...isolated, routeStrategy: 'loopback-port', readiness: template.readiness }, template, number);
       await ship('patch_projects_by_id', { id, body: { routeStrategy: 'loopback-port', readiness: template.readiness } });
       const normalized = data(await ship('get_projects_by_id', { id }));
       assert(normalized?.id === id, 'Normalized preview identity mismatch');
@@ -311,7 +402,7 @@ export async function runPreview({ number, templateId, seed, gh, ship, cf, probe
     return validateProject(isolated, template, number);
   }
   project = matches.length ? await prepareChild(matches[0].id) : null;
-  if (pr.state === 'closed' || pr.base.ref !== 'master') return close(true);
+  if (closeOnly || pr.state === 'closed' || pr.base.ref !== 'master') return close(true);
   const secret = payloadSecret(seed, number);
   const sha = pr.head.sha;
   const branch = pr.head.ref;
@@ -667,8 +758,8 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     const event = JSON.parse(await readFile(process.env.GITHUB_EVENT_PATH, 'utf8'));
     assert(process.env.GITHUB_REPOSITORY === REPO && process.env.GITHUB_EVENT_NAME === 'pull_request_target', 'Trusted workflow event required');
     const result = await runPreview({ number: event.number, templateId: process.env.OPENSHIP_PREVIEW_TEMPLATE_ID,
-      seed: process.env.PREVIEW_PAYLOAD_SECRET, ...clients(process.env) });
-    console.log(`PR preview: ${result.state}`);
+      closeOnly: process.env.PREVIEW_CLOSE_ONLY === 'true', seed: process.env.PREVIEW_PAYLOAD_SECRET, ...clients(process.env) });
+    console.log(`PR preview: ${JSON.stringify(result)}`);
   } catch (error) {
     console.error(error.message);
     process.exitCode = 1;
