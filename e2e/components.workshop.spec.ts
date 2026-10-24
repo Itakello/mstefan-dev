@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { fixVisualDate } from "./visual-ready";
 
 async function story(page: Page, id: string, theme: string) {
   await page.goto(`/iframe.html?id=${id}&viewMode=story&globals=theme:${theme}`);
@@ -23,7 +24,7 @@ for (const theme of ["light", "dark"] as const) {
     test(`${size} ${theme} component states and interactions`, async ({ page, context, request }, testInfo) => {
       test.setTimeout(120_000);
       await page.setViewportSize(viewport);
-      await page.clock.setFixedTime(new Date("2026-10-10T12:00:00Z"));
+      await fixVisualDate(page);
       const errors: string[] = [];
       page.on("pageerror", error => errors.push(error.message));
       const external: string[] = [];
@@ -53,6 +54,11 @@ for (const theme of ["light", "dark"] as const) {
           const document = await request.get((await results.getAttribute("href"))!);
           expect(document.ok()).toBe(true);
           expect(document.headers()["content-type"]).toContain("application/pdf");
+        }
+        if (id === "workshop-aboutcontent--bachelors-results-without-summary") {
+          const photo = page.getByRole("img", { name: "Experience portrait", exact: true });
+          await expect(photo).toBeVisible();
+          expect((await photo.boundingBox())!.width).toBeLessThanOrEqual(320);
         }
         const name = `${id}-${size}-${theme}.png`;
         await page.locator("main").screenshot({ path: testInfo.outputPath(name), animations: "disabled" });

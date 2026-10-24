@@ -5,6 +5,7 @@ import type { Page } from "@playwright/test";
 
 import { readFile, writeFile } from "node:fs/promises";
 import { installOfflineReview } from "./offline-review";
+import { fixVisualDate } from "./visual-ready";
 
 import { websiteScreenshotPaths } from "../lib/websiteScreenshots";
 
@@ -17,8 +18,9 @@ async function toggleTheme(page: Page) {
 }
 
 test.describe("Public website review", () => {
-  test.beforeEach(async ({ context }) => {
+  test.beforeEach(async ({ context, page }) => {
     await installOfflineReview(context);
+    await fixVisualDate(page);
   });
   test("Review the primary bilingual visitor journey", async ({ page }) => {
     const browserErrors: string[] = [];
@@ -204,7 +206,7 @@ test.describe("Public website review", () => {
     await page.setViewportSize({ width: 360, height: 800 });
     await expect(reader.getByRole("status")).toHaveCount(0);
     await expect.poll(() => slideStage.evaluate(node => node.scrollHeight <= node.clientHeight + 1 && node.scrollWidth <= node.clientWidth + 1)).toBeTruthy();
-    expect(await slideStage.evaluate(node => Math.abs(node.clientHeight - (node.querySelector("canvas")?.getBoundingClientRect().height ?? 0)))).toBeLessThan(2);
+    await expect.poll(() => slideStage.evaluate(node => Math.abs(node.clientHeight - (node.querySelector("canvas")?.getBoundingClientRect().height ?? 0)))).toBeLessThan(2);
     expect(await reader.evaluate(node => node.getBoundingClientRect().right <= window.innerWidth)).toBeTruthy();
     await page.screenshot({ path: ".artifacts/playwright/work-research-mobile.png", fullPage: true });
     await page.setViewportSize({ width: 1440, height: 1000 });
