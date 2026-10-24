@@ -1,0 +1,27 @@
+.github/workflows/pr-previews.yml
+  s_71a81669a464c2::t_ee44942f26037a 4-6,20,48,55-90
+scripts/pr-preview/README.md
+  s_71a81669a464c2::t_3d7633380dc52a 7,17,24-32,41-43,49
+scripts/pr-preview/controller.mjs
+  s_71a81669a464c2::t_1a718e4f714789 75,80-105,120,153-156,251-254,283-289,292-344,346,396,405,761-762
+scripts/pr-preview/controller.test.mjs
+  s_71a81669a464c2::t_38d02a8704bbfd 7-16,59,77-82,1186-1535
+scripts/pr-preview/sweep.mjs
+  s_71a81669a464c2::t_65593231e72064 1-80
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3cb2282f71b7086d4bdedb644897ac499ef5990a",
+  "prompts": {},
+  "sessions": {
+    "s_71a81669a464c2": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a16ec5-1c31-7332-97b4-f9d8a5f3c836",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
