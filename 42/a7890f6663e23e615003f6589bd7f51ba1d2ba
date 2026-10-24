@@ -1,0 +1,31 @@
+components/cms/AboutContent.module.css
+  s_71a81669a464c2::t_87b05ce2bb2b46 9
+e2e/components.workshop.spec.ts
+  s_71a81669a464c2::t_15f5a329b977cf 2,27,58-62
+e2e/design.consistency.spec.ts
+  s_71a81669a464c2::t_241ad8379ee73d 5,61-97
+e2e/mstefan-site.review.spec.ts
+  s_71a81669a464c2::t_50c377dece08ae 8,21,23,209
+e2e/visual-ready.ts
+  s_71a81669a464c2::t_875e06ab1237ba 3-7
+tests/cms/lifecycle.test.mts
+  s_71a81669a464c2::t_85662a06b54116 13,785,843-846
+workshop/AboutContent.stories.tsx
+  s_71a81669a464c2::t_8319fb4dd59404 10
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "42a7890f6663e23e615003f6589bd7f51ba1d2ba",
+  "prompts": {},
+  "sessions": {
+    "s_71a81669a464c2": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a16ec5-1c31-7332-97b4-f9d8a5f3c836",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
