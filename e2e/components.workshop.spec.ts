@@ -51,6 +51,9 @@ for (const theme of ["light", "dark"] as const) {
           await expect(page.getByRole('link', { name: /Read story|View documents/ })).toHaveCount(0);
           await expect(results).toHaveAttribute("download", `massimo-stefan-${id.endsWith("masters-results") ? "masters" : "bachelors"}-exam-results.pdf`);
           await expect(page.locator("[data-pdf-document]")).toHaveCount(0);
+          const document = await request.get((await results.getAttribute("href"))!);
+          expect(document.ok()).toBe(true);
+          expect(document.headers()["content-type"]).toContain("application/pdf");
         }
         const name = `${id}-${size}-${theme}.png`;
         await page.locator("main").screenshot({ path: testInfo.outputPath(name), animations: "disabled" });
