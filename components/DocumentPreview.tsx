@@ -133,10 +133,10 @@ function PdfDocumentPreview({ url, title, locale, filename, presentation = false
         if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5) setPage(current => Math.max(1, Math.min(document.numPages, current + (dx < 0 ? 1 : -1))));
       }}>
     <div ref={host} aria-busy={status === "loading"} data-document-stage style={{ height: pageHeight ?? (presentation ? "min(480px,55svh)" : "min(640px,70svh)") }} className={`relative ${presentation ? "max-h-[min(480px,55svh)]" : "max-h-[min(640px,70svh)]"} overflow-auto bg-[var(--surface-bg)]`}>
-      {status === "loading" && <p role="status" className="absolute inset-0 z-10 flex items-center justify-center text-sm text-[var(--page-muted)]">{italian ? "Caricamento documento…" : "Loading document…"}</p>}
       {status === "error" && <p role="status" className="text-sm">{italian ? "Anteprima non disponibile. Usa Scarica PDF per leggere il documento." : "Preview unavailable. Use Download PDF to read the document."}</p>}
       <div ref={pageHost} className={`relative mx-auto ${status === "error" ? "hidden" : status === "loading" ? "invisible" : ""}`}><canvas ref={canvas} role="img" aria-label={`${title} · ${italian ? "pagina" : "page"} ${page}`} className="bg-white shadow-sm" /><div ref={text} data-document-text /></div>
     </div>
+    {status === "loading" && <p role="status" className="absolute inset-0 z-10 flex items-center justify-center text-sm text-[var(--page-muted)]">{italian ? "Caricamento documento…" : "Loading document…"}</p>}
     {!presentation && <div data-media-zoom role="group" aria-label={italian ? "Zoom documento" : "Document zoom"} className="absolute top-3 left-3 z-20 flex items-center gap-1 text-xs transition-opacity">
           <button type="button" className={control} disabled={status === "loading" || !document || zoom <= 1} aria-label={italian ? "Riduci" : "Zoom out"} onClick={() => setZoom(value => Math.max(1, value - 0.25))}><Minus size={16} /></button>
           <span className="media-preview-control" aria-live="polite">{Math.round(zoom * 100)}%</span>
