@@ -1,0 +1,23 @@
+.storybook/main.ts
+  s_71a81669a464c2::t_902e2356b1b2f5 9
+e2e/components.workshop.spec.ts
+  s_71a81669a464c2::t_e25cf73d200f3d 50-57
+workshop/AboutContent.stories.tsx
+  s_71a81669a464c2::t_77a1750dde540d 9-10
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "7612253398c58ce54a59a6ecb251471b1d35a826",
+  "prompts": {},
+  "sessions": {
+    "s_71a81669a464c2": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a16ec5-1c31-7332-97b4-f9d8a5f3c836",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
