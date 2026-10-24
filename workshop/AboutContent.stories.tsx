@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { AboutContent } from "@/components/cms/AboutContent";
 import { getCopy } from "@/lib/i18n/copy";
-import type { Career } from "@/payload-types";
+import type { CareerContent } from "@/lib/cms/career-media";
 
-const career: Career = {
+const career: CareerContent = {
   id: 2, mainlineColor: "#25b8f3",
   jobs: [
     { branchName: "education/trento-master", company: "Sample University", role: "Artificial Intelligence", summary: "Master’s degree in artificial intelligence.", startDate: "2022-09-01", endDate: "2024-07-01", color: "#bf8a2b", documents: [{ title: "Master’s exam results", file: { id: 1, filename: "master-grades.pdf", url: "/master-grades.pdf", createdAt: "2024-07-01", updatedAt: "2024-07-01" } }] },

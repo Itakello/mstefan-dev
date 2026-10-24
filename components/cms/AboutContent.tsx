@@ -8,13 +8,14 @@ import { Prose } from "@/components/Prose";
 import { PdfPreview } from "@/components/PdfPreview";
 import { BranchIcon, CareerGraph } from "@/components/CareerGraph";
 import type { Career } from "@/payload-types";
+import { withCareerMedia, type CareerContent } from "@/lib/cms/career-media";
 import type { Locale } from "@/lib/i18n/config";
 import { getCopy } from "@/lib/i18n/copy";
 import type { PageContent } from "@/lib/cms/types";
 import styles from "./AboutContent.module.css";
 
-type Job = NonNullable<Career["jobs"]>[number];
-type Props = { content: PageContent<"about">; career: Career; locale: Locale };
+type Job = NonNullable<CareerContent["jobs"]>[number];
+type Props = { content: PageContent<"about">; career: CareerContent; locale: Locale };
 
 function CareerPhoto({ src, alt, width, height, locale }: { src: string; alt: string; width: number; height: number; locale: Locale }) {
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
@@ -35,7 +36,7 @@ export function AboutContent({ content, career, locale }: Props) {
   const results = documents.filter((document) => typeof document.file === "object" && ((selectedJob?.branchName === "education/trento-master" && document.file?.filename === "master-grades.pdf") || (selectedJob?.branchName === "education/trento-bachelor" && document.file?.filename === "bachelor-grades.pdf")));
   const selected = selectedJob && (selectedJob.summary?.trim() || documents.length) ? selectedJob : null;
   const profilePhoto = content.photo && typeof content.photo === "object" ? content.photo : null;
-  const experiencePhoto = selected?.summary?.trim() && selected.photo && typeof selected.photo === "object" ? selected.photo : null;
+  const experiencePhoto = selected?.photo && typeof selected.photo === "object" ? selected.photo : null;
   const photo = selected ? experiencePhoto : profilePhoto;
   const photoURL = selected ? photo?.url : photo?.url || "/profile-photo.jpg";
   const imageAlt = selected ? experiencePhoto?.alt || `${selected.company} · ${selected.role}` : content.imageAlt;
@@ -52,7 +53,7 @@ export function AboutContent({ content, career, locale }: Props) {
               <p className={styles.metadata}><span>{selected.role}</span>{results.map((document) => {
                 const file = document.file;
                 if (!file || typeof file !== "object" || !file.url) return null;
-                return <a key={document.id || file.id} href={file.url} download={`massimo-stefan-${selected.branchName === "education/trento-master" ? "masters" : "bachelors"}-exam-results.pdf`} className={styles.results} aria-label={`${locale === "it" ? "Scarica" : "Download"} ${document.title} (PDF)`}><Download size={14} aria-hidden="true" />{locale === "it" ? "Risultati" : "Results"}</a>;
+                return <a key={document.id || file.id} href={file.url} download={`massimo-stefan-${selected.branchName === "education/trento-master" ? "masters" : "bachelors"}-exam-results.pdf`} className={styles.results} aria-label={`${locale === "it" ? "Scarica" : "Download"} ${document.title || file.filename || "PDF"} (PDF)`}><Download size={14} aria-hidden="true" />{locale === "it" ? "Risultati" : "Results"}</a>;
               })}</p>
               {selected.summary && <p className={styles.summary}>{selected.summary}</p>}
             </> : <>
@@ -66,7 +67,7 @@ export function AboutContent({ content, career, locale }: Props) {
         {documents.filter((document) => !results.includes(document)).map((document) => {
           const file = document.file;
           if (!file || typeof file !== "object" || !file.url || !/^(?:\/(?!\/)|https?:\/\/)/i.test(file.url)) return null;
-          return <PdfPreview key={document.id || file.id} title={document.title} url={file.url} filename={file.filename} locale={locale} />;
+          return <PdfPreview key={document.id || file.id} title={document.title || file.filename || "PDF"} url={file.url} filename={file.filename} locale={locale} />;
         })}
       </section>
       <div className={styles.explorer}>
@@ -84,5 +85,5 @@ export function AboutLivePreview(props: Props) {
 
 export function AboutCareerLivePreview(props: Props) {
   const { data } = useLivePreview<Career>({ initialData: props.career, serverURL: typeof window === "undefined" ? "" : window.location.origin, depth: 1 });
-  return <AboutContent {...props} career={data} />;
+  return <AboutContent {...props} career={withCareerMedia(data)} />;
 }
