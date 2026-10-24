@@ -10,7 +10,7 @@ import { createServer } from 'node:net';
 import { request as httpRequest } from 'node:http';
 import { chromium, expect } from '@playwright/test';
 import { iconFixtureResponse } from '../../e2e/offline-review';
-import { stablePage } from '../../e2e/visual-ready';
+import { fixVisualDate, stablePage } from '../../e2e/visual-ready';
 
 const port = Number(process.env.CMS_TEST_PORT || 3000);
 const base = `http://127.0.0.1:${port}`;
@@ -713,6 +713,7 @@ test('degree results follow stories while other attachments retain previews', { 
   const browser = await chromium.launch({ headless: true });
   try {
     const page = await browser.newPage();
+    await fixVisualDate(page);
     for (const host of ['api.iconify.design', 'api.simplesvg.com', 'api.unisvg.com']) {
       await page.route(`https://${host}/**`, async route => {
         await route.fulfill({ json: await iconFixtureResponse(new URL(route.request().url())), headers: { 'access-control-allow-origin': '*' } });
@@ -770,6 +771,10 @@ test('degree results follow stories while other attachments retain previews', { 
                 await expect(photo).toHaveAttribute('src', degreePhoto.url);
                 await expect(photo).toBeVisible();
                 assert.ok(await photo.evaluate((image) => (image as HTMLImageElement).complete && (image as HTMLImageElement).naturalWidth > 0), 'Document-only degree photo must decode before every capture');
+                const photoBox = await photo.locator('..').boundingBox();
+                const storyBox = await page.locator('#career-story').boundingBox();
+                assert.ok(photoBox && storyBox && Math.abs(photoBox.width - Math.min(320, storyBox.width)) < 1, 'Degree portrait must cap at 20rem while fitting narrow screens');
+                assert.ok(photoBox && storyBox && Math.abs(photoBox.x + photoBox.width / 2 - storyBox.x - storyBox.width / 2) < 1, 'Degree portrait must remain centered in both languages');
               }
               await page.screenshot({ path: `.artifacts/playwright/master-download/${degree}-${locale}-${size}-${theme}.png`, fullPage: true, animations: 'disabled' });
               await link.hover();
