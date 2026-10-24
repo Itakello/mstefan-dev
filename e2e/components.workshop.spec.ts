@@ -225,3 +225,56 @@ for (const theme of ["light", "dark"] as const) {
     });
   }
 }
+
+test("PDF redraw keeps its loading message in the scrolled viewport", async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await story(page, "workshop-aboutcontent--experience-media", "light");
+  const reader = page.locator("[data-pdf-preview]");
+  const host = reader.locator("[data-document-stage]");
+  await expect(host).toHaveAttribute("aria-busy", "false");
+  for (let step = 0; step < 4; step++) {
+    await reader.getByRole("button", { name: "Zoom in", exact: true }).click();
+    await expect(host).toHaveAttribute("aria-busy", "false");
+  }
+  await expect(reader.getByText("200%", { exact: true })).toBeVisible();
+  const scrollTop = await host.evaluate(node => {
+    node.scrollTop = Math.min(node.scrollHeight - node.clientHeight, node.clientHeight * 0.6);
+    return node.scrollTop;
+  });
+  expect(scrollTop).toBeGreaterThan(await host.evaluate(node => node.clientHeight / 2));
+  const drawGate = await page.evaluateHandle(() => {
+    const original = window.requestAnimationFrame;
+    const pending: FrameRequestCallback[] = [];
+    window.requestAnimationFrame = callback => { pending.push(callback); return -pending.length; };
+    return {
+      count: () => pending.length,
+      release: () => { window.requestAnimationFrame = original; for (const callback of pending) original.call(window, callback); },
+    };
+  });
+  try {
+    await page.setViewportSize({ width: 1280, height: 880 });
+    await expect(host).toHaveAttribute("aria-busy", "true");
+    await expect.poll(() => drawGate.evaluate(gate => gate.count())).toBeGreaterThan(0);
+    await expect(reader.locator("canvas")).toBeHidden();
+    const message = reader.getByRole("status");
+    await expect(message).toHaveText("Loading document…");
+    const bounds = await host.boundingBox();
+    const text = await message.evaluate(node => { const range = document.createRange(); range.selectNodeContents(node); const box = range.getBoundingClientRect(); return { top: box.top, bottom: box.bottom, left: box.left, right: box.right }; });
+    await page.screenshot({ path: testInfo.outputPath("scrolled-pdf-redraw.png"), fullPage: true });
+    expect(text.top).toBeGreaterThanOrEqual(bounds!.y);
+    expect(text.bottom).toBeLessThanOrEqual(bounds!.y + bounds!.height);
+    expect(text.left).toBeGreaterThanOrEqual(bounds!.x);
+    expect(text.right).toBeLessThanOrEqual(bounds!.x + bounds!.width);
+    expect(await host.evaluate(node => node.scrollTop)).toBe(scrollTop);
+  } finally {
+    await drawGate.evaluate(gate => gate.release());
+    await drawGate.dispose();
+  }
+  await expect(host).toHaveAttribute("aria-busy", "false");
+  await expect(reader.getByRole("status")).toHaveCount(0);
+  await expect(reader.locator("canvas")).toBeVisible();
+  expect(await host.evaluate(node => node.scrollTop)).toBe(scrollTop);
+  await reader.getByRole("button", { name: "Next page", exact: true }).click();
+  await expect(reader.locator("[data-document-text]")).toContainText("Research paper second page");
+  await expect(host).toHaveAttribute("aria-busy", "false");
+});
