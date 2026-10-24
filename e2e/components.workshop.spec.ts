@@ -49,6 +49,11 @@ for (const theme of ["light", "dark"] as const) {
         } else if (id.startsWith("workshop-aboutcontent--")) {
           const results = page.getByRole("link", { name: /Download .* exam results \(PDF\)/ });
           await expect(results).toBeVisible();
+          const metadata = page.locator('#career-story').getByText('Student', { exact: true });
+          await expect(metadata).toBeVisible();
+          await expect(page.locator('#career-story').getByText('Trento', { exact: true })).toBeVisible();
+          await expect(page.locator('#career-story').getByText(id.endsWith('masters-results') ? 'Sep 2022 – Jul 2024' : 'Sep 2019 – Jul 2022', { exact: true })).toBeVisible();
+          await expect(page.getByRole('link', { name: /Read story|View documents/ })).toHaveCount(0);
           await expect(results).toHaveAttribute("download", `massimo-stefan-${id.endsWith("masters-results") ? "masters" : "bachelors"}-exam-results.pdf`);
           await expect(page.locator("[data-pdf-document]")).toHaveCount(0);
           const document = await request.get((await results.getAttribute("href"))!);

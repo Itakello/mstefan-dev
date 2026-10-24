@@ -11,6 +11,18 @@ function parseDate(value?: string | null): number | null {
   return calendar.getUTCFullYear() === year && calendar.getUTCMonth() === month - 1 && calendar.getUTCDate() === day ? timestamp : null;
 }
 
+export function formatCareerPeriod(job: TimelineJob, locale: "en" | "it", now: number): string {
+  const start = parseDate(job.startDate);
+  const end = job.ongoing ? now : parseDate(job.endDate);
+  if (start === null || end === null || end < start) {
+    return job.startDate || job.endDate
+      ? (locale === "it" ? "Intervallo di date incompleto" : "Date range incomplete")
+      : (locale === "it" ? "Date non indicate" : "Dates not provided");
+  }
+  const format = new Intl.DateTimeFormat(locale, { month: "short", year: "numeric", timeZone: "UTC" });
+  return `${format.format(start)} – ${job.ongoing ? (locale === "it" ? "Presente" : "Present") : format.format(end)}`;
+}
+
 function monthPosition(timestamp: number): number {
   const date = new Date(timestamp);
   const days = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 0)).getUTCDate();

@@ -573,7 +573,7 @@ test('nested career branches share junctions and synchronize graph and Experienc
     await expect(page.locator('#career-story img')).toHaveAttribute('src', new URL(documentPhoto.url, base).href);
     await expect(page.locator('#career-story img')).toHaveAttribute('alt', 'Document-only experience portrait');
     await expect(page.locator('#career-story [data-pdf-document]')).toBeVisible();
-    await expect(page.getByRole('link', { name: /H · View documents/i })).toHaveAttribute('href', '#career-story');
+    await expect(page.getByRole('link', { name: /View documents/i })).toHaveCount(0);
     await expect(page.getByRole('link', { name: /Read story/i })).toHaveCount(0);
     await projectTitle.click();
     await expect(page.locator('#career-story h1')).toHaveText('F');
@@ -643,7 +643,7 @@ test('nested career branches share junctions and synchronize graph and Experienc
     await projectTitle.press('Enter');
     await expect(project).toHaveAttribute('aria-pressed', 'true');
     assert.ok((await centeredPhotoOffset()) < 2, 'Experience photo should be centered on mobile');
-    await expect(page.getByRole('link', { name: /F · Read story/i })).toHaveAttribute('href', '#career-story');
+    await expect(page.getByRole('link', { name: /Read story/i })).toHaveCount(0);
     await expect(page.locator('#career-story [data-document-text]')).toContainText('Synthetic career PDF');
     await page.screenshot({ path: '.artifacts/playwright/experience-media-mobile.png', fullPage: true });
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), 'Career page overflows at 320px');
@@ -760,7 +760,7 @@ test('authenticated previews load only the active source draft', { timeout: 60_0
   } finally { await browser.close(); }
 });
 
-test('degree results are optional metadata downloads while other attachments retain previews', { timeout: 90_000 }, async () => {
+test('degree results follow stories while other attachments retain previews', { timeout: 90_000 }, async () => {
   const pdfBytes = syntheticPDF();
   const form = new FormData();
   form.set('file', new Blob([pdfBytes], { type: 'application/pdf' }), 'master-grades.pdf');
@@ -804,9 +804,9 @@ test('degree results are optional metadata downloads while other attachments ret
         for (const [degree, attachment, role] of [['master', file, 'Artificial Intelligence'], ['bachelor', bachelorFile, 'Computer Science']] as const) {
           await page.locator('button[data-career-job]', { hasText: `education/trento-${degree}` }).click();
           const link = page.getByRole('link', { name: `${verb} ${degree === 'master' ? title : bachelorTitle} (PDF)`, exact: true });
-          await expect(link).toHaveText(locale === 'it' ? 'Risultati' : 'Results');
+          await expect(link).toHaveText(locale === 'it' ? 'Risultati degli esami' : 'Exam results');
           await expect(link.locator('svg.lucide-download')).toHaveCount(1);
-          await expect(page.locator('#career-story article p', { has: link })).toContainText(role);
+          await expect(page.locator('#career-story article header')).toContainText(role);
           await expect(link).toHaveAttribute('href', attachment.url);
           await expect(link).toHaveAttribute('download', `massimo-stefan-${degree}s-exam-results.pdf`);
           await expect(page.locator('#career-story [data-pdf-document]')).toHaveCount(0);
@@ -826,9 +826,9 @@ test('degree results are optional metadata downloads while other attachments ret
               }
               await expect(page.locator('html')).toHaveClass(theme === 'dark' ? /\bdark\b/ : /^(?!.*\bdark\b)/);
               await expect(link).toBeVisible();
-              const metadataBox = await page.locator('#career-story article p', { has: link }).boundingBox();
+              const storyBox = await page.locator('#career-story article').boundingBox();
               const buttonBox = await link.boundingBox();
-              assert.ok(metadataBox && buttonBox && Math.abs(metadataBox.x + metadataBox.width - buttonBox.x - buttonBox.width) < 1, 'Results button must align with the right edge of the metadata');
+              assert.ok(storyBox && buttonBox && buttonBox.y >= storyBox.y + storyBox.height && Math.abs(storyBox.x - buttonBox.x) < 1, 'Exam results must align left below the story, outside its metadata');
               await link.focus();
               await link.press('Tab');
               await page.keyboard.press('Shift+Tab');

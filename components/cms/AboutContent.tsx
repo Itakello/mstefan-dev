@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useCallback, useState } from "react";
-import { Download } from "lucide-react";
+import { CalendarDays, Download, MapPin, UserRound } from "lucide-react";
 import { useLivePreview } from "@payloadcms/live-preview-react";
 import { Prose } from "@/components/Prose";
 import { PdfPreview } from "@/components/PdfPreview";
@@ -10,6 +10,7 @@ import { BranchIcon, CareerGraph } from "@/components/CareerGraph";
 import type { Career } from "@/payload-types";
 import { withCareerMedia, type CareerContent } from "@/lib/cms/career-media";
 import type { Locale } from "@/lib/i18n/config";
+import { formatCareerPeriod } from "@/lib/career-timeline";
 import { getCopy } from "@/lib/i18n/copy";
 import type { PageContent } from "@/lib/cms/types";
 import styles from "./AboutContent.module.css";
@@ -40,8 +41,6 @@ export function AboutContent({ content, career, locale }: Props) {
   const photo = selected ? experiencePhoto : profilePhoto;
   const photoURL = selected ? photo?.url : photo?.url || "/profile-photo.jpg";
   const imageAlt = selected ? experiencePhoto?.alt || `${selected.company} · ${selected.role}` : content.imageAlt;
-  const readStory = locale === "it" ? "Leggi la storia" : "Read story";
-  const viewDocuments = locale === "it" ? "Vedi i documenti" : "View documents";
   return (
     <div className={styles.layout}>
       <section id="career-story" className={styles.story} aria-label={selected?.company || getCopy(locale).nav.about}>
@@ -49,12 +48,15 @@ export function AboutContent({ content, career, locale }: Props) {
           <Prose>
             {selected ? <>
               <p className={styles.branch} style={{ color: selected.color }}><BranchIcon /><span>{selected.branchName}</span></p>
-              <h1>{selected.company}</h1>
-              <p className={styles.metadata}><span>{selected.role}</span>{results.map((document) => {
-                const file = document.file;
-                if (!file || typeof file !== "object" || !file.url) return null;
-                return <a key={document.id || file.id} href={file.url} download={`massimo-stefan-${selected.branchName === "education/trento-master" ? "masters" : "bachelors"}-exam-results.pdf`} className={styles.results} aria-label={`${locale === "it" ? "Scarica" : "Download"} ${document.title || file.filename || "PDF"} (PDF)`}><Download size={14} aria-hidden="true" />{locale === "it" ? "Risultati" : "Results"}</a>;
-              })}</p>
+              <header className={styles.storyHeader}>
+                <h1>{selected.company}</h1>
+                <p className={styles.qualification}>{selected.role}</p>
+                <div className={styles.metadata}>
+                  {selected.positionTitle && <span><UserRound size={16} aria-hidden="true" />{selected.positionTitle}</span>}
+                  {selected.place && <span><MapPin size={16} aria-hidden="true" />{selected.place}</span>}
+                  <span><CalendarDays size={16} aria-hidden="true" />{formatCareerPeriod(selected, locale, Date.now())}</span>
+                </div>
+              </header>
               {selected.summary && <p className={styles.summary}>{selected.summary}</p>}
             </> : <>
               <h1 className={styles.branch} style={{ color: career.mainlineColor || "#25b8f3" }}><BranchIcon /><span>master</span></h1>
@@ -64,6 +66,11 @@ export function AboutContent({ content, career, locale }: Props) {
           </Prose>
         </div>
         {photoURL && <CareerPhoto key={photoURL} src={photoURL} alt={imageAlt} width={photo?.width || 1530} height={photo?.height || 2054} locale={locale} />}
+        {results.map((document) => {
+          const file = document.file;
+          if (!file || typeof file !== "object" || !file.url) return null;
+          return <a key={document.id || file.id} href={file.url} download={`massimo-stefan-${selected?.branchName === "education/trento-master" ? "masters" : "bachelors"}-exam-results.pdf`} className={styles.results} aria-label={`${locale === "it" ? "Scarica" : "Download"} ${document.title || file.filename || "PDF"} (PDF)`}><Download size={14} aria-hidden="true" />{locale === "it" ? "Risultati degli esami" : "Exam results"}</a>;
+        })}
         {documents.filter((document) => !results.includes(document)).map((document) => {
           const file = document.file;
           if (!file || typeof file !== "object" || !file.url || !/^(?:\/(?!\/)|https?:\/\/)/i.test(file.url)) return null;
@@ -72,7 +79,6 @@ export function AboutContent({ content, career, locale }: Props) {
       </section>
       <div className={styles.explorer}>
         <CareerGraph career={career} locale={locale} expanded showDetails={false} onSelectionChange={select} />
-        {selected && <a className={styles.readStory} href="#career-story">{selected.company} · {selected.summary?.trim() ? readStory : viewDocuments}</a>}
       </div>
     </div>
   );
