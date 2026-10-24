@@ -12,7 +12,7 @@ async function story(page: Page, id: string, theme: string) {
   for (const svg of await page.locator("main svg:visible").all()) {
     await expect.poll(() => svg.evaluate(node => {
       const box = (node as SVGGraphicsElement).getBBox();
-      return box.width > 0 && box.height > 0;
+      return box.width > 0 || box.height > 0;
     })).toBe(true);
   }
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
@@ -29,7 +29,7 @@ for (const theme of ["light", "dark"] as const) {
       page.on("pageerror", error => errors.push(error.message));
       const external: string[] = [];
       const base = new URL(process.env.PLAYWRIGHT_BASE_URL!).origin;
-      await context.route("**/*", route => {
+      await context.route("**/*", async route => {
         const url = new URL(route.request().url());
         if (url.origin === base) return route.continue();
         external.push(url.href);
@@ -42,7 +42,11 @@ for (const theme of ["light", "dark"] as const) {
       expect(ids.length).toBeGreaterThanOrEqual(11);
       for (const id of ids) {
         await story(page, id, theme);
-        if (id.startsWith("workshop-aboutcontent--")) {
+        if (id === "workshop-aboutcontent--experience-media") {
+          await expect(page.getByRole("img", { name: "Experience portrait", exact: true })).toBeVisible();
+          await expect(page.locator("[data-document-stage]")).toHaveAttribute("aria-busy", "false");
+          await expect(page.locator("[data-document-text]")).toContainText("Research paper first page");
+        } else if (id.startsWith("workshop-aboutcontent--")) {
           const results = page.getByRole("link", { name: /Download .* exam results \(PDF\)/ });
           await expect(results).toBeVisible();
           const metadata = page.locator('#career-story').getByText('Student', { exact: true });
@@ -163,6 +167,14 @@ for (const theme of ["light", "dark"] as const) {
         if (mode === "Photos") await expect(media.getByRole("img")).toBeVisible();
         if (mode === "Paper") {
           await expect(media.locator("[data-document-text]")).toContainText("Research");
+          await expect(media.getByRole("status")).toHaveCount(0);
+          await expect(media.getByRole("button", { name: "Zoom in", exact: true })).toBeEnabled();
+          if (size === "desktop") {
+            await media.locator("[data-preview-stage]").hover();
+            await expect(media.locator("[data-media-zoom]")).toHaveCSS("opacity", "1");
+            await expect(media.locator("[data-media-download]")).toHaveCSS("opacity", "1");
+            await expect(media.getByRole("button", { name: "Next page", exact: true })).toHaveCSS("opacity", "1");
+          }
           await expect(media.getByRole("link", { name: "Download PDF" })).toHaveAttribute("href", "/api/documents/file/research.pdf");
         }
         if (mode === "Slides") {

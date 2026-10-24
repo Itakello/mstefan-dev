@@ -18,6 +18,18 @@ import styles from "./AboutContent.module.css";
 type Job = NonNullable<CareerContent["jobs"]>[number];
 type Props = { content: PageContent<"about">; career: CareerContent; locale: Locale };
 
+function CareerPhoto({ src, alt, width, height, locale }: { src: string; alt: string; width: number; height: number; locale: Locale }) {
+  const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
+  return <figure className={styles.photo} aria-busy={status === "loading"}>
+    <Image src={src} alt={alt} width={width} height={height} unoptimized loading="eager"
+      onLoad={() => setStatus("ready")} onError={() => setStatus("error")}
+      className={`h-auto w-full ${status === "ready" ? "" : "invisible"}`} />
+    {status !== "ready" && <span role="status" className={styles.photoStatus}>{status === "loading"
+      ? locale === "it" ? "Caricamento foto…" : "Loading photo…"
+      : locale === "it" ? "Foto non disponibile." : "Photo unavailable."}</span>}
+  </figure>;
+}
+
 export function AboutContent({ content, career, locale }: Props) {
   const [selectedJob, setSelected] = useState<Job | null>(null);
   const select = useCallback((job: Job | null) => setSelected(job), []);
@@ -53,9 +65,7 @@ export function AboutContent({ content, career, locale }: Props) {
             </>}
           </Prose>
         </div>
-        {photoURL && <figure className={styles.photo}>
-          <Image src={photoURL} alt={imageAlt} width={photo?.width || 1530} height={photo?.height || 2054} unoptimized className="h-auto w-full" />
-        </figure>}
+        {photoURL && <CareerPhoto key={photoURL} src={photoURL} alt={imageAlt} width={photo?.width || 1530} height={photo?.height || 2054} locale={locale} />}
         {results.map((document) => {
           const file = document.file;
           if (!file || typeof file !== "object" || !file.url) return null;
