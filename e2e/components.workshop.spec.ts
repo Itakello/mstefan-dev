@@ -1,5 +1,4 @@
 import { expect, test, type Page } from "@playwright/test";
-import { readFile } from "node:fs/promises";
 
 async function story(page: Page, id: string, theme: string) {
   await page.goto(`/iframe.html?id=${id}&viewMode=story&globals=theme:${theme}`);
@@ -31,8 +30,6 @@ for (const theme of ["light", "dark"] as const) {
       const base = new URL(process.env.PLAYWRIGHT_BASE_URL!).origin;
       await context.route("**/*", async route => {
         const url = new URL(route.request().url());
-        if (url.origin === base && url.pathname === "/workshop-portrait.jpg") return route.fulfill({ body: await readFile("public/profile-photo.jpg"), contentType: "image/jpeg" });
-        if (url.origin === base && url.pathname === "/api/documents/file/workshop-research.pdf") return route.fulfill({ body: await readFile("tests/fixtures/research.pdf"), contentType: "application/pdf" });
         if (url.origin === base) return route.continue();
         external.push(url.href);
         return route.abort();
@@ -53,6 +50,9 @@ for (const theme of ["light", "dark"] as const) {
           await expect(results).toBeVisible();
           await expect(results).toHaveAttribute("download", `massimo-stefan-${id.endsWith("masters-results") ? "masters" : "bachelors"}-exam-results.pdf`);
           await expect(page.locator("[data-pdf-document]")).toHaveCount(0);
+          const document = await request.get((await results.getAttribute("href"))!);
+          expect(document.ok()).toBe(true);
+          expect(document.headers()["content-type"]).toContain("application/pdf");
         }
         const name = `${id}-${size}-${theme}.png`;
         await page.locator("main").screenshot({ path: testInfo.outputPath(name), animations: "disabled" });
