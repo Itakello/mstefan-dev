@@ -47,6 +47,14 @@ for (const theme of ["light", "dark"] as const) {
           await expect(results).toBeVisible();
           await expect(results).toHaveAttribute("download", `massimo-stefan-${id.endsWith("masters-results") ? "masters" : "bachelors"}-exam-results.pdf`);
           await expect(page.locator("[data-pdf-document]")).toHaveCount(0);
+          const document = await request.get((await results.getAttribute("href"))!);
+          expect(document.ok()).toBe(true);
+          expect(document.headers()["content-type"]).toContain("application/pdf");
+        }
+        if (id === "workshop-aboutcontent--bachelors-results-without-summary") {
+          const photo = page.getByRole("img", { name: "Experience portrait", exact: true });
+          await expect(photo).toBeVisible();
+          expect((await photo.boundingBox())!.width).toBeLessThanOrEqual(320);
         }
         const name = `${id}-${size}-${theme}.png`;
         await page.locator("main").screenshot({ path: testInfo.outputPath(name), animations: "disabled" });
