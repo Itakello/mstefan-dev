@@ -162,6 +162,23 @@ test.describe("Public website review", () => {
     await researchModes.getByRole("button", { name: "Paper", exact: true }).click();
     await expect(reader.getByRole("status")).toHaveCount(0);
     await expect(reader.getByRole("link", { name: "Download PDF", exact: true })).toHaveAttribute("href", "https://arxiv.org/pdf/2410.07109");
+    const fittedStageHeight = await reader.locator("[data-document-stage]").evaluate(node => node.clientHeight);
+    const restoreCanvas = await reader.locator("canvas").evaluateHandle((canvas: HTMLCanvasElement) => {
+      const getContext = canvas.getContext.bind(canvas);
+      canvas.getContext = () => {
+        throw new Error("Synthetic canvas render failure");
+      };
+      return () => { canvas.getContext = getContext; };
+    });
+    await reader.getByRole("button", { name: "Next page" }).click();
+    await expect(reader.getByRole("status")).toContainText("Preview unavailable.");
+    expect(await reader.locator("[data-document-stage]").evaluate(node => node.clientHeight)).toBe(fittedStageHeight);
+    await expect(reader.getByRole("button", { name: "Previous page" })).toBeEnabled();
+    await restoreCanvas.evaluate(restore => restore());
+    await restoreCanvas.dispose();
+    await reader.getByRole("button", { name: "Previous page" }).click();
+    await expect(reader.getByRole("status")).toHaveCount(0);
+    await expect(reader.getByText("Research paper first page", { exact: true })).toBeVisible();
     await expect.poll(() => reader.locator("[data-document-stage]").evaluate(node => node.scrollHeight <= node.clientHeight + 1)).toBeTruthy();
     await reader.getByRole("button", { name: "Next page" }).click();
     await expect(reader.getByRole("img", { name: "LLM Interaction Simulator · page 2", exact: true })).toBeVisible();
@@ -189,7 +206,7 @@ test.describe("Public website review", () => {
     await page.setViewportSize({ width: 360, height: 800 });
     await expect(reader.getByRole("status")).toHaveCount(0);
     await expect.poll(() => slideStage.evaluate(node => node.scrollHeight <= node.clientHeight + 1 && node.scrollWidth <= node.clientWidth + 1)).toBeTruthy();
-    expect(await slideStage.evaluate(node => Math.abs(node.clientHeight - (node.querySelector("canvas")?.getBoundingClientRect().height ?? 0)))).toBeLessThan(2);
+    await expect.poll(() => slideStage.evaluate(node => Math.abs(node.clientHeight - (node.querySelector("canvas")?.getBoundingClientRect().height ?? 0)))).toBeLessThan(2);
     expect(await reader.evaluate(node => node.getBoundingClientRect().right <= window.innerWidth)).toBeTruthy();
     await page.screenshot({ path: ".artifacts/playwright/work-research-mobile.png", fullPage: true });
     await page.setViewportSize({ width: 1440, height: 1000 });

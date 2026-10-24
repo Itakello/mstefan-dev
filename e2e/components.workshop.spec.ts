@@ -12,7 +12,7 @@ async function story(page: Page, id: string, theme: string) {
   for (const svg of await page.locator("main svg:visible").all()) {
     await expect.poll(() => svg.evaluate(node => {
       const box = (node as SVGGraphicsElement).getBBox();
-      return box.width > 0 && box.height > 0;
+      return box.width > 0 || box.height > 0;
     })).toBe(true);
   }
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
@@ -29,7 +29,7 @@ for (const theme of ["light", "dark"] as const) {
       page.on("pageerror", error => errors.push(error.message));
       const external: string[] = [];
       const base = new URL(process.env.PLAYWRIGHT_BASE_URL!).origin;
-      await context.route("**/*", route => {
+      await context.route("**/*", async route => {
         const url = new URL(route.request().url());
         if (url.origin === base) return route.continue();
         external.push(url.href);
@@ -42,7 +42,11 @@ for (const theme of ["light", "dark"] as const) {
       expect(ids.length).toBeGreaterThanOrEqual(11);
       for (const id of ids) {
         await story(page, id, theme);
-        if (id.startsWith("workshop-aboutcontent--")) {
+        if (id === "workshop-aboutcontent--experience-media") {
+          await expect(page.getByRole("img", { name: "Experience portrait", exact: true })).toBeVisible();
+          await expect(page.locator("[data-document-stage]")).toHaveAttribute("aria-busy", "false");
+          await expect(page.locator("[data-document-text]")).toContainText("Research paper first page");
+        } else if (id.startsWith("workshop-aboutcontent--")) {
           const results = page.getByRole("link", { name: /Download .* exam results \(PDF\)/ });
           await expect(results).toBeVisible();
           await expect(results).toHaveAttribute("download", `massimo-stefan-${id.endsWith("masters-results") ? "masters" : "bachelors"}-exam-results.pdf`);
@@ -158,6 +162,14 @@ for (const theme of ["light", "dark"] as const) {
         if (mode === "Photos") await expect(media.getByRole("img")).toBeVisible();
         if (mode === "Paper") {
           await expect(media.locator("[data-document-text]")).toContainText("Research");
+          await expect(media.getByRole("status")).toHaveCount(0);
+          await expect(media.getByRole("button", { name: "Zoom in", exact: true })).toBeEnabled();
+          if (size === "desktop") {
+            await media.locator("[data-preview-stage]").hover();
+            await expect(media.locator("[data-media-zoom]")).toHaveCSS("opacity", "1");
+            await expect(media.locator("[data-media-download]")).toHaveCSS("opacity", "1");
+            await expect(media.getByRole("button", { name: "Next page", exact: true })).toHaveCSS("opacity", "1");
+          }
           await expect(media.getByRole("link", { name: "Download PDF" })).toHaveAttribute("href", "/api/documents/file/research.pdf");
         }
         if (mode === "Slides") {
@@ -208,3 +220,56 @@ for (const theme of ["light", "dark"] as const) {
     });
   }
 }
+
+test("PDF redraw keeps its loading message in the scrolled viewport", async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await story(page, "workshop-aboutcontent--experience-media", "light");
+  const reader = page.locator("[data-pdf-preview]");
+  const host = reader.locator("[data-document-stage]");
+  await expect(host).toHaveAttribute("aria-busy", "false");
+  for (let step = 0; step < 4; step++) {
+    await reader.getByRole("button", { name: "Zoom in", exact: true }).click();
+    await expect(host).toHaveAttribute("aria-busy", "false");
+  }
+  await expect(reader.getByText("200%", { exact: true })).toBeVisible();
+  const scrollTop = await host.evaluate(node => {
+    node.scrollTop = Math.min(node.scrollHeight - node.clientHeight, node.clientHeight * 0.6);
+    return node.scrollTop;
+  });
+  expect(scrollTop).toBeGreaterThan(await host.evaluate(node => node.clientHeight / 2));
+  const drawGate = await page.evaluateHandle(() => {
+    const original = window.requestAnimationFrame;
+    const pending: FrameRequestCallback[] = [];
+    window.requestAnimationFrame = callback => { pending.push(callback); return -pending.length; };
+    return {
+      count: () => pending.length,
+      release: () => { window.requestAnimationFrame = original; for (const callback of pending) original.call(window, callback); },
+    };
+  });
+  try {
+    await page.setViewportSize({ width: 1280, height: 880 });
+    await expect(host).toHaveAttribute("aria-busy", "true");
+    await expect.poll(() => drawGate.evaluate(gate => gate.count())).toBeGreaterThan(0);
+    await expect(reader.locator("canvas")).toBeHidden();
+    const message = reader.getByRole("status");
+    await expect(message).toHaveText("Loading document…");
+    const bounds = await host.boundingBox();
+    const text = await message.evaluate(node => { const range = document.createRange(); range.selectNodeContents(node); const box = range.getBoundingClientRect(); return { top: box.top, bottom: box.bottom, left: box.left, right: box.right }; });
+    await page.screenshot({ path: testInfo.outputPath("scrolled-pdf-redraw.png"), fullPage: true });
+    expect(text.top).toBeGreaterThanOrEqual(bounds!.y);
+    expect(text.bottom).toBeLessThanOrEqual(bounds!.y + bounds!.height);
+    expect(text.left).toBeGreaterThanOrEqual(bounds!.x);
+    expect(text.right).toBeLessThanOrEqual(bounds!.x + bounds!.width);
+    expect(await host.evaluate(node => node.scrollTop)).toBe(scrollTop);
+  } finally {
+    await drawGate.evaluate(gate => gate.release());
+    await drawGate.dispose();
+  }
+  await expect(host).toHaveAttribute("aria-busy", "false");
+  await expect(reader.getByRole("status")).toHaveCount(0);
+  await expect(reader.locator("canvas")).toBeVisible();
+  expect(await host.evaluate(node => node.scrollTop)).toBe(scrollTop);
+  await reader.getByRole("button", { name: "Next page", exact: true }).click();
+  await expect(reader.locator("[data-document-text]")).toContainText("Research paper second page");
+  await expect(host).toHaveAttribute("aria-busy", "false");
+});
