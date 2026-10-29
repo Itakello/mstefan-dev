@@ -92,6 +92,7 @@ function fixture(options = {}) {
           gateway = { ...args.body, slug: args.body.name.toLowerCase().replaceAll(' ', '-'), id: 'proj_gateway', organizationId: org, runtimeMode: 'docker', autoDeploy: false, enabled: true };
           return { data: structuredClone(gateway) };
         }
+        if (name === 'get_projects_by_projectId_backup_policies') return { data: [] };
         if (name === 'get_projects_by_id_services') return { services: args.id === project?.id ? options.appServices ?? [] : gatewaySvc ? [presentService(gatewaySvc)] : [] };
         if (name === 'post_projects_by_id_services') {
           gatewaySvc = { ...structuredClone(args.body), id: 'svc_gateway', projectId: gateway.id };
@@ -1532,4 +1533,276 @@ test('never-deployed empty gateway accepts the installed no-resources runtime ac
   });
   assert.equal(deleted, true);
   assert.ok(absenceReads > 0);
+});
+
+function dataFixture(options = {}) {
+  const f = fixture({ existing: true });
+  Object.assign(f.pr, { state: 'closed', closed_at: new Date(0).toISOString() });
+  let clock = 8 * 86400000;
+  let exists = options.exists ?? true;
+  let identity = { name: `openship-${child.slug}-data`, createdAt: new Date(0).toISOString(), driver: 'local', labels: {}, options: {} };
+  let restoration = null;
+  f.project.disabledAt = new Date(clock).toISOString();
+  const target = { projectId: child.id, deploymentId: f.record.id, serverId: null,
+    volumes: [{ name: `openship-${child.slug}-data`, target: '/data' }] };
+  let policy;
+  let run;
+  const ship = f.args.ship;
+  f.args = { ...f.args, closeOnly: true, dataExpiry: true, backupDestinationId: 'dst_preview', now: () => clock,
+    sleep: async ms => { clock += ms; },
+    async ship(name, args) {
+      if (!/backup|named_volumes/.test(name)) {
+        const result = await ship(name, args);
+        if (name === 'post_projects_by_id_disable') f.project.disabledAt = new Date(clock).toISOString();
+        return result;
+      }
+      f.calls.push({ provider: 'ship', name, args });
+      options.onCall?.(name, f);
+      if (options.replaceIncarnation && name === 'get_projects_by_id_named_volumes') identity.createdAt = new Date(clock + 1).toISOString();
+      if (options.pruned && run) run.deletedAt = new Date(clock).toISOString();
+      if (name === 'get_projects_by_id_named_volumes') return { data: { ...target, stoppedAt: f.project.disabledAt, version: sha + 'a'.repeat(24),
+        volumes: target.volumes.map(v => ({ ...v, exists, identity: exists ? structuredClone(identity) : null, restore: structuredClone(restoration), containers: exists ? ['container_preview'] : [] })) } };
+      if (name === 'get_projects_by_projectId_backup_policies') return { data: policy ? [structuredClone(policy)] : [] };
+      if (name === 'post_projects_by_projectId_backup_policies') {
+        policy = { ...args.body, id: 'policy_preview', projectId: child.id, payloadConfig: { projectVolumeTarget: target },
+          serviceId: null, mailServerId: null, webhookToken: null, preHook: null, postHook: null };
+        if (options.lostPolicy) throw new Error('Lost policy response');
+        return { data: structuredClone(policy) };
+      }
+      if (name === 'get_projects_by_projectId_backup_runs') return { data: args.query.active ? [] : run && (!run.deletedAt || args.query.includeDeleted) ? [structuredClone(run)] : [] };
+      if (name === 'post_backup_policies_by_policyId_run') {
+        run = { id: 'run_preview', policyId: policy.id, projectId: child.id, organizationId: org, destinationId: 'dst_preview',
+          sourceKind: 'project_volume', status: options.failed ? 'failed' : options.pending ? 'uploading' : 'succeeded', startedAt: new Date(clock).toISOString(),
+          finishedAt: new Date(clock).toISOString(), executionFinishedAt: new Date(clock).toISOString(), manifestKey: 'preview/manifest.json',
+          artifacts: [{ payloadKind: 'volume', key: 'preview/data.tar.zst', sizeBytes: 100, sha256: 'b'.repeat(64), metadata: {
+            volumeSource: target.volumes[0].name, volumeTarget: '/data', projectVolumeTarget: target, projectVolumeStoppedAt: f.project.disabledAt,
+            projectVolumeIdentity: structuredClone(identity) } }] };
+        if (options.badArtifact) run.artifacts[0].sha256 = 'invalid';
+        if (options.lostSubmission) throw new Error('Lost run response');
+        return { data: { runId: run.id } };
+      }
+      if (name === 'get_backup_runs_by_runId') return { data: structuredClone(run) };
+      if (name === 'post_backup_runs_by_runId_protect') {
+        if (!options.noProtection) run.retentionLockedUntil = args.body.until;
+        return { data: { ok: true, retentionLockedUntil: run.retentionLockedUntil } };
+      }
+      if (name === 'post_backup_runs_by_runId_restore_prepare') {
+        restoration = { id: 'restore_preview', runId: run.id, status: 'prepared', partialWrite: false, finishedAt: null };
+        return { data: { restoreId: 'restore_preview', confirmationToken: 'test-confirmation' } };
+      }
+      if (name === 'get_backup_restores_by_restoreId') return { data: { id: 'restore_preview', runId: run.id, projectId: child.id,
+        organizationId: org, mode: 'in_place', status: options.restoreFailed || options.restoreFailedAfterApply && exists ? 'failed' : exists ? 'succeeded' : 'prepared' } };
+      if (name === 'post_backup_restores_by_restoreId_apply') {
+        assert.equal(args.body.confirmationToken, 'test-confirmation');
+        exists = true;
+        identity.createdAt = new Date(clock).toISOString();
+        restoration = { ...restoration, status: options.restoreFailedAfterApply ? 'failed' : 'succeeded', partialWrite: Boolean(options.restoreFailedAfterApply), finishedAt: new Date(clock).toISOString() };
+        return { data: { ok: true } };
+      }
+      if (name === 'delete_projects_by_id_named_volumes') {
+        assert.equal(run.retentionLockedUntil, new Date(clock + 30 * 86400000 + 5 * 60000).toISOString());
+        exists = false;
+        if (options.lostRemoval) throw new Error('Lost removal response');
+        return { data: { removed: true, retiredContainerId: 'container_preview' } };
+      }
+      throw new Error(`Unexpected data call ${name}`);
+    },
+  };
+  return f;
+}
+
+test('expired application data is backed up and protected for thirty days before exact native removal', async () => {
+  const f = dataFixture();
+  assert.equal((await runPreview(f.args)).dataPurge, 'removed-with-recovery');
+  const names = f.calls.map(c => c.name);
+  assert.ok(names.indexOf('post_projects_by_id_disable') < names.indexOf('post_backup_policies_by_policyId_run'));
+  assert.ok(names.indexOf('post_backup_runs_by_runId_protect') < names.indexOf('delete_projects_by_id_named_volumes'));
+  assert.ok(!names.includes('delete_projects_by_id'));
+  const removal = f.calls.find(c => c.name === 'delete_projects_by_id_named_volumes');
+  assert.equal(removal.args.body.name, `openship-${child.slug}-data`);
+  assert.equal(removal.args.body.confirmName, removal.args.body.name);
+});
+
+test('absent-volume replay neither backs up again nor extends recovery retention', async () => {
+  const f = dataFixture();
+  await runPreview(f.args);
+  const before = f.calls.length;
+  assert.equal((await runPreview(f.args)).dataPurge, 'already-absent');
+  assert.ok(!f.calls.slice(before).some(c => /^(post_.*backup|delete_.*named_volumes)/.test(c.name)));
+});
+
+test('lost policy, run and removal acknowledgements reconcile durable state without duplicate submissions', async () => {
+  const f = dataFixture({ lostPolicy: true, lostSubmission: true, lostRemoval: true });
+  assert.equal((await runPreview(f.args)).dataPurge, 'removed-with-recovery');
+  for (const name of ['post_projects_by_projectId_backup_policies', 'post_backup_policies_by_policyId_run', 'delete_projects_by_id_named_volumes'])
+    assert.equal(f.calls.filter(c => c.name === name).length, 1);
+});
+
+test('failed or unverifiable recovery never deletes application data', async () => {
+  for (const options of [{ failed: true }, { badArtifact: true }, { noProtection: true }]) {
+    const f = dataFixture(options);
+    await assert.rejects(runPreview(f.args), /backup failed|artifact unverified|window unverified/);
+    assert.ok(!f.calls.some(c => c.name === 'delete_projects_by_id_named_volumes'));
+  }
+});
+
+test('data expiry remains off by default and never purges open or newly closed previews', async () => {
+  for (const mode of ['off', 'open', 'fresh', 'retargeted']) {
+    const f = dataFixture();
+    if (mode === 'off') f.args.dataExpiry = false;
+    if (mode === 'open') f.pr.state = 'open';
+    if (mode === 'fresh') f.pr.closed_at = new Date(7 * 86400000).toISOString();
+    if (mode === 'retargeted') { f.pr.state = 'open'; f.pr.base.ref = 'another-base'; }
+    await runPreview(f.args);
+    assert.ok(!f.calls.some(c => /backup|named_volumes/.test(c.name)));
+  }
+});
+
+test('reopening or resetting the closure clock during backup blocks protection and removal', async () => {
+  for (const change of ['reopen', 'fresh']) {
+    const f = dataFixture({ onCall(name, state) {
+      if (name === 'get_backup_runs_by_runId') {
+        if (change === 'reopen') state.pr.state = 'open';
+        else state.pr.closed_at = new Date(8 * 86400000).toISOString();
+      }
+    } });
+    await assert.rejects(runPreview(f.args), /reopened|retention changed/);
+    assert.ok(!f.calls.some(c => ['post_backup_runs_by_runId_protect', 'delete_projects_by_id_named_volumes'].includes(c.name)));
+  }
+});
+
+
+test('reopening restores retained data before enabling or submitting a fresh runtime', async () => {
+  const f = dataFixture();
+  await runPreview(f.args);
+  f.pr.state = 'open';
+  f.args.closeOnly = false;
+  f.args.dataExpiry = false;
+  const before = f.calls.length;
+  assert.equal((await runPreview(f.args)).state, 'ready');
+  const names = f.calls.slice(before).map(c => c.name);
+  assert.ok(names.indexOf('post_backup_restores_by_restoreId_apply') < names.indexOf('post_projects_by_id_enable'));
+  assert.ok(names.indexOf('post_backup_restores_by_restoreId_apply') < names.indexOf('post_deployments'));
+  assert.ok(!names.includes('post_backup_runs_by_runId_protect'));
+});
+
+test('failed retained-data restoration cannot enable or deploy the reopened preview', async () => {
+  const options = {};
+  const f = dataFixture(options);
+  await runPreview(f.args);
+  options.restoreFailed = true;
+  f.pr.state = 'open';
+  f.args.closeOnly = false;
+  const before = f.calls.length;
+  await assert.rejects(runPreview(f.args), /restore failed/);
+  assert.ok(!f.calls.slice(before).some(c => ['post_projects_by_id_enable', 'post_deployments'].includes(c.name)));
+});
+
+
+test('a stalled backup reaches its bound without protection or volume removal', async () => {
+  const f = dataFixture({ pending: true });
+  await assert.rejects(runPreview(f.args), /backup did not finish within five minutes/);
+  assert.ok(!f.calls.some(c => ['post_backup_runs_by_runId_protect', 'delete_projects_by_id_named_volumes'].includes(c.name)));
+});
+
+test('changed active deployment invalidates data removal even after backup completion', async () => {
+  const f = dataFixture({ onCall(name, state) {
+    if (name === 'get_backup_runs_by_runId') state.project.activeDeploymentId = 'dep_changed';
+  } });
+  await assert.rejects(runPreview(f.args), /data deployment changed/);
+  assert.ok(!f.calls.some(c => c.name === 'delete_projects_by_id_named_volumes'));
+});
+
+
+test('a synchronized preview with retained backup policy re-enables after inspecting its existing data', async () => {
+  const options = { noProtection: true };
+  const f = dataFixture(options);
+  await assert.rejects(runPreview(f.args), /window unverified/);
+  f.pr.state = 'open';
+  f.args.closeOnly = false;
+  f.project.enabled = true;
+  const before = f.calls.length;
+  assert.equal((await runPreview(f.args)).state, 'ready');
+  const names = f.calls.slice(before).map(c => c.name);
+  assert.ok(names.indexOf('post_projects_by_id_disable') < names.indexOf('post_projects_by_id_enable'));
+  assert.equal(f.project.enabled, true);
+  assert.ok(!names.includes('post_backup_runs_by_runId_restore_prepare'));
+});
+
+test('a stopped same-SHA ready record requires a fresh deployment before publication', async () => {
+  const f = fixture({ existing: true });
+  const ship = f.args.ship;
+  let first = true;
+  f.args.ship = async (name, args) => {
+    const result = await ship(name, args);
+    if (first && name === 'get_deployments_by_id_info' && args.id === f.record.id) {
+      first = false;
+      result.data.status = 'stopped';
+    }
+    return result;
+  };
+  assert.equal((await runPreview(f.args)).state, 'ready');
+  assert.equal(f.calls.filter(c => c.name === 'post_deployments').length, 1);
+});
+
+test('a completed backup from a previous stop checkpoint is replaced before deletion', async () => {
+  const options = { noProtection: true };
+  const f = dataFixture(options);
+  await assert.rejects(runPreview(f.args), /window unverified/);
+  await f.args.sleep(15000);
+  options.noProtection = false;
+  assert.equal((await runPreview(f.args)).dataPurge, 'removed-with-recovery');
+  assert.equal(f.calls.filter(c => c.name === 'post_backup_policies_by_policyId_run').length, 2);
+});
+
+
+test('a replaced named-volume incarnation gets a new backup rather than reusing stale recovery', async () => {
+  const options = { noProtection: true };
+  const f = dataFixture(options);
+  await assert.rejects(runPreview(f.args), /window unverified/);
+  options.noProtection = false;
+  options.replaceIncarnation = true;
+  assert.equal((await runPreview(f.args)).dataPurge, 'removed-with-recovery');
+  assert.equal(f.calls.filter(c => c.name === 'post_backup_policies_by_policyId_run').length, 2);
+});
+
+test('a pruned recovery tombstone permits fresh preview data without pretending an archive exists', async () => {
+  const options = {};
+  const f = dataFixture(options);
+  await runPreview(f.args);
+  options.pruned = true;
+  await f.args.sleep(31 * 86400000);
+  f.pr.state = 'open';
+  f.args.closeOnly = false;
+  const before = f.calls.length;
+  assert.equal((await runPreview(f.args)).state, 'ready');
+  const calls = f.calls.slice(before);
+  assert.ok(calls.some(c => c.name === 'get_projects_by_projectId_backup_runs' && c.args.query.includeDeleted === true));
+  assert.ok(calls.some(c => c.name === 'post_deployments'));
+  assert.ok(!calls.some(c => c.name === 'post_backup_runs_by_runId_restore_prepare'));
+});
+
+test('a failed partial restore never becomes healthy merely because its volume now exists', async () => {
+  const options = { restoreFailedAfterApply: true };
+  const f = dataFixture(options);
+  await runPreview(f.args);
+  f.pr.state = 'open';
+  f.args.closeOnly = false;
+  await assert.rejects(runPreview(f.args), /restore failed/);
+  const before = f.calls.length;
+  await assert.rejects(runPreview(f.args), /volume health unverified/);
+  assert.ok(!f.calls.slice(before).some(c => ['post_projects_by_id_enable', 'post_deployments',
+    'post_backup_runs_by_runId_restore_prepare'].includes(c.name)));
+});
+
+test('an early-deleted recovery tombstone cannot authorize fresh data before its recovery deadline', async () => {
+  const options = {};
+  const f = dataFixture(options);
+  await runPreview(f.args);
+  options.pruned = true;
+  f.pr.state = 'open';
+  f.args.closeOnly = false;
+  const before = f.calls.length;
+  await assert.rejects(runPreview(f.args), /retained recovery point unavailable/);
+  assert.ok(!f.calls.slice(before).some(c => ['post_projects_by_id_enable', 'post_deployments'].includes(c.name)));
 });
