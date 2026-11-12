@@ -205,9 +205,9 @@ for (const theme of ["light", "dark"] as const) {
         await expect(branch).toHaveAttribute("aria-pressed", "true");
         await expect(page.locator('button[data-career-job][aria-pressed="true"]')).toBeFocused();
       } else {
-        await page.getByRole("button", { name: "Show branch names", exact: true }).click();
-        await page.getByRole("group", { name: "Career graph", exact: true }).getByRole("button", { name: "master", exact: true }).click();
+        await page.locator("button[data-career-main-row]").click();
         await expect(page.locator("button[data-career-main-row]")).toHaveAttribute("aria-pressed", "true");
+        await expect(page.locator('[data-career-graph="phone"]')).toBeVisible();
       }
       expect(errors).toEqual([]);
       expect(external).toEqual([]);

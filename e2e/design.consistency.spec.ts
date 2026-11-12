@@ -125,7 +125,7 @@ for (const mode of modes) {
       await expect(page.getByRole("heading", { level: 2, name: "master" })).toBeVisible();
       await stablePage(page);
       if (mode.name === "desktop") await expect(page.locator('#career svg[role="group"]')).toBeVisible();
-      else await expect(page.getByRole("button", { name: "Show branch names", exact: true })).toBeVisible();
+      else await expect(page.locator('#career [data-career-graph="phone"]')).toBeVisible();
       await compareScreenshot(page, `about-${mode.name}-${theme}.png`, testInfo, {
         fullPage: true, animations: "disabled", mask: [page.locator("footer p")],
       }, 100);

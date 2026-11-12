@@ -1,6 +1,6 @@
 .section { --graph-width: var(--graph-desktop); --row-height: var(--row-desktop); position: relative; min-width: 0; display: grid; grid-template-columns: var(--graph-width) minmax(0, 1fr); }
 .graph { grid-column: 1; grid-row: 1; display: block; max-width: none; overflow: visible; }
-.mobileGraph, .railToggle { display: none; }
+.mobileGraph { display: none; }
 .rows { grid-column: 2; grid-row: 1; min-width: 0; }
 .row, .mainRow { display: flex; flex-direction: column; justify-content: center; gap: 3px; width: 100%; height: var(--row-height); padding: 0 16px; overflow: hidden; border-bottom: 1px solid var(--surface-border); text-align: left; cursor: pointer; transition: background-color 140ms ease; }
 .mainRow { height: var(--row-top); flex-direction: row; align-items: center; justify-content: flex-start; gap: 10px; }
@@ -19,26 +19,18 @@
 .branch { fill: none; stroke: var(--branch-color); stroke-width: 2; stroke-linecap: round; opacity: .45; }
 .dot { opacity: .6; }
 .hitDot { fill: transparent; }
+.rowBands rect { fill: transparent; cursor: pointer; }
 .branchGroup:focus-visible { outline: none; }
 .branchGroup:focus-visible .branch, .branchGroup:focus-visible .mainPath { stroke-width: 3; }
 .branchGroup:focus-visible [data-career-head], .branchGroup:focus-visible .mainDot { stroke: var(--page-text); stroke-width: 2; }
 .branchGroup[data-highlighted="true"] .branch, .branchGroup[data-highlighted="true"] .dot { opacity: 1; }
 .branchGroup[data-highlighted="true"] .branch { stroke-width: 2.5; }
 .hitPath { fill: none; stroke: transparent; stroke-width: 14; pointer-events: stroke; }
-.openGraph .hitPath { stroke-width: 0; }
-.scrim, .overlay { display: none; }
 
 @media (max-width: 899px) {
-  .section { --graph-width: 28px; --row-height: var(--row-mobile); }
+  .section { --graph-width: var(--graph-mobile); --row-height: var(--row-mobile); }
   .desktopGraph { display: none; }
   .mobileGraph { display: block; }
-  .railToggle { display: block; position: absolute; z-index: 2; top: 0; bottom: 0; left: 0; width: 44px; background: transparent; cursor: pointer; }
-  .railToggle:focus-visible { outline: 2px solid hsl(var(--accent)); outline-offset: -2px; }
-  .scrim { display: block; position: absolute; z-index: 3; inset: 0; background: color-mix(in srgb, var(--page-bg) 70%, transparent); }
-  .overlay { display: block; position: absolute; z-index: 4; top: 0; bottom: 0; left: 0; width: 168px; border-right: 1px solid var(--surface-border); background: var(--surface-bg); box-shadow: 8px 0 24px -16px rgba(0, 0, 0, .4); }
-  .overlayLabel { position: absolute; left: 56px; right: 6px; transform: translateY(-50%); padding: 6px 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: var(--branch-color); border-radius: 4px; }
-  .overlayLabel[aria-pressed="true"] { background: var(--surface-selected); }
-  .overlayLabel:focus-visible { outline: 2px solid hsl(var(--accent)); outline-offset: -2px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

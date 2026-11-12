@@ -68,7 +68,7 @@ type SiteCopy = {
     unavailable: string;
   };
   about: { title: string; firstParagraph: string; secondParagraph: string; imageAlt: string };
-  career: { title: string; main: string; intro: string; graph: string; expand: string; collapse: string };
+  career: { title: string; main: string; intro: string };
   current: { title: string; since: (date: string) => string; more: (count: number) => string; background: string };
   og: { description: string };
 };
@@ -161,7 +161,7 @@ export const copy = {
       secondParagraph: "I prefer systems with one source of truth, deterministic automation where possible, human approval where it matters, and failures that are visible instead of silent. The point is not to add AI everywhere. It is to remove work without losing control.",
       imageAlt: "Massimo Stefan standing in an elevator, holding a laptop",
     },
-    career: { title: "Career", main: "Software engineer · AI systems", intro: "Career mainline and job branches.", graph: "Career graph", expand: "Show branch names", collapse: "Hide branch names" },
+    career: { title: "Career", main: "Software engineer · AI systems", intro: "Career mainline and job branches." },
     current: { title: "Currently", since: (date) => `since ${date}`, more: (count) => `and ${count} more`, background: "Explore my background" },
     og: { description: "Software engineer building AI systems for real work." },
   },
@@ -252,7 +252,7 @@ export const copy = {
       secondParagraph: "Preferisco sistemi con un'unica fonte di verità, automazione deterministica dove possibile, approvazione umana dove conta e problemi visibili anziché silenziosi. Il punto non è mettere l'IA ovunque: è eliminare lavoro senza perdere il controllo.",
       imageAlt: "Massimo Stefan in ascensore con un laptop in mano",
     },
-    career: { title: "Percorso", main: "Ingegnere del software · sistemi di IA", intro: "Percorso professionale e rami delle esperienze.", graph: "Grafo del percorso", expand: "Mostra i nomi dei rami", collapse: "Nascondi i nomi dei rami" },
+    career: { title: "Percorso", main: "Ingegnere del software · sistemi di IA", intro: "Percorso professionale e rami delle esperienze." },
     current: { title: "Attualmente", since: (date) => `dal ${date}`, more: (count) => `e altri ${count}`, background: "Scopri il mio percorso" },
     og: { description: "Ingegnere del software: sistemi di IA per il lavoro reale." },
   },
