@@ -69,7 +69,7 @@ type SiteCopy = {
   };
   about: { title: string; firstParagraph: string; secondParagraph: string; imageAlt: string };
   career: { title: string; main: string; intro: string };
-  current: { title: string; since: (date: string) => string; more: (count: number) => string; background: string };
+  current: { title: string; since: (date: string) => string; background: string };
   og: { description: string };
 };
 
@@ -162,7 +162,7 @@ export const copy = {
       imageAlt: "Massimo Stefan standing in an elevator, holding a laptop",
     },
     career: { title: "Career", main: "Software engineer · AI systems", intro: "Career mainline and job branches." },
-    current: { title: "Currently", since: (date) => `since ${date}`, more: (count) => `and ${count} more`, background: "Explore my background" },
+    current: { title: "Currently", since: (date) => `since ${date}`, background: "Explore my background" },
     og: { description: "Software engineer building AI systems for real work." },
   },
   it: {
@@ -253,7 +253,7 @@ export const copy = {
       imageAlt: "Massimo Stefan in ascensore con un laptop in mano",
     },
     career: { title: "Percorso", main: "Ingegnere del software · sistemi di IA", intro: "Percorso professionale e rami delle esperienze." },
-    current: { title: "Attualmente", since: (date) => `dal ${date}`, more: (count) => `e altri ${count}`, background: "Scopri il mio percorso" },
+    current: { title: "Attualmente", since: (date) => `dal ${date}`, background: "Scopri il mio percorso" },
     og: { description: "Ingegnere del software: sistemi di IA per il lavoro reale." },
   },
 } satisfies Record<Locale, SiteCopy>;

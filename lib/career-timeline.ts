@@ -35,7 +35,7 @@ export function formatCareerPeriod(job: TimelineJob, locale: "en" | "it", now: n
 
 /** Ongoing career entries, newest first. */
 export function ongoingCareerEntries<T extends TimelineJob>(jobs: T[], now: number): T[] {
-  return careerRowOrder(jobs, now).map((index) => jobs[index]).filter((job) => careerSpan(job, now).ongoing && careerSpan(job, now).dated);
+  return careerRowOrder(jobs, now).map((index) => jobs[index]).filter((job) => job.ongoing === true);
 }
 
 function roundedElbow(from: number, to: number, y: number, radius: number): string {
@@ -108,6 +108,10 @@ export function layoutCareerRows(jobs: TimelineJob[], now: number, { rowHeight, 
     }
   }
   cyclic.forEach((index) => { parents[index] = null; });
+  // A child whose row sits above its parent's row (both still ongoing) forks just below the parent's head, where the parent lane is drawn.
+  parents.forEach((parent, index) => {
+    if (parent !== null && forkY[index] < headY[parent] && headY[parent] + rowHeight / 4 < forkY[parent]) forkY[index] = headY[parent] + rowHeight / 4;
+  });
 
   const lanes = new Map<number, number>();
   const depth = (index: number): number => parents[index] === null ? 0 : 1 + depth(parents[index]!);

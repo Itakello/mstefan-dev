@@ -109,7 +109,7 @@ test('ongoing entries list every active branch newest first', () => {
     { id: 'new', startDate: '2025-01-01', ongoing: true },
     { id: 'undated', ongoing: true },
   ];
-  assert.deepEqual(ongoingCareerEntries(jobs, now).map((entry) => entry.id), ['new', 'old']);
+  assert.deepEqual(ongoingCareerEntries(jobs, now).map((entry) => entry.id), ['new', 'old', 'undated']);
 });
 
 test('the width follows the lanes up to a maximum, and spacing clamps safely', () => {
@@ -135,4 +135,15 @@ test('story and graph periods share localized dates and missing-date behavior', 
   for (const job of [{ startDate: '2024-02-30', endDate: '2025-01-01' }, { startDate: '2024-01-01' }, { startDate: '2025-01-01', endDate: '2024-01-01' }]) {
     assert.equal(formatCareerPeriod(job, 'en', now), 'Date range incomplete');
   }
+});
+
+test('a nested branch still ongoing above its ongoing parent forks where the parent lane is drawn', () => {
+  const result = layout([
+    { id: 'parent', branchName: 'parent', startDate: '2024-01-01', ongoing: true },
+    { id: 'child', branchName: 'child', parentBranchName: 'parent', startDate: '2025-01-01', ongoing: true },
+  ]);
+  const [parent, child] = result.entries;
+  assert.equal(child.parentKey, 'parent');
+  assert.equal(child.forkX, parent.x);
+  assert.ok(child.forkY > parent.headY && child.forkY < parent.forkY, 'the fork lies on the drawn part of the parent lane');
 });
