@@ -32,6 +32,9 @@ function Graph({ layout, jobs, activeKey, highlighted, className, name, onSelect
   const paintOrder = [...layout.entries].sort((a, b) => b.lane - a.lane);
   const rowHeight = (layout.height - TOP) / Math.max(1, layout.order.length);
   const head = (entry: Layout["entries"][number]) => entry.dated && !entry.ongoing ? entry.mergeX : entry.x;
+  // Hit areas never reach a neighbouring lane, however tightly the lanes are fitted.
+  const hitWidth = Math.min(14, layout.spacing);
+  const hitRadius = Math.min(10, Math.max(4.5, layout.spacing / 2));
   // Several branches can share one junction dot; repeated clicks cycle through them.
   const selectJunction = (x: number, y: number) => {
     const sharing = layout.entries.filter((entry) => (entry.forkX === x && entry.forkY === y) || (head(entry) === x && entry.headY === y));
@@ -62,7 +65,7 @@ function Graph({ layout, jobs, activeKey, highlighted, className, name, onSelect
         </mask>)}
       </defs>
       <g data-career-main-branch data-highlighted={highlighted(MAIN_KEY)} className={styles.branchGroup} {...control(MAIN_KEY, null)}>
-        <path d={`M${layout.mainX} ${layout.height} V${TOP / 2}`} className={styles.hitPath} />
+        <path d={`M${layout.mainX} ${layout.height} V${TOP / 2}`} className={styles.hitPath} strokeWidth={hitWidth} />
         <path d={`M${layout.mainX} ${layout.height} V${TOP / 2}`} className={styles.mainPath} />
         <circle cx={layout.mainX} cy={TOP / 2} r="4" className={styles.mainDot} />
       </g>
@@ -70,11 +73,11 @@ function Graph({ layout, jobs, activeKey, highlighted, className, name, onSelect
         const color = jobs[entry.index].color ?? undefined;
         return <g key={entry.key} data-career-branch={entry.key} data-highlighted={highlighted(entry.key)} className={styles.branchGroup} style={{ "--branch-color": color } as CSSProperties}
           {...control(entry.key, entry.index)}>
-          <path d={entry.path} className={styles.hitPath} />
+          <path d={entry.path} className={styles.hitPath} strokeWidth={hitWidth} />
           <path d={entry.path} mask={`url(#${gapID}-${entry.index})`} className={styles.branch} />
           {[{ x: entry.forkX, y: entry.forkY, head: false }, { x: head(entry), y: entry.headY, head: true }].map((dot) => (
             <g key={String(dot.head)} onClick={(event) => { event.stopPropagation(); selectJunction(dot.x, dot.y); }}>
-              <circle cx={dot.x} cy={dot.y} r="10" className={styles.hitDot} />
+              <circle cx={dot.x} cy={dot.y} r={hitRadius} className={styles.hitDot} />
               <circle data-career-head={dot.head || undefined} cx={dot.x} cy={dot.y} r="4.5" fill={color} className={styles.dot} />
             </g>
           ))}

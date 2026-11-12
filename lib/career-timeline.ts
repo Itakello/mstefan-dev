@@ -198,5 +198,5 @@ export function layoutCareerRows(jobs: TimelineJob[], now: number, { rowHeight, 
       entry.path = `M${mainX} ${entry.forkY} ${roundedElbow(mainX, entry.x, entry.forkY, entry.forkRadius)} V${entry.headY}`;
     }
   }
-  return { entries, width, height, mainX, order };
+  return { entries, width, height, mainX, order, spacing };
 }

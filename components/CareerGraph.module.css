@@ -25,7 +25,7 @@
 .branchGroup:focus-visible [data-career-head], .branchGroup:focus-visible .mainDot { stroke: var(--page-text); stroke-width: 2; }
 .branchGroup[data-highlighted="true"] .branch, .branchGroup[data-highlighted="true"] .dot { opacity: 1; }
 .branchGroup[data-highlighted="true"] .branch { stroke-width: 2.5; }
-.hitPath { fill: none; stroke: transparent; stroke-width: 14; pointer-events: stroke; }
+.hitPath { fill: none; stroke: transparent; pointer-events: stroke; }
 
 @media (max-width: 899px) {
   .section { --graph-width: var(--graph-mobile); --row-height: var(--row-mobile); }

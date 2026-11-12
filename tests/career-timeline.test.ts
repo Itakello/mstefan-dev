@@ -194,3 +194,11 @@ test('an ongoing parent stays above a completed child that ends today', () => {
   assert.deepEqual(result.order, [0, 1]);
   assert.ok(child.headY > parent.headY && child.forkY < parent.forkY, 'the child sits on the drawn part of the parent lane');
 });
+
+test('the fitted lane spacing is reported so hit areas can stay within one lane', () => {
+  const jobs = Array.from({ length: 6 }, (_, index) => ({ id: `b${index}`, branchName: `b${index}`, startDate: '2020-01-01', ongoing: true }));
+  const rail = layout(jobs, { maxWidth: 56 });
+  const lanes = [...new Set(rail.entries.map((entry) => entry.x))].sort((a, b) => a - b);
+  for (let i = 1; i < lanes.length; i++) assert.ok(lanes[i] - lanes[i - 1] >= rail.spacing - 1e-9);
+  assert.ok(rail.spacing < 14);
+});
