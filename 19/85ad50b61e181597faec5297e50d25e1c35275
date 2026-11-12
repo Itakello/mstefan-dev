@@ -1,0 +1,19 @@
+tests/cms/lifecycle.test.mts
+  s_278ecc1eada530::t_f651407c3d3497 358
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1985ad50b61e181597faec5297e50d25e1c35275",
+  "prompts": {},
+  "sessions": {
+    "s_278ecc1eada530": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "59a34fe6-c114-4184-a558-8bb22b83611e",
+        "model": "unknown"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
