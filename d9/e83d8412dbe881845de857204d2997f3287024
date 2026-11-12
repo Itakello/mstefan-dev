@@ -1,0 +1,19 @@
+deploy/event/README.md
+  s_373167736cdc83::t_ff200818a2392e 99
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d9e83d8412dbe881845de857204d2997f3287024",
+  "prompts": {},
+  "sessions": {
+    "s_373167736cdc83": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "0f90d23a-a671-42cf-a476-05c2fab6faff",
+        "model": "unknown"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
