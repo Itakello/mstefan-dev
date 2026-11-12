@@ -1,0 +1,20 @@
+lib/career-timeline.ts
+  h_3555645a0dff85 38,111-114
+tests/career-timeline.test.ts
+  h_3555645a0dff85 112,139-149
+components/CurrentWork.tsx
+  h_3555645a0dff85 21,26
+lib/i18n/copy.ts
+  h_3555645a0dff85 72,165,256
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "bea43e7f6b4d9b3bbb73aec1bb57b13d4d0b7065",
+  "prompts": {},
+  "humans": {
+    "h_3555645a0dff85": {
+      "author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
