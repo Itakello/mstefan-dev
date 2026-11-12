@@ -11,22 +11,31 @@ function parseDate(value?: string | null): number | null {
   return calendar.getUTCFullYear() === year && calendar.getUTCMonth() === month - 1 && calendar.getUTCDate() === day ? timestamp : null;
 }
 
-export function formatCareerPeriod(job: TimelineJob, locale: "en" | "it", now: number): string {
+function careerSpan(job: TimelineJob, now: number) {
   const start = parseDate(job.startDate);
-  const end = job.ongoing ? now : parseDate(job.endDate);
-  if (start === null || end === null || end < start) {
+  const ongoing = job.ongoing === true;
+  const end = ongoing ? now : parseDate(job.endDate);
+  const dated = start !== null && end !== null && end >= start;
+  return { ongoing, dated, start: dated ? start : null, end: dated ? end : null };
+}
+
+export function formatCareerMonth(value: string | number, locale: "en" | "it") {
+  return new Intl.DateTimeFormat(locale, { month: "short", year: "numeric", timeZone: "UTC" }).format(typeof value === "number" ? value : Date.parse(value));
+}
+
+export function formatCareerPeriod(job: TimelineJob, locale: "en" | "it", now: number): string {
+  const { dated, start, end, ongoing } = careerSpan(job, now);
+  if (!dated) {
     return job.startDate || job.endDate
       ? (locale === "it" ? "Intervallo di date incompleto" : "Date range incomplete")
       : (locale === "it" ? "Date non indicate" : "Dates not provided");
   }
-  const format = new Intl.DateTimeFormat(locale, { month: "short", year: "numeric", timeZone: "UTC" });
-  return `${format.format(start)} – ${job.ongoing ? (locale === "it" ? "Presente" : "Present") : format.format(end)}`;
+  return `${formatCareerMonth(start!, locale)} – ${ongoing ? (locale === "it" ? "Presente" : "Present") : formatCareerMonth(end!, locale)}`;
 }
 
-function monthPosition(timestamp: number): number {
-  const date = new Date(timestamp);
-  const days = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 0)).getUTCDate();
-  return date.getUTCFullYear() * 12 + date.getUTCMonth() + (date.getUTCDate() - 1) / days;
+/** Ongoing career entries, newest first. */
+export function ongoingCareerEntries<T extends TimelineJob>(jobs: T[], now: number): T[] {
+  return careerRowOrder(jobs, now).map((index) => jobs[index]).filter((job) => careerSpan(job, now).ongoing && careerSpan(job, now).dated);
 }
 
 function roundedElbow(from: number, to: number, y: number, radius: number): string {
@@ -36,46 +45,44 @@ function roundedElbow(from: number, to: number, y: number, radius: number): stri
   return `A${radius} ${radius} 0 0 ${sweep} ${from + direction * radius} ${y - radius} H${to - direction * radius} A${radius} ${radius} 0 0 ${1 - sweep} ${to} ${y - 2 * radius}`;
 }
 
-function laneSpan(entry: TimelineEntry, mainX: number) {
-  return {
-    start: entry.forkY - (entry.forkX === mainX ? entry.forkRadius : 0),
-    end: entry.headY + (entry.mergeX === mainX ? entry.mergeRadius : 0),
-  };
+/** Orders career entries newest first: ongoing ones, then by end date, then by start date; undated ones last. */
+function careerRowOrder(jobs: TimelineJob[], now: number): number[] {
+  return jobs.map((job, index) => ({ index, ...careerSpan(job, now) }))
+    .sort((a, b) => Number(b.dated) - Number(a.dated) || (b.end ?? 0) - (a.end ?? 0) || (b.start ?? 0) - (a.start ?? 0) || a.index - b.index)
+    .map((row) => row.index);
 }
 
-export function layoutCareerTimeline(jobs: TimelineJob[], now: number, spacing = 24, availableWidth?: number) {
-  const original = buildCareerTimeline(jobs, now, spacing, availableWidth);
-  const compact = buildCareerTimeline(jobs, now, spacing, availableWidth, original.entries.map((entry) => laneSpan(entry, original.mainX)));
-  // Shared junctions can shorten elbows; only keep reuse that fits the final geometry.
-  for (const entry of compact.entries) {
-    for (const other of compact.entries) {
-      if (!entry.dated || !other.dated || entry.index >= other.index || entry.lane !== other.lane) continue;
-      const a = laneSpan(entry, compact.mainX);
-      const b = laneSpan(other, compact.mainX);
-      if (a.end - 3 <= b.start && b.end - 3 <= a.start) return original;
-    }
-  }
-  return compact;
-}
-
-function buildCareerTimeline(jobs: TimelineJob[], now: number, spacing: number, availableWidth?: number, geometry?: { start: number; end: number }[]) {
+/**
+ * Lays the graph out against a list of equal-height rows, like `git log --graph`:
+ * each entry's head sits level with its own row, its fork sits where its start date falls between rows,
+ * and the mainline is the first lane on the left.
+ */
+export function layoutCareerRows(jobs: TimelineJob[], now: number, { rowHeight, top, maxWidth, spacing = 24 }: { rowHeight: number; top: number; maxWidth: number; spacing?: number }) {
   if (!Number.isFinite(now)) throw new Error('A valid current date is required.');
   spacing = Number.isFinite(spacing) ? Math.max(18, Math.min(64, spacing)) : 24;
-  const dates = jobs.map((job, index) => {
-    const start = parseDate(job.startDate);
-    const ongoing = job.ongoing === true;
-    const end = ongoing ? now : parseDate(job.endDate);
-    const dated = start !== null && end !== null && end >= start;
-    return { key: job.id ?? `entry-${index}`, index, dated, ongoing, start: dated ? start : null, end: dated ? end : null };
-  });
-  const dated = dates.filter((entry) => entry.dated);
-  const undated = dates.filter((entry) => !entry.dated);
-  const newest = Math.ceil(Math.max(monthPosition(now), ...dated.map((entry) => monthPosition(entry.end!))));
-  const oldest = dated.length ? Math.floor(Math.min(monthPosition(now), ...dated.map((entry) => monthPosition(entry.start!))) / 12) * 12 : newest;
-  const datedHeight = dated.length ? Math.max(160, (newest - oldest) * 12 + 80) : 0;
-  const undatedTop = datedHeight;
-  const height = datedHeight + (undated.length ? Math.max(320, 88 + undated.length * 84) : 0);
-  const yAt = (timestamp: number) => 40 + (newest - monthPosition(timestamp)) * 12;
+  const spans = jobs.map((job) => careerSpan(job, now));
+  const order = careerRowOrder(jobs, now);
+  const height = top + order.length * rowHeight;
+  const headY: number[] = [];
+  order.forEach((index, row) => { headY[index] = top + row * rowHeight + rowHeight / 2; });
+
+  const floor = height - rowHeight / 4;
+  const anchors = order.filter((index) => spans[index].dated).map((index) => ({ time: spans[index].end!, y: headY[index] }))
+    .filter((anchor, position, all) => position === 0 || anchor.time < all[position - 1].time);
+  const oldest = Math.min(...spans.flatMap((span) => span.dated ? [span.start!] : []), ...anchors.map((anchor) => anchor.time));
+  const yAt = (time: number) => {
+    if (!anchors.length) return floor;
+    if (time >= anchors[0].time) return anchors[0].y;
+    for (let i = 1; i < anchors.length; i++) {
+      const [newer, older] = [anchors[i - 1], anchors[i]];
+      if (time >= older.time) return older.y - (older.y - newer.y) * (time - older.time) / (newer.time - older.time);
+    }
+    const last = anchors[anchors.length - 1];
+    return last.time === oldest ? floor : last.y + (floor - last.y) * (last.time - time) / (last.time - oldest);
+  };
+  const forkY = spans.map((span, index) => Math.min(height - 4, Math.max(span.dated ? yAt(span.start!) : floor, headY[index] + rowHeight / 2)));
+
+  const dates = spans.map((span, index) => ({ key: jobs[index].id ?? `entry-${index}`, index, ...span }));
   const names = new Map<string, number[]>();
   jobs.forEach((job, index) => {
     if (job.branchName) names.set(job.branchName, [...(names.get(job.branchName) ?? []), index]);
@@ -101,35 +108,35 @@ function buildCareerTimeline(jobs: TimelineJob[], now: number, spacing: number, 
     }
   }
   cyclic.forEach((index) => { parents[index] = null; });
+
   const lanes = new Map<number, number>();
   const depth = (index: number): number => parents[index] === null ? 0 : 1 + depth(parents[index]!);
   const occupiedUntil: number[] = [];
-  dated.sort((a, b) => a.start! - b.start! || depth(a.index) - depth(b.index) || b.end! - a.end! || a.key.localeCompare(b.key) || a.index - b.index);
+  const dated = dates.filter((entry) => entry.dated)
+    .sort((a, b) => a.start! - b.start! || depth(a.index) - depth(b.index) || b.end! - a.end! || a.key.localeCompare(b.key) || a.index - b.index);
   for (const entry of dated) {
-    const minimum = parents[entry.index] === null ? 1 : lanes.get(parents[entry.index]!)! + 1;
-    let lane = minimum;
-    const previous = geometry?.[entry.index];
-    const forkY = previous?.start ?? yAt(entry.start!);
-    while (occupiedUntil[lane] !== undefined && occupiedUntil[lane] <= forkY + (geometry ? 3 : 0)) lane++;
+    let lane = parents[entry.index] === null ? 1 : lanes.get(parents[entry.index]!)! + 1;
+    while (occupiedUntil[lane] !== undefined && occupiedUntil[lane] <= forkY[entry.index]) lane++;
     lanes.set(entry.index, lane);
-    occupiedUntil[lane] = previous?.end ?? yAt(entry.end!);
+    occupiedUntil[lane] = headY[entry.index];
   }
-  [...undated].sort((a, b) => a.key.localeCompare(b.key) || a.index - b.index)
+  dates.filter((entry) => !entry.dated).sort((a, b) => a.key.localeCompare(b.key) || a.index - b.index)
     .forEach((entry, index) => lanes.set(entry.index, index + 1));
-  const laneCount = Math.max(0, ...lanes.values());
-  const fitted = availableWidth !== undefined && Number.isFinite(availableWidth);
-  const width = fitted ? Math.max(64, availableWidth!) : Math.max(160, 104 + laneCount * spacing);
-  const mainX = width - 24;
-  if (fitted) spacing = Math.min(spacing, (mainX - 16) / Math.max(1, laneCount));
+  const laneCount = Math.max(1, ...lanes.values());
+
+  const width = Math.min(maxWidth, 24 + laneCount * spacing);
+  const mainX = Math.min(12, width / 2);
+  spacing = Math.min(spacing, (width - mainX - 6) / laneCount);
   const entries: TimelineEntry[] = dates.map((entry) => ({
     ...entry,
     lane: lanes.get(entry.index)!,
     parentKey: parents[entry.index] === null ? null : dates[parents[entry.index]!].key,
-    x: mainX - lanes.get(entry.index)! * spacing,
-    headY: entry.dated ? yAt(entry.end!) : undatedTop + 76 + undated.indexOf(entry) * 84,
-    forkY: entry.dated ? yAt(entry.start!) : height - 24,
+    x: mainX + lanes.get(entry.index)! * spacing,
+    headY: headY[entry.index],
+    forkY: forkY[entry.index],
     forkX: mainX, mergeX: mainX, forkRadius: 0, mergeRadius: 0, path: '',
   }));
+
   const anchorOwner = (index: number | null, timestamp: number): number | null => {
     if (index === null) return null;
     const entry = entries[index];
@@ -143,8 +150,7 @@ function buildCareerTimeline(jobs: TimelineJob[], now: number, spacing: number, 
     if (entry.ongoing) entry.mergeX = entry.x;
     for (const action of ['fork', 'merge'] as const) {
       if (action === 'merge' && entry.ongoing) continue;
-      const timestamp = action === 'fork' ? entry.start! : entry.end!;
-      const owner = anchorOwner(parents[entry.index], timestamp);
+      const owner = anchorOwner(parents[entry.index], action === 'fork' ? entry.start! : entry.end!);
       const x = owner === null ? mainX : entries[owner].x;
       if (action === 'fork') entry.forkX = x;
       else entry.mergeX = x;
@@ -162,11 +168,11 @@ function buildCareerTimeline(jobs: TimelineJob[], now: number, spacing: number, 
     if (entry.dated) {
       for (const action of ['fork', 'merge'] as const) {
         if (action === 'merge' && entry.ongoing) continue;
-        const radius = Math.min(8, spacing / 3, ...groups.get(groupKey(entry, action))!.map((member) => Math.min(
+        const radius = Math.max(0, Math.min(8, spacing / 3, ...groups.get(groupKey(entry, action))!.map((member) => Math.min(
           Math.abs(member.x - (action === 'fork' ? member.forkX : member.mergeX)) / 2,
           (member.forkY - member.headY) / 4,
           attachmentLimits[member.index][action],
-        )));
+        ))));
         if (action === 'fork') entry.forkRadius = radius;
         else entry.mergeRadius = radius;
       }
@@ -178,27 +184,5 @@ function buildCareerTimeline(jobs: TimelineJob[], now: number, spacing: number, 
       entry.path = `M${mainX} ${entry.forkY} ${roundedElbow(mainX, entry.x, entry.forkY, entry.forkRadius)} V${entry.headY}`;
     }
   }
-  const ticks: { timestamp: number; y: number; month: boolean }[] = [];
-  for (let month = newest; dated.length && month >= oldest; month--) {
-    if (newest - oldest > 24 && month % 12 !== 0) continue;
-    const timestamp = Date.UTC(Math.floor(month / 12), month % 12, 1);
-    ticks.push({ timestamp, y: yAt(timestamp), month: newest - oldest <= 24 });
-  }
-  return { entries, width, height: Math.max(height, 160), mainX, topY: yAt(Math.max(now, ...dated.map((entry) => entry.end!))), nowY: dated.length ? yAt(now) : 44, ticks, undatedTop, hasUndated: undated.length > 0 };
-}
-
-
-export function nearestCareerJunction(entries: TimelineEntry[], x: number, y: number, radius = 12): { x: number; y: number } | null {
-  let closest: { x: number; y: number } | null = null;
-  let distance = radius * radius;
-  for (const entry of entries) {
-    for (const point of [{ x: entry.forkX, y: entry.forkY }, { x: entry.dated ? entry.mergeX : entry.x, y: entry.headY }]) {
-      const next = (point.x - x) ** 2 + (point.y - y) ** 2;
-      if (next < distance) {
-        closest = point;
-        distance = next;
-      }
-    }
-  }
-  return closest;
+  return { entries, width, height, mainX, order };
 }

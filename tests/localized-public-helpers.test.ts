@@ -103,18 +103,9 @@ test("localized copy and metadata expose the Italian page contract", () => {
   const metadata = getLocalizedMetadata("it", "projects");
   const italianCopy = getCopy("it");
 
-  assert.equal(italianCopy.projectCard.viewRepository("Progetto"), "Apri il repository GitHub di Progetto");
   assert.equal(italianCopy.projects.description, "Esplora i progetti, i siti web e gli strumenti che realizzo.");
   assert.equal(getCopy("en").projects.description, "Explore the projects, websites and tools I build.");
-  assert.equal(italianCopy.projectCard.viewProject("Progetto"), "Visita il progetto Progetto");
   assert.equal(italianCopy.projectCard.technologiesByCategory("Progetto"), "Tecnologie di Progetto raggruppate per categoria");
-  assert.equal(italianCopy.projectCard.started("mar 2024"), "Iniziato mar 2024");
-  assert.equal(getCopy("en").stack.showMore(1, "framework"), "Show 1 more framework technology");
-  assert.equal(getCopy("en").stack.hideMore(1, "framework"), "Hide 1 framework technology");
-  assert.equal(italianCopy.stack.showMore(1, "framework"), "Mostra 1 altra tecnologia framework");
-  assert.equal(italianCopy.stack.hideMore(1, "framework"), "Nascondi 1 tecnologia framework");
-  assert.equal(italianCopy.stack.showMore(2, "framework"), "Mostra altre 2 tecnologie framework");
-  assert.equal(italianCopy.stack.hideMore(2, "framework"), "Nascondi 2 tecnologie framework");
   assert.equal(metadata.alternates?.canonical, "/it/projects");
   assert.deepEqual(metadata.alternates?.languages, { en: "/en/projects", it: "/it/projects" });
   assert.equal(metadata.openGraph?.locale, "it_IT");

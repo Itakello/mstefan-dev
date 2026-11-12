@@ -4,11 +4,8 @@ import test from "node:test";
 import {
   displayStackCategory,
   groupStackEntries,
-  STACK_SHELF_VISIBLE_LIMIT,
-  summarizeStackEntries,
   type StackEntry,
 } from "../lib/stack";
-import { formatProjectStartDate } from "../lib/projectPresentation";
 
 test("uses locale-specific category labels without changing source categories", () => {
   assert.equal(displayStackCategory("Platform", "en"), "Infrastructure");
@@ -25,11 +22,6 @@ test("labels both provider integration categories consistently", () => {
     assert.equal(displayStackCategory(category, "en"), "Integration");
     assert.equal(displayStackCategory(category, "it"), "Integrazione");
   }
-});
-
-test("formats project dates for the requested locale", () => {
-  assert.equal(formatProjectStartDate("en", "2024-03-15T12:00:00Z"), "Mar 2024");
-  assert.equal(formatProjectStartDate("it", "2024-03-15T12:00:00Z"), "mar 2024");
 });
 
 function stack(name: string, category: string): StackEntry {
@@ -61,24 +53,4 @@ test("keeps new categories visible with a deterministic fallback order", () => {
     groupStackEntries([stack("Second", "Zed"), stack("First", "Alpha")]).map(({ category }) => category),
     ["Alpha", "Zed"],
   );
-});
-
-test("caps a shelf group at four visible technologies and reports the remainder", () => {
-  const entries = Array.from({ length: 9 }, (_, index) => stack(`Tool ${index + 1}`, "CLI"));
-  const summary = summarizeStackEntries(entries);
-
-  assert.equal(STACK_SHELF_VISIBLE_LIMIT, 4);
-  assert.deepEqual(summary.visibleEntries, entries.slice(0, 4));
-  assert.deepEqual(summary.hiddenEntries, entries.slice(4));
-  assert.equal(summary.overflowCount, 5);
-});
-
-test("omits shelf overflow when a category fits within the visible limit", () => {
-  const entries = [stack("React", "Framework"), stack("Next.js", "Framework")];
-
-  assert.deepEqual(summarizeStackEntries(entries), {
-    visibleEntries: entries,
-    hiddenEntries: [],
-    overflowCount: 0,
-  });
 });

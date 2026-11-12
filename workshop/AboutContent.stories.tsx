@@ -12,7 +12,7 @@ const career: CareerContent = {
 };
 const meta = {
   title: "Workshop/AboutContent", component: AboutContent,
-  args: { content: getCopy("en").about, career, locale: "en" },
+  args: { content: getCopy("en").about, career, locale: "en", now: Date.now() },
 } satisfies Meta<typeof AboutContent>;
 export default meta;
 type Story = StoryObj<typeof meta>;

@@ -19,22 +19,6 @@ export type ProjectStackInput = {
   language?: string;
 };
 
-export const STACK_SHELF_VISIBLE_LIMIT = 4;
-
-export function summarizeStackEntries(
-  entries: readonly StackEntry[],
-  limit = STACK_SHELF_VISIBLE_LIMIT,
-) {
-  const visibleEntries = entries.slice(0, limit);
-  const hiddenEntries = entries.slice(limit);
-
-  return {
-    visibleEntries,
-    hiddenEntries,
-    overflowCount: hiddenEntries.length,
-  };
-}
-
 const STACK_CATEGORY_ORDER = [
   "Language",
   "Framework",
