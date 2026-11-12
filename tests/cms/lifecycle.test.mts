@@ -355,6 +355,7 @@ test('career admin live preview keeps About text intact and locale drafts privat
     await expect(branches).toHaveCount(2);
     const unselectedRow = graph.locator('button[data-career-job][aria-pressed="false"]').first();
     const bandBox = (await graph.locator('[data-career-graph="desktop"] g rect').nth(1 + await graph.locator('button[data-career-job]').evaluateAll((rows) => rows.findIndex((row) => row.getAttribute('aria-pressed') === 'false'))).boundingBox())!;
+    await page.mouse.move(0, 0);
     await expect(unselectedRow).toHaveAttribute('data-highlighted', 'false');
     await page.mouse.move(bandBox.x + bandBox.width - 2, bandBox.y + bandBox.height / 2);
     await expect(unselectedRow).toHaveAttribute('data-highlighted', 'true');
