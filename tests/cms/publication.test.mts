@@ -234,7 +234,7 @@ test('production Notion changes, withdrawals, hard failures, and stale-cache rec
   let projects = await publicHtml('/en/projects');
   assert.equal(home.response.status, 200);
   assert.equal(projects.response.status, 200);
-  assert.ok(home.html.includes('Personal website fixture.'));
+  assert.ok(home.html.includes('Client website fixture.'));
   assert.ok(projects.html.includes('Personal website fixture.'));
   snapshotCacheFile = (await findSnapshotCacheFile((await readObservation()).digest)).filename;
 
@@ -263,7 +263,7 @@ test('production Notion changes, withdrawals, hard failures, and stale-cache rec
   await sendPublicationEvent();
   projects = await publicHtml('/en/projects');
   assert.equal(projects.response.status, 200);
-  assert.ok(!projects.html.includes('mstefan-dev'));
+  assert.ok(!projects.html.includes('The Karakal Times'));
   observation = await readObservation();
   assert.equal(observation.projects, 0, 'An approved withdrawal should replace the complete snapshot');
 

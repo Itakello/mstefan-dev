@@ -1,20 +1,27 @@
 import { HomeContent, HomeLivePreview } from "@/components/cms/HomeContent";
+import { CurrentWork } from "@/components/CurrentWork";
+import { FeaturedWork } from "@/components/FeaturedWork";
 import { notFound, redirect } from "next/navigation";
 
-import { ProjectCard } from "@/components/ProjectCard";
-import { StackCatalog } from "@/components/StackCatalog";
-import { getCopy } from "@/lib/i18n/copy";
 import { getLocalizedMetadata } from "@/lib/i18n/metadata";
 import { publicationEnvironment } from "@/lib/publicationEnvironment";
 import { isSupportedLocale } from "@/lib/i18n/routing";
 import { loadPublicProjects } from "@/lib/publicProjects";
 import { getNotionPublicationSnapshot } from "@/lib/notionPublicationSnapshot";
 import { projectPublicationView } from "@/lib/publicationPresentation";
-import { assertProjectStackCoverage } from "@/lib/stack";
-import { loadWebsiteStack } from "@/lib/websiteStack";
 import { repositoryUrlKey } from "@/lib/projectPublication";
+import { isGitHubRepositoryUrl } from "@/lib/projectPresentation";
+import { withScreenshotPages } from "@/lib/workItems";
+import { workItemsFromProjects } from "@/lib/websiteShowcase";
 
-const SELECTED_PROJECTS = ["mstefan-dev", "ai_agents", "PhysIQ"].map(name => `https://github.com/Itakello/${name}`);
+// Keyed by repository or website origin so a renamed project keeps its Home card.
+const featureKey = (url: string) => isGitHubRepositoryUrl(url) ? repositoryUrlKey(url) : new URL(url).origin;
+const FEATURED_PROJECTS = [
+  "https://github.com/Itakello/PhysIQ",
+  "https://github.com/Itakello/ai_agents",
+  "https://github.com/mobs-fbk/llm_interaction_simulator",
+  "https://www.thekarakaltimes.com",
+].map(featureKey);
 
 export const revalidate = 86_400;
 
@@ -32,29 +39,17 @@ export default async function Home({ params, searchParams }: { params: Promise<{
   const preview = query.preview === "1";
   const careerPreview = preview && query.previewSource === "career";
   if (careerPreview) redirect(`/${locale}/about?preview=1&previewSource=career`);
-  const content = await getPageContent("home", locale, preview);
-  const snapshot = publicationEnvironment() === "production"
-    ? await getNotionPublicationSnapshot()
-    : null;
-  const [{ projects, publication }, stackCatalog] = await Promise.all([
-    loadPublicProjects(locale, snapshot ? { fetchProjects: async () => snapshot.projects } : undefined),
-    snapshot ? { status: "ready" as const, entries: snapshot.stack, message: null } : loadWebsiteStack(),
-  ]);
-  if (stackCatalog.status === "ready") {
-    assertProjectStackCoverage(publication.projects, stackCatalog.entries);
-  }
-  const projectsByUrl = new Map(projects.map((project) => [repositoryUrlKey(project.url || ""), project]));
-  const selectedProjects = SELECTED_PROJECTS.flatMap((url) => {
-    const project = projectsByUrl.get(repositoryUrlKey(url));
-    return project ? [project] : [];
-  });
-  const toolkitEntries = stackCatalog.entries;
+  const { getCareerContent } = await import("@/lib/cms/career");
+  const loadProjects = async () => {
+    const snapshot = publicationEnvironment() === "production" ? await getNotionPublicationSnapshot() : null;
+    return { snapshot, ...await loadPublicProjects(locale, snapshot ? { fetchProjects: async () => snapshot.projects } : undefined) };
+  };
+  const [content, career, { snapshot, projects, publication }] = await Promise.all([getPageContent("home", locale, preview), getCareerContent(locale, false), loadProjects()]);
+  const byUrl = new Map(workItemsFromProjects(projects).flatMap((item) => [item.sourceUrl, item.url].flatMap((url) => url ? [[featureKey(url), item] as const] : [])));
+  const featured = withScreenshotPages(FEATURED_PROJECTS.flatMap((key) => byUrl.get(key) ?? []), locale, Boolean(snapshot));
   const publicationView = publication.message
     ? projectPublicationView(locale, publication.message)
     : null;
-  const toolkitMessage = stackCatalog.message
-    ? getCopy(locale).publication.stack[stackCatalog.message]
-    : (toolkitEntries.length === 0 ? getCopy(locale).publication.toolkitEmpty : null);
 
   const Content = preview ? HomeLivePreview : HomeContent;
   return (
@@ -63,31 +58,12 @@ export default async function Home({ params, searchParams }: { params: Promise<{
     <Content
       content={content}
       locale={locale}
-      selectedWork={selectedProjects.length > 0 ? (
-        <div className="mt-4 border-t border-black/10 dark:border-white/10">
-          {selectedProjects.map((project) => (
-            <ProjectCard key={project.title} {...project} stackCatalog={stackCatalog.entries} locale={locale} />
-          ))}
-        </div>
+      current={<CurrentWork jobs={career.jobs ?? []} locale={locale} now={Date.now()} />}
+      selectedWork={featured.length > 0 ? (
+        <FeaturedWork items={featured} locale={locale} />
       ) : publicationView ? (
-        <p
-          className="mt-4 rounded-xl border border-black/10 bg-black/[0.03] p-4 text-sm text-black/70 dark:border-white/10 dark:bg-white/5 dark:text-white/70"
-          role={publicationView.role}
-        >
-          {publicationView.message}
-        </p>
+        <p className="mt-4 rounded-xl border border-black/10 bg-black/[0.03] p-4 text-sm text-black/70 dark:border-white/10 dark:bg-white/5 dark:text-white/70" role={publicationView.role}>{publicationView.message}</p>
       ) : null}
-      toolkit={toolkitMessage ? (
-        <p
-          className="rounded-lg border border-black/10 bg-black/[0.025] p-4 text-sm text-black/65 dark:border-white/10 dark:bg-white/[0.035] dark:text-white/65"
-          data-stack-publication-status={stackCatalog.status}
-          role={stackCatalog.status === "error" || stackCatalog.status === "unconfigured" ? "alert" : "status"}
-        >
-          {toolkitMessage}
-        </p>
-      ) : (
-        <StackCatalog entries={toolkitEntries} locale={locale} />
-      )}
     />
     </>
   );

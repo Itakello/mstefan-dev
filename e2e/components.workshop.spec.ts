@@ -88,22 +88,6 @@ for (const theme of ["light", "dark"] as const) {
       await expect(link).toBeFocused();
       await expect(icon).toHaveCSS("color", theme === "dark" ? "rgb(255, 255, 255)" : "rgb(0, 0, 0)");
 
-      await story(page, "workshop-projectcard--collapsed", theme);
-      const toggle = page.getByRole("button", { name: /Workshop task board details/i });
-      await toggle.focus();
-      await toggle.press("Enter");
-      await expect(toggle).toHaveAttribute("aria-expanded", "true");
-      await toggle.press("Enter");
-      await expect(toggle).toHaveAttribute("aria-expanded", "false");
-
-      await story(page, "workshop-stack--categorized-catalog", theme);
-      const overflow = page.locator(".stack-overflow-card");
-      await overflow.focus();
-      await overflow.press("Enter");
-      await expect(overflow).toHaveAttribute("aria-expanded", "true");
-      await overflow.press("Enter");
-      await expect(overflow).toHaveAttribute("aria-expanded", "false");
-
       await story(page, "workshop-workexplorer--categories", theme);
       const categoryColors = new Set<string>();
       for (const [index, category] of ["Website", "App", "Tool", "Research"].entries()) {
@@ -209,16 +193,21 @@ for (const theme of ["light", "dark"] as const) {
         }
       }
 
-      await story(page, "workshop-careergraph--expanded", theme);
-      const job = page.getByRole("button", { name: /Sample Platform Team/ }).first();
+      await story(page, "workshop-careergraph--mainline", theme);
+      const job = page.locator("button[data-career-job]", { hasText: "Sample Platform Team" }).first();
       await job.focus();
       await job.press("Enter");
-      await expect(page.getByText("Built a small internal planning tool", { exact: false })).toBeVisible();
+      await expect(job).toHaveAttribute("aria-pressed", "true");
       if (size === "desktop") {
-        const graph = page.getByRole("region", { name: /^Graph/ });
-        await graph.focus();
-        await graph.press("Home");
-        await expect(graph).toBeFocused();
+        const branch = page.locator('svg[role="group"] [data-career-branch]').last();
+        await branch.focus();
+        await branch.press("Enter");
+        await expect(branch).toHaveAttribute("aria-pressed", "true");
+        await expect(page.locator('button[data-career-job][aria-pressed="true"]')).toBeFocused();
+      } else {
+        await page.locator("button[data-career-main-row]").click();
+        await expect(page.locator("button[data-career-main-row]")).toHaveAttribute("aria-pressed", "true");
+        await expect(page.locator('[data-career-graph="phone"]')).toBeVisible();
       }
       expect(errors).toEqual([]);
       expect(external).toEqual([]);

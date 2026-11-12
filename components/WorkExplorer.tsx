@@ -9,8 +9,9 @@ import { MediaPreview } from "@/components/MediaPreview";
 import { PreviewArrows } from "@/components/PreviewArrows";
 import { StackBadge } from "@/components/StackBadge";
 import { BrandIcon } from "@/components/BrandIcon";
+import { RepoToolbar } from "@/components/Branch";
 import { ICON_LINK_COLOR_CLASS } from "@/lib/iconStyles";
-import { StackCategoryIcon } from "@/components/StackCatalog";
+import { StackCategoryIcon } from "@/components/StackCategoryIcon";
 import { displayStackCategory, groupStackEntries, projectStackLabels, resolveProjectStack } from "@/lib/stack";
 import type { WebsiteStackState } from "@/lib/websiteStack";
 import { getCopy } from "@/lib/i18n/copy";
@@ -139,12 +140,14 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
       <nav aria-label={copy.work.selectorLabel} className="hidden self-start lg:block">
         {items.map(item => <button key={item.id} type="button" onClick={() => selectProject(item.id)}
           aria-label={copy.websites.selectSite(item.name)} aria-current={item.id === selected.id ? "true" : undefined}
-          className={`block w-full border-b border-black/10 px-4 py-3 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[hsl(var(--accent))] dark:border-white/10 ${item.id === selected.id ? "border-l-4 border-l-[hsl(var(--accent))] bg-[hsl(var(--accent)/0.05)]" : "hover:bg-black/[0.03] dark:hover:bg-white/5"}`}>
+          className={`block w-full border-b border-black/10 px-4 py-3 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[hsl(var(--accent))] dark:border-white/10 ${item.id === selected.id ? "bg-[var(--surface-selected)]" : "hover:bg-[var(--surface-hover)]"}`}>
           <span className="flex flex-wrap items-center gap-2"><span className="font-semibold [overflow-wrap:anywhere]">{item.name}</span>{item.type && <span className="work-category" data-category={item.type}>{copy.work.types[item.type]}</span>}</span>
           <span className="mt-1 line-clamp-1 text-sm leading-5 text-black/60 dark:text-white/60">{item.shortDescription || item.description}</span>
         </button>)}
       </nav>
-      <section aria-labelledby="selected-work-title" className="min-w-0 lg:border-l lg:border-black/10 lg:pl-6 dark:lg:border-white/10">
+      <section aria-labelledby="selected-work-title" className="min-w-0 self-start overflow-hidden rounded-2xl border border-[var(--surface-border)] bg-[var(--surface-bg)]">
+        <RepoToolbar path="work" reference={`${items.indexOf(selected) + 1} / ${items.length}`} />
+        <div className="p-5 sm:p-6" data-work-content>
         <div className={`grid ${hasStackColumn ? "grid-cols-1 gap-4 sm:grid-cols-[minmax(0,1fr)_minmax(112px,45%)] sm:gap-6" : "grid-cols-1"}`}>
           <div className="min-w-0">
             <h2 id="selected-work-title" className="text-2xl font-semibold tracking-tight [overflow-wrap:anywhere]">{selected.name}</h2>
@@ -195,8 +198,8 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
               </li>)}
             </ul>
             </div>
-            {moreStackColumns && <div aria-hidden className="pointer-events-none absolute bottom-0 right-0 top-7 flex w-5 items-center justify-end bg-gradient-to-l from-[var(--page-bg)] to-transparent"><ChevronRight size={14} /></div>}
-            {moreStack && <div aria-hidden className="pointer-events-none absolute bottom-0 left-3 right-0 flex h-6 items-end justify-center bg-gradient-to-t from-[var(--page-bg)] to-transparent"><ChevronDown size={14} /></div>}
+            {moreStackColumns && <div aria-hidden className="pointer-events-none absolute bottom-0 right-0 top-7 flex w-5 items-center justify-end bg-gradient-to-l from-[var(--surface-bg)] to-transparent"><ChevronRight size={14} /></div>}
+            {moreStack && <div aria-hidden className="pointer-events-none absolute bottom-0 left-3 right-0 flex h-6 items-end justify-center bg-gradient-to-t from-[var(--surface-bg)] to-transparent"><ChevronDown size={14} /></div>}
             </div>
           </aside> : stackCatalog.message && <p role="status" className="text-xs leading-5 text-black/55 dark:text-white/55">{copy.publication.stack[stackCatalog.message]}</p>}
         </div>
@@ -239,6 +242,7 @@ export function WorkExplorer({ locale, items, stackCatalog }: { locale: Locale; 
         </>}</MediaPreview>
         </section>}
         {selected.url && !selected.preview && <p className="mt-6 text-sm text-black/60 dark:text-white/60">{copy.websites.linkOnly}</p>}
+        </div>
       </section>
       {stackLabel && createPortal(<span data-work-stack-label aria-hidden className="pointer-events-none fixed z-50 max-w-40 rounded-md border border-black/10 bg-white px-2 py-1 text-xs shadow-md dark:border-white/15 dark:bg-zinc-900" style={{ right: stackLabel.right, top: stackLabel.top }}>
         <span className="block font-medium">{stackLabel.name}</span>

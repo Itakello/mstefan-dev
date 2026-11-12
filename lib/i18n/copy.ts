@@ -36,26 +36,14 @@ type SiteCopy = {
     selected: string;
   };
   projectCard: {
-    viewRepository: (title: string) => string;
-    viewProject: (title: string) => string;
     technologiesByCategory: (title: string) => string;
-    toggleDetails: (title: string, expanded: boolean) => string;
-    started: (date: string) => string;
   };
   stack: {
     categories: Record<string, string>;
-    projectCategory: string;
-    showMore: (count: number, category: string) => string;
-    hideMore: (count: number, category: string) => string;
-    scrollLeft: string;
-    scrollRight: string;
-    toolkitTechnologiesByCategory: string;
-    technologyList: (names: string) => string;
   };
   publication: {
     projects: Record<"empty" | "unconfigured" | "error", string>;
     stack: Record<"empty" | "unconfigured" | "error", string>;
-    toolkitEmpty: string;
   };
   footer: { rights: string };
   home: {
@@ -80,6 +68,8 @@ type SiteCopy = {
     unavailable: string;
   };
   about: { title: string; firstParagraph: string; secondParagraph: string; imageAlt: string };
+  career: { title: string; main: string; intro: string };
+  current: { title: string; since: (date: string) => string; background: string };
   og: { description: string };
 };
 
@@ -113,11 +103,7 @@ export const copy = {
     },
     language: { label: "Language", select: "Select language", English: "English", Italiano: "Italiano", selected: "Selected" },
     projectCard: {
-      viewRepository: (title) => `View ${title} repository on GitHub`,
-      viewProject: (title) => `Visit ${title} project`,
       technologiesByCategory: (title) => `${title} technologies grouped by category`,
-      toggleDetails: (title, expanded) => `${expanded ? "Hide" : "Show"} ${title} details`,
-      started: (date) => `Started ${date}`,
     },
     stack: {
       categories: {
@@ -133,13 +119,6 @@ export const copy = {
         integration: "Integration",
         cli: "CLI",
       },
-      projectCategory: "project",
-      showMore: (count, category) => `Show ${count} more ${category} ${count === 1 ? "technology" : "technologies"}`,
-      hideMore: (count, category) => `Hide ${count} ${category} ${count === 1 ? "technology" : "technologies"}`,
-      scrollLeft: "Scroll technologies left",
-      scrollRight: "Scroll technologies right",
-      toolkitTechnologiesByCategory: "Toolkit technologies grouped by category",
-      technologyList: (names) => `Technologies: ${names}`,
     },
     publication: {
       projects: {
@@ -152,7 +131,6 @@ export const copy = {
         unconfigured: "Stack is unavailable because the publication source is not configured.",
         error: "Stack is temporarily unavailable because the publication source could not be loaded.",
       },
-      toolkitEmpty: "No Toolkit items are currently approved for website publication.",
     },
     footer: { rights: "All rights reserved." },
     home: {
@@ -183,6 +161,8 @@ export const copy = {
       secondParagraph: "I prefer systems with one source of truth, deterministic automation where possible, human approval where it matters, and failures that are visible instead of silent. The point is not to add AI everywhere. It is to remove work without losing control.",
       imageAlt: "Massimo Stefan standing in an elevator, holding a laptop",
     },
+    career: { title: "Career", main: "Software engineer · AI systems", intro: "Career mainline and job branches." },
+    current: { title: "Currently", since: (date) => `since ${date}`, background: "Explore my background" },
     og: { description: "Software engineer building AI systems for real work." },
   },
   it: {
@@ -214,11 +194,7 @@ export const copy = {
     },
     language: { label: "Lingua", select: "Seleziona lingua", English: "English", Italiano: "Italiano", selected: "Selezionata" },
     projectCard: {
-      viewRepository: (title) => `Apri il repository GitHub di ${title}`,
-      viewProject: (title) => `Visita il progetto ${title}`,
       technologiesByCategory: (title) => `Tecnologie di ${title} raggruppate per categoria`,
-      toggleDetails: (title, expanded) => `${expanded ? "Nascondi" : "Mostra"} i dettagli di ${title}`,
-      started: (date) => `Iniziato ${date}`,
     },
     stack: {
       categories: {
@@ -234,15 +210,6 @@ export const copy = {
         integration: "Integrazione",
         cli: "CLI",
       },
-      projectCategory: "progetto",
-      showMore: (count, category) => count === 1
-        ? `Mostra 1 altra tecnologia ${category}`
-        : `Mostra altre ${count} tecnologie ${category}`,
-      hideMore: (count, category) => `Nascondi ${count} ${count === 1 ? "tecnologia" : "tecnologie"} ${category}`,
-      scrollLeft: "Scorri le tecnologie verso sinistra",
-      scrollRight: "Scorri le tecnologie verso destra",
-      toolkitTechnologiesByCategory: "Strumenti: tecnologie raggruppate per categoria",
-      technologyList: (names) => `Tecnologie: ${names}`,
     },
     publication: {
       projects: {
@@ -255,7 +222,6 @@ export const copy = {
         unconfigured: "Lo Stack non è disponibile perché la fonte di pubblicazione non è configurata.",
         error: "Lo Stack non è temporaneamente disponibile perché la fonte di pubblicazione non può essere caricata.",
       },
-      toolkitEmpty: "Nessun elemento degli Strumenti è attualmente approvato per la pubblicazione sul sito.",
     },
     footer: { rights: "Tutti i diritti riservati." },
     home: {
@@ -286,6 +252,8 @@ export const copy = {
       secondParagraph: "Preferisco sistemi con un'unica fonte di verità, automazione deterministica dove possibile, approvazione umana dove conta e problemi visibili anziché silenziosi. Il punto non è mettere l'IA ovunque: è eliminare lavoro senza perdere il controllo.",
       imageAlt: "Massimo Stefan in ascensore con un laptop in mano",
     },
+    career: { title: "Percorso", main: "Ingegnere del software · sistemi di IA", intro: "Percorso professionale e rami delle esperienze." },
+    current: { title: "Attualmente", since: (date) => `dal ${date}`, background: "Scopri il mio percorso" },
     og: { description: "Ingegnere del software: sistemi di IA per il lavoro reale." },
   },
 } satisfies Record<Locale, SiteCopy>;

@@ -2,7 +2,7 @@
 
 Run `pnpm workshop`, then open http://127.0.0.1:3000. Stop the website's dev server first: both commands use its existing loopback development address. The workshop is a local development tool, not a public site route.
 
-The stories import the production brand links, Stack, project cards, Work explorer and Career graph. Use the theme toolbar for light/dark, resize the browser for responsive layouts, and interact with the real controls. Sample content lives only in `workshop/fixtures.ts`; official artwork is preloaded from the existing licensed visual-test fixtures. Notion remains the publication source.
+The stories import the production brand links, Stack badges, Work explorer, Experience content and Career graph. Use the theme toolbar for light/dark, resize the browser for responsive layouts, and interact with the real controls. Sample content lives only in `workshop/fixtures.ts`; official artwork is preloaded from the existing licensed visual-test fixtures. Notion remains the publication source.
 
 ## Verification
 
