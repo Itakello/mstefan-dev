@@ -1,0 +1,25 @@
+components/CareerGraph.module.css
+  s_278ecc1eada530::t_1a2e167440b001 28
+components/CareerGraph.tsx
+  s_278ecc1eada530::t_0a30a375fd42a1 35-37,68,76,80
+lib/career-timeline.ts
+  s_278ecc1eada530::t_03fd761ec807c9 201
+tests/career-timeline.test.ts
+  s_278ecc1eada530::t_92c46bb9d7a79b 197-204
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "17d068537413343d5279a9e795843e23f6e016ee",
+  "prompts": {},
+  "sessions": {
+    "s_278ecc1eada530": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "59a34fe6-c114-4184-a558-8bb22b83611e",
+        "model": "unknown"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
