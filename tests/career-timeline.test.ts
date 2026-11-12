@@ -183,3 +183,14 @@ test('a child starting the same day as its parent forks at the parent junction',
   assert.equal(same.forkY, parent.forkY);
   assert.equal(same.forkX, result.mainX);
 });
+
+test('an ongoing parent stays above a completed child that ends today', () => {
+  const today = Date.parse('2024-03-01');
+  const result = layoutCareerRows([
+    { id: 'parent', branchName: 'parent', startDate: '2024-01-01', ongoing: true },
+    { id: 'child', branchName: 'child', parentBranchName: 'parent', startDate: '2024-02-01', endDate: '2024-03-01' },
+  ], today, { rowHeight: 100, top: 60, maxWidth: 160 });
+  const [parent, child] = result.entries;
+  assert.deepEqual(result.order, [0, 1]);
+  assert.ok(child.headY > parent.headY && child.forkY < parent.forkY, 'the child sits on the drawn part of the parent lane');
+});

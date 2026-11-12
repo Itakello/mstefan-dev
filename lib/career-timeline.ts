@@ -45,10 +45,10 @@ function roundedElbow(from: number, to: number, y: number, radius: number): stri
   return `A${radius} ${radius} 0 0 ${sweep} ${from + direction * radius} ${y - radius} H${to - direction * radius} A${radius} ${radius} 0 0 ${1 - sweep} ${to} ${y - 2 * radius}`;
 }
 
-/** Orders career entries newest first: ongoing ones, then by end date, then by start date; undated ones last. */
+/** Orders career entries newest first by end date (ongoing ones first on ties), then by start date; undated ones last. */
 function careerRowOrder(jobs: TimelineJob[], now: number): number[] {
   return jobs.map((job, index) => ({ index, ...careerSpan(job, now) }))
-    .sort((a, b) => Number(b.dated) - Number(a.dated) || (b.end ?? 0) - (a.end ?? 0) || (b.start ?? 0) - (a.start ?? 0) || a.index - b.index)
+    .sort((a, b) => Number(b.dated) - Number(a.dated) || (b.end ?? 0) - (a.end ?? 0) || Number(b.ongoing) - Number(a.ongoing) || (b.start ?? 0) - (a.start ?? 0) || a.index - b.index)
     .map((row) => row.index);
 }
 
