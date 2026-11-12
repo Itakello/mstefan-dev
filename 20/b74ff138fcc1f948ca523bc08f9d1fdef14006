@@ -1,0 +1,21 @@
+.github/workflows/deploy-mstefan.yml
+  s_74a9785555ebb6::t_825de725f607df 20-22,27-34
+deploy/event/README.md
+  s_74a9785555ebb6::t_b05d5d51059ca7 19-20
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "20b74ff138fcc1f948ca523bc08f9d1fdef14006",
+  "prompts": {},
+  "sessions": {
+    "s_74a9785555ebb6": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1cfa6-75a2-7bf1-8afb-d3a389104d54",
+        "model": "unknown"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
