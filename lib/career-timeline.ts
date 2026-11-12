@@ -124,8 +124,10 @@ export function layoutCareerRows(jobs: TimelineJob[], now: number, { rowHeight, 
     lanes.set(entry.index, lane);
     occupiedUntil[lane] = headY[entry.index];
   }
+  // Undated entries span to the bottom of the graph, so they take their own lanes beyond every dated one.
+  const datedLanes = Math.max(0, ...lanes.values());
   dates.filter((entry) => !entry.dated).sort((a, b) => a.key.localeCompare(b.key) || a.index - b.index)
-    .forEach((entry, index) => lanes.set(entry.index, index + 1));
+    .forEach((entry, index) => lanes.set(entry.index, datedLanes + index + 1));
   const laneCount = Math.max(1, ...lanes.values());
 
   const width = Math.min(maxWidth, 24 + laneCount * spacing);

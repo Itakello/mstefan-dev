@@ -147,3 +147,13 @@ test('a nested branch still ongoing above its ongoing parent forks where the par
   assert.equal(child.forkX, parent.x);
   assert.ok(child.forkY > parent.headY && child.forkY < parent.forkY, 'the fork lies on the drawn part of the parent lane');
 });
+
+test('undated entries never share a lane with dated branches', () => {
+  const result = layout([
+    { id: 'dated', branchName: 'dated', startDate: '2020-01-01', ongoing: true },
+    { id: 'undated', branchName: 'undated', ongoing: true },
+  ]);
+  const [dated, undated] = result.entries;
+  assert.ok(undated.lane > dated.lane);
+  assert.notEqual(undated.x, dated.x);
+});
