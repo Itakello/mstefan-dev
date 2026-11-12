@@ -1,0 +1,21 @@
+Dockerfile
+  s_65e434fcc7d298::t_bd43a126cd4717 12
+next.config.mjs
+  s_65e434fcc7d298::t_cafeb9c395b14d 12-13
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "969c1b2c9552188d28cd50ec7fda47a6e06f4d88",
+  "prompts": {},
+  "sessions": {
+    "s_65e434fcc7d298": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "cecc32a1-9e61-49d6-97d2-a413f85e2232",
+        "model": "unknown"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
