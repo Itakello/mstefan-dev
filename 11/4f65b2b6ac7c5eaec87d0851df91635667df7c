@@ -1,0 +1,21 @@
+lib/career-timeline.ts
+  s_278ecc1eada530::t_ec5f6c2515b29a 48,51
+tests/career-timeline.test.ts
+  s_278ecc1eada530::t_6d8f67763443f2 186-196
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "114f65b2b6ac7c5eaec87d0851df91635667df7c",
+  "prompts": {},
+  "sessions": {
+    "s_278ecc1eada530": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "59a34fe6-c114-4184-a558-8bb22b83611e",
+        "model": "unknown"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
