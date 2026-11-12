@@ -1,0 +1,21 @@
+package.json
+  s_65e434fcc7d298::t_2253fb60ac1c0c 60
+pnpm-lock.yaml
+  s_65e434fcc7d298::t_fc6b9b5266ad30 92,115-116,3516-3517,5164,5166,5176,5178-5180,5184,5187,5198,5202,5207,5211-5212,5219,5230,5233,5238,7366,7671,7681
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "782fbdde727249796da5cea74713a544514ffac5",
+  "prompts": {},
+  "sessions": {
+    "s_65e434fcc7d298": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "cecc32a1-9e61-49d6-97d2-a413f85e2232",
+        "model": "unknown"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
