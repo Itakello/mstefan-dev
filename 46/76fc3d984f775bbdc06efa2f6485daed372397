@@ -1,0 +1,16 @@
+lib/career-timeline.ts
+  h_3555645a0dff85 118-123
+tests/career-timeline.test.ts
+  h_3555645a0dff85 172-185
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4676fc3d984f775bbdc06efa2f6485daed372397",
+  "prompts": {},
+  "humans": {
+    "h_3555645a0dff85": {
+      "author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
