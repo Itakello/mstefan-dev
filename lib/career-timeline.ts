@@ -108,16 +108,24 @@ export function layoutCareerRows(jobs: TimelineJob[], now: number, { rowHeight, 
     }
   }
   cyclic.forEach((index) => { parents[index] = null; });
-  // A child whose row sits above its parent's row (both still ongoing) forks just below the parent's head, where the parent lane is drawn.
-  parents.forEach((parent, index) => {
-    if (parent !== null && forkY[index] < headY[parent] && headY[parent] + rowHeight / 4 < forkY[parent]) forkY[index] = headY[parent] + rowHeight / 4;
+  // Children must fork on the drawn part of their parent's lane: below the parent's head, and above the parent's own fork.
+  const depthOf = (index: number): number => parents[index] === null ? 0 : 1 + depthOf(parents[index]!);
+  [...parents.keys()].filter((index) => parents[index] !== null).sort((a, b) => depthOf(b) - depthOf(a)).forEach((index) => {
+    const parent = parents[index]!;
+    forkY[index] = Math.max(forkY[index], headY[parent] + rowHeight / 4);
+    forkY[parent] = Math.min(height, Math.max(forkY[parent], forkY[index] + 4));
   });
+  // Branches that start together from the same lane keep one shared junction; a child starting with its parent forks where the parent does.
+  const forkOwner = (index: number | null, start: number): number | null => index === null || dates[index].start !== start ? index : forkOwner(parents[index], start);
+  const startKey = (index: number) => `${forkOwner(parents[index], dates[index].start!)}:${dates[index].start}`;
+  const sharedStarts = new Map<string, number>();
+  dates.forEach((entry) => { if (entry.dated) sharedStarts.set(startKey(entry.index), Math.max(sharedStarts.get(startKey(entry.index)) ?? 0, forkY[entry.index])); });
+  dates.forEach((entry) => { if (entry.dated) forkY[entry.index] = sharedStarts.get(startKey(entry.index))!; });
 
   const lanes = new Map<number, number>();
-  const depth = (index: number): number => parents[index] === null ? 0 : 1 + depth(parents[index]!);
   const occupiedUntil: number[] = [];
   const dated = dates.filter((entry) => entry.dated)
-    .sort((a, b) => a.start! - b.start! || depth(a.index) - depth(b.index) || b.end! - a.end! || a.key.localeCompare(b.key) || a.index - b.index);
+    .sort((a, b) => a.start! - b.start! || depthOf(a.index) - depthOf(b.index) || b.end! - a.end! || a.key.localeCompare(b.key) || a.index - b.index);
   for (const entry of dated) {
     let lane = parents[entry.index] === null ? 1 : lanes.get(parents[entry.index]!)! + 1;
     while (occupiedUntil[lane] !== undefined && occupiedUntil[lane] <= forkY[entry.index]) lane++;

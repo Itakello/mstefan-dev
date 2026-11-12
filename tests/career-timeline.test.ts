@@ -157,3 +157,29 @@ test('undated entries never share a lane with dated branches', () => {
   assert.ok(undated.lane > dated.lane);
   assert.notEqual(undated.x, dated.x);
 });
+
+test('a completed nested branch forks on the drawn part of its ongoing parent lane', () => {
+  const result = layout([
+    { id: 'parent', branchName: 'parent', startDate: '2024-01-01', ongoing: true },
+    { id: 'child', branchName: 'child', parentBranchName: 'parent', startDate: '2024-02-01', endDate: '2024-03-01' },
+  ], { maxWidth: 160 });
+  const [parent, child] = result.entries;
+  assert.equal(child.forkX, parent.x);
+  assert.ok(child.forkY > parent.headY && child.forkY < parent.forkY, 'the child fork lies between the parent head and fork');
+  assert.ok(child.headY > parent.headY && child.headY < parent.forkY, 'the child head lies on the parent lane');
+  assert.ok(parent.forkY <= result.height);
+});
+
+test('branches starting the same day from the same lane share one junction even when one has nested children', () => {
+  const result = layout([job('b', 1, 9), job('c', 1, 6), job('d', 2, 4, 'b')]);
+  const [b, c, d] = result.entries;
+  assert.equal(b.forkY, c.forkY);
+  assert.ok(d.forkY < b.forkY && d.forkY > b.headY);
+});
+
+test('a child starting the same day as its parent forks at the parent junction', () => {
+  const result = layout([job('parent', 2, 9), job('same', 2, 7, 'parent'), job('later', 4, 6, 'parent')]);
+  const [parent, same] = result.entries;
+  assert.equal(same.forkY, parent.forkY);
+  assert.equal(same.forkX, result.mainX);
+});
