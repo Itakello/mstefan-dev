@@ -71,7 +71,8 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
       && ['schedule', 'workflow_dispatch'].includes(process.env.GITHUB_EVENT_NAME)
       && process.env.GITHUB_REF === 'refs/heads/master', 'Trusted default-branch sweep required');
     console.log(JSON.stringify(await sweepPreviews({ templateId: process.env.OPENSHIP_PREVIEW_TEMPLATE_ID,
-      seed: process.env.PREVIEW_PAYLOAD_SECRET, ...clients(process.env) })));
+      dataExpiry: process.env.PREVIEW_DATA_EXPIRY_ENABLED === 'true',
+      backupDestinationId: process.env.OPENSHIP_PREVIEW_BACKUP_DESTINATION_ID, seed: process.env.PREVIEW_PAYLOAD_SECRET, ...clients(process.env) })));
   } catch (error) {
     if (error.results) console.error(JSON.stringify(error.results));
     console.error(error.message);

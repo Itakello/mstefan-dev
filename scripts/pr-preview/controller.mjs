@@ -72,7 +72,7 @@ function validateVars(vars) {
     'Unexpected preview environment variables');
 }
 
-export async function runPreview({ number, templateId, seed, gh, ship, cf, probe, dnsReady, closeOnly = false, purgeGateway = false, now = Date.now, sleep = ms => new Promise(resolve => setTimeout(resolve, ms)) }) {
+export async function runPreview({ number, templateId, seed, gh, ship, cf, probe, dnsReady, closeOnly = false, purgeGateway = false, dataExpiry = false, backupDestinationId, now = Date.now, sleep = ms => new Promise(resolve => setTimeout(resolve, ms)) }) {
   assert(Number.isSafeInteger(number) && number > 0, 'PR number invalid');
   const prPath = `/repos/${REPO}/pulls/${number}`;
   let pr = await gh('GET', prPath);
@@ -91,6 +91,8 @@ export async function runPreview({ number, templateId, seed, gh, ship, cf, probe
     gh = async (method, ...args) => { if (method !== 'GET') await cleanupCurrent(); return ghRead(method, ...args); };
     ship = async (name, ...args) => {
       if (!name.startsWith('get_')) await cleanupCurrent();
+      if (dataExpiry && /^(post_projects_by_projectId_backup_policies|post_backup_policies_by_policyId_run|post_backup_runs_by_runId_protect|delete_projects_by_id_named_volumes)$/.test(name))
+        assert(pr.state === 'closed' && Number.isFinite(Date.parse(pr.closed_at)) && now() - Date.parse(pr.closed_at) >= 7 * 86400000, 'Preview data retention changed');
       if (name === 'delete_projects_by_id') assert(pr.state === 'closed' && Number.isFinite(Date.parse(pr.closed_at))
         && now() - Date.parse(pr.closed_at) >= 7 * 24 * 60 * 60 * 1000, 'Gateway retention changed during cleanup');
       return shipCall(name, ...args);
@@ -257,6 +259,7 @@ export async function runPreview({ number, templateId, seed, gh, ship, cf, probe
       const info = data(await ship('get_deployments_by_id_info', { id: disabled.activeDeploymentId }));
       assert(['stopped', 'exited', 'missing'].includes(info?.status), 'Preview container still active');
     }
+    project = disabled;
   }
 
   async function close(publicRevoked = false) {
@@ -343,7 +346,234 @@ export async function runPreview({ number, templateId, seed, gh, ship, cf, probe
       if (pr.state === 'closed' && Number.isFinite(Date.parse(pr.closed_at))
         && now() - Date.parse(pr.closed_at) >= 7 * 24 * 60 * 60 * 1000 && !await findGateway()) await removeOriginDNS();
     }
-    return { state: 'closed', dataPurge: project ? 'pending-backup-recovery' : 'no-app' };
+    let dataPurge = project ? 'pending-backup-recovery' : 'no-app';
+    if (dataExpiry && project && pr.state === 'closed' && Number.isFinite(Date.parse(pr.closed_at))
+      && now() - Date.parse(pr.closed_at) >= 7 * 86400000) dataPurge = await expireData();
+    return { state: 'closed', dataPurge };
+  }
+
+  async function volumeSnapshot() {
+    const live = data(await ship('get_projects_by_id', { id: project.id }));
+    validateProject(live, template, number);
+    assert(live.id === project.id && live.activeDeploymentId === project.activeDeploymentId && live.enabled === false, 'Preview data deployment changed');
+    const snapshot = data(await ship('get_projects_by_id_named_volumes', { id: project.id }));
+    assert(snapshot?.projectId === project.id && snapshot.deploymentId === project.activeDeploymentId
+      && (snapshot.serverId ?? null) === (project.serverId ?? null) && /^[a-f0-9]{64}$/.test(snapshot.version)
+      && Array.isArray(snapshot.volumes) && snapshot.volumes.length === 1
+      && snapshot.volumes[0].name === `openship-${project.slug}-data` && snapshot.volumes[0].target === '/data'
+      && typeof snapshot.volumes[0].exists === 'boolean' && Array.isArray(snapshot.volumes[0].containers)
+      && Number.isFinite(Date.parse(snapshot.stoppedAt)) && snapshot.stoppedAt === live.disabledAt, 'Preview named-volume identity changed');
+    const volume = snapshot.volumes[0];
+    assert(volume.exists ? volume.identity?.name === volume.name && volume.identity.driver === 'local'
+      && Number.isFinite(Date.parse(volume.identity.createdAt)) && volume.identity.labels && typeof volume.identity.labels === 'object'
+      && volume.identity.options && typeof volume.identity.options === 'object' : volume.identity === null, 'Preview volume incarnation unverified');
+    return snapshot;
+  }
+
+  function assertRestoreFinished(snapshot) {
+    const restore = snapshot.volumes[0].restore;
+    assert(restore === null || (ID.test(restore?.id ?? '') && ID.test(restore.runId ?? '')
+      && restore.status === 'succeeded' && Number.isFinite(Date.parse(restore.finishedAt))),
+    'Preview previous restoration is unfinished or failed; volume health unverified');
+  }
+
+  function volumeTarget(snapshot) {
+    return { projectId: snapshot.projectId, deploymentId: snapshot.deploymentId, serverId: snapshot.serverId ?? null,
+      volumes: snapshot.volumes.map(({ name, target }) => ({ name, target })) };
+  }
+
+  async function backupRuns(includeDeleted = false) {
+    const rows = [];
+    const active = data(await ship('get_projects_by_projectId_backup_runs', { projectId: project.id, query: { active: true, limit: 100 } }));
+    assert(Array.isArray(active) && active.length <= 100 && active.every(r => ID.test(r?.id)
+      && r.projectId === project.id && r.organizationId === ORG), 'Preview active backup list invalid');
+    rows.push(...active);
+    let before;
+    for (let page = 0; page < 10; page++) {
+      const list = data(await ship('get_projects_by_projectId_backup_runs', { projectId: project.id,
+        query: { limit: 100, ...(includeDeleted ? { includeDeleted: true } : {}), ...(before ? { before } : {}) } }));
+      assert(Array.isArray(list) && list.length <= 100 && list.every(r => ID.test(r?.id)
+        && r.projectId === project.id && r.organizationId === ORG), 'Preview backup history invalid');
+      rows.push(...list);
+      if (list.length < 100) return [...new Map(rows.map(r => [r.id, r])).values()];
+      assert(before !== list.at(-1).id, 'Preview backup cursor did not advance');
+      before = list.at(-1).id;
+    }
+    throw new Error('Preview backup history exceeds bound');
+  }
+
+  function recoveryRun(run, snapshot) {
+    const volume = snapshot.volumes[0];
+    return run?.projectId === project.id && run.organizationId === ORG && run.sourceKind === 'project_volume'
+      && run.destinationId === backupDestinationId && !run.deletedAt && run.status === 'succeeded'
+      && Number.isFinite(Date.parse(run.executionFinishedAt)) && Number.isFinite(Date.parse(run.finishedAt))
+      && typeof run.manifestKey === 'string' && run.manifestKey.length > 0
+      && Array.isArray(run.artifacts) && run.artifacts.length === 1 && run.artifacts.every(a => a.payloadKind === 'volume'
+        && typeof a.key === 'string' && a.key.length > 0 && Number.isSafeInteger(a.sizeBytes) && a.sizeBytes > 0
+        && /^[a-f0-9]{64}$/.test(a.sha256) && a.metadata?.volumeSource === volume.name
+        && a.metadata.volumeTarget === volume.target && a.metadata.projectVolumeIdentity?.name === volume.name
+        && isDeepStrictEqual(a.metadata.projectVolumeTarget, volumeTarget(snapshot)));
+  }
+
+  async function waitBackup(id) {
+    assert(ID.test(id ?? ''), 'Preview backup run identity invalid');
+    const deadline = now() + 5 * 60000;
+    for (;;) {
+      const run = data(await ship('get_backup_runs_by_runId', { runId: id }));
+      assert(run?.id === id && run.projectId === project.id && run.organizationId === ORG, 'Preview backup run identity mismatch');
+      if (run.status === 'succeeded' && run.executionFinishedAt) return run;
+      assert(['queued', 'preparing', 'snapshotting', 'uploading', 'verifying', 'succeeded'].includes(run.status), 'Preview backup failed');
+      assert(now() < deadline, 'Preview backup did not finish within five minutes');
+      await sleep(interval);
+    }
+  }
+
+  async function expireData() {
+    assert(ID.test(backupDestinationId ?? ''), 'Preview backup destination missing');
+    await cleanupCurrent();
+    if (!project.activeDeploymentId) return 'never-deployed';
+    let snapshot = await volumeSnapshot();
+    if (!snapshot.volumes[0].exists) return 'already-absent';
+    assertRestoreFinished(snapshot);
+    async function eligible() {
+      await cleanupCurrent();
+      assert(pr.state === 'closed' && Number.isFinite(Date.parse(pr.closed_at))
+        && now() - Date.parse(pr.closed_at) >= 7 * 86400000, 'Preview data retention changed');
+      const fresh = await volumeSnapshot();
+      assertRestoreFinished(fresh);
+      assert(fresh.version === snapshot.version && fresh.volumes[0].exists, 'Preview data changed during backup');
+    }
+    const policies = data(await ship('get_projects_by_projectId_backup_policies', { projectId: project.id }));
+    assert(Array.isArray(policies), 'Preview backup policy list invalid');
+    const matches = policies.filter(p => p.sourceKind === 'project_volume'
+      && isDeepStrictEqual(p.payloadConfig?.projectVolumeTarget, volumeTarget(snapshot)));
+    assert(matches.length <= 1, 'Duplicate preview backup policies');
+    let policy = matches[0];
+    if (!policy) {
+      await eligible();
+      try {
+        policy = data(await ship('post_projects_by_projectId_backup_policies', { projectId: project.id, body: {
+          sourceKind: 'project_volume', payloadKind: 'volume', payloadConfig: {}, destinationId: backupDestinationId,
+          retainDays: 30, retainCount: null, enabled: true, cronExpression: null, triggerOnPreDeploy: false, enableWebhook: false,
+        } }));
+      } catch {
+        const reread = data(await ship('get_projects_by_projectId_backup_policies', { projectId: project.id }));
+        assert(Array.isArray(reread), 'Preview backup policy reconciliation invalid');
+        const accepted = reread.filter(p => p.sourceKind === 'project_volume'
+          && isDeepStrictEqual(p.payloadConfig?.projectVolumeTarget, volumeTarget(snapshot)));
+        assert(accepted.length === 1, 'Preview backup policy creation outcome unknown');
+        [policy] = accepted;
+      }
+    }
+    assert(ID.test(policy?.id ?? '') && policy.projectId === project.id && policy.sourceKind === 'project_volume'
+      && policy.destinationId === backupDestinationId && policy.enabled === true && !policy.deletedAt
+      && policy.serviceId == null && policy.mailServerId == null && policy.payloadKind === 'volume'
+      && policy.retainDays === 30 && policy.retainCount == null && policy.cronExpression == null
+      && policy.triggerOnPreDeploy === false && policy.webhookToken == null && policy.preHook == null && policy.postHook == null
+      && isDeepStrictEqual(policy.payloadConfig, { projectVolumeTarget: volumeTarget(snapshot) }), 'Preview backup policy changed');
+    const sameStop = r => recoveryRun(r, snapshot)
+      && r.artifacts.every(a => a.metadata.projectVolumeStoppedAt === snapshot.stoppedAt
+        && isDeepStrictEqual(a.metadata.projectVolumeIdentity, snapshot.volumes[0].identity));
+    const since = () => Math.max(Date.parse(pr.closed_at), Date.parse(snapshot.stoppedAt));
+    let runs = (await backupRuns()).filter(r => r.policyId === policy.id && !r.deletedAt
+      && Date.parse(r.startedAt) >= since());
+    let run = runs.filter(sameStop).sort((a, b) => Date.parse(b.finishedAt) - Date.parse(a.finishedAt))[0];
+    if (!run) {
+      const pending = runs.filter(r => ['queued', 'preparing', 'snapshotting', 'uploading', 'verifying'].includes(r.status)
+        || (r.status === 'succeeded' && !r.executionFinishedAt));
+      assert(pending.length <= 1, 'Multiple preview backups active');
+      let id = pending[0]?.id;
+      if (!id) {
+        await eligible();
+        const known = new Set(runs.map(r => r.id));
+        try {
+          const accepted = data(await ship('post_backup_policies_by_policyId_run', { policyId: policy.id, body: {} }));
+          assert(!accepted.runIds || (accepted.runIds.length === 1 && accepted.runIds[0] === accepted.runId), 'Preview backup submission ambiguous');
+          id = accepted.runId;
+        } catch {
+          runs = (await backupRuns()).filter(r => r.policyId === policy.id && !known.has(r.id)
+            && Date.parse(r.startedAt) >= since());
+          assert(runs.length === 1, 'Preview backup submission outcome unknown');
+          id = runs[0].id;
+        }
+      }
+      run = await waitBackup(id);
+    }
+    assert(run.policyId === policy.id && sameStop(run), 'Preview recovery artifact unverified');
+    await eligible();
+    const until = new Date(now() + 30 * 86400000 + 5 * 60000).toISOString();
+    await ship('post_backup_runs_by_runId_protect', { runId: run.id, body: { until, protected: true } });
+    run = data(await ship('get_backup_runs_by_runId', { runId: run.id }));
+    assert(sameStop(run) && Date.parse(run.retentionLockedUntil) >= Date.parse(until), 'Preview recovery window unverified');
+    await eligible();
+    const volume = snapshot.volumes[0];
+    let result;
+    try {
+      result = data(await ship('delete_projects_by_id_named_volumes', { id: project.id,
+        body: { name: volume.name, confirmName: volume.name, version: snapshot.version, backupRunId: run.id } }));
+    } catch {
+      const check = await volumeSnapshot();
+      assert(!check.volumes[0].exists, 'Preview volume removal outcome unknown');
+    }
+    assert(!result || result.removed === true, 'Preview volume removal failed');
+    snapshot = await volumeSnapshot();
+    assert(!snapshot.volumes[0].exists, 'Preview volume removal unverified');
+    return 'removed-with-recovery';
+  }
+
+  async function recoverData(current) {
+    if (!project.activeDeploymentId) return false;
+    const policies = data(await ship('get_projects_by_projectId_backup_policies', { projectId: project.id }));
+    assert(Array.isArray(policies), 'Preview backup policy list invalid');
+    if (!policies.some(p => p.sourceKind === 'project_volume')) return false;
+    assert(ID.test(backupDestinationId ?? ''), 'Preview backup destination missing');
+    await current();
+    await disableApp();
+    const snapshot = await volumeSnapshot();
+    assertRestoreFinished(snapshot);
+    if (snapshot.volumes[0].exists) return false;
+    const history = await backupRuns(true);
+    const runs = history.filter(r => recoveryRun({ ...r, deletedAt: null }, snapshot))
+      .sort((a, b) => Date.parse(b.finishedAt) - Date.parse(a.finishedAt));
+    const run = runs.find(r => !r.deletedAt && Math.max(Date.parse(r.retentionLockedUntil) || 0, Date.parse(r.finishedAt) + 30 * 86400000) > now());
+    if (!run) {
+      assert(runs.length > 0 && runs.every(r => Math.max(Date.parse(r.retentionLockedUntil) || 0,
+        Date.parse(r.finishedAt) + 30 * 86400000) <= now()), 'Preview retained recovery point unavailable');
+      return true;
+    }
+    await current();
+    const prepared = data(await ship('post_backup_runs_by_runId_restore_prepare', { runId: run.id, body: { mode: 'in_place' } }));
+    assert(ID.test(prepared?.restoreId ?? '') && typeof prepared.confirmationToken === 'string' && prepared.confirmationToken.length > 0,
+      'Preview restore preparation invalid');
+    const deadline = now() + 5 * 60000;
+    async function waitRestore(statuses) {
+      for (;;) {
+        const restore = data(await ship('get_backup_restores_by_restoreId', { restoreId: prepared.restoreId }));
+        assert(restore?.id === prepared.restoreId && restore.runId === run.id && restore.projectId === project.id
+          && restore.organizationId === ORG && restore.mode === 'in_place', 'Preview restore identity mismatch');
+        if (statuses.includes(restore.status)) return;
+        assert(['queued', 'preparing', 'applying'].includes(restore.status), 'Preview restore failed');
+        assert(now() < deadline, 'Preview restore did not finish within five minutes');
+        await sleep(interval);
+      }
+    }
+    await waitRestore(['prepared']);
+    await current();
+    assert(!(await volumeSnapshot()).volumes[0].exists, 'Preview restore target appeared during preparation');
+    try {
+      const applied = data(await ship('post_backup_restores_by_restoreId_apply', { restoreId: prepared.restoreId,
+        body: { confirmationToken: prepared.confirmationToken } }));
+      assert(applied?.ok === true, 'Preview restore application rejected');
+    } catch {
+      const accepted = data(await ship('get_backup_restores_by_restoreId', { restoreId: prepared.restoreId }));
+      assert(accepted?.runId === run.id && ['applying', 'succeeded'].includes(accepted.status), 'Preview restore application outcome unknown');
+    }
+    await waitRestore(['succeeded']);
+    await current();
+    const restored = await volumeSnapshot();
+    assertRestoreFinished(restored);
+    assert(restored.volumes[0].exists && restored.volumes[0].restore?.id === prepared.restoreId, 'Preview restored volume missing');
+    return true;
   }
 
   async function settled(id, status, target = project) {
@@ -436,6 +666,7 @@ export async function runPreview({ number, templateId, seed, gh, ship, cf, probe
     }
     await settleHistory();
     project = validateProject(data(await ship('get_projects_by_id', { id: project.id })), template, number);
+    const recoveredData = await recoverData(current);
     const appServices = (await ship('get_projects_by_id_services', { id: project.id })).services;
     assert(Array.isArray(appServices) && appServices.length === 0, 'Unexpected preview app services');
     for (const domain of appDomains) await ship('delete_domains_by_id', { id: domain.id });
@@ -458,7 +689,9 @@ export async function runPreview({ number, templateId, seed, gh, ship, cf, probe
     await current();
     let record = project.activeDeploymentId ? data(await ship('get_deployments_by_id', { id: project.activeDeploymentId })) : null;
     let deploymentId;
-    if (record?.projectId === project.id && record.commitSha === sha && record.status === 'ready') deploymentId = record.id;
+    const reusable = !recoveredData && record?.projectId === project.id && record.commitSha === sha && record.status === 'ready'
+      && data(await ship('get_deployments_by_id_info', { id: record.id }))?.status === 'running';
+    if (reusable) deploymentId = record.id;
     else {
       await active(false);
       const previousIds = new Set((await history()).map(row => row.id));
@@ -758,7 +991,8 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     const event = JSON.parse(await readFile(process.env.GITHUB_EVENT_PATH, 'utf8'));
     assert(process.env.GITHUB_REPOSITORY === REPO && process.env.GITHUB_EVENT_NAME === 'pull_request_target', 'Trusted workflow event required');
     const result = await runPreview({ number: event.number, templateId: process.env.OPENSHIP_PREVIEW_TEMPLATE_ID,
-      closeOnly: process.env.PREVIEW_CLOSE_ONLY === 'true', seed: process.env.PREVIEW_PAYLOAD_SECRET, ...clients(process.env) });
+      closeOnly: process.env.PREVIEW_CLOSE_ONLY === 'true', dataExpiry: process.env.PREVIEW_DATA_EXPIRY_ENABLED === 'true',
+      backupDestinationId: process.env.OPENSHIP_PREVIEW_BACKUP_DESTINATION_ID, seed: process.env.PREVIEW_PAYLOAD_SECRET, ...clients(process.env) });
     console.log(`PR preview: ${JSON.stringify(result)}`);
   } catch (error) {
     console.error(error.message);
