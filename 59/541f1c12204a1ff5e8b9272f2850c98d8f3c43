@@ -1,0 +1,21 @@
+Dockerfile
+  s_d04720221abf94::t_7703f5c303f173 1
+deploy/payload-preview/Dockerfile
+  s_d04720221abf94::t_a375446d1ab2f1 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "59541f1c12204a1ff5e8b9272f2850c98d8f3c43",
+  "prompts": {},
+  "sessions": {
+    "s_d04720221abf94": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ee4b-bbd7-7ef1-9dbe-33a48e6d3331",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
