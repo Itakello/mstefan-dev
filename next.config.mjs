@@ -1,5 +1,6 @@
 import { withPayload } from "@payloadcms/next/withPayload";
 import createMDX from "@next/mdx";
+import { withSentryConfig } from "@sentry/nextjs/config";
 
 const withMDX = createMDX({
   extension: /\.mdx?$/
@@ -21,4 +22,8 @@ const nextConfig = {
   pageExtensions: ["tsx", "mdx", "ts", "jsx", "js"]
 };
 
-export default withPayload(withMDX(nextConfig));
+export default withSentryConfig(withPayload(withMDX(nextConfig)), {
+  telemetry: false,
+  // Builds without the upload token (CI, PR previews, local) skip source maps entirely.
+  sourcemaps: { disable: !process.env.SENTRY_AUTH_TOKEN },
+});

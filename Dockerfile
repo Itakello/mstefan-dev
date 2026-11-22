@@ -8,6 +8,14 @@ USER node
 RUN pnpm install --frozen-lockfile
 COPY --chown=node:node . .
 ENV NEXT_TELEMETRY_DISABLED=1
+# Openship passes the project environment and the deployed commit as build arguments.
+ARG OPENSHIP_COMMIT_SHA
+ARG NEXT_PUBLIC_SENTRY_DSN
+ARG NEXT_PUBLIC_SENTRY_ENVIRONMENT
+ARG SENTRY_ORG
+ARG SENTRY_PROJECT
+ARG SENTRY_AUTH_TOKEN
+ENV SENTRY_RELEASE=$OPENSHIP_COMMIT_SHA
 # Build evaluates configuration but never connects to the runtime database.
 RUN SKIP_BUILD_TYPECHECK=1 PAYLOAD_SECRET=build-only-placeholder-not-a-runtime-secret PAYLOAD_DATA_DIR=/tmp/payload-build pnpm build
 ENV NODE_ENV=production PAYLOAD_DATA_DIR=/data

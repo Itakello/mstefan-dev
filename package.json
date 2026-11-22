@@ -31,6 +31,7 @@
     "@payloadcms/live-preview-react": "3.90.0",
     "@payloadcms/next": "3.90.0",
     "@payloadcms/ui": "3.90.0",
+    "@sentry/nextjs": "11.12.0",
     "clsx": "^2.1.1",
     "graphql": "^16.14.2",
     "libsql": "0.4.7",
