@@ -1,0 +1,19 @@
+next.config.mjs
+  s_953d7ab28b4a95::t_7d7e274ef93855 26-27
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "024513174bdac3715a152c2f62c5b99218f25f4a",
+  "prompts": {},
+  "sessions": {
+    "s_953d7ab28b4a95": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ee46210a-288c-4def-9abe-49e5a81ce3e6",
+        "model": "unknown"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
