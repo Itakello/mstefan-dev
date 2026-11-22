@@ -23,6 +23,8 @@ const nextConfig = {
 };
 
 export default withSentryConfig(withPayload(withMDX(nextConfig)), {
+  org: "mstefan",
+  project: "mstefan-dev",
   telemetry: false,
   // Builds without the upload token (CI, PR previews, local) skip source maps entirely.
   sourcemaps: { disable: !process.env.SENTRY_AUTH_TOKEN },
