@@ -1,0 +1,21 @@
+app/[locale]/sentry-test/ClientThrow.tsx
+  s_9c2ad555458495::t_6ff76ba9b8483d 1-9
+app/[locale]/sentry-test/page.tsx
+  s_9c2ad555458495::t_3af8eee628cf99 1-8
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ae42416e68d7d4e4920b5ad56d721424492af33c",
+  "prompts": {},
+  "sessions": {
+    "s_9c2ad555458495": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "bd90e787-1f73-44d9-b0c4-4856515ca377",
+        "model": "unknown"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
