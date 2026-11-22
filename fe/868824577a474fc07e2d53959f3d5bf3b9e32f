@@ -1,0 +1,23 @@
+deploy/payload-production/README.md
+  s_953d7ab28b4a95::t_05b43045981757 29-30
+instrumentation-client.ts
+  s_953d7ab28b4a95::t_5301ea483f8b6e 8-9
+next.config.mjs
+  s_953d7ab28b4a95::t_f86c8287cddec4 30-32
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "fe868824577a474fc07e2d53959f3d5bf3b9e32f",
+  "prompts": {},
+  "sessions": {
+    "s_953d7ab28b4a95": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ee46210a-288c-4def-9abe-49e5a81ce3e6",
+        "model": "unknown"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
