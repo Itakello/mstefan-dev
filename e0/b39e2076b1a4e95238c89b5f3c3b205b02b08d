@@ -1,0 +1,33 @@
+deploy/event/README.md
+  s_5d67ad147f0bff::t_a55a63f6555319 13,99
+deploy/event/controller.py
+  s_5d67ad147f0bff::t_973096307d9a73 476,480,484
+deploy/event/mstefan-event-deploy@.service
+  s_a6c234eca3c38c::t_94073e53900a95 3,5
+deploy/event/safeguard.py
+  s_a6c234eca3c38c::t_81432b9a6b1b87 19-21,63,67-69,71,81-83,89-90,92,100
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e0b39e2076b1a4e95238c89b5f3c3b205b02b08d",
+  "prompts": {},
+  "sessions": {
+    "s_5d67ad147f0bff": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "86648ac2-b038-40b6-bc2a-8232cd950d69",
+        "model": "unknown"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    },
+    "s_a6c234eca3c38c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "agent-acbb0e35eb1fdf4ef",
+        "model": "unknown"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
