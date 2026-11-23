@@ -83,11 +83,15 @@ def safeguard():
         shutil.rmtree(stale)
     stamp = time.strftime('%Y%m%dT%H%M%SZ', time.gmtime())
     for attempt in range(ATTEMPTS):
+        run_id = f'{stamp}-{attempt}-{deployment}'[:64]
         try:
-            # The SQLite backup API snapshots the live database consistently; backup() also refuses
-            # to publish if the database or uploads changed while it ran.
-            run_id = f'{stamp}-{attempt}-{deployment}'[:64]
-            archive = Path(backup.backup(source, OUTPUT, run_id, runtime_stopped=True)['archive'])
+            # Freezing the only writer makes the database and uploads one point-in-time snapshot
+            # (crash-consistent, like a power cut) without stopping the site; requests wait briefly.
+            docker('pause', container)
+            try:
+                archive = Path(backup.backup(source, OUTPUT, run_id, runtime_stopped=True)['archive'])
+            finally:
+                docker('unpause', container)
             break
         except (ValueError, sqlite3.Error):
             if attempt == ATTEMPTS - 1:
