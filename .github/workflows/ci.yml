@@ -164,7 +164,8 @@ jobs:
         run: node scripts/visual-review/run-fixture.mjs --smoke --reuse-build
       # The deploy host pulls this image by commit; it never builds the site itself.
       - name: Build and publish the deploy image for this commit
-        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+        # Fork and Dependabot runs get a read-only token and cannot publish.
+        if: github.event_name == 'push' || (github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]')
         env:
           IMAGE: ghcr.io/itakello/mstefan-dev
           COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
@@ -172,10 +173,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          [[ "$COMMIT" =~ ^[0-9a-f]{40}$ ]]
           docker build --file Dockerfile.build --tag "$IMAGE:$COMMIT" \
             --label "org.opencontainers.image.source=https://github.com/${GITHUB_REPOSITORY}" \
-            --label "org.opencontainers.image.revision=$COMMIT" \
             "https://github.com/${GITHUB_REPOSITORY}.git#$COMMIT"
           printf '%s' "$GITHUB_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
           docker push "$IMAGE:$COMMIT"
