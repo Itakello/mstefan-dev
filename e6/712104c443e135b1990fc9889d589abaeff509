@@ -1,0 +1,21 @@
+deploy/event/mstefan-event-deploy-safeguard@.service
+  s_5d67ad147f0bff::t_874363e4c89209 10
+deploy/event/safeguard.py
+  s_5d67ad147f0bff::t_b30e6d84c4499a 124-130,132-134
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e6712104c443e135b1990fc9889d589abaeff509",
+  "prompts": {},
+  "sessions": {
+    "s_5d67ad147f0bff": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "86648ac2-b038-40b6-bc2a-8232cd950d69",
+        "model": "unknown"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
