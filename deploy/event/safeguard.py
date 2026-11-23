@@ -43,6 +43,19 @@ def running_deployment():
     return matches[0]
 
 
+def unpause(container):
+    # A container left paused takes the site down, so never give up after one failed attempt.
+    for attempt in range(5):
+        try:
+            docker('unpause', container)
+            return
+        except Blocked:
+            if docker('inspect', '--format', '{{.State.Paused}}', container) == 'false':
+                return
+            time.sleep(2 ** attempt)
+    raise Blocked('production container may still be paused')
+
+
 def restore_proof(archive, scratch):
     target = scratch / 'restore'
     target.mkdir(mode=0o700)
@@ -91,7 +104,7 @@ def safeguard():
             try:
                 archive = Path(backup.backup(source, OUTPUT, run_id, runtime_stopped=True)['archive'])
             finally:
-                docker('unpause', container)
+                unpause(container)
             break
         except (ValueError, sqlite3.Error):
             if attempt == ATTEMPTS - 1:
