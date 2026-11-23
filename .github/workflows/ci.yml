@@ -136,7 +136,10 @@ jobs:
 
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -159,6 +162,23 @@ jobs:
       - run: pnpm test:cms
       - name: Verify public 404 shell on the isolated production fixture
         run: node scripts/visual-review/run-fixture.mjs --smoke --reuse-build
+      # The deploy host pulls this image by commit; it never builds the site itself.
+      - name: Build and publish the deploy image for this commit
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          IMAGE: ghcr.io/itakello/mstefan-dev
+          COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+          GITHUB_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$COMMIT" =~ ^[0-9a-f]{40}$ ]]
+          docker build --file Dockerfile.build --tag "$IMAGE:$COMMIT" \
+            --label "org.opencontainers.image.source=https://github.com/${GITHUB_REPOSITORY}" \
+            --label "org.opencontainers.image.revision=$COMMIT" \
+            "https://github.com/${GITHUB_REPOSITORY}.git#$COMMIT"
+          printf '%s' "$GITHUB_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+          docker push "$IMAGE:$COMMIT"
       - name: Upload 404 smoke failure evidence
         if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

@@ -368,7 +368,7 @@ class Refresh:
         production, staging = self.runtime(PROD), self.runtime(STAGE)
         changed = self.client.compatible(production['commit'], staging['commit'])
         if changed:
-            if any(path.startswith('migrations/') or path in {'Dockerfile', 'pnpm-lock.yaml'} or
+            if any(path.startswith('migrations/') or path in {'Dockerfile', 'Dockerfile.build', 'pnpm-lock.yaml'} or
                    any(word in Path(path).name.lower() for word in ('startup', 'entrypoint')) for path in changed):
                 raise Refused('Migrations, resolved dependencies or startup changed; align Staging first')
             with private(COMPATIBILITY).open() as stream:
