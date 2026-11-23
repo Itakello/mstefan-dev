@@ -1,0 +1,23 @@
+.github/workflows/ci.yml
+  s_953d7ab28b4a95::t_83237a78c5707d 167-168
+Dockerfile
+  s_953d7ab28b4a95::t_97496973345309 1
+deploy/payload-production/staging_refresh.py
+  s_953d7ab28b4a95::t_dba31603f73568 371-372
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9482287538ee6953f915d1c24d440a16d090d0d6",
+  "prompts": {},
+  "sessions": {
+    "s_953d7ab28b4a95": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ee46210a-288c-4def-9abe-49e5a81ce3e6",
+        "model": "unknown"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
