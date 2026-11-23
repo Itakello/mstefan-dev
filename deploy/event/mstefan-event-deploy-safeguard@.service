@@ -7,6 +7,7 @@ After=docker.service
 Type=exec
 User=root
 ExecStart=/usr/bin/python3 /opt/mstefan-event-deploy/safeguard.py
+ExecStopPost=/usr/bin/python3 /opt/mstefan-event-deploy/safeguard.py --recover
 StandardInput=socket
 StandardOutput=socket
 StandardError=journal

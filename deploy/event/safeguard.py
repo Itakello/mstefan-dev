@@ -121,7 +121,17 @@ def safeguard():
             'image': image, 'migrations': migrations}
 
 
+def recover():
+    """Run by systemd after every exit, including a kill at RuntimeMaxSec, so the site never stays paused."""
+    deployment, container = running_deployment()
+    if docker('inspect', '--format', '{{.State.Paused}}', container) == 'true':
+        unpause(container)
+
+
 def main():
+    if sys.argv[1:] == ['--recover']:
+        recover()
+        return
     try:
         result = safeguard()
     except Exception as error:  # Report a bounded failure to the caller; details go to the journal.
