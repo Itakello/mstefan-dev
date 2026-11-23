@@ -1,0 +1,21 @@
+deploy/event/README.md
+  s_5d67ad147f0bff::t_3db89779bc31cb 7
+deploy/event/safeguard.py
+  s_5d67ad147f0bff::t_0c7586edf1a391 86,88-94
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "45ef69fa6d3d5fb3f43cb0d0cf69e8f65b1e0767",
+  "prompts": {},
+  "sessions": {
+    "s_5d67ad147f0bff": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "86648ac2-b038-40b6-bc2a-8232cd950d69",
+        "model": "unknown"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
