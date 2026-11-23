@@ -1,0 +1,31 @@
+deploy/event/README.md
+  s_5d67ad147f0bff::t_3fd8d2eed044ca 7,13,99
+deploy/event/controller.py
+  s_5d67ad147f0bff::t_2363894b5f4dc6 27-28,49-52,177,192,194,196,198-199,208,211-220,413-418,454-460,471,476-479
+deploy/event/mstefan-event-deploy-safeguard.socket
+  s_5d67ad147f0bff::t_11cf5a4f86cc30 1-13
+deploy/event/mstefan-event-deploy-safeguard@.service
+  s_5d67ad147f0bff::t_cc8278f01ee002 1-16
+deploy/event/safeguard.py
+  s_5d67ad147f0bff::t_06f7663b0a3513 1-114
+deploy/event/test_controller.py
+  s_5d67ad147f0bff::t_6bc3653544860c 40,62-67,118,156-165,167-191,210,213,218-219,221-223,315,446-449,603-615
+deploy/event/test_safeguard.py
+  s_5d67ad147f0bff::t_bea95a907135c7 1-45
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e755897a33122b4bac9153113a39b8e33f9d090a",
+  "prompts": {},
+  "sessions": {
+    "s_5d67ad147f0bff": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "86648ac2-b038-40b6-bc2a-8232cd950d69",
+        "model": "unknown"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
