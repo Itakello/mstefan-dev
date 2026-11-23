@@ -1,0 +1,16 @@
+[Unit]
+Description=Back up, restore-check and retain the live mstefan.dev release
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=exec
+User=root
+ExecStart=/usr/bin/python3 /opt/mstefan-event-deploy/safeguard.py
+StandardInput=socket
+StandardOutput=socket
+StandardError=journal
+RuntimeMaxSec=270
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true

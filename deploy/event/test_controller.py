@@ -37,6 +37,7 @@ class Fake:
         self.error = None
         self.health_error = False
         self.current_sha = NEW
+        self.safeguards = []
 
     def current_master(self, sha):
         if sha != self.current_sha:
@@ -57,6 +58,12 @@ class Fake:
     def compatible(self, baseline, sha):
         if self.error == 'schema':
             raise c.Blocked('schema changed')
+
+    def safeguard(self, deployment_id):
+        if self.error == 'safeguard':
+            raise c.Blocked('backup failed')
+        self.safeguards.append(deployment_id)
+        return {'archive': '/backups/x.tar', 'archiveSha256': '0' * 64, 'image': 'retained:' + deployment_id, 'migrations': []}
 
     def submit(self, sha):
         self.posts += 1
@@ -104,12 +111,11 @@ class FlowTests(unittest.TestCase):
                 self.client.health_error = unhealthy
                 if active_sha == NEW and not unhealthy:
                     self.run_flow()
-                    self.assertEqual(self.state['phase'], 'idle')
                     self.assertEqual(self.state['last_success'], NEW)
                 else:
                     with self.assertRaises(c.Blocked):
                         self.run_flow()
-                    self.assertEqual(self.state['phase'], 'paused')
+                self.assertEqual(self.state['phase'], 'idle')
                 self.assertEqual(self.client.posts, 0)
                 self.assertEqual(self.state['failed_shas'], [NEW])
 
@@ -147,20 +153,42 @@ class FlowTests(unittest.TestCase):
                 self.assertEqual(self.state['failed_shas'], [])
                 self.assertEqual(c.load(self.path)['phase'], 'idle')
 
-    def test_build_input_change_blocks_before_submission(self):
-        for protected_path in ('.dockerignore', 'tsconfig.json', 'next.config.mjs'):
+    def protected_change(self, protected_path):
+        self.client = Fake()
+        self.state = {'phase': 'idle', 'failed_shas': []}
+        old = {'truncated': False, 'tree': [{'path': protected_path, 'type': 'blob', 'mode': '100644', 'sha': OLD}]}
+        new = {'truncated': False, 'tree': [{'path': protected_path, 'type': 'blob', 'mode': '100644', 'sha': NEW}]}
+        self.client.gh = lambda path: old if OLD in path else new
+        self.client.compatible = lambda baseline, sha: c.Client.compatible(self.client, baseline, sha)
+
+    def test_protected_change_deploys_after_safeguard_of_the_live_release(self):
+        for protected_path in ('.dockerignore', 'pnpm-lock.yaml', 'migrations/new.ts'):
             with self.subTest(path=protected_path):
-                self.client = Fake()
-                self.state = {'phase': 'idle', 'failed_shas': []}
-                old = {'truncated': False, 'tree': [{'path': protected_path, 'type': 'blob', 'mode': '100644', 'sha': OLD}]}
-                new = {'truncated': False, 'tree': [{'path': protected_path, 'type': 'blob', 'mode': '100644', 'sha': NEW}]}
-                self.client.gh = lambda path: old if OLD in path else new
-                self.client.compatible = lambda baseline, sha: c.Client.compatible(self.client, baseline, sha)
-                with self.assertRaises(c.Blocked):
-                    self.run_flow()
-                self.assertEqual(self.client.posts, 0)
-                self.assertEqual(self.state['phase'], 'paused')
-                self.assertIn('schema, dependency or startup', self.state['reason'])
+                self.protected_change(protected_path)
+                self.run_flow()
+                self.assertEqual(self.client.safeguards, [ID])
+                self.assertEqual(self.client.posts, 1)
+                self.assertEqual(self.state['phase'], 'idle')
+                self.assertEqual(self.state['last_success'], NEW)
+
+    def test_safeguard_failure_blocks_submission_without_pausing(self):
+        self.protected_change('package.json')
+        self.client.error = 'safeguard'
+        with self.assertRaises(c.Blocked):
+            self.run_flow()
+        self.assertEqual(self.client.posts, 0)
+        self.assertEqual(self.state['phase'], 'idle')
+        self.assertEqual(self.state['failed_shas'], [])
+        self.client.error = None
+        self.run_flow()
+        self.assertEqual(self.client.posts, 1)
+
+    def test_unchanged_protected_files_skip_safeguard(self):
+        self.client.gh = lambda path: {'truncated': False, 'tree': [{'path': 'package.json', 'type': 'blob', 'mode': '100644', 'sha': OLD}]}
+        self.client.compatible = lambda baseline, sha: c.Client.compatible(self.client, baseline, sha)
+        self.run_flow()
+        self.assertEqual(self.client.safeguards, [])
+        self.assertEqual(self.client.posts, 1)
 
     def test_invalid_live_writer_prevents_submission(self):
         for result in ({'ok': False}, writer_fixture('dep_other'), dict(writer_fixture(), count=2)):
@@ -179,16 +207,20 @@ class FlowTests(unittest.TestCase):
         self.assertEqual(self.client.posts, 0)
         self.assertEqual(self.state['last_deployment'], ID)
 
-    def test_preflight_failure_and_failed_sha_pause(self):
+    def test_preflight_failure_leaves_live_release_and_allows_retry(self):
         for failure in ('gate', 'schema', 'activation'):
             with self.subTest(failure=failure):
+                self.client = Fake()
                 self.state = {'phase': 'idle', 'failed_shas': []}
                 self.client.error = failure
                 with self.assertRaises(c.Blocked):
                     self.run_flow()
-                self.assertEqual(self.state['phase'], 'paused')
-                self.assertIn(NEW, self.state['failed_shas'])
+                self.assertEqual(c.load(self.path)['phase'], 'idle')
+                self.assertEqual(self.state['failed_shas'], [])
                 self.assertEqual(self.client.posts, 0)
+                self.client.error = None
+                self.run_flow()
+                self.assertEqual(self.client.posts, 1)
 
     def test_post_failure_unknown_result_never_replayed(self):
         self.client.error = 'post'
@@ -280,7 +312,7 @@ class FlowTests(unittest.TestCase):
             with self.assertRaises(c.Blocked):
                 self.run_flow()
         self.assertEqual(self.client.posts, 0)
-        self.assertEqual(self.state['failure_phase'], 'idle')
+        self.assertEqual(self.state['phase'], 'idle')
 
     def test_release_byte_capacity_blocks_production_post(self):
         ledger = Path(self.temp.name) / 'delivery' / 'releases.json'
@@ -410,8 +442,11 @@ class FlowTests(unittest.TestCase):
             with self.assertRaises(c.Blocked):
                 self.run_flow()
         self.assertEqual(self.client.posts, 0)
-        self.assertEqual(self.state['phase'], 'paused')
         self.assertEqual(c.release_observations.capture_state(ledger), 'paused')
+        with patch.dict(os.environ, {'MSTEFAN_RELEASE_OBSERVATIONS': ''}):
+            with self.assertRaises(c.Blocked):
+                self.run_flow()
+        self.assertEqual(self.client.posts, 0)
 
     def test_changing_bound_ledger_refuses_new_path_and_pauses_old(self):
         ledger = Path(self.temp.name) / 'delivery' / 'releases.json'
@@ -564,6 +599,19 @@ class Contracts(unittest.TestCase):
             self.client.smoke('dep_new', NEW, attestation())
         with self.assertRaises(c.Blocked):
             c.NoRedirect().redirect_request(None, None, 302, '', {}, 'https://other.example')
+
+    def test_safeguard_requires_proof_for_the_exact_live_deployment(self):
+        good = {'ok': True, 'deployment': ID, 'archive': '/b/payload.tar', 'archiveSha256': 'f' * 64,
+                'image': 'mstefan/payload-retained:' + ID, 'migrations': ['m1']}
+        calls = []
+        self.client.probe = lambda path, timeout: calls.append(path) or result
+        result = good
+        self.assertEqual(self.client.safeguard(ID)['archive'], '/b/payload.tar')
+        self.assertEqual(calls, [c.SAFEGUARD_SOCKET])
+        for wrong in ({'ok': False}, dict(good, deployment='dep_other'), dict(good, archiveSha256='x'), dict(good, image=None)):
+            result = wrong
+            with self.assertRaises(c.Blocked):
+                self.client.safeguard(ID)
 
     def test_submit_exact_payload_without_environment_mutation(self):
         calls = []
