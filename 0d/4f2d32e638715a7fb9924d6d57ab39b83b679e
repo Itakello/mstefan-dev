@@ -1,0 +1,19 @@
+docs/component-workshop.md
+  s_5d67ad147f0bff::t_b0de277976c832 17
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0d4f2d32e638715a7fb9924d6d57ab39b83b679e",
+  "prompts": {},
+  "sessions": {
+    "s_5d67ad147f0bff": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "86648ac2-b038-40b6-bc2a-8232cd950d69",
+        "model": "unknown"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
