@@ -473,13 +473,15 @@ def run(client, state, path, sha, run_id, attestation, clock=time.time, sleep=ti
     except Refused:
         raise
     except (Blocked, KeyError, TypeError, ValueError, OSError) as error:
+        reason = str(error) if isinstance(error, Blocked) else 'invalid configuration, state or local persistence'
         if state['phase'] in {'idle', 'prepared'}:
             # Nothing was submitted, so the live release is untouched and the next event may retry.
             reset(state, path)
+            print('mstefan deployment blocked before submission: ' + reason, file=sys.stderr)
             raise
         if sha not in state['failed_shas']:
             state['failed_shas'].append(sha)
-        state.update(failure_phase=state['phase'], phase='paused', reason=str(error) if isinstance(error, Blocked) else 'invalid configuration, state or local persistence')
+        state.update(failure_phase=state['phase'], phase='paused', reason=reason)
         save(path, state)
         raise
 

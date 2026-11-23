@@ -16,10 +16,9 @@ import time
 from contextlib import closing
 from pathlib import Path
 
-sys.path.insert(0, '/opt/mstefan-event-deploy')
-import backup  # noqa: E402
-from release_observations import valid_id  # noqa: E402
-from controller import CONTAINER_PREFIX, VOLUME, Blocked, read_activation, storage_config  # noqa: E402
+import backup
+from release_observations import valid_id
+from controller import CONTAINER_PREFIX, VOLUME, Blocked, read_activation, storage_config
 
 OUTPUT = Path('/var/backups/mstefan-payload/predeploy')
 RETAINED = 'mstefan/payload-retained'
@@ -61,14 +60,15 @@ def restore_proof(archive, scratch):
         return [row[0] for row in db.execute("select name from payload_migrations where name != 'dev' order by name")]
 
 
-def prune():
+def prune(current):
     archives = sorted(OUTPUT.glob('payload-*.tar'), key=lambda path: path.stat().st_mtime)
     for old in archives[:-KEEP]:
         old.unlink()
-    tags = docker('images', RETAINED, '--format', '{{.CreatedAt}}\t{{.Tag}}').splitlines()
-    for line in sorted(tags)[:-KEEP]:
+    # CreatedAt is the image build time, not the tag time, so never prune the tag just retained.
+    rows = [line.split('\t') for line in docker('images', RETAINED, '--format', '{{.CreatedAt}}\t{{.Tag}}').splitlines()]
+    for _, tag in sorted(row for row in rows if row[1] != current)[:-(KEEP - 1)]:
         try:
-            docker('rmi', RETAINED + ':' + line.split('\t')[1])
+            docker('rmi', RETAINED + ':' + tag)
         except Blocked:
             pass  # An image still used by a container keeps its tag until a later run.
 
@@ -78,14 +78,18 @@ def safeguard():
     deployment, container = running_deployment()
     source = Path(docker('volume', 'inspect', VOLUME, '--format', '{{.Mountpoint}}'))
     OUTPUT.mkdir(mode=0o700, parents=True, exist_ok=True)
+    # A run killed at RuntimeMaxSec skips TemporaryDirectory cleanup; the socket allows one run at a time.
+    for stale in [*OUTPUT.glob('.payload-backup-*'), *OUTPUT.glob('.restore-*')]:
+        shutil.rmtree(stale)
     stamp = time.strftime('%Y%m%dT%H%M%SZ', time.gmtime())
     for attempt in range(ATTEMPTS):
         try:
             # The SQLite backup API snapshots the live database consistently; backup() also refuses
             # to publish if the database or uploads changed while it ran.
-            archive = Path(backup.backup(source, OUTPUT, f'{deployment}-{stamp}-{attempt}', runtime_stopped=True)['archive'])
+            run_id = f'{stamp}-{attempt}-{deployment}'[:64]
+            archive = Path(backup.backup(source, OUTPUT, run_id, runtime_stopped=True)['archive'])
             break
-        except ValueError:
+        except (ValueError, sqlite3.Error):
             if attempt == ATTEMPTS - 1:
                 raise
             time.sleep(5)
@@ -93,7 +97,7 @@ def safeguard():
         migrations = restore_proof(archive, Path(scratch))
     image = RETAINED + ':' + deployment
     docker('tag', docker('inspect', '--format', '{{.Image}}', container), image)
-    prune()
+    prune(deployment)
     with archive.open('rb') as stream:
         archive_sha = hashlib.file_digest(stream, 'sha256').hexdigest()
     return {'ok': True, 'deployment': deployment, 'archive': str(archive), 'archiveSha256': archive_sha,
