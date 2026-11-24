@@ -1,0 +1,23 @@
+deploy/event/README.md
+  s_6f3138181ef9fe::t_e1bc4aaf2ff097 5
+deploy/event/controller.py
+  s_6f3138181ef9fe::t_8b87c058c3ebb7 146-148,153
+deploy/event/test_controller.py
+  s_6f3138181ef9fe::t_8c7615966d7d42 524-542
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a474d4b46305db0b831bd2ac6dcaec1710bcd54d",
+  "prompts": {},
+  "sessions": {
+    "s_6f3138181ef9fe": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "13c8068d-a061-4745-8196-30cd4b7cf2a8",
+        "model": "unknown"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
