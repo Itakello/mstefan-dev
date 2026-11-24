@@ -1,9 +1,9 @@
 import * as Sentry from "@sentry/nextjs";
 
+import type { SentryRuntime } from "@/lib/sentryRuntime";
+
 // Errors only: no tracing and no session replay, to protect the free event quota.
-Sentry.init({
-  dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
-  environment: process.env.NEXT_PUBLIC_SENTRY_ENVIRONMENT,
-});
+const runtime = (window as Window & { __SENTRY_RUNTIME__?: SentryRuntime }).__SENTRY_RUNTIME__;
+Sentry.init({ dsn: runtime?.dsn, environment: runtime?.environment });
 
 export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;
