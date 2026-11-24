@@ -278,23 +278,26 @@ export async function runPreview({ number, templateId, seed, gh, ship, cf, probe
         await disableApp();
       }
     }
-    for (let page = 1; page <= 10; page++) {
-      const deployments = await gh('GET', `/repos/${REPO}/deployments?environment=${envName}&per_page=100&page=${page}`);
-      assert(Array.isArray(deployments), 'GitHub deployment list invalid');
-      for (const deployment of deployments) {
-        if (deployment.environment === envName && deployment.payload?.owner === WORKER && deployment.payload?.pr === number) {
-          assert(Number.isSafeInteger(deployment.id) && deployment.id > 0, 'GitHub deployment identity invalid');
-          const statusPath = `/repos/${REPO}/deployments/${deployment.id}/statuses`;
-          const latest = await gh('GET', `${statusPath}?per_page=1`);
-          assert(Array.isArray(latest) && latest.length <= 1 && latest.every(status =>
-            ['error', 'failure', 'inactive', 'in_progress', 'queued', 'pending', 'success'].includes(status?.state)), 'GitHub deployment status invalid');
-          if (latest[0]?.state !== 'inactive') await gh('POST', statusPath,
-            { state: 'inactive', description: 'Preview runtime disabled; application data retained' });
+    async function markInactive(description, replace = false) {
+      for (let page = 1; page <= 10; page++) {
+        const deployments = await gh('GET', `/repos/${REPO}/deployments?environment=${envName}&per_page=100&page=${page}`);
+        assert(Array.isArray(deployments), 'GitHub deployment list invalid');
+        for (const deployment of deployments) {
+          if (deployment.environment === envName && deployment.payload?.owner === WORKER && deployment.payload?.pr === number) {
+            assert(Number.isSafeInteger(deployment.id) && deployment.id > 0, 'GitHub deployment identity invalid');
+            const statusPath = `/repos/${REPO}/deployments/${deployment.id}/statuses`;
+            const latest = await gh('GET', `${statusPath}?per_page=1`);
+            assert(Array.isArray(latest) && latest.length <= 1 && latest.every(status =>
+              ['error', 'failure', 'inactive', 'in_progress', 'queued', 'pending', 'success'].includes(status?.state)), 'GitHub deployment status invalid');
+            if (latest[0]?.state !== 'inactive' || (replace && latest[0].description !== description))
+              await gh('POST', statusPath, { state: 'inactive', description });
+          }
         }
+        if (deployments.length < 100) return;
+        if (page === 10) throw new Error('GitHub deployment history exceeds cleanup bound');
       }
-      if (deployments.length < 100) break;
-      if (page === 10) throw new Error('GitHub deployment history exceeds cleanup bound');
     }
+    await markInactive('Preview runtime disabled; application data retained');
     async function removeOriginDNS() {
       const dnsPath = `/zones/${ZONE}/dns_records`;
       const records = await cf('GET', `${dnsPath}?name=${origin}`);
@@ -348,7 +351,11 @@ export async function runPreview({ number, templateId, seed, gh, ship, cf, probe
     }
     let dataPurge = project ? 'pending-backup-recovery' : 'no-app';
     if (dataExpiry && project && pr.state === 'closed' && Number.isFinite(Date.parse(pr.closed_at))
-      && now() - Date.parse(pr.closed_at) >= 7 * 86400000) dataPurge = await expireData();
+      && now() - Date.parse(pr.closed_at) >= 7 * 86400000) {
+      dataPurge = await expireData();
+      if (['removed-with-recovery', 'already-absent'].includes(dataPurge))
+        await markInactive('Preview runtime disabled; application data expired after backup', true);
+    }
     return { state: 'closed', dataPurge };
   }
 
@@ -373,7 +380,8 @@ export async function runPreview({ number, templateId, seed, gh, ship, cf, probe
   function assertRestoreFinished(snapshot) {
     const restore = snapshot.volumes[0].restore;
     assert(restore === null || (ID.test(restore?.id ?? '') && ID.test(restore.runId ?? '')
-      && restore.status === 'succeeded' && Number.isFinite(Date.parse(restore.finishedAt))),
+      && ((restore.status === 'succeeded' && Number.isFinite(Date.parse(restore.finishedAt)))
+        || (restore.status === 'cancelled' && restore.partialWrite === false))),
     'Preview previous restoration is unfinished or failed; volume health unverified');
   }
 
@@ -500,12 +508,19 @@ export async function runPreview({ number, templateId, seed, gh, ship, cf, probe
       run = await waitBackup(id);
     }
     assert(run.policyId === policy.id && sameStop(run), 'Preview recovery artifact unverified');
+    async function protect() {
+      const until = new Date(now() + 30 * 86400000 + 5 * 60000).toISOString();
+      await ship('post_backup_runs_by_runId_protect', { runId: run.id, body: { until, protected: true } });
+      run = data(await ship('get_backup_runs_by_runId', { runId: run.id }));
+      assert(sameStop(run) && Date.parse(run.retentionLockedUntil) >= Date.parse(until), 'Preview recovery window unverified');
+    }
     await eligible();
-    const until = new Date(now() + 30 * 86400000 + 5 * 60000).toISOString();
-    await ship('post_backup_runs_by_runId_protect', { runId: run.id, body: { until, protected: true } });
+    await protect();
+    await eligible();
+    // Eligibility reads can outlast the padding; removal must still leave a full 30-day recovery window.
     run = data(await ship('get_backup_runs_by_runId', { runId: run.id }));
-    assert(sameStop(run) && Date.parse(run.retentionLockedUntil) >= Date.parse(until), 'Preview recovery window unverified');
-    await eligible();
+    assert(sameStop(run), 'Preview recovery artifact unverified');
+    if (!(Date.parse(run.retentionLockedUntil) >= now() + 30 * 86400000 + 60000)) await protect();
     const volume = snapshot.volumes[0];
     let result;
     try {
@@ -521,17 +536,43 @@ export async function runPreview({ number, templateId, seed, gh, ship, cf, probe
     return 'removed-with-recovery';
   }
 
+  async function discardUnconfirmedRestore(restore) {
+    // A lost preparation response leaves a prepared restore whose confirmation token is unrecoverable.
+    assert(ID.test(restore?.id ?? '') && restore.runId && restore.partialWrite === false
+      && ['queued', 'preparing', 'prepared'].includes(restore.status), 'Preview restore preparation outcome unknown');
+    await current();
+    await ship('post_backup_restores_by_restoreId_cancel', { restoreId: restore.id });
+    const deadline = now() + 5 * 60000;
+    for (;;) {
+      const row = data(await ship('get_backup_restores_by_restoreId', { restoreId: restore.id }));
+      assert(row?.id === restore.id && row.runId === restore.runId && row.projectId === project.id
+        && row.organizationId === ORG && row.mode === 'in_place', 'Preview restore identity mismatch');
+      if (row.status === 'cancelled') return;
+      assert(['queued', 'preparing', 'prepared', 'cancelling'].includes(row.status), 'Preview restore cancellation failed');
+      assert(now() < deadline, 'Preview restore cancellation did not finish within five minutes');
+      await sleep(interval);
+    }
+  }
+
   async function recoverData(current) {
-    if (!project.activeDeploymentId) return false;
+    // Recovery is configured by the backup destination; without it and with expiry off, reconciliation needs no backup access.
+    if (!project.activeDeploymentId || !(dataExpiry || backupDestinationId)) return false;
+    assert(ID.test(backupDestinationId ?? ''), 'Preview backup destination missing');
     const policies = data(await ship('get_projects_by_projectId_backup_policies', { projectId: project.id }));
     assert(Array.isArray(policies), 'Preview backup policy list invalid');
-    if (!policies.some(p => p.sourceKind === 'project_volume')) return false;
-    assert(ID.test(backupDestinationId ?? ''), 'Preview backup destination missing');
+    const recoverable = policies.some(p => p.sourceKind === 'project_volume');
+    // A running preview still holds its volume; only stopped or policy-backed previews need a volume check.
+    if (!recoverable && project.enabled !== false) return false;
     await current();
     await disableApp();
-    const snapshot = await volumeSnapshot();
+    let snapshot = await volumeSnapshot();
+    if (!snapshot.volumes[0].exists && ['queued', 'preparing', 'prepared'].includes(snapshot.volumes[0].restore?.status)) {
+      await discardUnconfirmedRestore(snapshot.volumes[0].restore);
+      snapshot = await volumeSnapshot();
+    }
     assertRestoreFinished(snapshot);
     if (snapshot.volumes[0].exists) return false;
+    assert(recoverable, 'Preview data volume absent without recovery metadata');
     const history = await backupRuns(true);
     const runs = history.filter(r => recoveryRun({ ...r, deletedAt: null }, snapshot))
       .sort((a, b) => Date.parse(b.finishedAt) - Date.parse(a.finishedAt));
@@ -541,8 +582,18 @@ export async function runPreview({ number, templateId, seed, gh, ship, cf, probe
         Date.parse(r.finishedAt) + 30 * 86400000) <= now()), 'Preview retained recovery point unavailable');
       return true;
     }
-    await current();
-    const prepared = data(await ship('post_backup_runs_by_runId_restore_prepare', { runId: run.id, body: { mode: 'in_place' } }));
+    async function prepare() {
+      await current();
+      return data(await ship('post_backup_runs_by_runId_restore_prepare', { runId: run.id, body: { mode: 'in_place' } }));
+    }
+    let prepared;
+    try { prepared = await prepare(); }
+    catch (error) {
+      const orphan = (await volumeSnapshot()).volumes[0].restore;
+      if (orphan?.runId !== run.id || !['queued', 'preparing', 'prepared'].includes(orphan.status)) throw error;
+      await discardUnconfirmedRestore(orphan);
+      prepared = await prepare();
+    }
     assert(ID.test(prepared?.restoreId ?? '') && typeof prepared.confirmationToken === 'string' && prepared.confirmationToken.length > 0,
       'Preview restore preparation invalid');
     const deadline = now() + 5 * 60000;
