@@ -1,0 +1,21 @@
+.github/workflows/ci.yml
+  s_6f3138181ef9fe::t_01c924f7db063a 139,162-182,186
+deploy/payload-production/README.md
+  s_6f3138181ef9fe::t_b1861d947a931d 3
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1fc0c0e280adf57bbbd6fedb56303f811e145624",
+  "prompts": {},
+  "sessions": {
+    "s_6f3138181ef9fe": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "13c8068d-a061-4745-8196-30cd4b7cf2a8",
+        "model": "unknown"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
