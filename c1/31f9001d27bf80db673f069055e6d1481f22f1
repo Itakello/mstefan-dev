@@ -1,0 +1,19 @@
+Dockerfile.build
+  s_953d7ab28b4a95::t_90d54cf57f2f82 16,19-20
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c131f9001d27bf80db673f069055e6d1481f22f1",
+  "prompts": {},
+  "sessions": {
+    "s_953d7ab28b4a95": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ee46210a-288c-4def-9abe-49e5a81ce3e6",
+        "model": "unknown"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
