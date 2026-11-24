@@ -1,0 +1,23 @@
+scripts/pr-preview/README.md
+  s_2a27888b5cb9a5::t_018e87e25cdc0b 7
+scripts/pr-preview/controller.mjs
+  s_2a27888b5cb9a5::t_048baa317b49e5 281-294,296-297,300,354-358,383-384,511-516,518,520-523,539-556,558-560,563-565,568-572,575,585-596
+scripts/pr-preview/controller.test.mjs
+  s_2a27888b5cb9a5::t_001d050fdee8da 79-80,1545,1564,1592-1595,1597-1604,1606-1607,1614,1622,1821-1892
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2232fffe117c86150d3d315a9870726c97b08587",
+  "prompts": {},
+  "sessions": {
+    "s_2a27888b5cb9a5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "agent-ae56f688957adf83b",
+        "model": "unknown"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
