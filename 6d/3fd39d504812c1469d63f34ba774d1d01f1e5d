@@ -1,0 +1,37 @@
+.github/workflows/ci.yml
+  s_953d7ab28b4a95::t_e48a84affa21d5 139-142,165-185
+Dockerfile
+  s_953d7ab28b4a95::t_c5b24ccd095b95 1,3
+Dockerfile.build
+  s_953d7ab28b4a95::t_457d95ff4beb02 1-21
+app/[locale]/layout.tsx
+  s_953d7ab28b4a95::t_756b8cc643195f 9,40
+deploy/payload-production/README.md
+  s_953d7ab28b4a95::t_38e4fe81b4ce7a 3,29
+deploy/payload-production/staging_refresh.py
+  s_953d7ab28b4a95::t_baf5d5302e2e1d 371-372
+instrumentation-client.ts
+  s_953d7ab28b4a95::t_dcf22c591d39af 3-4,6-7
+instrumentation.ts
+  s_953d7ab28b4a95::t_d283b05ada2b6f 6-7
+lib/sentryRuntime.ts
+  s_953d7ab28b4a95::t_4857755bf77727 1-7
+next.config.mjs
+  s_953d7ab28b4a95::t_dd9698dd0f57f0 27
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6d3fd39d504812c1469d63f34ba774d1d01f1e5d",
+  "prompts": {},
+  "sessions": {
+    "s_953d7ab28b4a95": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ee46210a-288c-4def-9abe-49e5a81ce3e6",
+        "model": "unknown"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
