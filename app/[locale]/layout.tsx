@@ -6,6 +6,7 @@ import { Header } from "@/components/Header";
 import { WebsiteAnalytics } from "@/components/WebsiteAnalytics";
 import { supportedLocales } from "@/lib/i18n/config";
 import { isSupportedLocale } from "@/lib/i18n/routing";
+import { sentryRuntimeScript } from "@/lib/sentryRuntime";
 import { INITIAL_THEME_SCRIPT } from "@/lib/theme";
 
 import "../globals.css";
@@ -36,6 +37,7 @@ export default async function LocaleLayout({
     <html lang={locale} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: INITIAL_THEME_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: sentryRuntimeScript() }} />
       </head>
       <body>
         <WebsiteAnalytics projectToken={process.env.POSTHOG_PROJECT_TOKEN} />

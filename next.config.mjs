@@ -10,8 +10,6 @@ const nextConfig = {
   typedRoutes: true,
   // CMS media access must be reevaluated after a photo is unpublished.
   images: { unoptimized: true },
-  // The deploy host lacks memory for type checking; CI's build still type-checks every commit.
-  typescript: { ignoreBuildErrors: process.env.SKIP_BUILD_TYPECHECK === "1" },
   ...(process.env.PAYLOAD_LOCAL_PROTOTYPE === "1" ? { allowedDevOrigins: ["127.0.0.1"] } : {}),
   experimental: {
     cpus: 1,
@@ -26,7 +24,7 @@ export default withSentryConfig(withPayload(withMDX(nextConfig)), {
   org: "mstefan",
   project: "mstefan-dev",
   telemetry: false,
-  // Builds without the upload token (CI, PR previews, local) skip source maps entirely.
+  // Builds without the upload token (Dependabot, forks, local) skip source maps entirely.
   sourcemaps: { disable: !process.env.SENTRY_AUTH_TOKEN, deleteSourcemapsAfterUpload: true },
   // Error tracking must not block a deploy: a failed upload costs readable stack traces, not the release.
   errorHandler: (error) => console.warn(`Sentry source map upload failed: ${error.message}`),

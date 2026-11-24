@@ -1,21 +1,3 @@
-FROM node:24.22.3-bookworm-slim@sha256:dc26ae92c9fb15cf6b1d63e20f0944b2efe0f115b20e00be48fb23fceb061c54
-
-RUN npm install --global pnpm@10.14.0
-WORKDIR /app
-RUN mkdir -p /data && chown node:node /app /data
-COPY --chown=node:node package.json pnpm-lock.yaml ./
-USER node
-RUN pnpm install --frozen-lockfile
-COPY --chown=node:node . .
-ENV NEXT_TELEMETRY_DISABLED=1
-# Openship passes the project environment and the deployed commit as build arguments.
+# The deploy host only pulls the image CI built from Dockerfile.build for this commit.
 ARG OPENSHIP_COMMIT_SHA
-ARG NEXT_PUBLIC_SENTRY_DSN
-ARG NEXT_PUBLIC_SENTRY_ENVIRONMENT
-ARG SENTRY_AUTH_TOKEN
-ENV SENTRY_RELEASE=$OPENSHIP_COMMIT_SHA
-# Build evaluates configuration but never connects to the runtime database.
-RUN SKIP_BUILD_TYPECHECK=1 PAYLOAD_SECRET=build-only-placeholder-not-a-runtime-secret PAYLOAD_DATA_DIR=/tmp/payload-build pnpm build
-ENV NODE_ENV=production PAYLOAD_DATA_DIR=/data
-EXPOSE 3000
-CMD ["sh", "-c", "pnpm migrate && exec pnpm exec next start --hostname 0.0.0.0 --port 3000"]
+FROM ghcr.io/itakello/mstefan-dev:${OPENSHIP_COMMIT_SHA}
