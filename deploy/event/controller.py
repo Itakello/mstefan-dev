@@ -143,12 +143,14 @@ class Client:
         if not isinstance(jobs, list) or field(response, 'total_count') != len(jobs) or len(jobs) > 100:
             raise Blocked('CI jobs incomplete')
         names = [job.get('name') for job in jobs if isinstance(job, dict)]
-        if len(names) != len(jobs) or set(names) != {'project-technologies', 'verify', 'policy-gate', 'docs-workflow-integrity'} or len(names) != len(set(names)):
+        base = {'project-technologies', 'verify', 'policy-gate', 'docs-workflow-integrity'}
+        # publish-image exists from the commit that moved image builds to CI onward.
+        if len(names) != len(jobs) or set(names) not in (base, base | {'publish-image'}) or len(names) != len(set(names)):
             raise Blocked('unexpected CI job set')
         for job in jobs:
             if job['name'] in {'policy-gate', 'docs-workflow-integrity'} and any(job.get(key) != value for key, value in {'run_id': run_id, 'head_sha': sha, 'status': 'completed', 'conclusion': 'skipped'}.items()):
                 raise Blocked('PR-only CI job identity or skip mismatch')
-        for name in ('project-technologies', 'verify'):
+        for name in ('project-technologies', 'verify') + (('publish-image',) if 'publish-image' in names else ()):
             matches = [job for job in jobs if isinstance(job, dict) and job.get('name') == name]
             if len(matches) != 1 or any(matches[0].get(key) != value for key, value in {'run_id': run_id, 'head_sha': sha, 'status': 'completed', 'conclusion': 'success'}.items()):
                 raise Blocked('required CI job missing, failed or mismatched')

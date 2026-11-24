@@ -521,6 +521,25 @@ class Contracts(unittest.TestCase):
         with self.assertRaises(c.Blocked):
             self.client.gate(NEW, 5)
 
+    def test_ci_gate_accepts_and_requires_publish_image(self):
+        self.client.gh = self.gh
+        publish = {'name': 'publish-image', 'run_id': 5, 'head_sha': NEW, 'status': 'completed', 'conclusion': 'success'}
+        self.jobs.append(publish)
+        self.client.gate(NEW, 5)
+        for key, wrong in (('conclusion', 'failure'), ('conclusion', 'skipped'), ('head_sha', OLD), ('run_id', 6)):
+            with self.subTest(key=key, wrong=wrong):
+                original = publish[key]
+                publish[key] = wrong
+                with self.assertRaises(c.Blocked):
+                    self.client.gate(NEW, 5)
+                publish[key] = original
+        self.jobs.append(dict(publish))
+        with self.assertRaises(c.Blocked):
+            self.client.gate(NEW, 5)
+        self.jobs[-1]['name'] = 'unexpected'
+        with self.assertRaises(c.Blocked):
+            self.client.gate(NEW, 5)
+
     def test_recursive_tree_addition_deletion_change_and_truncation(self):
         entry = {'path': 'migrations/new/schema.ts', 'type': 'blob', 'mode': '100644', 'sha': OLD}
         old = {'truncated': False, 'tree': [entry]}

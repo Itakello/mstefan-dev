@@ -167,3 +167,29 @@ jobs:
           path: .artifacts/playwright/
           if-no-files-found: ignore
           retention-days: 14
+
+  # The deploy host pulls this image by commit; it never builds the site itself.
+  # Only trusted master pushes publish, after verify passes, so PR-controlled
+  # workflow code and dependencies never hold a package-write token.
+  publish-image:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Build and publish the deploy image for this commit
+        env:
+          IMAGE: ghcr.io/itakello/mstefan-dev
+          COMMIT: ${{ github.sha }}
+          GITHUB_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker build --file Dockerfile.build --tag "$IMAGE:$COMMIT" \
+            --label "org.opencontainers.image.source=https://github.com/${GITHUB_REPOSITORY}" \
+            "https://github.com/${GITHUB_REPOSITORY}.git#$COMMIT"
+          printf '%s' "$GITHUB_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+          docker push "$IMAGE:$COMMIT"
