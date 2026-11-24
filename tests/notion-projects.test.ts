@@ -3,7 +3,6 @@ import test from "node:test";
 
 import { parsePublicationProjectRows, parseNotionProjectInventoryPage, parseNotionProjectPage } from "../lib/notion";
 import { findMissingInventoryRepositories } from "../lib/projectInventory";
-import { projectPreviewSummary } from "../lib/projectPresentation";
 import { loadPublicProjects, selectPublicProjectLocale } from "../lib/publicProjects";
 
 function page(overrides: Record<string, unknown> = {}) {
@@ -317,7 +316,7 @@ test("does not use a title fallback when inventory has a canonical URL for anoth
   assert.deepEqual(missing.map((repo) => repo.url), ["https://github.com/Itakello/bilingual-project"]);
 });
 
-test("project previews use the selected locale's short summary or its own long summary", () => {
+test("each locale keeps its own short summary and long summary", () => {
   const project = parseNotionProjectPage(page({
     properties: {
       ...page().properties,
@@ -326,8 +325,9 @@ test("project previews use the selected locale's short summary or its own long s
   }));
   assert.ok(project);
 
-  assert.equal(projectPreviewSummary(selectPublicProjectLocale(project, "en")), "English short.");
-  assert.equal(projectPreviewSummary(selectPublicProjectLocale(project, "it")), "Riepilogo lungo italiano.");
+  assert.equal(selectPublicProjectLocale(project, "en").shortSummary, "English short.");
+  assert.equal(selectPublicProjectLocale(project, "it").shortSummary, undefined);
+  assert.equal(selectPublicProjectLocale(project, "it").summary, "Riepilogo lungo italiano.");
 });
 
 

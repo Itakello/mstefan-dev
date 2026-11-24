@@ -1,83 +1,38 @@
-.section { min-width: 0; container-type: inline-size; }
-.browser { --career-viewport-height: 400px; --rail-width: clamp(128px, calc(55cqw - 60px), 55%); border: 1px solid var(--surface-border); border-radius: 16px; overflow: hidden; background: var(--surface-bg); color: var(--page-text); scroll-margin-top: 2rem; }
-.browser[id="career"] { --career-viewport-height: 620px; }
-.toolbar { display: flex; align-items: center; gap: 9px; padding: 13px 20px; border-bottom: 1px solid var(--surface-border); background: var(--surface-bg); font-family: ui-monospace, monospace; font-size: 12px; }
-.toolbar > svg { color: var(--career-main); flex-shrink: 0; }
-.separator { color: var(--page-muted); padding: 0 3px; }
-.direction { margin-left: auto; font-family: inherit; color: var(--page-muted); font-size: 10px; }
-.header { display: grid; grid-template-columns: minmax(0, 1fr) var(--rail-width); border-bottom: 1px solid var(--surface-border); color: var(--page-muted); font-size: 11px; }
-.header > span { padding: 9px 20px; }
-.header > span:last-child { text-align: center; border-left: 1px solid var(--surface-border); }
-.body { display: grid; grid-template-columns: minmax(0, 1fr) var(--rail-width); align-items: start; }
-.list { min-width: 0; }
-.titleList { max-height: 200px; overflow: auto; overscroll-behavior: contain; }
-.tree { height: var(--career-viewport-height); overflow: auto; overscroll-behavior: contain; border-left: 1px solid var(--surface-border); }
-.tree:focus-visible { outline: 2px solid var(--career-main); outline-offset: -2px; }
-.row, .mainRow { display: flex; flex-direction: column; justify-content: center; gap: 7px; min-height: 76px; width: 100%; padding: 15px 20px; text-align: left; }
-.mainRow { flex-direction: row; align-items: center; justify-content: flex-start; flex-wrap: wrap; min-height: 64px; font-size: 13px; color: var(--page-muted); }
-.row { position: relative; border-left: 3px solid transparent; padding-left: 17px; }
-.row:focus-visible, .mainRow:focus-visible { outline: 2px solid var(--career-main); outline-offset: -2px; }
-.row:hover, .row[data-highlighted="true"] { background: var(--surface-hover); border-left-color: var(--branch-color); }
-.row[aria-pressed="true"] { background: var(--surface-selected); border-left-color: var(--branch-color); }
-.jobTitle { display: flex; align-items: center; flex-wrap: wrap; gap: 9px; font-size: 13px; overflow-wrap: anywhere; }
-.badge, .mainBadge { display: inline-flex; align-items: center; gap: 5px; font-family: ui-monospace, monospace; font-size: 11px; line-height: 17px; border: 1px solid currentColor; border-radius: 3px; padding: 1px 5px; color: var(--branch-color); background: color-mix(in srgb, var(--branch-color) 12%, transparent); }
-.badge svg, .mainBadge svg { flex-shrink: 0; }
-.mainBadge { color: var(--career-main); background: color-mix(in srgb, var(--career-main) 12%, transparent); }
-.jobRole { font-size: 12px; color: var(--page-muted); overflow-wrap: anywhere; }
-.period { font-family: ui-monospace, monospace; font-size: 10px; color: var(--page-muted); }
-.graph { display: block; max-width: none; }
-.graphButton { cursor: pointer; outline: none; }
-.hitPath { fill: none; stroke: transparent; stroke-width: 18; pointer-events: stroke; }
+.section { --graph-width: var(--graph-desktop); --row-height: var(--row-desktop); position: relative; min-width: 0; display: grid; grid-template-columns: var(--graph-width) minmax(0, 1fr); }
+.graph { grid-column: 1; grid-row: 1; display: block; max-width: none; overflow: visible; }
+.mobileGraph { display: none; }
+.rows { grid-column: 2; grid-row: 1; min-width: 0; }
+.row, .mainRow { display: flex; flex-direction: column; justify-content: center; gap: 3px; width: 100%; height: var(--row-height); padding: 0 16px; overflow: hidden; border-bottom: 1px solid var(--surface-border); text-align: left; cursor: pointer; transition: background-color 140ms ease; }
+.mainRow { height: var(--row-top); flex-direction: row; align-items: center; justify-content: flex-start; gap: 10px; }
+.row:hover, .row[data-highlighted="true"], .mainRow:hover, .mainRow[data-highlighted="true"] { background: var(--surface-hover); }
+.row[aria-pressed="true"], .mainRow[aria-pressed="true"] { background: var(--surface-selected); }
+.row:focus-visible, .mainRow:focus-visible { outline: 2px solid hsl(var(--accent)); outline-offset: -2px; }
+.mainTitle { min-width: 0; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-height: 18px; font-size: 14px; font-weight: 600; }
+.jobTitle { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; min-width: 0; max-width: 100%; font-size: 14px; font-weight: 600; }
+.company, .jobRole { max-width: 100%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.jobRole { font-size: 13px; color: var(--page-muted); }
+.period { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: var(--page-muted); }
+.mainPath { fill: none; stroke: var(--career-main); stroke-width: 2; stroke-linecap: round; opacity: .5; }
+.branchGroup[data-highlighted="true"] .mainPath { opacity: 1; }
+.mainDot { fill: var(--career-main); }
+.branchGroup { cursor: pointer; }
+.branch { fill: none; stroke: var(--branch-color); stroke-width: 2; stroke-linecap: round; opacity: .45; }
+.dot { opacity: .6; }
 .hitDot { fill: transparent; }
-.tick line { stroke: var(--surface-border); stroke-width: 1; }
-.tick text, .undatedLabel text { fill: var(--page-muted); font-family: ui-monospace, monospace; font-size: 10px; }
-.undatedLabel line { stroke: var(--page-muted); stroke-dasharray: 3 4; }
-.mainPath { fill: none; stroke: var(--career-main); stroke-width: 2; stroke-linecap: round; opacity: .4; }
-.branch { fill: none; stroke-width: 2; stroke-linecap: round; }
-.visualPaths { opacity: .38; pointer-events: none; }
-.highlightPaths { pointer-events: none; }
-.dot { fill: var(--branch-color); }
-.graphButton:focus-visible .dot { stroke: var(--page-text); stroke-width: 3; }
-.detail { width: 100%; min-height: 150px; max-height: 200px; overflow: auto; overscroll-behavior: contain; padding: 28px 20px 34px; border-top: 1px solid var(--surface-border); }
-.detailRef { display: flex; align-items: center; gap: 7px; color: var(--branch-color); font-family: ui-monospace, monospace; font-size: 11px; overflow-wrap: anywhere; }
-.detailRef svg { flex-shrink: 0; }
-.detailCompany { margin-top: 14px; font-size: 23px; font-weight: 600; line-height: 1.25; overflow-wrap: anywhere; }
-.detailRole { margin-top: 6px; font-size: 13px; color: var(--page-muted); overflow-wrap: anywhere; }
-.summary { margin-top: 16px; font-size: 13px; line-height: 1.8; color: var(--page-muted); white-space: pre-line; overflow-wrap: anywhere; }
-@media (max-width: 480px) {
-  .toolbar { padding: 12px; }
-  .direction { display: none; }
-  .header > span { padding: 9px 12px; }
-  .row, .mainRow { padding: 14px 12px; }
-  .row { padding-left: 9px; }
-  .detail { padding: 24px 12px 30px; }
-  .detailCompany { font-size: 21px; }
-}
-@media (max-width: 480px) {
-  .badge { min-width: 0; max-width: 100%; }
-  .badge > span, .detailRef > span { min-width: 0; overflow-wrap: anywhere; }
+.rowBands rect { fill: transparent; cursor: pointer; }
+.branchGroup:focus-visible { outline: none; }
+.branchGroup:focus-visible .branch, .branchGroup:focus-visible .mainPath { stroke-width: 3; }
+.branchGroup:focus-visible [data-career-head], .branchGroup:focus-visible .mainDot { stroke: var(--page-text); stroke-width: 2; }
+.branchGroup[data-highlighted="true"] .branch, .branchGroup[data-highlighted="true"] .dot { opacity: 1; }
+.branchGroup[data-highlighted="true"] .branch { stroke-width: 2.5; }
+.hitPath { fill: none; stroke: transparent; pointer-events: stroke; }
+
+@media (max-width: 899px) {
+  .section { --graph-width: var(--graph-mobile); --row-height: var(--row-mobile); }
+  .desktopGraph { display: none; }
+  .mobileGraph { display: block; }
 }
 
-.mainRow { cursor: pointer; border-left: 3px solid transparent; padding-left: 17px; }
-.mainRow[data-highlighted="true"] { background: var(--surface-hover); border-left-color: var(--career-main); }
-.mainRow[aria-pressed="true"] { background: var(--surface-selected); border-left-color: var(--career-main); }
-.graphButton[data-highlighted="true"] .mainPath { opacity: 1; stroke-width: 3; }
-.graphButton:focus-visible .mainPath { stroke: var(--page-text); stroke-width: 3; }
-.mainPath { pointer-events: none; }
-@media (max-width: 480px) { .mainRow { padding-left: 9px; } }
-
-.list:not(:has(.detail)) { height: var(--career-viewport-height); display: flex; flex-direction: column; }
-.list:not(:has(.detail)) .titleList { min-height: 0; max-height: none; flex: 1; }
-.list:not(:has(.detail)) .mainRow { flex-shrink: 0; }
-
-@media (max-width: 639px) {
-  .browser[id="career"] .toolbar, .browser[id="career"] .header, .browser[id="career"] .tree { display: none; }
-  .browser[id="career"] .body { display: block; }
-  .browser[id="career"] .list { height: auto; }
-  .browser[id="career"] .titleList { overflow: visible; max-height: none; }
-  .browser[id="career"] .row { border-top: 1px solid var(--surface-border); padding: 16px; }
-  .browser[id="career"] .badge { display: none; }
-  .browser[id="career"] .jobTitle { font-size: 16px; font-weight: 600; }
-  .browser[id="career"] .jobRole { font-size: 14px; }
-  .browser[id="career"] .period { font-size: 12px; }
+@media (prefers-reduced-motion: reduce) {
+  .row, .mainRow { transition: none; }
 }

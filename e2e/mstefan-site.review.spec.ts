@@ -5,6 +5,7 @@ import type { Page } from "@playwright/test";
 
 import { readFile, writeFile } from "node:fs/promises";
 import { installOfflineReview } from "./offline-review";
+import { fixVisualDate } from "./visual-ready";
 
 import { websiteScreenshotPaths } from "../lib/websiteScreenshots";
 
@@ -17,8 +18,9 @@ async function toggleTheme(page: Page) {
 }
 
 test.describe("Public website review", () => {
-  test.beforeEach(async ({ context }) => {
+  test.beforeEach(async ({ context, page }) => {
     await installOfflineReview(context);
+    await fixVisualDate(page);
   });
   test("Review the primary bilingual visitor journey", async ({ page }) => {
     const browserErrors: string[] = [];
@@ -36,9 +38,7 @@ test.describe("Public website review", () => {
     await expect(page.getByRole("heading", { level: 1, name: "I build AI systems for real work." })).toBeVisible();
     await expect(page.getByRole("heading", { level: 2, name: "Selected work" })).toBeVisible();
     await expect(page.getByRole("region", { name: "Career", exact: true })).toHaveCount(0);
-    const toolkit = page.getByRole("region", { name: "Toolkit", exact: true });
-    await expect(toolkit.getByRole("button", { name: /Scroll technologies/ })).toHaveCount(0);
-    await expect.poll(() => toolkit.locator(".stack-shelf").evaluate(node => node.scrollWidth <= node.clientWidth + 1)).toBe(true);
+    await expect(page.getByRole("region", { name: "Toolkit", exact: true })).toHaveCount(0);
     await showReviewStep(page, "1 · English home and selected work");
 
     // 2. Select work and browse the independent desktop and phone previews.
@@ -160,6 +160,23 @@ test.describe("Public website review", () => {
     await researchModes.getByRole("button", { name: "Paper", exact: true }).click();
     await expect(reader.getByRole("status")).toHaveCount(0);
     await expect(reader.getByRole("link", { name: "Download PDF", exact: true })).toHaveAttribute("href", "https://arxiv.org/pdf/2410.07109");
+    const fittedStageHeight = await reader.locator("[data-document-stage]").evaluate(node => node.clientHeight);
+    const restoreCanvas = await reader.locator("canvas").evaluateHandle((canvas: HTMLCanvasElement) => {
+      const getContext = canvas.getContext.bind(canvas);
+      canvas.getContext = () => {
+        throw new Error("Synthetic canvas render failure");
+      };
+      return () => { canvas.getContext = getContext; };
+    });
+    await reader.getByRole("button", { name: "Next page" }).click();
+    await expect(reader.getByRole("status")).toContainText("Preview unavailable.");
+    expect(await reader.locator("[data-document-stage]").evaluate(node => node.clientHeight)).toBe(fittedStageHeight);
+    await expect(reader.getByRole("button", { name: "Previous page" })).toBeEnabled();
+    await restoreCanvas.evaluate(restore => restore());
+    await restoreCanvas.dispose();
+    await reader.getByRole("button", { name: "Previous page" }).click();
+    await expect(reader.getByRole("status")).toHaveCount(0);
+    await expect(reader.getByText("Research paper first page", { exact: true })).toBeVisible();
     await expect.poll(() => reader.locator("[data-document-stage]").evaluate(node => node.scrollHeight <= node.clientHeight + 1)).toBeTruthy();
     await reader.getByRole("button", { name: "Next page" }).click();
     await expect(reader.getByRole("img", { name: "LLM Interaction Simulator · page 2", exact: true })).toBeVisible();
@@ -187,7 +204,7 @@ test.describe("Public website review", () => {
     await page.setViewportSize({ width: 360, height: 800 });
     await expect(reader.getByRole("status")).toHaveCount(0);
     await expect.poll(() => slideStage.evaluate(node => node.scrollHeight <= node.clientHeight + 1 && node.scrollWidth <= node.clientWidth + 1)).toBeTruthy();
-    expect(await slideStage.evaluate(node => Math.abs(node.clientHeight - (node.querySelector("canvas")?.getBoundingClientRect().height ?? 0)))).toBeLessThan(2);
+    await expect.poll(() => slideStage.evaluate(node => Math.abs(node.clientHeight - (node.querySelector("canvas")?.getBoundingClientRect().height ?? 0)))).toBeLessThan(2);
     expect(await reader.evaluate(node => node.getBoundingClientRect().right <= window.innerWidth)).toBeTruthy();
     await page.screenshot({ path: ".artifacts/playwright/work-research-mobile.png", fullPage: true });
     await page.setViewportSize({ width: 1440, height: 1000 });
@@ -206,16 +223,16 @@ test.describe("Public website review", () => {
     await page.getByRole("link", { name: "Experience", exact: true }).click();
     await expect(page).toHaveURL(/\/en\/about$/);
     await expect(page.locator("#career-story")).toHaveAttribute("aria-label", "Experience");
-    await expect(page.getByRole("heading", { level: 1, name: "master" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 2, name: "master" })).toBeVisible();
     await expect(page.getByRole("img", { name: "Massimo Stefan standing in an elevator, holding a laptop" })).toBeVisible();
     const story = page.locator("#career-story");
     const aboutCareer = page.getByRole("region", { name: "Career", exact: true });
-    await expect(story.locator("h1 svg[aria-hidden=\"true\"]")).toHaveCount(1);
+    await expect(story.locator("h2 svg[aria-hidden=\"true\"]")).toHaveCount(1);
     await page.screenshot({ path: ".artifacts/playwright/career-about-desktop.png", fullPage: true });
     await expect(aboutCareer.locator("[data-career-main-row]")).toHaveAttribute("aria-pressed", "true");
     const storyBox = await story.boundingBox();
     const careerBox = await aboutCareer.boundingBox();
-    expect(storyBox && careerBox && storyBox.x + storyBox.width <= careerBox.x).toBeTruthy();
+    expect(storyBox && careerBox && careerBox.x + careerBox.width <= storyBox.x).toBeTruthy();
     expect(storyBox && careerBox && Math.abs(storyBox.y - careerBox.y) < 1).toBeTruthy();
     for (const width of [640, 900]) {
       await page.setViewportSize({ width, height: 900 });
@@ -224,10 +241,10 @@ test.describe("Public website review", () => {
     await page.setViewportSize({ width: 1440, height: 1000 });
     await aboutCareer.locator("button[data-career-job]", { hasText: "Amazon" }).click();
     await expect(aboutCareer.locator("button[data-career-job]", { hasText: "Amazon" })).toHaveAttribute("aria-pressed", "true");
-    await expect(story.getByRole("heading", { level: 1, name: "master" })).toBeVisible();
+    await expect(story.getByRole("heading", { level: 2, name: "master" })).toBeVisible();
     await expect(aboutCareer.locator("[aria-live='polite']")).toHaveCount(0);
     await aboutCareer.locator("[data-career-main-row]").click();
-    await expect(story.getByRole("heading", { level: 1, name: "master" })).toBeVisible();
+    await expect(story.getByRole("heading", { level: 2, name: "master" })).toBeVisible();
     await expect(story.getByRole("img", { name: "Massimo Stefan standing in an elevator, holding a laptop" })).toBeVisible();
     await showReviewStep(page, "3 · Experience and portrait");
 
@@ -241,7 +258,7 @@ test.describe("Public website review", () => {
     await page.getByRole("menuitemradio", { name: /Italiano/ }).click();
     await expect(page).toHaveURL(/\/it\/about$/);
     await expect(page.locator("#career-story")).toHaveAttribute("aria-label", "Esperienza");
-    await expect(page.getByRole("heading", { level: 1, name: "master" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 2, name: "master" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Lavori", exact: true })).toBeVisible();
     await page.getByRole("link", { name: "Lavori", exact: true }).click();
     await expect(page).toHaveURL(/\/it\/projects$/);
@@ -267,7 +284,6 @@ test.describe("Public website review", () => {
 
     await page.setViewportSize({ width: 360, height: 800 });
     await page.goto("/en");
-    await expect.poll(() => toolkit.locator(".stack-shelf").evaluate(node => node.scrollWidth <= node.clientWidth + 1)).toBe(true);
     await expect(page.locator("footer > div")).toHaveCSS("flex-direction", "column");
     await expect(page.getByRole("region", { name: "Career", exact: true })).toHaveCount(0);
     await page.goto("/en/about");
@@ -279,7 +295,7 @@ test.describe("Public website review", () => {
     await mobileBranch.press("Enter");
     await expect(mobileBranch).toHaveAttribute("aria-pressed", "true");
     await expect(mobileCareer.locator('button[data-career-job]')).toHaveAttribute("aria-pressed", "true");
-    await expect(mobileCareer.locator('[aria-label^="Graph."]')).toBeHidden();
+    await expect(mobileCareer.locator('svg[role="group"]')).toBeHidden();
     await expect.poll(() => mobileCareer.evaluate(node => [...node.querySelectorAll("*")].every(element => {
       const style = getComputedStyle(element);
       return !/auto|scroll/.test(style.overflowY) || element.scrollHeight <= element.clientHeight + 1;
@@ -293,7 +309,7 @@ test.describe("Public website review", () => {
     const mobileExplorerBox = await mobileExplorer.boundingBox();
     expect(mobileStoryBox && mobileExplorerBox && mobileStoryBox.y + mobileStoryBox.height <= mobileExplorerBox.y).toBeTruthy();
     await mobileExplorer.locator("button[data-career-job]", { hasText: "Amazon" }).click();
-    await expect(mobileStory.getByRole("heading", { level: 1, name: "master" })).toBeVisible();
+    await expect(mobileStory.getByRole("heading", { level: 2, name: "master" })).toBeVisible();
     await expect(page.getByRole("link", { name: /Read story/ })).toHaveCount(0);
     await page.screenshot({ path: ".artifacts/playwright/career-about-mobile.png", fullPage: true });
     await page.setViewportSize({ width: 400, height: 800 });
@@ -432,7 +448,7 @@ test.describe("Public website review", () => {
       const details = await page.locator("#selected-work-title").boundingBox();
       const panel = await stack.boundingBox();
       if (width >= 640) expect((await stack.locator("[data-work-stack-scroll]").boundingBox())?.height).toBeCloseTo(158, 0);
-      const section = await page.locator("section[aria-labelledby=selected-work-title]").boundingBox();
+      const section = await page.locator("[data-work-content]").evaluate(node => { const box = node.getBoundingClientRect(), style = getComputedStyle(node); return { x: box.x + parseFloat(style.paddingLeft), width: box.width - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight) }; });
       expect(panel && section && Math.abs(panel.x + panel.width - section.x - section.width) < 2).toBeTruthy();
       await expect(stack.getByRole("heading", { name: "Stack", exact: true })).toHaveCSS("text-align", width >= 640 ? "right" : "left");
       if (width < 640) expect(panel && section && Math.abs(panel.x - section.x) < 2).toBeTruthy();

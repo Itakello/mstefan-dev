@@ -32,3 +32,13 @@ When `.github/workflows/docs-updater.md` runs, follow `docs/automation/auto-docu
 - Change only `README.md` or Markdown files under `docs/`, excluding `docs/automation/auto-documentation.md`; do not change code or automation configuration.
 - Prefer a no-op over speculative, redundant, or purely stylistic documentation edits.
 - Open at most one draft pull request and follow `.github/PR_POLICY.md`, including its policy marker and narrative contract.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

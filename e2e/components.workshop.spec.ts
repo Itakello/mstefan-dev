@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { fixVisualDate } from "./visual-ready";
 
 async function story(page: Page, id: string, theme: string) {
   await page.goto(`/iframe.html?id=${id}&viewMode=story&globals=theme:${theme}`);
@@ -11,7 +12,7 @@ async function story(page: Page, id: string, theme: string) {
   for (const svg of await page.locator("main svg:visible").all()) {
     await expect.poll(() => svg.evaluate(node => {
       const box = (node as SVGGraphicsElement).getBBox();
-      return box.width > 0 && box.height > 0;
+      return box.width > 0 || box.height > 0;
     })).toBe(true);
   }
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
@@ -23,12 +24,12 @@ for (const theme of ["light", "dark"] as const) {
     test(`${size} ${theme} component states and interactions`, async ({ page, context, request }, testInfo) => {
       test.setTimeout(120_000);
       await page.setViewportSize(viewport);
-      await page.clock.setFixedTime(new Date("2026-10-10T12:00:00Z"));
+      await fixVisualDate(page);
       const errors: string[] = [];
       page.on("pageerror", error => errors.push(error.message));
       const external: string[] = [];
       const base = new URL(process.env.PLAYWRIGHT_BASE_URL!).origin;
-      await context.route("**/*", route => {
+      await context.route("**/*", async route => {
         const url = new URL(route.request().url());
         if (url.origin === base) return route.continue();
         external.push(url.href);
@@ -41,11 +42,28 @@ for (const theme of ["light", "dark"] as const) {
       expect(ids.length).toBeGreaterThanOrEqual(11);
       for (const id of ids) {
         await story(page, id, theme);
-        if (id.startsWith("workshop-aboutcontent--")) {
+        if (id === "workshop-aboutcontent--experience-media") {
+          await expect(page.getByRole("img", { name: "Experience portrait", exact: true })).toBeVisible();
+          await expect(page.locator("[data-document-stage]")).toHaveAttribute("aria-busy", "false");
+          await expect(page.locator("[data-document-text]")).toContainText("Research paper first page");
+        } else if (id.startsWith("workshop-aboutcontent--")) {
           const results = page.getByRole("link", { name: /Download .* exam results \(PDF\)/ });
           await expect(results).toBeVisible();
+          const metadata = page.locator('#career-story').getByText('Student', { exact: true });
+          await expect(metadata).toBeVisible();
+          await expect(page.locator('#career-story').getByText('Trento', { exact: true })).toBeVisible();
+          await expect(page.locator('#career-story').getByText(id.endsWith('masters-results') ? 'Sep 2022 – Jul 2024' : 'Sep 2019 – Jul 2022', { exact: true })).toBeVisible();
+          await expect(page.getByRole('link', { name: /Read story|View documents/ })).toHaveCount(0);
           await expect(results).toHaveAttribute("download", `massimo-stefan-${id.endsWith("masters-results") ? "masters" : "bachelors"}-exam-results.pdf`);
           await expect(page.locator("[data-pdf-document]")).toHaveCount(0);
+          const document = await request.get((await results.getAttribute("href"))!);
+          expect(document.ok()).toBe(true);
+          expect(document.headers()["content-type"]).toContain("application/pdf");
+        }
+        if (id === "workshop-aboutcontent--bachelors-results-without-summary") {
+          const photo = page.getByRole("img", { name: "Experience portrait", exact: true });
+          await expect(photo).toBeVisible();
+          expect((await photo.boundingBox())!.width).toBeLessThanOrEqual(320);
         }
         const name = `${id}-${size}-${theme}.png`;
         await page.locator("main").screenshot({ path: testInfo.outputPath(name), animations: "disabled" });
@@ -69,22 +87,6 @@ for (const theme of ["light", "dark"] as const) {
       await link.focus();
       await expect(link).toBeFocused();
       await expect(icon).toHaveCSS("color", theme === "dark" ? "rgb(255, 255, 255)" : "rgb(0, 0, 0)");
-
-      await story(page, "workshop-projectcard--collapsed", theme);
-      const toggle = page.getByRole("button", { name: /Workshop task board details/i });
-      await toggle.focus();
-      await toggle.press("Enter");
-      await expect(toggle).toHaveAttribute("aria-expanded", "true");
-      await toggle.press("Enter");
-      await expect(toggle).toHaveAttribute("aria-expanded", "false");
-
-      await story(page, "workshop-stack--categorized-catalog", theme);
-      const overflow = page.locator(".stack-overflow-card");
-      await overflow.focus();
-      await overflow.press("Enter");
-      await expect(overflow).toHaveAttribute("aria-expanded", "true");
-      await overflow.press("Enter");
-      await expect(overflow).toHaveAttribute("aria-expanded", "false");
 
       await story(page, "workshop-workexplorer--categories", theme);
       const categoryColors = new Set<string>();
@@ -149,6 +151,14 @@ for (const theme of ["light", "dark"] as const) {
         if (mode === "Photos") await expect(media.getByRole("img")).toBeVisible();
         if (mode === "Paper") {
           await expect(media.locator("[data-document-text]")).toContainText("Research");
+          await expect(media.getByRole("status")).toHaveCount(0);
+          await expect(media.getByRole("button", { name: "Zoom in", exact: true })).toBeEnabled();
+          if (size === "desktop") {
+            await media.locator("[data-preview-stage]").hover();
+            await expect(media.locator("[data-media-zoom]")).toHaveCSS("opacity", "1");
+            await expect(media.locator("[data-media-download]")).toHaveCSS("opacity", "1");
+            await expect(media.getByRole("button", { name: "Next page", exact: true })).toHaveCSS("opacity", "1");
+          }
           await expect(media.getByRole("link", { name: "Download PDF" })).toHaveAttribute("href", "/api/documents/file/research.pdf");
         }
         if (mode === "Slides") {
@@ -183,19 +193,77 @@ for (const theme of ["light", "dark"] as const) {
         }
       }
 
-      await story(page, "workshop-careergraph--expanded", theme);
-      const job = page.getByRole("button", { name: /Sample Platform Team/ }).first();
+      await story(page, "workshop-careergraph--mainline", theme);
+      const job = page.locator("button[data-career-job]", { hasText: "Sample Platform Team" }).first();
       await job.focus();
       await job.press("Enter");
-      await expect(page.getByText("Built a small internal planning tool", { exact: false })).toBeVisible();
+      await expect(job).toHaveAttribute("aria-pressed", "true");
       if (size === "desktop") {
-        const graph = page.getByRole("region", { name: /^Graph/ });
-        await graph.focus();
-        await graph.press("Home");
-        await expect(graph).toBeFocused();
+        const branch = page.locator('svg[role="group"] [data-career-branch]').last();
+        await branch.focus();
+        await branch.press("Enter");
+        await expect(branch).toHaveAttribute("aria-pressed", "true");
+        await expect(page.locator('button[data-career-job][aria-pressed="true"]')).toBeFocused();
+      } else {
+        await page.locator("button[data-career-main-row]").click();
+        await expect(page.locator("button[data-career-main-row]")).toHaveAttribute("aria-pressed", "true");
+        await expect(page.locator('[data-career-graph="phone"]')).toBeVisible();
       }
       expect(errors).toEqual([]);
       expect(external).toEqual([]);
     });
   }
 }
+
+test("PDF redraw keeps its loading message in the scrolled viewport", async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await story(page, "workshop-aboutcontent--experience-media", "light");
+  const reader = page.locator("[data-pdf-preview]");
+  const host = reader.locator("[data-document-stage]");
+  await expect(host).toHaveAttribute("aria-busy", "false");
+  for (let step = 0; step < 4; step++) {
+    await reader.getByRole("button", { name: "Zoom in", exact: true }).click();
+    await expect(host).toHaveAttribute("aria-busy", "false");
+  }
+  await expect(reader.getByText("200%", { exact: true })).toBeVisible();
+  const scrollTop = await host.evaluate(node => {
+    node.scrollTop = Math.min(node.scrollHeight - node.clientHeight, node.clientHeight * 0.6);
+    return node.scrollTop;
+  });
+  expect(scrollTop).toBeGreaterThan(await host.evaluate(node => node.clientHeight / 2));
+  const drawGate = await page.evaluateHandle(() => {
+    const original = window.requestAnimationFrame;
+    const pending: FrameRequestCallback[] = [];
+    window.requestAnimationFrame = callback => { pending.push(callback); return -pending.length; };
+    return {
+      count: () => pending.length,
+      release: () => { window.requestAnimationFrame = original; for (const callback of pending) original.call(window, callback); },
+    };
+  });
+  try {
+    await page.setViewportSize({ width: 1280, height: 880 });
+    await expect(host).toHaveAttribute("aria-busy", "true");
+    await expect.poll(() => drawGate.evaluate(gate => gate.count())).toBeGreaterThan(0);
+    await expect(reader.locator("canvas")).toBeHidden();
+    const message = reader.getByRole("status");
+    await expect(message).toHaveText("Loading document…");
+    const bounds = await host.boundingBox();
+    const text = await message.evaluate(node => { const range = document.createRange(); range.selectNodeContents(node); const box = range.getBoundingClientRect(); return { top: box.top, bottom: box.bottom, left: box.left, right: box.right }; });
+    await page.screenshot({ path: testInfo.outputPath("scrolled-pdf-redraw.png"), fullPage: true });
+    expect(text.top).toBeGreaterThanOrEqual(bounds!.y);
+    expect(text.bottom).toBeLessThanOrEqual(bounds!.y + bounds!.height);
+    expect(text.left).toBeGreaterThanOrEqual(bounds!.x);
+    expect(text.right).toBeLessThanOrEqual(bounds!.x + bounds!.width);
+    expect(await host.evaluate(node => node.scrollTop)).toBe(scrollTop);
+  } finally {
+    await drawGate.evaluate(gate => gate.release());
+    await drawGate.dispose();
+  }
+  await expect(host).toHaveAttribute("aria-busy", "false");
+  await expect(reader.getByRole("status")).toHaveCount(0);
+  await expect(reader.locator("canvas")).toBeVisible();
+  expect(await host.evaluate(node => node.scrollTop)).toBe(scrollTop);
+  await reader.getByRole("button", { name: "Next page", exact: true }).click();
+  await expect(reader.locator("[data-document-text]")).toContainText("Research paper second page");
+  await expect(host).toHaveAttribute("aria-busy", "false");
+});

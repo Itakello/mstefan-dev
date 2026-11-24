@@ -6,6 +6,7 @@ const config: StorybookConfig = {
   core: { disableTelemetry: true },
   viteFinal: async config => ({ ...config, publicDir: false }),
   staticDirs: [
+    { from: "../public/profile-photo.jpg", to: "/workshop-portrait.jpg" },
     { from: "../public/icon-light.png", to: "/icon-light.png" },
     { from: "../public/icon.png", to: "/icon.png" },
     { from: "../tests/fixtures", to: "/api/documents/file" },

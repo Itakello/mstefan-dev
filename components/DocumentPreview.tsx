@@ -41,6 +41,7 @@ function PdfDocumentPreview({ url, title, locale, filename, presentation = false
   const [viewportHeight, setViewportHeight] = useState(0);
   const [width, setWidth] = useState(0);
   const [pageRatio, setPageRatio] = useState(1);
+  const [pageHeight, setPageHeight] = useState<number | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const italian = locale === "it";
   useEffect(() => {
@@ -55,6 +56,7 @@ function PdfDocumentPreview({ url, title, locale, filename, presentation = false
   }, []);
   useEffect(() => {
     setDocument(null);
+    setPageHeight(null);
     setPage(1);
     setZoom(1);
     setStatus("loading");
@@ -111,7 +113,7 @@ function PdfDocumentPreview({ url, title, locale, filename, presentation = false
           textLayer = new TextLayer({ container: text.current, viewport, textContentSource: pdfPage.streamTextContent({ includeMarkedContent: true }) });
           await textLayer.render();
         }
-        if (!disposed) setStatus("ready");
+        if (!disposed) { setPageHeight(viewport.height); setStatus("ready"); }
       } catch { if (!disposed) setStatus("error"); }
     }
     void draw();
@@ -125,25 +127,25 @@ function PdfDocumentPreview({ url, title, locale, filename, presentation = false
       onTouchEnd={event => {
         const start = swipeStart.current;
         swipeStart.current = null;
-        if (!start || !event.changedTouches.length || !document) return;
+        if (!start || !event.changedTouches.length || !document || status === "loading") return;
         const dx = event.changedTouches[0].clientX - start.x;
         const dy = event.changedTouches[0].clientY - start.y;
         if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5) setPage(current => Math.max(1, Math.min(document.numPages, current + (dx < 0 ? 1 : -1))));
       }}>
-    <div ref={host} data-document-stage className={`relative ${presentation ? "max-h-[min(480px,55svh)]" : "max-h-[min(640px,70svh)]"} overflow-auto bg-[var(--surface-bg)]`}>
-      {status === "loading" && <p role="status" className="absolute left-4 top-4 rounded bg-white/90 px-2 py-1 text-sm text-black">{italian ? "Caricamento documento…" : "Loading document…"}</p>}
+    <div ref={host} aria-busy={status === "loading"} data-document-stage style={{ height: pageHeight ?? (presentation ? "min(480px,55svh)" : "min(640px,70svh)") }} className={`relative ${presentation ? "max-h-[min(480px,55svh)]" : "max-h-[min(640px,70svh)]"} overflow-auto bg-[var(--surface-bg)]`}>
       {status === "error" && <p role="status" className="text-sm">{italian ? "Anteprima non disponibile. Usa Scarica PDF per leggere il documento." : "Preview unavailable. Use Download PDF to read the document."}</p>}
-      <div ref={pageHost} className={`relative mx-auto ${status === "error" ? "hidden" : ""}`}><canvas ref={canvas} role="img" aria-label={`${title} · ${italian ? "pagina" : "page"} ${page}`} className="bg-white shadow-sm" /><div ref={text} data-document-text /></div>
+      <div ref={pageHost} className={`relative mx-auto ${status === "error" ? "hidden" : status === "loading" ? "invisible" : ""}`}><canvas ref={canvas} role="img" aria-label={`${title} · ${italian ? "pagina" : "page"} ${page}`} className="bg-white shadow-sm" /><div ref={text} data-document-text /></div>
     </div>
+    {status === "loading" && <p role="status" className="absolute inset-0 z-10 flex items-center justify-center text-sm text-[var(--page-muted)]">{italian ? "Caricamento documento…" : "Loading document…"}</p>}
     {!presentation && <div data-media-zoom role="group" aria-label={italian ? "Zoom documento" : "Document zoom"} className="absolute top-3 left-3 z-20 flex items-center gap-1 text-xs transition-opacity">
-          <button type="button" className={control} disabled={zoom <= 1} aria-label={italian ? "Riduci" : "Zoom out"} onClick={() => setZoom(value => Math.max(1, value - 0.25))}><Minus size={16} /></button>
+          <button type="button" className={control} disabled={status === "loading" || !document || zoom <= 1} aria-label={italian ? "Riduci" : "Zoom out"} onClick={() => setZoom(value => Math.max(1, value - 0.25))}><Minus size={16} /></button>
           <span className="media-preview-control" aria-live="polite">{Math.round(zoom * 100)}%</span>
-          <button type="button" className={control} disabled={zoom >= 2} aria-label={italian ? "Ingrandisci" : "Zoom in"} onClick={() => setZoom(value => Math.min(2, value + 0.25))}><Plus size={16} /></button>
+          <button type="button" className={control} disabled={status === "loading" || !document || zoom >= 2} aria-label={italian ? "Ingrandisci" : "Zoom in"} onClick={() => setZoom(value => Math.min(2, value + 0.25))}><Plus size={16} /></button>
     </div>}
     <DocumentDownload url={url} title={title} locale={locale} filename={filename} presentation={presentation} />
     {enlarge}
     <PreviewArrows previous={italian ? "Pagina precedente" : "Previous page"} next={italian ? "Pagina successiva" : "Next page"}
-      previousDisabled={!document || page === 1} nextDisabled={!document || page === document.numPages}
+      previousDisabled={status === "loading" || !document || page === 1} nextDisabled={status === "loading" || !document || page === document.numPages}
       onPrevious={() => setPage(current => Math.max(1, current - 1))} onNext={() => setPage(current => Math.min(document?.numPages ?? 1, current + 1))} />
     </div>
     <div className="media-caption" aria-live="polite">{title} <span className="text-[var(--page-muted)]">· {page} / {document?.numPages ?? "…"}</span></div>

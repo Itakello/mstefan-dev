@@ -152,6 +152,8 @@ const careerGlobal: GlobalConfig = {
       },
       { name: "company", label: "Organization", type: "text", required: true },
       { name: "role", label: "Role or qualification", type: "text", required: true },
+      { name: "positionTitle", label: "Position title", type: "text" },
+      { name: "place", type: "text" },
       { name: "summary", type: "textarea", admin: { description: "Write this experience's story to show it in Experience when selected." } },
       { name: "startDate", type: "date" },
       { name: "ongoing", label: "Currently ongoing", type: "checkbox", defaultValue: false,

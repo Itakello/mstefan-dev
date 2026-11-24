@@ -9,11 +9,11 @@ import type { PageContent } from "@/lib/cms/types";
 type Props = {
   content: PageContent<"home">;
   locale: Locale;
+  current: React.ReactNode;
   selectedWork: React.ReactNode;
-  toolkit: React.ReactNode;
 };
 
-export function HomeContent({ content, locale, selectedWork, toolkit }: Props) {
+export function HomeContent({ content, locale, current, selectedWork }: Props) {
   return (
     <section className="space-y-10">
       <header className="pt-4">
@@ -23,7 +23,7 @@ export function HomeContent({ content, locale, selectedWork, toolkit }: Props) {
         <div className="mt-6 flex gap-3">
           <Link
             href={localizedPath(locale, "/projects")}
-            className="rounded-xl bg-[hsl(var(--accent))] px-4 py-2 font-medium text-black no-underline hover:opacity-90"
+            className="rounded-xl bg-[hsl(var(--accent))] px-4 py-2 font-medium text-white no-underline hover:opacity-90"
           >
             {content.projectsAction}
           </Link>
@@ -35,6 +35,8 @@ export function HomeContent({ content, locale, selectedWork, toolkit }: Props) {
           </a>
         </div>
       </header>
+
+      {current}
 
       <section aria-labelledby="selected-work-heading">
         <div className="flex items-end justify-between gap-4">
@@ -48,14 +50,6 @@ export function HomeContent({ content, locale, selectedWork, toolkit }: Props) {
         </div>
 
         {selectedWork}
-      </section>
-
-      <section className="border-y border-black/10 py-5 dark:border-white/10" aria-labelledby="toolkit-heading">
-        <h2 id="toolkit-heading" className="text-xl font-semibold">{content.toolkit}</h2>
-        <p className="mt-2 max-w-xl text-sm leading-6 text-black/60 dark:text-white/60">{content.toolkitDescription}</p>
-        <div className="mt-4">
-          {toolkit}
-        </div>
       </section>
     </section>
   );

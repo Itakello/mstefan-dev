@@ -1,0 +1,13 @@
+[Unit]
+Description=mstefan.dev pre-deploy safeguard
+
+[Socket]
+ListenStream=/run/mstefan-event-deploy-safeguard.sock
+SocketUser=root
+SocketGroup=mstefan-event-deploy
+SocketMode=0660
+Accept=yes
+MaxConnections=1
+
+[Install]
+WantedBy=sockets.target

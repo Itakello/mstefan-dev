@@ -43,8 +43,8 @@ function fixturePayload() {
   if (mode === 'error') return { status: 503, body: { object: 'error', code: 'service_unavailable', message: 'Synthetic publication outage' } };
   if (!['multiple', 'one', 'empty', 'dense', 'publication', 'changedsummary', 'changedicon', 'recovered', 'pages', 'media'].includes(mode)) throw new Error('Unexpected publication fixture state');
   const denseRow = { ...fixtureRows[0], properties: { ...fixtureRows[0].properties, Tags: { multi_select: stackRows.map(row => ({ name: row.properties.Name.title[0].plain_text })) } } };
-  const publicationRows = fixtureRows.map((row, index) => index === 0 ? { ...row, properties: { ...row.properties,
-    Name: { title: [{ plain_text: mode === 'changedsummary' ? 'Renamed portfolio' : 'mstefan-dev' }] },
+  const publicationRows = fixtureRows.map((row, index) => index === 1 ? { ...row, properties: { ...row.properties,
+    Name: mode === 'changedsummary' ? { title: [{ plain_text: 'Renamed portfolio' }] } : row.properties.Name,
     ...(mode === 'changedsummary' || mode === 'recovered' ? {
       Summary: { rich_text: [{ plain_text: mode === 'changedsummary' ? 'Changed publication fixture.' : 'Recovered publication fixture.' }] },
       'Summary IT': { rich_text: [{ plain_text: mode === 'changedsummary' ? 'Pubblicazione di prova aggiornata.' : 'Pubblicazione di prova ripristinata.' }] },

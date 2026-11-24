@@ -95,7 +95,7 @@ try {
   environment.CMS_TEST_PORT = String(port);
   if (!smokeOnly && !explore) {
     await rm('.artifacts/playwright/master-download', { recursive: true, force: true });
-    await run(['--import', 'tsx', '--test', '--test-name-pattern=degree results are optional metadata downloads', 'tests/cms/lifecycle.test.mts']);
+    await run(['--import', 'tsx', '--test', '--test-name-pattern=degree results follow stories', 'tests/cms/lifecycle.test.mts']);
   }
   if (process.env.GITHUB_ENV) await appendFile(process.env.GITHUB_ENV, `PLAYWRIGHT_BASE_URL=${base}\n`);
   if (process.env.GITHUB_STEP_SUMMARY) await appendFile(process.env.GITHUB_STEP_SUMMARY,

@@ -51,7 +51,7 @@ These are optional unless you use the Notion and repository proposal scripts.
 
 - `NOTION_TOKEN`: Notion integration token
 - `NOTION_DATABASE_ID`: Target database ID
-- `NOTION_STACK_DATABASE_ID`: Stack database ID used by the Home toolkit and project technology icons
+- `NOTION_STACK_DATABASE_ID`: Stack database ID used by the Work project technology icons
 - `NOTION_PROJECTS_DATA_SOURCE_ID`: Projects data source ID emitted in Notion webhook events
 - `NOTION_STACK_DATA_SOURCE_ID`: Stack data source ID emitted in Notion webhook events
 - `NOTION_WEBHOOK_BOOTSTRAP_PUBLIC_KEY`: base64-encoded RSA public key used to capture the one-time webhook verification token without logging plaintext

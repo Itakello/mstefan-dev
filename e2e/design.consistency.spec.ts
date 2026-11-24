@@ -2,7 +2,7 @@ import { expect, test, type Locator, type Page, type TestInfo } from "@playwrigh
 import { writeFile } from "node:fs/promises";
 import { randomBytes } from "node:crypto";
 import { installOfflineReview } from "./offline-review";
-import { expectDrawnIcons, stablePage } from "./visual-ready";
+import { expectDrawnIcons, fixVisualDate, stablePage } from "./visual-ready";
 
 async function expectIconLinkColors(page: Page, icons: Locator, theme: "light" | "dark") {
   const neutral = theme === "light" ? "rgba(0, 0, 0, 0.65)" : "rgba(255, 255, 255, 0.65)";
@@ -39,15 +39,6 @@ async function expectTransparentBadges(page: Page) {
   }
 }
 
-async function scrollStyle(scroller: Locator) {
-  return scroller.evaluate(node => {
-    const style = getComputedStyle(node);
-    const thumb = getComputedStyle(node, "::-webkit-scrollbar-thumb");
-    const track = getComputedStyle(node, "::-webkit-scrollbar-track");
-    return { color: style.scrollbarColor, width: style.scrollbarWidth, thumb: thumb.backgroundColor, radius: thumb.borderRadius, track: track.backgroundColor };
-  });
-}
-
 async function compareScreenshot(target: Page | Locator, name: string, testInfo: TestInfo, options: NonNullable<Parameters<Page["screenshot"]>[0]>, maxDiffPixels: number) {
   await target.screenshot({ ...options, mask: [], path: testInfo.outputPath(name) });
   await expect.soft(target).toHaveScreenshot(name, { ...options, maxDiffPixels });
@@ -58,7 +49,40 @@ const modes = [
   { name: "mobile", width: 390, height: 844 },
 ];
 
-test.beforeEach(async ({ context }) => installOfflineReview(context));
+test.beforeEach(async ({ context, page }) => {
+  await installOfflineReview(context);
+  await fixVisualDate(page);
+});
+
+test("career graph captures stay identical across wall dates while timers run", async ({ page, request }, testInfo) => {
+  const credentials = { email: "visual-career@example.invalid", password: careerFixturePassword };
+  expect((await request.post(careerFixtureRegistered ? "/api/users/login" : "/api/users/first-register", { data: credentials })).status()).toBe(200);
+  careerFixtureRegistered = true;
+  const original = await request.get("/api/globals/career?locale=en&draft=false");
+  expect(original.status()).toBe(200);
+  const { jobs } = await original.json();
+  const publish = (value: unknown) => request.post("/api/globals/career?locale=en&publishSpecificLocale=en", { data: { jobs: value, _status: "published" } });
+  try {
+    expect((await publish([{ branchName: "work/ongoing-visual-fixture", company: "Visual fixture", role: "Engineer", startDate: "2024-01-01", ongoing: true, color: "#1267ab" }])).status()).toBe(200);
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.emulateMedia({ colorScheme: "light", reducedMotion: "reduce" });
+    const captures: Buffer[] = [];
+    for (const [index, time] of ["2026-09-10T12:00:00Z", "2026-11-10T12:00:00Z"].entries()) {
+      await page.clock.setFixedTime(time);
+      await page.goto("/en/about");
+      await stablePage(page);
+      const graph = page.getByRole("region", { name: "Career", exact: true });
+      await fixVisualDate(page);
+      await page.reload();
+      await stablePage(page);
+      captures.push(await graph.screenshot({ path: testInfo.outputPath(`career-fixed-date-${index}.png`), animations: "disabled" }));
+      expect(await page.evaluate(() => new Promise<boolean>(resolve => setTimeout(() => resolve(true), 10)))).toBe(true);
+    }
+    expect(captures[0].equals(captures[1])).toBe(true);
+  } finally {
+    expect((await publish(jobs)).status()).toBe(200);
+  }
+});
 
 test("official Iconify API fallbacks return the same pinned artwork offline", async ({ page }) => {
   await page.goto("/en/about");
@@ -92,19 +116,16 @@ for (const mode of modes) {
       if (mode.name === "mobile") await page.getByRole("combobox", { name: "Choose a project" }).selectOption({ label: "mstefan.dev" });
       else await page.getByRole("button", { name: "Select mstefan.dev", exact: true }).click();
       await expectTransparentBadges(page);
-      const workScroll = await scrollStyle(page.locator("[data-work-stack-scroll]"));
       await stablePage(page);
       await compareScreenshot(page, `work-${mode.name}-${theme}.png`, testInfo, {
         fullPage: true, animations: "disabled",
         mask: [page.getByRole("img", { name: "Desktop: Screenshot of mstefan.dev", exact: true }), page.locator("footer p")],
       }, 100);
       await page.goto("/en/about");
-      await expect(page.getByRole("heading", { level: 1, name: "master" })).toBeVisible();
+      await expect(page.getByRole("heading", { level: 2, name: "master" })).toBeVisible();
       await stablePage(page);
-      if (mode.name === "desktop") {
-        const careerScroll = page.getByRole("region", { name: /^Graph\./ });
-        expect(await scrollStyle(careerScroll)).toEqual(workScroll);
-      } else await expect(page.getByRole("region", { name: /^Graph\./, includeHidden: true })).toBeHidden();
+      if (mode.name === "desktop") await expect(page.locator('#career svg[role="group"]')).toBeVisible();
+      else await expect(page.locator('#career [data-career-graph="phone"]')).toBeVisible();
       await compareScreenshot(page, `about-${mode.name}-${theme}.png`, testInfo, {
         fullPage: true, animations: "disabled", mask: [page.locator("footer p")],
       }, 100);
@@ -122,17 +143,8 @@ for (const mode of modes) {
       await expectIconLinkColors(page, footer.locator("svg"), theme);
       await writeFile(process.env.VISUAL_NOTION_FIXTURE_STATE!, "publication");
       await page.goto("/en");
-      const cardGitHub = page.locator('main [data-brand-icon="github"]');
-      await expectDrawnIcons(cardGitHub);
-      for (const icon of await cardGitHub.all()) await expect(icon).toHaveJSProperty("innerHTML", githubShape);
-      await expectIconLinkColors(page, cardGitHub, theme);
-      await expectTransparentBadges(page);
+      await expect(page.locator("main [data-featured-work]").first()).toBeVisible();
       await stablePage(page);
-      if (mode.name === "mobile") {
-        const toolkit = page.getByRole("region", { name: "Toolkit", exact: true });
-        await expect(toolkit.getByRole("button", { name: /Scroll technologies/ })).toHaveCount(0);
-        await expect.poll(() => toolkit.locator(".stack-shelf").evaluate(node => node.scrollWidth <= node.clientWidth + 1)).toBe(true);
-      }
       await compareScreenshot(page, `home-${mode.name}-${theme}.png`, testInfo, {
         fullPage: true, animations: "disabled", mask: [page.locator("footer p")],
       }, 100);
@@ -181,7 +193,7 @@ for (const theme of ["light", "dark"] as const) {
       await branch.press("Enter");
       await expect(row).toHaveAttribute("aria-pressed", "true");
       await expect(row).toBeFocused();
-      await expect(page.locator("#career-story h1")).toHaveText("Amazon");
+      await expect(page.locator("#career-story h2")).toHaveText("Amazon");
       await capture("-selection");
     } finally {
       expect((await publish(jobs)).status()).toBe(200);

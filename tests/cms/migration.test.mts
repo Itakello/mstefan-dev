@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -44,7 +44,7 @@ test(`preview ${schemaVersion} baseline preserves drafts and rejects unexpected 
       INSERT INTO _career_v (id, version__status, latest) VALUES (1, 'draft', 1);
       INSERT INTO _career_v_version_jobs (_order, _parent_id, _locale, id, branch_name, company, role, start_date, ongoing${schemaVersion === 'photo' ? ', photo_id' : ''}) VALUES (1, 1, 'en', 1, 'work/current', 'Draft company', 'Engineer', '2024-01-01', 1${schemaVersion === 'photo' ? ', 1' : ''});`);
   }
-  const careerRows = () => ['ongoing', 'photo'].includes(schemaVersion) ? ['career_jobs', '_career_v_version_jobs'].map((table) => db.prepare(`SELECT * FROM ${table} ORDER BY id`).all().map((row) => { if (schemaVersion === 'ongoing') delete row.photo_id; return row; })) : [];
+  const careerRows = () => ['ongoing', 'photo'].includes(schemaVersion) ? ['career_jobs', '_career_v_version_jobs'].map((table) => db.prepare(`SELECT * FROM ${table} ORDER BY id`).all().map((row) => { if (schemaVersion === 'ongoing') delete row.photo_id; delete row.position_title; delete row.place; return row; })) : [];
   const currentBefore = careerRows();
   const mediaBefore = schemaVersion === 'photo' ? db.prepare('SELECT * FROM media ORDER BY id').all() : [];
   const before = db.prepare('SELECT * FROM _about_v_locales ORDER BY id').all();
@@ -182,7 +182,7 @@ test('branch graph preview baseline preserves populated published and draft fiel
     assert.equal(migrate.status, 0, `${migrate.stderr}\n${migrate.stdout}`);
     db = new DatabaseSync(filename);
     assert.deepEqual(content().filter((table) => !['documents', 'career_jobs_documents', '_career_v_version_jobs_documents'].includes(table.name) && !table.name.includes('_assets') && table.name !== 'media_locales').map((table) => ({ ...table, rows: table.rows.map((row) => {
-      if (table.name === 'career_jobs' || table.name === '_career_v_version_jobs') { delete row.ongoing; delete row.photo_id; }
+      if (table.name === 'career_jobs' || table.name === '_career_v_version_jobs') { delete row.ongoing; delete row.photo_id; delete row.position_title; delete row.place; }
       if (table.name === 'media') delete row.alt;
       if (table.name === 'users') delete row.reset_password_requested_at;
       if (table.name === 'payload_locked_documents_rels') delete row.documents_id;
@@ -512,4 +512,20 @@ test('password-reset throttle migration preserves accounts and content and rever
     assert.deepEqual(drafts(), beforeDrafts);
     assert.equal(db.prepare('PRAGMA integrity_check').get()!.integrity_check, 'ok');
   } finally { db.close(); }
+});
+
+
+test('metadata snapshot retains the complete shared-media schema for future migration generation', async () => {
+  const shared = JSON.parse(await readFile(new URL('../../migrations/20261011_132233_shared_career_media.json', import.meta.url), 'utf8'));
+  const metadata = JSON.parse(await readFile(new URL('../../migrations/20261012_224409_experience_metadata.json', import.meta.url), 'utf8'));
+  for (const table of ['career_jobs', '_career_v_version_jobs']) {
+    for (const field of ['position_title', 'place']) {
+      assert.equal(metadata.tables[table].columns[field].type, 'text');
+      assert.equal(metadata.tables[table].columns[field].notNull, false);
+      delete metadata.tables[table].columns[field];
+    }
+  }
+  delete shared.id;
+  delete metadata.id;
+  assert.deepEqual(metadata, shared);
 });

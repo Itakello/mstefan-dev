@@ -10,7 +10,7 @@ import { createServer } from 'node:net';
 import { request as httpRequest } from 'node:http';
 import { chromium, expect } from '@playwright/test';
 import { iconFixtureResponse } from '../../e2e/offline-review';
-import { stablePage } from '../../e2e/visual-ready';
+import { fixVisualDate, stablePage } from '../../e2e/visual-ready';
 
 const port = Number(process.env.CMS_TEST_PORT || 3000);
 const base = `http://127.0.0.1:${port}`;
@@ -290,12 +290,12 @@ test('career admin live preview keeps About text intact and locale drafts privat
     await expect(iframe).toHaveAttribute('src', /previewSource=career/);
     const preview = page.frameLocator('iframe');
     await expect(preview.locator('#career-story')).toHaveAttribute('aria-label', 'Experience');
-    await expect(preview.getByRole('heading', { level: 1 })).toHaveText('master');
+    await expect(preview.locator('#career-story h2')).toHaveText('master');
     await preview.getByRole('region', { name: 'Career', exact: true }).locator('button[data-career-job]').first().click();
-    await expect(preview.getByRole('heading', { level: 1 })).toHaveText('master');
+    await expect(preview.locator('#career-story h2')).toHaveText('master');
     await page.locator('#field-jobs__0__summary').fill('Unsaved career live preview');
     await expect(preview.getByText('Unsaved career live preview', { exact: true })).toBeVisible();
-    await expect(preview.getByRole('heading', { level: 1 })).toHaveText('Amazon');
+    await expect(preview.locator('#career-story h2')).toHaveText('Amazon');
     const publicPage = await request('/en/about');
     assert.ok(!(await publicPage.text()).includes('Unsaved career live preview'));
     const saveDraft = page.waitForResponse((response) => response.request().method() === 'POST' && response.url().includes('/api/globals/career') && response.url().includes('draft=true'));
@@ -329,6 +329,7 @@ test('career admin live preview keeps About text intact and locale drafts privat
     const graph = page.getByRole('region', { name: 'Career', exact: true });
     await expect(graph.locator('button[data-career-job]')).toHaveCount(2);
     await expect(graph.locator('button[data-career-main-row]')).toHaveAttribute('aria-pressed', 'true');
+    await expect.poll(() => page.evaluate(() => document.querySelector('#career-story')!.getBoundingClientRect().bottom <= document.querySelector('#career')!.getBoundingClientRect().top + 1)).toBe(true);
     await graph.locator('button[data-career-job]').first().click();
     await expect(page.getByText('Education fixture details', { exact: true })).toBeVisible();
     await expect(graph.locator('button[data-career-job]').first()).toHaveAttribute('aria-pressed', 'true');
@@ -337,20 +338,35 @@ test('career admin live preview keeps About text intact and locale drafts privat
     await expect(amazon).toHaveAttribute('aria-pressed', 'true');
     await expect(page.getByText('Amazon fixture details', { exact: true })).toBeVisible();
     await expect(page.getByText('Education fixture details', { exact: true })).toHaveCount(0);
-    await expect(graph.getByRole('region', { name: 'Graph. Time moves upward.', exact: true })).toBeHidden();
+    await expect(graph.locator('svg[role="group"]')).toBeHidden();
+    const phoneGraph = graph.locator('[data-career-graph="phone"]');
+    await expect(phoneGraph).toBeVisible();
+    assert.ok((await phoneGraph.boundingBox())!.width >= 40, 'The phone graph stays open at a readable width');
+    const phoneBranch = phoneGraph.locator('[data-career-branch]').filter({ has: page.locator('[data-career-head]') });
+    await graph.locator('button[data-career-job]').first().click();
+    await expect(page.getByText('Education fixture details', { exact: true })).toBeVisible();
+    await expect(phoneBranch).toHaveCount(2);
     await expect.poll(() => graph.evaluate(element => [...element.querySelectorAll('*')].every(node => {
       const style = getComputedStyle(node);
       return !/auto|scroll/.test(style.overflowY) || node.scrollHeight <= node.clientHeight + 1;
     }))).toBe(true);
     await page.setViewportSize({ width: 1280, height: 800 });
-    const branches = graph.locator('svg [data-career-branch]');
+    const branches = graph.locator('svg[role="group"] [data-career-branch]');
     await expect(branches).toHaveCount(2);
+    const unselectedRow = graph.locator('button[data-career-job][aria-pressed="false"]').first();
+    const bandBox = (await graph.locator('[data-career-graph="desktop"] g rect').nth(1 + await graph.locator('button[data-career-job]').evaluateAll((rows) => rows.findIndex((row) => row.getAttribute('aria-pressed') === 'false'))).boundingBox())!;
+    await page.mouse.move(0, 0);
+    await expect(unselectedRow).toHaveAttribute('data-highlighted', 'false');
+    await page.mouse.move(bandBox.x + bandBox.width - 2, bandBox.y + bandBox.height / 2);
+    await expect(unselectedRow).toHaveAttribute('data-highlighted', 'true');
+    await page.mouse.move(0, 0);
+    await expect(unselectedRow).toHaveAttribute('data-highlighted', 'false');
     const educationBranch = graph.locator('[data-career-branch][aria-label^="education/test-university:"]');
     const amazonBranch = graph.locator('[data-career-branch][aria-label^="work/amazon:"]');
     await educationBranch.focus();
     await educationBranch.press('Enter');
     await expect(page.getByText('Education fixture details', { exact: true })).toBeVisible();
-    await expect(graph.locator('button[data-career-job]').first()).toHaveAttribute('aria-pressed', 'true');
+    await expect(graph.locator('button[data-career-job]', { hasText: 'education/test-university' })).toHaveAttribute('aria-pressed', 'true');
     await expect(educationBranch).toHaveAttribute('aria-pressed', 'true');
     await amazonBranch.focus();
     await amazonBranch.press('Space');
@@ -359,20 +375,20 @@ test('career admin live preview keeps About text intact and locale drafts privat
     await expect(graph.getByText('Dates not provided').first()).toBeVisible();
     await educationBranch.locator('[data-career-head]').click();
     await expect(page.getByText('Education fixture details', { exact: true })).toBeVisible();
-    await expect(graph.locator('button[data-career-job]').first()).toBeFocused();
+    await expect(graph.locator('button[data-career-job]', { hasText: 'education/test-university' })).toBeFocused();
     await amazonBranch.locator('[data-career-head]').click();
     await expect(page.getByText('Amazon fixture details', { exact: true })).toBeVisible();
     await expect(amazon).toHaveAttribute('aria-pressed', 'true');
     await expect(amazon).toBeFocused();
     const pathPoint = await educationBranch.locator('path').last().evaluate((element) => {
       const path = element as SVGPathElement;
-      const point = path.getPointAtLength(path.getTotalLength() * 0.85);
+      const point = path.getPointAtLength(path.getTotalLength() * 0.5);
       const screen = new DOMPoint(point.x, point.y).matrixTransform(path.getScreenCTM()!);
       return { x: screen.x, y: screen.y };
     });
     await page.mouse.click(pathPoint.x, pathPoint.y);
     await expect(page.getByText('Education fixture details', { exact: true })).toBeVisible();
-    await expect(graph.locator('button[data-career-job]').first()).toHaveAttribute('aria-pressed', 'true');
+    await expect(graph.locator('button[data-career-job]', { hasText: 'education/test-university' })).toHaveAttribute('aria-pressed', 'true');
 
     await update('career', 'en', { _status: 'published', jobs: [
       { branchName: 'education/test-university', company: 'Test University', role: 'Qualification', startDate: '2014-01-01', endDate: '2023-01-01', summary: `Education dated fixture\n${'Long description fixture. '.repeat(120)}`, color: '#1267ab' },
@@ -381,50 +397,26 @@ test('career admin live preview keeps About text intact and locale drafts privat
     ] }, '&publishSpecificLocale=en');
     await page.reload();
     await page.setViewportSize({ width: 320, height: 800 });
-    await expect(graph.locator('button[data-career-job]').first()).toContainText('Amazon');
+    await expect(graph.locator('button[data-career-job]')).toHaveText([/work\/amazon/, /education\/test-university/, /work\/undated-fixture/]);
     assert.ok(Number(await educationBranch.locator('[data-career-head]').getAttribute('cy')) > Number(await amazonBranch.locator('[data-career-head]').getAttribute('cy')), 'Later dates must appear above earlier dates despite title order');
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), 'Career page overflows at 320px');
-    await page.setViewportSize({ width: 1280, height: 800 });
-    const tree = graph.getByRole('region', { name: 'Graph. Time moves upward.', exact: true });
-    assert.ok(await tree.evaluate((element) => element.scrollHeight > element.clientHeight), 'Long history must scroll inside the tree');
-    await graph.locator('button[data-career-job]', { hasText: 'education/test-university' }).click();
-    await tree.scrollIntoViewIfNeeded();
-    await tree.hover();
-    const scrollToPath = await tree.evaluate((element) => element.scrollTop);
-    await page.mouse.wheel(0, 600);
-    await expect.poll(() => tree.evaluate((element) => element.scrollTop)).toBeGreaterThan(scrollToPath);
-    await expect(amazonBranch.locator('[data-career-head]')).not.toBeInViewport();
-    const datedPathPosition = () => amazonBranch.locator('path').last().evaluate((element) => {
-      const path = element as SVGPathElement;
-      const branch = path.closest('[data-career-branch]');
-      for (let length = 0; length <= path.getTotalLength(); length += 5) {
-        const point = path.getPointAtLength(length);
-        const screen = new DOMPoint(point.x, point.y).matrixTransform(path.getScreenCTM()!);
-        if (document.elementFromPoint(screen.x, screen.y)?.closest('[data-career-branch]') === branch) return { x: screen.x, y: screen.y };
-      }
-      throw new Error('The branch has no visible clickable path point');
-    });
-    const datedPathPoint = await datedPathPosition();
-    assert.equal(await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.closest('[data-career-branch]')?.getAttribute('data-career-branch'), datedPathPoint), await amazonBranch.getAttribute('data-career-branch'), 'The dated path click must hit the visible intended branch');
-    await page.mouse.click(datedPathPoint.x, datedPathPoint.y);
-    await expect(page.getByText('Amazon dated fixture', { exact: true })).toBeVisible();
-    await expect(amazonBranch.locator('[data-career-head]')).toBeInViewport();
-    await expect(page.getByRole('heading', { name: 'Amazon', exact: true })).toBeVisible();
-    await tree.hover();
-    const beforeScroll = await tree.evaluate((element) => element.scrollTop);
-    const pageScroll = await page.evaluate(() => window.scrollY);
-    await page.mouse.wheel(0, 600);
-    await expect.poll(() => tree.evaluate((element) => element.scrollTop)).toBeGreaterThan(beforeScroll);
-    assert.equal(await page.evaluate(() => window.scrollY), pageScroll, 'Tree scrolling must not move the page');
-    await expect(amazonBranch.locator('[data-career-head]')).not.toBeInViewport();
-    await graph.locator('button[data-career-job]', { hasText: 'work/amazon' }).click();
-    await expect(amazonBranch.locator('[data-career-head]')).toBeInViewport();
-    await expect(graph.locator('button[data-career-job]', { hasText: 'work/amazon' })).toBeFocused();
+    for (const width of [320, 1280]) {
+      await page.setViewportSize({ width, height: 800 });
+      const offsets = await graph.evaluate((section) => {
+        const graph = [...section.querySelectorAll('svg')].find((svg) => getComputedStyle(svg).display !== 'none')!;
+        const rows = [...section.querySelectorAll('button[data-career-job]')];
+        return rows.map((row) => {
+          const box = row.getBoundingClientRect();
+          const heads = [...graph.querySelectorAll('[data-career-head]')].map((head) => head.getBoundingClientRect());
+          return Math.min(...heads.map((head) => Math.abs(head.top + head.height / 2 - (box.top + box.height / 2))));
+        });
+      });
+      assert.ok(offsets.every((offset) => offset < 1.5), `Every row must have a graph head level with it at ${width}px: ${offsets}`);
+    }
     await graph.locator('button[data-career-job]', { hasText: 'work/undated-fixture' }).click();
     await expect(page.getByText('Undated fixture details', { exact: true })).toBeVisible();
-    await expect(graph.locator('[data-career-branch][aria-label^="work/undated-fixture:"] [data-career-head]')).toBeInViewport();
-    await expect(tree.getByText('Dates not provided', { exact: true })).toBeVisible();
-
+    await expect(graph.locator('button[data-career-job]', { hasText: 'work/undated-fixture' })).toContainText('Dates not provided');
+    await page.setViewportSize({ width: 320, height: 800 });
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), 'Career page overflows at 320px');
     await context.close();
   } finally { await browser.close(); }
@@ -505,33 +497,62 @@ test('nested career branches share junctions and synchronize graph and Experienc
     const projectTitle = graph.locator('button[data-career-job]', { hasText: 'work/company/project' });
     const careerBounds = () => graph.evaluate(element => { const box = element.getBoundingClientRect(); return { top: box.top + window.scrollY, height: box.height }; });
     const initialCareerBounds = await careerBounds();
-    assert.ok(await graph.evaluate(element => document.querySelector('#career-story')!.getBoundingClientRect().right <= element.getBoundingClientRect().left), 'Desktop story should be beside the career graph');
+    assert.ok(await graph.evaluate(element => document.querySelector('#career-story')!.getBoundingClientRect().left >= element.getBoundingClientRect().right), 'Desktop story should be beside the career graph');
     const centeredPhotoOffset = () => page.locator('#career-story').evaluate((story) => {
       const container = story.getBoundingClientRect();
       const photo = story.querySelector('figure')!.getBoundingClientRect();
       return Math.abs((container.left + container.right - photo.left - photo.right) / 2);
     });
+    const photoBesideStory = () => page.locator('#career-story').evaluate((story) => story.querySelector('figure')!.getBoundingClientRect().left >= story.querySelector('article')!.getBoundingClientRect().right);
     await expect(page.locator('#career-story')).toHaveAttribute('aria-label', 'Experience');
-    await expect(page.locator('#career-story h1')).toHaveText('master');
-    await expect(page.locator('#career-story img')).toHaveAttribute('src', '/profile-photo.jpg');
+    await expect(page.locator('#career-story h2')).toHaveText('master');
+    await expect(page.locator('#career-story img')).toHaveAttribute('src', /\/profile-photo\.jpg$/);
     await expect(page.getByRole('link', { name: /Read story/i })).toHaveCount(0);
     await expect(graph.locator('[data-career-label]')).toHaveCount(0);
     await projectTitle.hover();
     await expect(project).toHaveAttribute('data-highlighted', 'true');
     await expect(graph.locator('[data-career-main-row]')).toHaveAttribute('aria-pressed', 'true');
+    let releasePhoto!: () => void;
+    let releasePDF!: () => void;
+    const photoGate = new Promise<void>(resolve => { releasePhoto = resolve; });
+    const pdfGate = new Promise<void>(resolve => { releasePDF = resolve; });
+    await page.route(`**${photo.url}`, async route => { await photoGate; await route.continue(); });
+    await page.route(`**${pdfFile.url}`, async route => { await pdfGate; await route.continue(); });
     await projectTitle.click();
-    await expect(page.locator('#career-story img')).toHaveAttribute('src', photo.url);
+    await expect(page.locator('#career-story img')).toHaveAttribute('src', new URL(photo.url, base).href);
     await expect(page.locator('#career-story img')).toHaveAttribute('alt', 'Synthetic experience portrait');
     const pdfPreview = page.locator('#career-story [data-pdf-document]');
     await expect(pdfPreview.getByRole('heading', { name: 'Synthetic project PDF' })).toBeVisible();
     await expect(pdfPreview.getByRole('link', { name: 'Download PDF' }).first()).toHaveAttribute('href', new RegExp(pdfFile.url!.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$'));
     const reader = pdfPreview.locator('[data-pdf-preview]');
     await expect(reader).toBeVisible();
+    const figure = page.locator('#career-story figure');
+    await expect(figure).toHaveAttribute('aria-busy', 'true');
+    await expect(figure.getByRole('status')).toHaveText('Loading photo…');
+    await expect(figure.locator('img')).toHaveAttribute('loading', 'eager');
+    await expect(figure.locator('img')).toBeHidden();
+    const photoBox = await figure.boundingBox();
+    const stage = reader.locator('[data-document-stage]');
+    await expect(stage).toHaveAttribute('aria-busy', 'true');
+    await expect(reader.locator('canvas')).toBeHidden();
+    await expect(reader.getByRole('button', { name: 'Zoom in' })).toBeDisabled();
+    const stageBox = await stage.boundingBox();
+    await page.screenshot({ path: '.artifacts/playwright/experience-media-loading.png', fullPage: true });
+    assert.deepEqual(await stage.boundingBox(), stageBox, 'The pending PDF must retain its loading frame');
+    releasePhoto();
+    releasePDF();
+    await expect(figure).toHaveAttribute('aria-busy', 'false');
+    await expect(figure.locator('img')).toBeVisible();
+    assert.deepEqual(await figure.boundingBox(), photoBox, 'Loading the photo must preserve its reserved dimensions');
+    await expect(stage).toHaveAttribute('aria-busy', 'false');
+    assert.equal((await stage.boundingBox())!.y, stageBox!.y, 'Loading the PDF must preserve the reader position');
+    assert.ok((await stage.boundingBox())!.height < stageBox!.height, 'Short loaded pages must release unused loading space');
+    await expect.poll(() => stage.evaluate(node => Math.abs(node.clientHeight - Math.min(parseFloat(getComputedStyle(node).maxHeight), node.querySelector('canvas')!.getBoundingClientRect().height)))).toBeLessThan(2);
     await expect(reader.getByRole('status', { name: /preview unavailable/i })).toHaveCount(0);
     await expect.poll(() => reader.locator('canvas').evaluate((canvas) => (canvas as HTMLCanvasElement).width)).toBeGreaterThan(0);
     await expect(reader.locator('[data-document-text]')).toContainText('Synthetic career PDF');
     assert.deepEqual(await careerBounds(), initialCareerBounds, 'Career must not move or resize when the story and PDF change');
-    await page.screenshot({ path: path.join(dataDir, 'career-pdf-reader-desktop.png'), fullPage: true });
+    await page.screenshot({ path: '.artifacts/playwright/experience-media-desktop.png', fullPage: true });
     await reader.getByRole('button', { name: 'Next page' }).click();
     await expect(reader.locator('[data-document-text]')).toContainText('PDF page two');
     await reader.getByRole('button', { name: 'Previous page' }).click();
@@ -540,50 +561,50 @@ test('nested career branches share junctions and synchronize graph and Experienc
     await reader.getByRole('button', { name: 'Zoom in' }).click();
     await expect(reader.getByText('125%')).toBeVisible();
     await graph.locator('button[data-career-job]', { hasText: 'work/next' }).click();
-    await expect(page.locator('#career-story h1')).toHaveText('H');
+    await expect(page.locator('#career-story h2')).toHaveText('H');
     await expect(page.locator('#career-story')).toHaveAttribute('aria-label', 'H');
-    await expect(page.locator('#career-story img')).toHaveAttribute('src', documentPhoto.url);
+    await expect(page.locator('#career-story img')).toHaveAttribute('src', new URL(documentPhoto.url, base).href);
     await expect(page.locator('#career-story img')).toHaveAttribute('alt', 'Document-only experience portrait');
     await expect(page.locator('#career-story [data-pdf-document]')).toBeVisible();
-    await expect(page.getByRole('link', { name: /H · View documents/i })).toHaveAttribute('href', '#career-story');
+    await expect(page.getByRole('link', { name: /View documents/i })).toHaveCount(0);
     await expect(page.getByRole('link', { name: /Read story/i })).toHaveCount(0);
     await projectTitle.click();
-    await expect(page.locator('#career-story h1')).toHaveText('F');
+    await expect(page.locator('#career-story h2')).toHaveText('F');
 
     assert.ok(await page.locator('#career-story img').evaluate((image) => (image as HTMLImageElement).complete && (image as HTMLImageElement).naturalWidth > 0));
     await page.setViewportSize({ width: 1440, height: 900 });
     assert.ok(await page.locator('#career-story').evaluate((story) => story.querySelector('figure')!.getBoundingClientRect().width < story.getBoundingClientRect().width));
-    assert.ok((await centeredPhotoOffset()) < 2, 'Experience photo should be centered on desktop');
+    assert.ok(await photoBesideStory(), 'Experience photo should sit beside the story on desktop');
     await expect(project).toHaveAttribute('aria-pressed', 'true');
     await project.focus();
     await project.press('Enter');
     await expect(projectTitle).toBeFocused();
     const mainRow = graph.locator('[data-career-main-row]');
-    const mainline = graph.locator('[data-career-main-branch]');
+    const mainline = graph.locator('svg[role="group"] [data-career-main-branch]');
     await mainRow.click();
-    await expect(page.locator('#career-story img')).toHaveAttribute('src', '/profile-photo.jpg');
+    await expect(page.locator('#career-story img')).toHaveAttribute('src', /\/profile-photo\.jpg$/);
     await expect(page.locator('#career-story [data-pdf-document]')).toHaveCount(0);
     await expect(page.getByRole('link', { name: /Read story/i })).toHaveCount(0);
-    assert.ok((await centeredPhotoOffset()) < 2, 'Profile photo should be centered on desktop');
+    assert.ok(await photoBesideStory(), 'Profile photo should sit beside the story on desktop');
     await expect(mainline).toHaveAttribute('aria-pressed', 'true');
-    await expect(page.locator('#career-story').getByRole('heading', { level: 1 })).toHaveText('master');
-    await expect(page.locator('#career-story h1 svg[aria-hidden="true"]')).toHaveCount(1);
+    await expect(page.locator('#career-story').getByRole('heading', { level: 2 })).toHaveText('master');
+    await expect(page.locator('#career-story h2 svg[aria-hidden="true"]')).toHaveCount(1);
     await expect(mainRow).toContainText('master');
-    await expect(mainline).toHaveAttribute('aria-label', 'master: Full-stack developer');
+    await expect(mainline).toHaveAttribute('aria-label', 'master: Software engineer · AI systems');
     await projectTitle.click();
     await mainline.focus();
     await mainline.press('Enter');
     await expect(mainRow).toHaveAttribute('aria-pressed', 'true');
     await expect(mainRow).toBeFocused();
     await projectTitle.click();
-    const before = await graph.locator('[data-career-head]').evaluateAll((points) => points.map((point) => Number(point.getAttribute('cy'))));
-    const beforeX = await graph.locator('[data-career-head]').evaluateAll((points) => points.map((point) => Number(point.getAttribute('cx'))));
+    const before = await graph.locator('svg[role="group"] [data-career-head]').evaluateAll((points) => points.map((point) => Number(point.getAttribute('cy'))));
+    const beforeX = await graph.locator('svg[role="group"] [data-career-head]').evaluateAll((points) => points.map((point) => Number(point.getAttribute('cx'))));
     const beforeWidth = Number(await graph.locator('svg[role="group"]').getAttribute('width'));
     await update('career', 'en', { laneSpacing: 18, _status: 'published' }, '&publishSpecificLocale=en');
     await page.reload();
-    await expect.poll(async () => Number(await graph.locator('svg[role="group"]').getAttribute('width'))).toBe(beforeWidth);
-    assert.deepEqual(await graph.locator('[data-career-head]').evaluateAll((points) => points.map((point) => Number(point.getAttribute('cy')))), before);
-    assert.notDeepEqual(await graph.locator('[data-career-head]').evaluateAll((points) => points.map((point) => Number(point.getAttribute('cx')))), beforeX, 'Lane spacing must change graph positions');
+    await expect.poll(async () => Number(await graph.locator('svg[role="group"]').getAttribute('width'))).toBeLessThan(beforeWidth);
+    assert.deepEqual(await graph.locator('svg[role="group"] [data-career-head]').evaluateAll((points) => points.map((point) => Number(point.getAttribute('cy')))), before);
+    assert.notDeepEqual(await graph.locator('svg[role="group"] [data-career-head]').evaluateAll((points) => points.map((point) => Number(point.getAttribute('cx')))), beforeX, 'Lane spacing must change graph positions');
     const branchB = graph.locator('[data-career-branch][aria-label^="education/university:"]');
     const branchC = graph.locator('[data-career-branch][aria-label^="work/independent:"]');
     await graph.locator('button[data-career-job]', { hasText: 'work/later' }).click();
@@ -596,7 +617,7 @@ test('nested career branches share junctions and synchronize graph and Experienc
     await expect(branchB).toHaveAttribute('data-highlighted', 'true');
     await expect(branchC).toHaveAttribute('data-highlighted', 'false');
     const junction = await branchB.locator('circle').first().evaluate((dot) => ({ x: dot.getAttribute('cx'), y: dot.getAttribute('cy') }));
-    const baseDots = await graph.locator('[data-career-branch] circle[r="4.5"]').evaluateAll((dots, { x, y }) => dots.filter((dot) => dot.getAttribute('cx') === x && dot.getAttribute('cy') === y).map((dot) => dot.getAttribute('fill')), junction);
+    const baseDots = await graph.locator('svg[role="group"] [data-career-branch] circle[r="4.5"]').evaluateAll((dots, { x, y }) => dots.filter((dot) => dot.getAttribute('cx') === x && dot.getAttribute('cy') === y).map((dot) => dot.getAttribute('fill')), junction);
     assert.equal(baseDots.at(-1), '#ffaa66', 'Closest lane must paint the shared base dot');
     await graph.locator('button[data-career-job]', { hasText: 'education/university' }).filter({ hasNotText: 'internship' }).click();
     await branchB.locator('circle').first().click();
@@ -606,8 +627,8 @@ test('nested career branches share junctions and synchronize graph and Experienc
     const emptyStory = graph.locator('button[data-career-job]', { hasText: 'work/company' }).filter({ hasNotText: 'work/company/project' });
     await emptyStory.click();
     await expect(emptyStory).toHaveAttribute('aria-pressed', 'true');
-    await expect(page.locator('#career-story h1')).toHaveText('master');
-    await expect(page.locator('#career-story img')).toHaveAttribute('src', '/profile-photo.jpg');
+    await expect(page.locator('#career-story h2')).toHaveText('master');
+    await expect(page.locator('#career-story img')).toHaveAttribute('src', /\/profile-photo\.jpg$/);
     await expect(page.getByRole('link', { name: /Read story/i })).toHaveCount(0);
     await page.setViewportSize({ width: 320, height: 800 });
     await expect(graph.locator('[data-career-label]')).toHaveCount(0);
@@ -615,14 +636,55 @@ test('nested career branches share junctions and synchronize graph and Experienc
     await projectTitle.press('Enter');
     await expect(project).toHaveAttribute('aria-pressed', 'true');
     assert.ok((await centeredPhotoOffset()) < 2, 'Experience photo should be centered on mobile');
-    await expect(page.getByRole('link', { name: /F · Read story/i })).toHaveAttribute('href', '#career-story');
+    await expect(page.getByRole('link', { name: /Read story/i })).toHaveCount(0);
     await expect(page.locator('#career-story [data-document-text]')).toContainText('Synthetic career PDF');
-    await page.screenshot({ path: path.join(dataDir, 'career-pdf-reader-gallery-mobile.png'), fullPage: true });
+    await page.screenshot({ path: '.artifacts/playwright/experience-media-mobile.png', fullPage: true });
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), 'Career page overflows at 320px');
+    await page.unroute(`**${photo.url}`);
+    await page.unroute(`**${pdfFile.url}`);
+    await page.route(`**${photo.url}`, route => route.abort());
+    await page.route(`**${pdfFile.url}`, route => route.abort());
+    await update('career', 'it', { jobs: localizedJobs, laneSpacing: 24, _status: 'published' }, '&publishSpecificLocale=it');
+    await page.goto(`${base}/it/about`);
+    const italianGraph = page.locator('#career');
+    await italianGraph.locator('button[data-career-job]', { hasText: 'work/company/project' }).click();
+    await expect(page.locator('#career-story figure').getByRole('status')).toHaveText('Foto non disponibile.');
+    await expect(page.locator('#career-story img')).toBeHidden();
+    await expect(reader.getByRole('status')).toContainText('Anteprima non disponibile.');
+    await expect(reader.getByRole('link', { name: 'Scarica PDF' })).toBeVisible();
+    await italianGraph.locator('[data-career-main-row]').click();
+    await expect(page.locator('#career-story img')).toBeVisible();
+    await page.unroute(`**${photo.url}`);
+    await page.unroute(`**${pdfFile.url}`);
+    let releaseItalianPhoto!: () => void;
+    let releaseItalianPDF!: () => void;
+    const italianPhotoGate = new Promise<void>(resolve => { releaseItalianPhoto = resolve; });
+    const italianPDFGate = new Promise<void>(resolve => { releaseItalianPDF = resolve; });
+    await page.route(`**${photo.url}`, async route => { await italianPhotoGate; await route.continue(); });
+    await page.route(`**${pdfFile.url}`, async route => { await italianPDFGate; await route.continue(); });
+    await italianGraph.locator('button[data-career-job]', { hasText: 'work/company/project' }).click();
+    await expect(figure.getByRole('status')).toHaveText('Caricamento foto…');
+    await expect(reader.getByRole('status')).toHaveText('Caricamento documento…');
+    await expect(reader.getByRole('button', { name: 'Ingrandisci', exact: true })).toBeDisabled();
+    const italianPhotoBox = await figure.boundingBox();
+    const italianStageTop = await stage.evaluate(node => node.getBoundingClientRect().top + window.scrollY);
+    releaseItalianPhoto();
+    releaseItalianPDF();
+    await expect(figure).toHaveAttribute('aria-busy', 'false');
+    await expect(figure.locator('img')).toBeVisible();
+    assert.deepEqual(await figure.boundingBox(), italianPhotoBox, 'Italian recovery preserves reserved photo dimensions');
+    await expect(stage).toHaveAttribute('aria-busy', 'false');
+    await expect(reader.locator('[data-document-text]')).toContainText('Synthetic career PDF');
+    assert.equal(await stage.evaluate(node => node.getBoundingClientRect().top + window.scrollY), italianStageTop, 'Italian recovery preserves reader position in the document despite mobile scroll anchoring');
+    await expect.poll(() => stage.evaluate(node => Math.abs(node.clientHeight - Math.min(parseFloat(getComputedStyle(node).maxHeight), node.querySelector('canvas')!.getBoundingClientRect().height)))).toBeLessThan(2);
+    await expect(reader.getByRole('status')).toHaveCount(0);
+    await expect(reader.locator('canvas')).toBeVisible();
+    await stablePage(page);
+    await page.screenshot({ path: '.artifacts/playwright/experience-media-italian-recovered.png', fullPage: true });
     for (const locale of ['en', 'it']) {
       await page.goto(`${base}/${locale}/about#career`);
       await page.locator('button[data-career-job]', { hasText: 'work/next' }).click();
-      await expect(page.locator('#career-story img')).toHaveAttribute('src', documentPhoto.url);
+      await expect(page.locator('#career-story img')).toHaveAttribute('src', new URL(documentPhoto.url, base).href);
       await expect(page.locator('#career-story img')).toHaveAttribute('alt', locale === 'en' ? 'Document-only experience portrait' : 'Ritratto esperienza con documento');
       await mkdir('.artifacts/career-document-photo-shared', { recursive: true });
       await page.screenshot({ path: `.artifacts/career-document-photo-shared/${locale}-document-only-photo.png`, fullPage: true });
@@ -655,7 +717,7 @@ test('authenticated previews load only the active source draft', { timeout: 60_0
         if (slug === 'about') {
           await expect(page.locator('#career-story')).toHaveAttribute('aria-label', 'Experience');
           await expect(page.locator('#career-story')).toContainText(title);
-          await expect(page.locator('#career-story h1')).toHaveText('master');
+          await expect(page.locator('#career-story h2')).toHaveText('master');
         } else await expect(page.getByRole('heading', { level: 1 })).toHaveText(title);
       };
       const pathname = slug === 'home' ? '/en' : '/en/about';
@@ -691,7 +753,7 @@ test('authenticated previews load only the active source draft', { timeout: 60_0
   } finally { await browser.close(); }
 });
 
-test('degree results are optional metadata downloads while other attachments retain previews', { timeout: 90_000 }, async () => {
+test('degree results follow stories while other attachments retain previews', { timeout: 90_000 }, async () => {
   const pdfBytes = syntheticPDF();
   const form = new FormData();
   form.set('file', new Blob([pdfBytes], { type: 'application/pdf' }), 'master-grades.pdf');
@@ -713,6 +775,7 @@ test('degree results are optional metadata downloads while other attachments ret
   const browser = await chromium.launch({ headless: true });
   try {
     const page = await browser.newPage();
+    await fixVisualDate(page);
     for (const host of ['api.iconify.design', 'api.simplesvg.com', 'api.unisvg.com']) {
       await page.route(`https://${host}/**`, async route => {
         await route.fulfill({ json: await iconFixtureResponse(new URL(route.request().url())), headers: { 'access-control-allow-origin': '*' } });
@@ -734,9 +797,9 @@ test('degree results are optional metadata downloads while other attachments ret
         for (const [degree, attachment, role] of [['master', file, 'Artificial Intelligence'], ['bachelor', bachelorFile, 'Computer Science']] as const) {
           await page.locator('button[data-career-job]', { hasText: `education/trento-${degree}` }).click();
           const link = page.getByRole('link', { name: `${verb} ${degree === 'master' ? title : bachelorTitle} (PDF)`, exact: true });
-          await expect(link).toHaveText(locale === 'it' ? 'Risultati' : 'Results');
+          await expect(link).toHaveText(locale === 'it' ? 'Risultati degli esami' : 'Exam results');
           await expect(link.locator('svg.lucide-download')).toHaveCount(1);
-          await expect(page.locator('#career-story article p', { has: link })).toContainText(role);
+          await expect(page.locator('#career-story article header')).toContainText(role);
           await expect(link).toHaveAttribute('href', attachment.url);
           await expect(link).toHaveAttribute('download', `massimo-stefan-${degree}s-exam-results.pdf`);
           await expect(page.locator('#career-story [data-pdf-document]')).toHaveCount(0);
@@ -756,9 +819,9 @@ test('degree results are optional metadata downloads while other attachments ret
               }
               await expect(page.locator('html')).toHaveClass(theme === 'dark' ? /\bdark\b/ : /^(?!.*\bdark\b)/);
               await expect(link).toBeVisible();
-              const metadataBox = await page.locator('#career-story article p', { has: link }).boundingBox();
+              const storyBox = await page.locator('#career-story article').boundingBox();
               const buttonBox = await link.boundingBox();
-              assert.ok(metadataBox && buttonBox && Math.abs(metadataBox.x + metadataBox.width - buttonBox.x - buttonBox.width) < 1, 'Results button must align with the right edge of the metadata');
+              assert.ok(storyBox && buttonBox && buttonBox.y >= storyBox.y + storyBox.height && Math.abs(storyBox.x - buttonBox.x) < 1, 'Exam results must align left below the story, outside its metadata');
               await link.focus();
               await link.press('Tab');
               await page.keyboard.press('Shift+Tab');
@@ -767,9 +830,14 @@ test('degree results are optional metadata downloads while other attachments ret
               await stablePage(page);
               if (degree === 'bachelor') {
                 const photo = page.locator('#career-story img');
-                await expect(photo).toHaveAttribute('src', degreePhoto.url);
+                await expect(photo).toHaveAttribute('src', new URL(degreePhoto.url, base).href);
                 await expect(photo).toBeVisible();
                 assert.ok(await photo.evaluate((image) => (image as HTMLImageElement).complete && (image as HTMLImageElement).naturalWidth > 0), 'Document-only degree photo must decode before every capture');
+                const photoBox = await photo.locator('..').boundingBox();
+                const storyBox = await page.locator('#career-story').boundingBox();
+                assert.ok(photoBox && storyBox && photoBox.width <= 320 + 0.5 && photoBox.x >= storyBox.x && photoBox.x + photoBox.width <= storyBox.x + storyBox.width + 0.5, 'Degree portrait must cap at 20rem while fitting the story panel');
+                if (size === 'mobile') assert.ok(photoBox && storyBox && Math.abs(photoBox.x + photoBox.width / 2 - storyBox.x - storyBox.width / 2) < 1, 'Degree portrait must remain centered on mobile in both languages');
+                else assert.ok(await page.locator('#career-story').evaluate((story) => story.querySelector('figure')!.getBoundingClientRect().left >= story.querySelector('article')!.getBoundingClientRect().right), 'Degree portrait must sit beside the story on desktop');
               }
               await page.screenshot({ path: `.artifacts/playwright/master-download/${degree}-${locale}-${size}-${theme}.png`, fullPage: true, animations: 'disabled' });
               await link.hover();

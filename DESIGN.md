@@ -25,7 +25,7 @@ Use the existing system sans font for content and monospace for Career's branch 
 
 Use semantic page/surface tokens for component surfaces. Stack category headings and logo wrappers remain transparent. Keep visible focus indicators, readable labels, and theme-aware hover/selection states.
 
-Native scrollbars use the global track, thumb, width, and accent-hover rules. Do not override their appearance per component. Work and Career scroll panes contain overscroll. Heights and axes may differ because a project list, technology grid, and timeline hold different content. Preserve keyboard access and selection visibility rather than forcing them into one layout.
+Native scrollbars use the global track, thumb, width, and accent-hover rules. Do not override their appearance per component. Work and Experience share one layout: the list on the left and the selected item inside a surface panel headed by the shared `mstefan / …` toolbar. The Work stack pane contains its overscroll; the Career graph is drawn row by row beside its list, scrolls with the page, and stays open at a narrower width on phones. Preserve keyboard access and selection visibility in both.
 
 ## Verification and AI review
 

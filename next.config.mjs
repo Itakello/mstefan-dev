@@ -9,6 +9,8 @@ const nextConfig = {
   typedRoutes: true,
   // CMS media access must be reevaluated after a photo is unpublished.
   images: { unoptimized: true },
+  // The deploy host lacks memory for type checking; CI's build still type-checks every commit.
+  typescript: { ignoreBuildErrors: process.env.SKIP_BUILD_TYPECHECK === "1" },
   ...(process.env.PAYLOAD_LOCAL_PROTOTYPE === "1" ? { allowedDevOrigins: ["127.0.0.1"] } : {}),
   experimental: {
     cpus: 1,

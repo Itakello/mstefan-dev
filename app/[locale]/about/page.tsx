@@ -21,5 +21,5 @@ export default async function AboutPage({ params, searchParams }: { params: Prom
   const [content, career] = await Promise.all([getPageContent("about", locale, preview && !careerPreview), getCareerContent(locale, careerPreview)]);
 
   const Content = careerPreview ? AboutCareerLivePreview : preview ? AboutLivePreview : AboutContent;
-  return <Content content={content} career={career} locale={locale} />;
+  return <Content content={content} career={career} locale={locale} now={Date.now()} />;
 }
