@@ -24,6 +24,8 @@ CONTAINER_PREFIX = 'openship-mstefan-payload-'
 DECLARED_MOUNTS = ['data:/data']
 ACTIVATION = Path('/etc/mstefan-event-deploy/activation.json')
 PROBE_SOCKET = '/run/mstefan-event-deploy-probe.sock'
+SAFEGUARD_SOCKET = '/run/mstefan-event-deploy-safeguard.sock'
+SAFEGUARD_TIMEOUT = 5 * 60
 PROBE_LIMIT = 32 * 1024
 SHA = re.compile(r'^[0-9a-f]{40}$')
 LIMIT = 40 * 60
@@ -41,6 +43,10 @@ class Blocked(Exception):
 
 
 class Refused(Blocked):
+    pass
+
+
+class ProtectedChange(Blocked):
     pass
 
 
@@ -137,12 +143,14 @@ class Client:
         if not isinstance(jobs, list) or field(response, 'total_count') != len(jobs) or len(jobs) > 100:
             raise Blocked('CI jobs incomplete')
         names = [job.get('name') for job in jobs if isinstance(job, dict)]
-        if len(names) != len(jobs) or set(names) != {'project-technologies', 'verify', 'policy-gate', 'docs-workflow-integrity'} or len(names) != len(set(names)):
+        base = {'project-technologies', 'verify', 'policy-gate', 'docs-workflow-integrity'}
+        # publish-image exists from the commit that moved image builds to CI onward.
+        if len(names) != len(jobs) or set(names) not in (base, base | {'publish-image'}) or len(names) != len(set(names)):
             raise Blocked('unexpected CI job set')
         for job in jobs:
             if job['name'] in {'policy-gate', 'docs-workflow-integrity'} and any(job.get(key) != value for key, value in {'run_id': run_id, 'head_sha': sha, 'status': 'completed', 'conclusion': 'skipped'}.items()):
                 raise Blocked('PR-only CI job identity or skip mismatch')
-        for name in ('project-technologies', 'verify'):
+        for name in ('project-technologies', 'verify') + (('publish-image',) if 'publish-image' in names else ()):
             matches = [job for job in jobs if isinstance(job, dict) and job.get('name') == name]
             if len(matches) != 1 or any(matches[0].get(key) != value for key, value in {'run_id': run_id, 'head_sha': sha, 'status': 'completed', 'conclusion': 'success'}.items()):
                 raise Blocked('required CI job missing, failed or mismatched')
@@ -168,7 +176,7 @@ class Client:
         old = tree_identity(self.gh('/git/trees/' + baseline['sha'] + '?recursive=1'))
         new = tree_identity(self.gh('/git/trees/' + sha + '?recursive=1'))
         if old != new:
-            raise Blocked('schema, dependency or startup change requires attended compatibility and restore proof')
+            raise ProtectedChange('schema, dependency or startup change')
 
     def project_config(self):
         response = self.ship('GET', '/api/projects/' + PROJECT)
@@ -183,14 +191,14 @@ class Client:
         activation_config(attestation, now)
         self.project_config()
 
-    def probe(self):
+    def probe(self, path=PROBE_SOCKET, timeout=12):
         try:
-            metadata = os.lstat(PROBE_SOCKET)
+            metadata = os.lstat(path)
             if not stat.S_ISSOCK(metadata.st_mode) or metadata.st_uid != 0 or metadata.st_mode & 0o007:
-                raise Blocked('unsafe volume probe socket')
+                raise Blocked('unsafe root helper socket')
             with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as stream:
-                stream.settimeout(12)
-                stream.connect(PROBE_SOCKET)
+                stream.settimeout(timeout)
+                stream.connect(path)
                 stream.shutdown(socket.SHUT_WR)
                 raw = bytearray()
                 while True:
@@ -199,10 +207,19 @@ class Client:
                         break
                     raw.extend(chunk)
                     if len(raw) > PROBE_LIMIT:
-                        raise Blocked('volume probe response too large')
+                        raise Blocked('root helper response too large')
                 return json.loads(raw)
         except (OSError, ValueError):
-            raise Blocked('volume probe unavailable or invalid') from None
+            raise Blocked('root helper unavailable or invalid') from None
+
+    def safeguard(self, deployment_id):
+        """Back up the live volume, prove an isolated restore and retain the running image."""
+        result = self.probe(SAFEGUARD_SOCKET, SAFEGUARD_TIMEOUT)
+        if (not isinstance(result, dict) or result.get('ok') is not True or result.get('deployment') != deployment_id
+                or not isinstance(result.get('archive'), str) or not re.fullmatch('[0-9a-f]{64}', str(result.get('archiveSha256')))
+                or not isinstance(result.get('image'), str) or not isinstance(result.get('migrations'), list)):
+            raise Blocked('pre-deploy backup, restore proof or retained image failed')
+        return {key: result[key] for key in ('archive', 'archiveSha256', 'image', 'migrations')}
 
     def volume_writer(self, deployment_id, attestation):
         storage_config(attestation)
@@ -395,8 +412,12 @@ def tick(client, state, path, sha, run_id, attestation, now):
             return
         if sha in state['failed_shas']:
             raise Blocked('failed SHA cannot retry unattended')
-        client.compatible(baseline, sha)
-        state.update(phase='prepared', sha=sha, run_id=run_id, baseline=baseline, deadline=now + LIMIT)
+        try:
+            client.compatible(baseline, sha)
+            safeguard = None
+        except ProtectedChange:
+            safeguard = client.safeguard(baseline['id'])
+        state.update(phase='prepared', sha=sha, run_id=run_id, baseline=baseline, deadline=now + LIMIT, safeguard=safeguard)
         save(path, state)
     elif state['phase'] == 'prepared':
         client.gate(sha, run_id)
@@ -432,6 +453,13 @@ def tick(client, state, path, sha, run_id, attestation, now):
         save(path, state)
 
 
+def reset(state, path):
+    state.update(phase='idle')
+    for key in ('sha', 'run_id', 'baseline', 'deadline', 'deployment_id', 'safeguard'):
+        state.pop(key, None)
+    save(path, state)
+
+
 def run(client, state, path, sha, run_id, attestation, clock=time.time, sleep=time.sleep):
     try:
         while True:
@@ -442,17 +470,20 @@ def run(client, state, path, sha, run_id, attestation, clock=time.time, sleep=ti
             if previous == state['phase']:
                 sleep(10)
     except Superseded:
-        state.update(phase='idle')
-        for key in ('sha', 'run_id', 'baseline', 'deadline', 'deployment_id'):
-            state.pop(key, None)
-        save(path, state)
+        reset(state, path)
         return 'superseded'
     except Refused:
         raise
     except (Blocked, KeyError, TypeError, ValueError, OSError) as error:
+        reason = str(error) if isinstance(error, Blocked) else 'invalid configuration, state or local persistence'
+        if state['phase'] in {'idle', 'prepared'}:
+            # Nothing was submitted, so the live release is untouched and the next event may retry.
+            reset(state, path)
+            print('mstefan deployment blocked before submission: ' + reason, file=sys.stderr)
+            raise
         if sha not in state['failed_shas']:
             state['failed_shas'].append(sha)
-        state.update(failure_phase=state['phase'], phase='paused', reason=str(error) if isinstance(error, Blocked) else 'invalid configuration, state or local persistence')
+        state.update(failure_phase=state['phase'], phase='paused', reason=reason)
         save(path, state)
         raise
 

@@ -1,0 +1,145 @@
+#!/usr/bin/python3
+"""Socket-activated pre-deploy safeguard. Takes no input.
+
+Backs up the live Payload volume, proves the archive restores in isolation,
+and retains the running image, so a protected change can deploy unattended.
+"""
+import hashlib
+import json
+import shutil
+import sqlite3
+import subprocess
+import sys
+import tarfile
+import tempfile
+import time
+from contextlib import closing
+from pathlib import Path
+
+import backup
+from release_observations import valid_id
+from controller import CONTAINER_PREFIX, VOLUME, Blocked, read_activation, storage_config
+
+OUTPUT = Path('/var/backups/mstefan-payload/predeploy')
+RETAINED = 'mstefan/payload-retained'
+KEEP = 5
+ATTEMPTS = 3
+
+
+def docker(*args):
+    result = subprocess.run(['docker', *args], capture_output=True, text=True, timeout=60, check=False)
+    if result.returncode != 0:
+        raise Blocked('docker ' + args[0] + ' failed')
+    return result.stdout.strip()
+
+
+def running_deployment():
+    rows = [row.split() for row in docker('ps', '--format', '{{.Names}} {{.ID}}').splitlines()]
+    # Preview and sandbox containers share the prefix; only `<prefix><deployment ID>` is production.
+    matches = [(name[len(CONTAINER_PREFIX):], container) for name, container in rows
+               if name.startswith(CONTAINER_PREFIX) and valid_id(name[len(CONTAINER_PREFIX):])]
+    if len(matches) != 1:
+        raise Blocked('expected exactly one running production container')
+    return matches[0]
+
+
+def unpause(container):
+    # A container left paused takes the site down, so never give up after one failed attempt.
+    for attempt in range(5):
+        try:
+            docker('unpause', container)
+            return
+        except Blocked:
+            if docker('inspect', '--format', '{{.State.Paused}}', container) == 'false':
+                return
+            time.sleep(2 ** attempt)
+    raise Blocked('production container may still be paused')
+
+
+def restore_proof(archive, scratch):
+    target = scratch / 'restore'
+    target.mkdir(mode=0o700)
+    with tarfile.open(archive) as bundle:
+        bundle.extractall(target, filter='data')
+    manifest = json.loads((target / backup.MANIFEST).read_text())
+    for name, expected in manifest['files'].items():
+        if backup.digest(target / name) != expected:
+            raise Blocked('restored file hash mismatch')
+    with closing(sqlite3.connect((target / backup.DB).as_uri() + '?mode=ro', uri=True)) as db:
+        if db.execute('PRAGMA integrity_check').fetchall() != [('ok',)]:
+            raise Blocked('restored SQLite integrity failed')
+        if db.execute('PRAGMA foreign_key_check').fetchall():
+            raise Blocked('restored SQLite foreign keys failed')
+        return [row[0] for row in db.execute("select name from payload_migrations where name != 'dev' order by name")]
+
+
+def prune(current):
+    archives = sorted(OUTPUT.glob('payload-*.tar'), key=lambda path: path.stat().st_mtime)
+    for old in archives[:-KEEP]:
+        old.unlink()
+    # CreatedAt is the image build time, not the tag time, so never prune the tag just retained.
+    rows = [line.split('\t') for line in docker('images', RETAINED, '--format', '{{.CreatedAt}}\t{{.Tag}}').splitlines()]
+    for _, tag in sorted(row for row in rows if row[1] != current)[:-(KEEP - 1)]:
+        try:
+            docker('rmi', RETAINED + ':' + tag)
+        except Blocked:
+            pass  # An image still used by a container keeps its tag until a later run.
+
+
+def safeguard():
+    storage_config(read_activation())
+    deployment, container = running_deployment()
+    source = Path(docker('volume', 'inspect', VOLUME, '--format', '{{.Mountpoint}}'))
+    OUTPUT.mkdir(mode=0o700, parents=True, exist_ok=True)
+    # A run killed at RuntimeMaxSec skips TemporaryDirectory cleanup; the socket allows one run at a time.
+    for stale in [*OUTPUT.glob('.payload-backup-*'), *OUTPUT.glob('.restore-*')]:
+        shutil.rmtree(stale)
+    stamp = time.strftime('%Y%m%dT%H%M%SZ', time.gmtime())
+    for attempt in range(ATTEMPTS):
+        run_id = f'{stamp}-{attempt}-{deployment}'[:64]
+        try:
+            # Freezing the only writer makes the database and uploads one point-in-time snapshot
+            # (crash-consistent, like a power cut) without stopping the site; requests wait briefly.
+            docker('pause', container)
+            try:
+                archive = Path(backup.backup(source, OUTPUT, run_id, runtime_stopped=True)['archive'])
+            finally:
+                unpause(container)
+            break
+        except (ValueError, sqlite3.Error):
+            if attempt == ATTEMPTS - 1:
+                raise
+            time.sleep(5)
+    with tempfile.TemporaryDirectory(dir=OUTPUT, prefix='.restore-') as scratch:
+        migrations = restore_proof(archive, Path(scratch))
+    image = RETAINED + ':' + deployment
+    docker('tag', docker('inspect', '--format', '{{.Image}}', container), image)
+    prune(deployment)
+    with archive.open('rb') as stream:
+        archive_sha = hashlib.file_digest(stream, 'sha256').hexdigest()
+    return {'ok': True, 'deployment': deployment, 'archive': str(archive), 'archiveSha256': archive_sha,
+            'image': image, 'migrations': migrations}
+
+
+def recover():
+    """Run by systemd after every exit, including a kill at RuntimeMaxSec, so the site never stays paused."""
+    deployment, container = running_deployment()
+    if docker('inspect', '--format', '{{.State.Paused}}', container) == 'true':
+        unpause(container)
+
+
+def main():
+    if sys.argv[1:] == ['--recover']:
+        recover()
+        return
+    try:
+        result = safeguard()
+    except Exception as error:  # Report a bounded failure to the caller; details go to the journal.
+        print('safeguard failed: ' + type(error).__name__ + ': ' + str(error)[:500], file=sys.stderr)
+        result = {'ok': False}
+    sys.stdout.write(json.dumps(result))
+    sys.stdout.flush()
+
+
+if __name__ == '__main__':
+    main()
