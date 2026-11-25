@@ -1,0 +1,25 @@
+deploy/payload-production/README.md
+  s_953d7ab28b4a95::t_24db53507b7605 29
+instrumentation-client.ts
+  s_953d7ab28b4a95::t_29a1fee75941d5 3,7
+instrumentation.ts
+  s_953d7ab28b4a95::t_c2690c09ac5443 3-4,10
+lib/sentryRuntime.ts
+  s_953d7ab28b4a95::t_07e54dd69ac3ce 8-10
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d21b7d31a4fd28194bb018f7f63809fd9ab598fd",
+  "prompts": {},
+  "sessions": {
+    "s_953d7ab28b4a95": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ee46210a-288c-4def-9abe-49e5a81ce3e6",
+        "model": "unknown"
+      },
+      "human_author": "Massimo Stefan <me@mstefan.dev>"
+    }
+  }
+}
